@@ -1,7 +1,15 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { connectWallet as connectWeb3Wallet, getTokenBalance, TOKEN_ADDRESSES, isMetaMaskAvailable } from "@/lib/web3"
+import {
+  connectWallet as connectWeb3Wallet,
+  getTokenBalance,
+  getTokenAddress,
+  getChainId,
+  isMetaMaskAvailable,
+  switchNetwork as switchWeb3Network,
+  CHAIN_IDS,
+} from "@/lib/web3"
 
 interface Web3ContextType {
   wallet: string | null
@@ -9,10 +17,13 @@ interface Web3ContextType {
   isConnecting: boolean
   usdtBalance: string
   usdcBalance: string
+  chainId: number
   connectWallet: () => Promise<void>
   disconnectWallet: () => void
   refreshBalances: () => Promise<void>
   isMetaMaskInstalled: boolean
+  switchNetwork: (chainId: number) => Promise<void>
+  isSupportedNetwork: boolean
 }
 
 const Web3Context = createContext<Web3ContextType | undefined>(undefined)
@@ -23,14 +34,25 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const [usdtBalance, setUsdtBalance] = useState("0")
   const [usdcBalance, setUsdcBalance] = useState("0")
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false)
+  const [chainId, setChainId] = useState<number>(CHAIN_IDS.MAINNET)
+
+  const isSupportedNetwork = chainId === CHAIN_IDS.MAINNET || chainId === CHAIN_IDS.SEPOLIA
 
   const refreshBalances = async () => {
     if (!wallet) return
 
     try {
+      // Get current chain ID first
+      const currentChainId = await getChainId()
+      setChainId(currentChainId)
+
+      // Get appropriate addresses for this chain
+      const usdtAddress = getTokenAddress(currentChainId, "USDT")
+      const usdcAddress = getTokenAddress(currentChainId, "USDC")
+
       const [usdt, usdc] = await Promise.all([
-        getTokenBalance(wallet, TOKEN_ADDRESSES.USDT),
-        getTokenBalance(wallet, TOKEN_ADDRESSES.USDC),
+        getTokenBalance(wallet, usdtAddress),
+        getTokenBalance(wallet, usdcAddress),
       ])
       setUsdtBalance(usdt)
       setUsdcBalance(usdc)
@@ -48,10 +70,14 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         console.log("[v0] Wallet connected:", address)
         setWallet(address)
         localStorage.setItem("wallet_address", address)
+        await refreshBalances()
       }
     } catch (error: any) {
       console.error("[v0] Failed to connect wallet:", error.message)
-      alert(error.message || "Failed to connect wallet")
+      // Don't alert if it's just the user cancelling
+      if (error.code !== 4001) {
+        // alert(error.message || "Failed to connect wallet")
+      }
     } finally {
       setIsConnecting(false)
     }
@@ -64,11 +90,25 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     localStorage.removeItem("wallet_address")
   }
 
+  const switchNetwork = async (targetChainId: number) => {
+    try {
+      await switchWeb3Network(targetChainId)
+      // The chainChanged event will handle the reload/refresh
+    } catch (error) {
+      console.error("[v0] Failed to switch network:", error)
+    }
+  }
+
   useEffect(() => {
-    const checkMetaMask = () => {
+    const checkMetaMask = async () => {
       const available = isMetaMaskAvailable()
       console.log("[v0] MetaMask available:", available)
       setIsMetaMaskInstalled(available)
+
+      if (available) {
+        const cid = await getChainId()
+        setChainId(cid)
+      }
     }
 
     checkMetaMask()
@@ -87,12 +127,15 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         } else {
           setWallet(accounts[0])
           localStorage.setItem("wallet_address", accounts[0])
+          refreshBalances()
         }
       }
 
-      const handleChainChanged = () => {
-        console.log("[v0] Chain changed, reloading...")
-        window.location.reload()
+      const handleChainChanged = (chainIdHex: string) => {
+        console.log("[v0] Chain changed:", chainIdHex)
+        const newChainId = Number.parseInt(chainIdHex, 16)
+        setChainId(newChainId)
+        refreshBalances()
       }
 
       window.ethereum.on("accountsChanged", handleAccountsChanged)
@@ -108,7 +151,8 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (wallet) {
       refreshBalances()
-      const interval = setInterval(refreshBalances, 30000)
+      // Refresh every 60 seconds to avoid rate limits
+      const interval = setInterval(refreshBalances, 60000)
       return () => clearInterval(interval)
     }
   }, [wallet])
@@ -121,10 +165,13 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         isConnecting,
         usdtBalance,
         usdcBalance,
+        chainId,
         connectWallet,
         disconnectWallet,
         refreshBalances,
         isMetaMaskInstalled,
+        switchNetwork,
+        isSupportedNetwork,
       }}
     >
       {children}

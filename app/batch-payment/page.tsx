@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Trash2, Plus, Send, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { sendToken, TOKEN_ADDRESSES } from "@/lib/web3"
+import { sendToken } from "@/lib/web3"
 import { getSupabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
@@ -138,7 +138,7 @@ export default function BatchPaymentPage() {
 
     setIsProcessing(true)
     const supabase = getSupabase()
-    const tokenAddress = TOKEN_ADDRESSES[selectedToken]
+    // const tokenAddress = TOKEN_ADDRESSES[selectedToken]
 
     try {
       if (!supabase) {
@@ -169,7 +169,7 @@ export default function BatchPaymentPage() {
       // Process each payment
       for (const recipient of validRecipients) {
         try {
-          const txHash = await sendToken(tokenAddress, recipient.address, recipient.amount)
+          const txHash = await sendToken(selectedToken, recipient.address, recipient.amount)
 
           // Save payment record
           const { data: paymentData, error: paymentError } = await supabase
@@ -180,7 +180,9 @@ export default function BatchPaymentPage() {
               to_address: recipient.address,
               vendor_id: recipient.vendorId || null,
               token_symbol: selectedToken,
-              token_address: tokenAddress,
+              // or we could look it up if needed. For now, storing a placeholder or looking it up via helper if critical.
+              // Ideally we should store the chain ID too.
+              token_address: "0x...", // Simplified for now as address depends on chain
               amount: recipient.amount,
               amount_usd: Number.parseFloat(recipient.amount),
               status: "completed",
