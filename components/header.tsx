@@ -1,0 +1,128 @@
+"use client"
+
+import Link from "next/link"
+import { WalletButton } from "./wallet-button"
+import { LayoutDashboard, Users, Send, Play, StopCircle, Menu } from "lucide-react"
+import { usePathname } from "next/navigation"
+import Image from "next/image"
+import { useDemo } from "@/contexts/demo-context"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useState } from "react"
+
+export function Header() {
+  const pathname = usePathname()
+  const { isDemoMode, toggleDemoMode } = useDemo()
+  const [isOpen, setIsOpen] = useState(false)
+
+  const navItems = [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/batch-payment", label: "Batch Payment", icon: Send },
+    { href: "/vendors", label: "Wallet Tags", icon: Users },
+  ]
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between px-4">
+        <div className="flex items-center gap-4 md:gap-8">
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[240px] sm:w-[300px] bg-card border-border">
+              <div className="flex flex-col gap-6 py-4">
+                <Link href="/" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
+                  <div className="h-8 w-8 relative">
+                    <Image src="/logo.png" alt="Protocol Banks Logo" fill className="object-contain" />
+                  </div>
+                  <span className="text-xl font-bold text-foreground">Protocol Banks</span>
+                </Link>
+                <nav className="flex flex-col gap-2">
+                  {navItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.href
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                          isActive
+                            ? "bg-secondary text-foreground"
+                            : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="h-8 w-8 relative">
+              <Image src="/logo.png" alt="Protocol Banks Logo" fill className="object-contain" />
+            </div>
+            <span className="hidden sm:inline-block text-xl font-bold text-foreground">Protocol Banks</span>
+          </Link>
+
+          {isDemoMode && (
+            <Badge variant="outline" className="hidden sm:inline-flex border-primary text-primary animate-pulse">
+              DEMO MODE
+            </Badge>
+          )}
+
+          <nav className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Button
+            variant={isDemoMode ? "default" : "outline"}
+            size="sm"
+            onClick={toggleDemoMode}
+            className={isDemoMode ? "text-white" : "border-primary/50 text-primary hover:bg-primary/10"}
+          >
+            {isDemoMode ? (
+              <>
+                <StopCircle className="mr-2 h-4 w-4" />
+                Exit Demo
+              </>
+            ) : (
+              <>
+                <Play className="mr-2 h-4 w-4" />
+                Try Demo
+              </>
+            )}
+          </Button>
+          <WalletButton />
+        </div>
+      </div>
+    </header>
+  )
+}
