@@ -5,16 +5,18 @@ export const CHAIN_IDS = {
   SEPOLIA: 11155111,
 } as const
 
-// USDT and USDC contract addresses
+// USDT, USDC, and DAI contract addresses
 export const TOKEN_ADDRESSES = {
   [CHAIN_IDS.MAINNET]: {
     USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
   },
   [CHAIN_IDS.SEPOLIA]: {
     // Using Aave V3 Faucet tokens for Sepolia testing
-    USDT: "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
-    USDC: "0x94a9D9AC8a22534E3fACA9f4e7F2e2Cf85d5e4c8",
+    USDT: "0xaa8e23fb1079ea71e0a56f48a2aa51851d8433d0",
+    USDC: "0x94a9d9ac8a22534e3faca9f4e7f2e2cf85d5e4c8",
+    DAI: "0xFF34B3d4Aee8ddCd6F9AFFFB6Fe49bD371b8a357",
   },
 } as const
 
@@ -26,6 +28,26 @@ export const ERC20_ABI = [
   "function allowance(address owner, address spender) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)",
 ]
+
+export type ChainType = "EVM" | "SOLANA" | "BITCOIN"
+
+declare global {
+  interface Window {
+    solana?: {
+      isPhantom?: boolean
+      connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString: () => string } }>
+      disconnect: () => Promise<void>
+      request: (args: { method: string; params?: any }) => Promise<any>
+    }
+    unisat?: {
+      requestAccounts: () => Promise<string[]>
+      getAccounts: () => Promise<string[]>
+      getNetwork: () => Promise<string>
+      switchNetwork: (network: string) => Promise<void>
+      getBalance: () => Promise<{ total: number; confirmed: number; unconfirmed: number }>
+    }
+  }
+}
 
 export function isMetaMaskAvailable(): boolean {
   if (typeof window === "undefined") return false
@@ -53,15 +75,6 @@ export async function getChainId(): Promise<number> {
   const provider = new ethers.BrowserProvider(window.ethereum)
   const network = await provider.getNetwork()
   return Number(network.chainId)
-}
-
-export function getTokenAddress(chainId: number, symbol: "USDT" | "USDC"): string {
-  const chainAddresses = TOKEN_ADDRESSES[chainId as keyof typeof TOKEN_ADDRESSES]
-  if (!chainAddresses) {
-    // Default to Mainnet if chain not found
-    return TOKEN_ADDRESSES[CHAIN_IDS.MAINNET][symbol]
-  }
-  return chainAddresses[symbol]
 }
 
 export async function connectWallet(): Promise<string | null> {
@@ -92,6 +105,15 @@ export async function connectWallet(): Promise<string | null> {
     console.error("[v0] Failed to connect wallet:", error)
     throw new Error(error.message || "Failed to connect to MetaMask")
   }
+}
+
+export function getTokenAddress(chainId: number, symbol: string): string | undefined {
+  const chainAddresses = TOKEN_ADDRESSES[chainId as keyof typeof TOKEN_ADDRESSES]
+  if (!chainAddresses) {
+    // Default to Mainnet if chain not found
+    return (TOKEN_ADDRESSES[CHAIN_IDS.MAINNET] as any)[symbol]
+  }
+  return (chainAddresses as any)[symbol]
 }
 
 export async function switchNetwork(chainId: number) {
@@ -125,8 +147,17 @@ export async function getTokenBalance(walletAddress: string, tokenAddress: strin
 
     // Check cache first
     if (contractExistsCache[tokenAddress] === undefined) {
-      const code = await provider.getCode(tokenAddress)
-      contractExistsCache[tokenAddress] = code !== "0x"
+      try {
+        const code = await provider.getCode(tokenAddress)
+        contractExistsCache[tokenAddress] = code !== "0x"
+      } catch (e: any) {
+        // If getCode fails with rate limit, assume it exists for now to try balance, or return 0
+        if (e?.error?.code === -32002 || e?.info?.error?.code === -32002) {
+          console.warn("[v0] RPC rate limit during getCode, skipping cache update")
+          return "0"
+        }
+        throw e
+      }
     }
 
     // If contract doesn't exist on this chain, return 0 immediately
@@ -150,11 +181,17 @@ export async function getTokenBalance(walletAddress: string, tokenAddress: strin
     return ethers.formatUnits(balance, decimals)
   } catch (error: any) {
     // Handle specific RPC errors
-    if (error.code === "BAD_DATA") {
-      console.warn(`[v0] Could not decode result for ${tokenAddress} - likely wrong chain`)
+    if (error.code === "BAD_DATA" || error.code === "INVALID_ARGUMENT") {
+      console.warn(`[v0] Could not decode result for ${tokenAddress} - likely wrong chain or invalid address`)
       return "0"
     }
-    if (error?.info?.error?.code === -32002) {
+
+    if (
+      error?.info?.error?.code === -32002 ||
+      error?.error?.code === -32002 ||
+      error?.code === -32002 ||
+      error?.message?.includes("RPC endpoint returned too many errors")
+    ) {
       console.warn("[v0] RPC rate limit hit, returning 0 temporarily")
       return "0"
     }
@@ -164,19 +201,13 @@ export async function getTokenBalance(walletAddress: string, tokenAddress: strin
   }
 }
 
-export async function sendToken(tokenSymbol: "USDT" | "USDC", toAddress: string, amount: string): Promise<string> {
+export async function sendToken(tokenAddress: string, toAddress: string, amount: string): Promise<string> {
   if (typeof window === "undefined" || !window.ethereum) {
     throw new Error("MetaMask is not available")
   }
 
   const provider = new ethers.BrowserProvider(window.ethereum)
   const signer = await provider.getSigner()
-
-  // Get current chain ID to ensure we use the right address
-  const network = await provider.getNetwork()
-  const chainId = Number(network.chainId)
-
-  const tokenAddress = getTokenAddress(chainId, tokenSymbol)
 
   const contract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
   const decimals = await contract.decimals()
@@ -186,4 +217,36 @@ export async function sendToken(tokenSymbol: "USDT" | "USDC", toAddress: string,
   await tx.wait()
 
   return tx.hash
+}
+
+export async function connectSolana(): Promise<string> {
+  if (typeof window === "undefined") return ""
+
+  if (!window.solana?.isPhantom) {
+    window.open("https://phantom.app/", "_blank")
+    throw new Error("Please install Phantom wallet for Solana")
+  }
+
+  try {
+    const resp = await window.solana.connect()
+    return resp.publicKey.toString()
+  } catch (err: any) {
+    throw new Error(err.message || "User rejected the request.")
+  }
+}
+
+export async function connectBitcoin(): Promise<string> {
+  if (typeof window === "undefined") return ""
+
+  if (typeof window.unisat === "undefined") {
+    window.open("https://unisat.io/", "_blank")
+    throw new Error("Please install Unisat wallet for Bitcoin")
+  }
+
+  try {
+    const accounts = await window.unisat.requestAccounts()
+    return accounts[0]
+  } catch (err: any) {
+    throw new Error(err.message || "User rejected the request.")
+  }
 }

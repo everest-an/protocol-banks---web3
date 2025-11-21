@@ -9,9 +9,9 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getSupabase } from "@/lib/supabase"
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
-// import PaymentNetworkGraph from "@/components/payment-network-graph"
 import { FinancialReport } from "@/components/financial-report"
 import { VendorSidebar } from "@/components/vendor-sidebar"
+import { BusinessMetrics } from "@/components/business-metrics"
 
 interface DashboardStats {
   totalSent: number
@@ -21,7 +21,7 @@ interface DashboardStats {
 }
 
 export default function HomePage() {
-  const { isConnected, connectWallet, wallet } = useWeb3()
+  const { isConnected, connectWallet, wallet, usdtBalance, usdcBalance, daiBalance } = useWeb3()
   const { isDemoMode } = useDemo()
   const [stats, setStats] = useState<DashboardStats>({
     totalSent: 0,
@@ -33,6 +33,10 @@ export default function HomePage() {
   const [paymentsList, setPaymentsList] = useState<any[]>([])
   const [vendorsList, setVendorsList] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Calculate total balance for runway estimation
+  const totalBalance =
+    Number.parseFloat(usdtBalance || "0") + Number.parseFloat(usdcBalance || "0") + Number.parseFloat(daiBalance || "0")
 
   useEffect(() => {
     if (isConnected && wallet) {
@@ -283,6 +287,13 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
+
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold text-foreground">Financial Health</h2>
+          <p className="text-muted-foreground">Key business performance indicators</p>
+        </div>
+
+        <BusinessMetrics payments={displayPayments} balance={totalBalance} loading={loading && !isDemoMode} />
 
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="bg-card border-border lg:col-span-2">

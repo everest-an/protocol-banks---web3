@@ -11,9 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Trash2, Plus, Send, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { sendToken } from "@/lib/web3"
+import { sendToken, getTokenAddress, getTokenBalance } from "@/lib/web3"
 import { getSupabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import { Wallet, Bitcoin } from "lucide-react"
 
 interface PaymentRecipient {
   id: string
@@ -30,23 +31,42 @@ interface Vendor {
 }
 
 export default function BatchPaymentPage() {
-  const { wallet, isConnected, usdtBalance, usdcBalance } = useWeb3()
+  const { wallets, activeChain, setActiveChain, isConnected, usdtBalance, usdcBalance, daiBalance, chainId } = useWeb3()
   const { toast } = useToast()
   const router = useRouter()
+
+  const currentWallet = wallets[activeChain]
 
   const [recipients, setRecipients] = useState<PaymentRecipient[]>([
     { id: "1", address: "", amount: "", vendorName: "", vendorId: "" },
   ])
-  const [selectedToken, setSelectedToken] = useState<"USDT" | "USDC">("USDT")
+  const [selectedToken, setSelectedToken] = useState<"USDT" | "USDC" | "DAI" | "CUSTOM">("USDT")
+  const [customTokenAddress, setCustomTokenAddress] = useState("")
+  const [customTokenBalance, setCustomTokenBalance] = useState("0")
   const [isProcessing, setIsProcessing] = useState(false)
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [loadingVendors, setLoadingVendors] = useState(true)
 
   useEffect(() => {
-    if (isConnected && wallet) {
+    if (isConnected && currentWallet) {
       loadVendors()
     }
-  }, [isConnected, wallet])
+  }, [isConnected, currentWallet])
+
+  useEffect(() => {
+    const fetchCustomBalance = async () => {
+      if (selectedToken === "CUSTOM" && customTokenAddress && currentWallet && customTokenAddress.length === 42) {
+        try {
+          const balance = await getTokenBalance(currentWallet, customTokenAddress)
+          setCustomTokenBalance(balance)
+        } catch (e) {
+          console.error("Failed to fetch custom token balance", e)
+          setCustomTokenBalance("0")
+        }
+      }
+    }
+    fetchCustomBalance()
+  }, [selectedToken, customTokenAddress, currentWallet])
 
   const loadVendors = async () => {
     try {
@@ -58,7 +78,7 @@ export default function BatchPaymentPage() {
         return
       }
 
-      const { data, error } = await supabase.from("vendors").select("*").eq("created_by", wallet).order("name")
+      const { data, error } = await supabase.from("vendors").select("*").eq("created_by", currentWallet).order("name")
 
       if (error) throw error
       setVendors(data || [])
@@ -103,11 +123,46 @@ export default function BatchPaymentPage() {
     return recipients.reduce((sum, r) => sum + (Number.parseFloat(r.amount) || 0), 0).toFixed(2)
   }
 
+  const getCurrentBalance = () => {
+    if (activeChain !== "EVM") return 0
+
+    switch (selectedToken) {
+      case "USDT":
+        return Number.parseFloat(usdtBalance)
+      case "USDC":
+        return Number.parseFloat(usdcBalance)
+      case "DAI":
+        return Number.parseFloat(daiBalance)
+      case "CUSTOM":
+        return Number.parseFloat(customTokenBalance)
+      default:
+        return 0
+    }
+  }
+
   const processBatchPayment = async () => {
-    if (!isConnected || !wallet) {
+    if (!isConnected || !currentWallet) {
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet first",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (activeChain !== "EVM") {
+      toast({
+        title: "Not Supported",
+        description: "Batch payments are currently only supported for Ethereum/EVM networks.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (selectedToken === "CUSTOM" && !customTokenAddress) {
+      toast({
+        title: "Invalid Token",
+        description: "Please enter a valid token address",
         variant: "destructive",
       })
       return
@@ -125,7 +180,7 @@ export default function BatchPaymentPage() {
     }
 
     const total = Number.parseFloat(getTotalAmount())
-    const currentBalance = Number.parseFloat(selectedToken === "USDT" ? usdtBalance : usdcBalance)
+    const currentBalance = getCurrentBalance()
 
     if (total > currentBalance) {
       toast({
@@ -138,7 +193,6 @@ export default function BatchPaymentPage() {
 
     setIsProcessing(true)
     const supabase = getSupabase()
-    // const tokenAddress = TOKEN_ADDRESSES[selectedToken]
 
     try {
       if (!supabase) {
@@ -151,11 +205,19 @@ export default function BatchPaymentPage() {
         return
       }
 
-      // Create batch payment record
+      let tokenAddress = ""
+      if (selectedToken === "CUSTOM") {
+        tokenAddress = customTokenAddress
+      } else {
+        const addr = getTokenAddress(chainId, selectedToken)
+        if (!addr) throw new Error(`Token address not found for ${selectedToken}`)
+        tokenAddress = addr
+      }
+
       const { data: batchData, error: batchError } = await supabase
         .from("batch_payments")
         .insert({
-          wallet_address: wallet,
+          wallet_address: currentWallet,
           total_recipients: validRecipients.length,
           total_amount_usd: total,
           status: "processing",
@@ -166,23 +228,19 @@ export default function BatchPaymentPage() {
 
       if (batchError) throw batchError
 
-      // Process each payment
       for (const recipient of validRecipients) {
         try {
-          const txHash = await sendToken(selectedToken, recipient.address, recipient.amount)
+          const txHash = await sendToken(tokenAddress, recipient.address, recipient.amount)
 
-          // Save payment record
           const { data: paymentData, error: paymentError } = await supabase
             .from("payments")
             .insert({
               tx_hash: txHash,
-              from_address: wallet,
+              from_address: currentWallet,
               to_address: recipient.address,
               vendor_id: recipient.vendorId || null,
-              token_symbol: selectedToken,
-              // or we could look it up if needed. For now, storing a placeholder or looking it up via helper if critical.
-              // Ideally we should store the chain ID too.
-              token_address: "0x...", // Simplified for now as address depends on chain
+              token_symbol: selectedToken === "CUSTOM" ? "CUSTOM" : selectedToken,
+              token_address: tokenAddress,
               amount: recipient.amount,
               amount_usd: Number.parseFloat(recipient.amount),
               status: "completed",
@@ -192,7 +250,6 @@ export default function BatchPaymentPage() {
 
           if (paymentError) throw paymentError
 
-          // Link payment to batch
           await supabase.from("batch_payment_items").insert({
             batch_id: batchData.id,
             payment_id: paymentData.id,
@@ -203,7 +260,6 @@ export default function BatchPaymentPage() {
         }
       }
 
-      // Update batch status
       await supabase
         .from("batch_payments")
         .update({ status: "completed", completed_at: new Date().toISOString() })
@@ -214,10 +270,8 @@ export default function BatchPaymentPage() {
         description: `Successfully sent ${selectedToken} to ${validRecipients.length} recipients`,
       })
 
-      // Reset form
       setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "" }])
 
-      // Redirect to analytics after 2 seconds
       setTimeout(() => router.push("/analytics"), 2000)
     } catch (error: any) {
       toast({
@@ -252,6 +306,33 @@ export default function BatchPaymentPage() {
         <p className="text-muted-foreground">Send crypto to multiple recipients at once</p>
       </div>
 
+      <div className="flex gap-4 mb-6">
+        <Button
+          variant={activeChain === "EVM" ? "default" : "outline"}
+          onClick={() => setActiveChain("EVM")}
+          className={activeChain === "EVM" ? "bg-blue-600 hover:bg-blue-700" : ""}
+        >
+          <Wallet className="mr-2 h-4 w-4" />
+          Ethereum
+        </Button>
+        <Button
+          variant={activeChain === "SOLANA" ? "default" : "outline"}
+          onClick={() => setActiveChain("SOLANA")}
+          className={activeChain === "SOLANA" ? "bg-purple-600 hover:bg-purple-700" : ""}
+        >
+          <div className="mr-2 h-3 w-3 rounded-full bg-current" />
+          Solana
+        </Button>
+        <Button
+          variant={activeChain === "BITCOIN" ? "default" : "outline"}
+          onClick={() => setActiveChain("BITCOIN")}
+          className={activeChain === "BITCOIN" ? "bg-orange-600 hover:bg-orange-700" : ""}
+        >
+          <Bitcoin className="mr-2 h-4 w-4" />
+          Bitcoin
+        </Button>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 bg-card border-border">
           <CardHeader>
@@ -261,8 +342,8 @@ export default function BatchPaymentPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex-1 min-w-[150px]">
                 <Label className="text-foreground">Token</Label>
                 <Select value={selectedToken} onValueChange={(v: any) => setSelectedToken(v)}>
                   <SelectTrigger className="bg-background border-border text-foreground">
@@ -271,15 +352,26 @@ export default function BatchPaymentPage() {
                   <SelectContent className="bg-card border-border">
                     <SelectItem value="USDT">USDT</SelectItem>
                     <SelectItem value="USDC">USDC</SelectItem>
+                    <SelectItem value="DAI">DAI</SelectItem>
+                    <SelectItem value="CUSTOM">Custom Token</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1">
+              {selectedToken === "CUSTOM" && (
+                <div className="flex-1 min-w-[200px]">
+                  <Label className="text-foreground">Token Address</Label>
+                  <Input
+                    placeholder="0x..."
+                    value={customTokenAddress}
+                    onChange={(e) => setCustomTokenAddress(e.target.value)}
+                    className="bg-background border-border text-foreground font-mono"
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-w-[150px]">
                 <Label className="text-muted-foreground">Available Balance</Label>
                 <div className="text-2xl font-bold text-foreground font-mono mt-2">
-                  {selectedToken === "USDT"
-                    ? Number.parseFloat(usdtBalance).toFixed(2)
-                    : Number.parseFloat(usdcBalance).toFixed(2)}
+                  {getCurrentBalance().toFixed(2)}
                 </div>
               </div>
             </div>

@@ -30,16 +30,21 @@ import {
   PieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
+  Legend,
 } from "recharts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import PaymentNetworkGraph from "@/components/payment-network-graph"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
+import { getTopCategories } from "@/lib/business-logic"
 
 interface Payment {
   id: string
   tx_hash: string
   to_address: string
+  from_address?: string // Added from_address
   token_symbol: string
   amount: string
   amount_usd: number
@@ -50,6 +55,7 @@ interface Payment {
   vendor?: {
     name: string
   }
+  is_external?: boolean // Added flag for external transactions
 }
 
 interface BatchPayment {
@@ -69,7 +75,7 @@ interface Stats {
 }
 
 export default function AnalyticsPage() {
-  const { wallet, isConnected } = useWeb3()
+  const { wallet, isConnected, chainId } = useWeb3() // Added chainId
   const { isDemoMode } = useDemo()
   const [payments, setPayments] = useState<Payment[]>([])
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
@@ -135,10 +141,11 @@ export default function AnalyticsPage() {
 
   const loadData = async () => {
     try {
+      setLoading(true) // Ensure loading state is set
       const supabase = getSupabase()
 
-      // Load payments with vendor info
-      const { data: paymentsData, error: paymentsError } = await supabase
+      // Load payments with vendor info from Supabase
+      const { data: supabaseData, error: paymentsError } = await supabase
         .from("payments")
         .select(`
           *,
@@ -150,6 +157,38 @@ export default function AnalyticsPage() {
 
       if (paymentsError) throw paymentsError
 
+      let allPayments = supabaseData || []
+
+      if (wallet) {
+        try {
+          // Determine chain ID (default to Mainnet if undefined)
+          const currentChainId = chainId || "1"
+
+          const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
+          const data = await response.json()
+
+          if (data.transactions) {
+            const externalTxs = data.transactions
+
+            // Merge logic: Create a map of existing tx_hashes to avoid duplicates
+            const existingHashes = new Set(allPayments.map((p: any) => p.tx_hash.toLowerCase()))
+
+            const newExternalTxs = externalTxs.filter(
+              (tx: any) =>
+                !existingHashes.has(tx.tx_hash.toLowerCase()) && tx.from_address.toLowerCase() === wallet.toLowerCase(), // Only show sent txs for now, or remove check to show all
+            )
+
+            // Combine and sort
+            allPayments = [...allPayments, ...newExternalTxs].sort(
+              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+            )
+          }
+        } catch (err) {
+          console.error("[v0] Failed to fetch external transactions:", err)
+          // Continue with just Supabase data if external fetch fails
+        }
+      }
+
       // Load batch payments
       const { data: batchesData, error: batchesError } = await supabase
         .from("batch_payments")
@@ -160,13 +199,13 @@ export default function AnalyticsPage() {
 
       if (batchesError) throw batchesError
 
-      setPayments(paymentsData || [])
+      setPayments(allPayments) // Set merged payments
       setBatches(batchesData || [])
 
       // Calculate stats
-      const totalSent = (paymentsData || []).reduce((sum, p) => sum + (p.amount_usd || 0), 0)
-      const totalTransactions = paymentsData?.length || 0
-      const uniqueVendors = new Set((paymentsData || []).filter((p) => p.vendor_id).map((p) => p.vendor_id)).size
+      const totalSent = allPayments.reduce((sum: number, p: any) => sum + (p.amount_usd || 0), 0)
+      const totalTransactions = allPayments.length
+      const uniqueVendors = new Set(allPayments.filter((p: any) => p.vendor_id).map((p: any) => p.vendor_id)).size
       const avgTransaction = totalTransactions > 0 ? totalSent / totalTransactions : 0
 
       setStats({
@@ -295,6 +334,26 @@ export default function AnalyticsPage() {
     }))
   }
 
+  const getCategoryData = () => {
+    const dataToUse = filteredPayments.length > 0 ? filteredPayments : payments
+    return getTopCategories(dataToUse)
+  }
+
+  const getTopVendorsData = () => {
+    const dataToUse = filteredPayments.length > 0 ? filteredPayments : payments
+    const vendorMap: Record<string, number> = {}
+
+    dataToUse.forEach((p) => {
+      const name = p.vendor?.name || (p.is_external ? "External" : "Unknown")
+      vendorMap[name] = (vendorMap[name] || 0) + (p.amount_usd || 0)
+    })
+
+    return Object.entries(vendorMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+  }
+
   const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444"]
 
   // Mock data for Demo Mode
@@ -303,6 +362,7 @@ export default function AnalyticsPage() {
       id: `demo-${i}`,
       tx_hash: `0x${Math.random().toString(16).slice(2)}`,
       to_address: `0x${Math.random().toString(16).slice(2)}`,
+      from_address: `0x${Math.random().toString(16).slice(2)}`,
       token_symbol: Math.random() > 0.5 ? "USDT" : "USDC",
       amount: (Math.random() * 5000 + 100).toString(),
       amount_usd: Math.random() * 5000 + 100,
@@ -438,6 +498,79 @@ export default function AnalyticsPage() {
       <Card className="bg-black border-border overflow-hidden">
         <PaymentNetworkGraph />
       </Card>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle>Spending by Category</CardTitle>
+            <CardDescription>Distribution of expenses across business categories</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={getCategoryData()}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {getCategoryData().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#111111",
+                      border: "1px solid #262626",
+                      borderRadius: "8px",
+                      color: "#ededed",
+                    }}
+                    formatter={(value: number) => [`$${value.toLocaleString()}`, "Amount"]}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle>Top Vendors</CardTitle>
+            <CardDescription>Highest volume suppliers by total payment amount</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={getTopVendorsData()}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" horizontal={false} />
+                  <XAxis type="number" stroke="#737373" fontSize={12} tickFormatter={(value) => `$${value / 1000}k`} />
+                  <YAxis dataKey="name" type="category" stroke="#737373" fontSize={12} width={100} />
+                  <Tooltip
+                    cursor={{ fill: "#262626", opacity: 0.5 }}
+                    contentStyle={{
+                      backgroundColor: "#111111",
+                      border: "1px solid #262626",
+                      borderRadius: "8px",
+                      color: "#ededed",
+                    }}
+                    formatter={(value: number) => [`$${value.toLocaleString()}`, "Total Paid"]}
+                  />
+                  <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="bg-card border-border">
         <CardHeader>
