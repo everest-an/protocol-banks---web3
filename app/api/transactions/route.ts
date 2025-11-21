@@ -1,5 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+// Regex for basic Ethereum address validation
+const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/
+
 // Token addresses for filtering (Mainnet & Sepolia)
 const TOKENS = {
   mainnet: {
@@ -21,6 +24,10 @@ export async function GET(request: NextRequest) {
 
   if (!address) {
     return NextResponse.json({ error: "Address is required" }, { status: 400 })
+  }
+
+  if (!ETH_ADDRESS_REGEX.test(address)) {
+    return NextResponse.json({ error: "Invalid Ethereum address format" }, { status: 400 })
   }
 
   // Determine network and API URL

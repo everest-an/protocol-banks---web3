@@ -27,6 +27,7 @@ export const ERC20_ABI = [
   "function transfer(address to, uint256 amount) returns (bool)",
   "function allowance(address owner, address spender) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)",
+  "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external",
 ]
 
 export type ChainType = "EVM" | "SOLANA" | "BITCOIN"
@@ -249,4 +250,64 @@ export async function connectBitcoin(): Promise<string> {
   } catch (err: any) {
     throw new Error(err.message || "User rejected the request.")
   }
+}
+
+export async function signERC3009Authorization(
+  tokenAddress: string,
+  from: string,
+  to: string,
+  amount: string,
+  chainId: number,
+): Promise<{ v: number; r: string; s: string; nonce: string; validAfter: number; validBefore: number }> {
+  if (typeof window === "undefined" || !window.ethereum) {
+    throw new Error("MetaMask is not available")
+  }
+
+  const provider = new ethers.BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  const contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider)
+  const name = await contract.symbol()
+
+  // Random nonce (32 bytes hex)
+  const nonce = ethers.hexlify(ethers.randomBytes(32))
+  const validAfter = 0
+  const validBefore = Math.floor(Date.now() / 1000) + 3600 // 1 hour
+
+  const domain = {
+    name: name === "USDC" ? "USD Coin" : name,
+    version: "2",
+    chainId: chainId,
+    verifyingContract: tokenAddress,
+  }
+
+  const types = {
+    TransferWithAuthorization: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" },
+    ],
+  }
+
+  // Value in Wei
+  const decimals = await contract.decimals()
+  const value = ethers.parseUnits(amount, decimals)
+
+  const message = {
+    from,
+    to,
+    value,
+    validAfter,
+    validBefore,
+    nonce,
+  }
+
+  // Sign Typed Data
+  const signature = await signer.signTypedData(domain, types, message)
+  const { v, r, s } = ethers.Signature.from(signature)
+
+  return { v, r, s, nonce, validAfter, validBefore }
 }
