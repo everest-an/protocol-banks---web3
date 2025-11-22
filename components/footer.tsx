@@ -3,12 +3,12 @@ import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen } from "lucide-re
 
 export function Footer() {
   return (
-    <footer className="border-t border-zinc-800 bg-[#09090b] py-12 px-6 md:px-12">
+    <footer className="border-t border-zinc-800 bg-[#09090b] py-12 px-6 md:px-12 mt-auto">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           {/* Brand Column */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
               <div className="relative w-8 h-8">
                 <img src="/logo.png" alt="Protocol Bank Logo" className="w-full h-full object-contain brightness-200" />
               </div>
@@ -25,19 +25,19 @@ export function Footer() {
             <h4 className="text-white font-mono text-xs uppercase tracking-widest mb-6">Resources</h4>
             <ul className="space-y-4 text-sm text-zinc-500">
               <li>
-                <Link href="#" className="flex items-center gap-2 hover:text-white transition-colors">
+                <Link href="/whitepaper" className="flex items-center gap-2 hover:text-white transition-colors">
                   <FileText className="w-4 h-4" />
                   Whitepaper (EN)
                 </Link>
               </li>
               <li>
-                <Link href="#" className="flex items-center gap-2 hover:text-white transition-colors">
+                <Link href="/help" className="flex items-center gap-2 hover:text-white transition-colors">
                   <BookOpen className="w-4 h-4" />
                   Usage Guide
                 </Link>
               </li>
               <li>
-                <Link href="#" className="flex items-center gap-2 hover:text-white transition-colors">
+                <Link href="/help" className="flex items-center gap-2 hover:text-white transition-colors">
                   <HelpCircle className="w-4 h-4" />
                   Help Center
                 </Link>
@@ -51,7 +51,7 @@ export function Footer() {
             <ul className="space-y-4 text-sm text-zinc-500">
               <li>
                 <Link
-                  href="https://github.com/protocol-banks"
+                  href="https://github.com/everest-an/protocol-banks---web3"
                   target="_blank"
                   className="flex items-center gap-2 hover:text-white transition-colors"
                 >
@@ -61,7 +61,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="https://twitter.com"
+                  href="https://twitter.com/protocolbank"
                   target="_blank"
                   className="flex items-center gap-2 hover:text-white transition-colors"
                 >
@@ -77,14 +77,12 @@ export function Footer() {
             <h4 className="text-white font-mono text-xs uppercase tracking-widest mb-6">Contact</h4>
             <ul className="space-y-4 text-sm text-zinc-500">
               <li>
-                <Link
-                  href="mailto:support@protocolbank.io"
-                  className="flex items-center gap-2 hover:text-white transition-colors"
-                >
+                <Link href="/contact" className="flex items-center gap-2 hover:text-white transition-colors">
                   <Mail className="w-4 h-4" />
                   Contact Us
                 </Link>
               </li>
+              <li className="text-xs text-zinc-600 mt-4">everest9812@gmail.com</li>
             </ul>
           </div>
         </div>
