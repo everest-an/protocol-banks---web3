@@ -63,9 +63,13 @@ export function WalletButton() {
   // Mobile handling: If mobile and no provider, show "Open in MetaMask"
   if (isMobile && !isMetaMaskInstalled) {
     return (
-      <Button onClick={handleMobileConnect} className="bg-orange-600 text-white hover:bg-orange-700">
-        <Smartphone className="mr-2 h-4 w-4" />
-        Open in MetaMask
+      <Button
+        onClick={handleMobileConnect}
+        size="sm"
+        className="bg-orange-600 text-white hover:bg-orange-700 text-xs sm:text-sm px-2 sm:px-4"
+      >
+        <Smartphone className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+        <span className="hidden xs:inline">Open </span>MetaMask
       </Button>
     )
   }
@@ -74,10 +78,11 @@ export function WalletButton() {
     return (
       <Button
         onClick={() => window.open("https://metamask.io/download/", "_blank")}
-        className="bg-orange-600 text-white hover:bg-orange-700"
+        size="sm"
+        className="bg-orange-600 text-white hover:bg-orange-700 text-xs sm:text-sm px-2 sm:px-4"
       >
-        <ExternalLink className="mr-2 h-4 w-4" />
-        Install MetaMask
+        <ExternalLink className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+        <span className="hidden xs:inline">Install </span>MetaMask
       </Button>
     )
   }
@@ -86,9 +91,9 @@ export function WalletButton() {
     return (
       <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
         <DialogTrigger asChild>
-          <Button disabled={isConnecting}>
-            <Wallet className="mr-2 h-4 w-4" />
-            {isConnecting ? "Connecting..." : "Connect Wallet"}
+          <Button disabled={isConnecting} size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+            <Wallet className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">{isConnecting ? "Connecting..." : "Connect"}</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
@@ -157,9 +162,9 @@ export function WalletButton() {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="destructive">
-            <AlertTriangle className="mr-2 h-4 w-4" />
-            Wrong Network
+          <Button variant="destructive" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+            <AlertTriangle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Wrong Network</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -177,19 +182,22 @@ export function WalletButton() {
       <DropdownMenuTrigger asChild>
         <Button
           variant={activeWallet ? "default" : "outline"}
-          className={
+          size="sm"
+          className={`text-xs sm:text-sm px-2 sm:px-3 ${
             activeWallet ? "border-0" : "border-border bg-transparent hover:bg-accent hover:text-accent-foreground"
-          }
+          }`}
         >
           {activeChain === "BITCOIN" ? (
-            <Bitcoin className="mr-2 h-4 w-4 text-orange-500" />
+            <Bitcoin className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
           ) : activeChain === "SOLANA" ? (
-            <div className="mr-2 h-3 w-3 rounded-full bg-purple-500" />
+            <div className="mr-1 sm:mr-2 h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-purple-500" />
           ) : (
-            <Wallet className="mr-2 h-4 w-4" />
+            <Wallet className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
           )}
-          <span className="hidden sm:inline">{activeWallet ? formatAddress(activeWallet) : "Connect Wallet"}</span>
-          <span className="ml-2 text-xs text-white/80 hidden md:inline">
+          <span className="hidden xs:inline truncate max-w-[80px] sm:max-w-none">
+            {activeWallet ? formatAddress(activeWallet) : "Connect"}
+          </span>
+          <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-white/80 hidden md:inline">
             ({activeChain === "EVM" ? (chainId === CHAIN_IDS.MAINNET ? "Mainnet" : "Sepolia") : activeChain})
           </span>
         </Button>
@@ -202,7 +210,7 @@ export function WalletButton() {
         <div className="px-2 py-2">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center">
-              <Wallet className="mr-2 h-4 w-4 text-blue-500" />
+              <Wallet className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
               <span className="text-sm font-medium">Ethereum</span>
             </div>
             {wallets.EVM ? (
@@ -249,7 +257,7 @@ export function WalletButton() {
         <div className="px-2 py-2">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center">
-              <div className="mr-2 h-4 w-4 rounded-full bg-purple-500" />
+              <div className="mr-1 sm:mr-2 h-4 w-4 rounded-full bg-purple-500" />
               <span className="text-sm font-medium">Solana</span>
             </div>
             {wallets.SOLANA ? (
@@ -284,7 +292,7 @@ export function WalletButton() {
         <div className="px-2 py-2">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center">
-              <Bitcoin className="mr-2 h-4 w-4 text-orange-500" />
+              <Bitcoin className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
               <span className="text-sm font-medium">Bitcoin</span>
             </div>
             {wallets.BITCOIN ? (
@@ -326,12 +334,12 @@ export function WalletButton() {
         <DropdownMenuItem onClick={() => activeWallet && copyAddress(activeWallet)} className="cursor-pointer">
           {copied ? (
             <>
-              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+              <CheckCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
               Copied Address
             </>
           ) : (
             <>
-              <Copy className="mr-2 h-4 w-4" />
+              <Copy className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               Copy Active Address
             </>
           )}
@@ -339,7 +347,7 @@ export function WalletButton() {
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             Disconnect
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>

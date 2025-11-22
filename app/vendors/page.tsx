@@ -9,20 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { Plus, Search, LayoutGrid, ListIcon, Download, Calendar, Filter } from "lucide-react"
+import { Search, LayoutGrid, ListIcon, Download, Calendar, Filter } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getSupabase } from "@/lib/supabase"
 import { NetworkGraph } from "@/components/network-graph"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -116,6 +107,7 @@ export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<"graph" | "list">("graph")
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("")
@@ -139,9 +131,9 @@ export default function VendorsPage() {
         v.category = categories[v.id.charCodeAt(0) % categories.length]
       }
 
-      return matchesSearch
+      return matchesSearch && (selectedCategories.length === 0 || selectedCategories.includes(v.category || "All"))
     })
-  }, [displayVendors, searchQuery])
+  }, [displayVendors, searchQuery, selectedCategories])
 
   useEffect(() => {
     if (isConnected && wallet) {
@@ -272,29 +264,29 @@ export default function VendorsPage() {
         </div>
       )}
       {/* Enterprise Header Toolbar */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-30">
-        <div className="container mx-auto py-3 px-4 flex flex-col lg:flex-row items-center justify-between gap-4">
-          <div className="flex items-center justify-between w-full lg:w-auto gap-4">
-            <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">Wallet Tags</h1>
-            <div className="h-4 w-px bg-border hidden lg:block"></div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground hidden lg:flex whitespace-nowrap">
-              <Calendar className="w-4 h-4" />
-              <span>Fiscal Year: {allowRange ? `${yearRange[0]} - ${yearRange[1]}` : yearRange[0]}</span>
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-16 z-20">
+        <div className="container mx-auto py-3 px-3 sm:px-4 flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight whitespace-nowrap">Wallet Tags</h1>
+              <div className="h-4 w-px bg-border hidden sm:block"></div>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs">FY: {allowRange ? `${yearRange[0]}-${yearRange[1]}` : yearRange[0]}</span>
+              </div>
             </div>
-          </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search entities..."
-                className="pl-9 bg-secondary/50 border-transparent focus:bg-background transition-all"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center justify-between w-full sm:w-auto gap-3">
-              <div className="flex items-center border border-border rounded-md bg-secondary/30 p-1 shrink-0">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-none sm:w-48 lg:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  className="pl-8 sm:pl-9 h-9 text-sm bg-secondary/50 border-transparent focus:bg-background transition-all"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center border border-border rounded-md bg-secondary/30 p-0.5 shrink-0">
                 <Button
                   variant={viewMode === "graph" ? "secondary" : "ghost"}
                   size="icon"
@@ -312,60 +304,34 @@ export default function VendorsPage() {
                   <ListIcon className="w-4 h-4" />
                 </Button>
               </div>
+            </div>
+          </div>
 
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    className="bg-white text-black hover:bg-zinc-200 whitespace-nowrap shrink-0"
-                    disabled={isDemoMode}
-                  >
-                    <Plus className="w-4 h-4 mr-2" /> Add Entity
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New Entity</DialogTitle>
-                    <DialogDescription>Add a new vendor or partner to your network.</DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleAddSubmit} className="space-y-4 pt-4">
-                    <div className="grid gap-2">
-                      <Label>Name</Label>
-                      <Input
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Wallet Address</Label>
-                      <Input
-                        value={formData.wallet_address}
-                        onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
-                        required
-                        className="font-mono"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Email (Optional)</Label>
-                      <Input
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Notes</Label>
-                      <Textarea
-                        value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      />
-                    </div>
-                    <Button type="submit" className="w-full">
-                      Create Entity
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0">
+            <div className="flex items-center gap-2 text-xs shrink-0">
+              <Filter className="w-3 h-3 text-muted-foreground" />
+              <span className="text-muted-foreground whitespace-nowrap">Filters:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {["All", "Suppliers", "Partners", "Subsidiaries"].map((cat) => (
+                <Button
+                  key={cat}
+                  variant={selectedCategories.includes(cat) ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 px-3 text-xs whitespace-nowrap"
+                  onClick={() => {
+                    if (cat === "All") {
+                      setSelectedCategories([])
+                    } else {
+                      setSelectedCategories((prev) =>
+                        prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+                      )
+                    }
+                  }}
+                >
+                  {cat}
+                </Button>
+              ))}
             </div>
           </div>
         </div>
@@ -411,7 +377,7 @@ export default function VendorsPage() {
               <Filter className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Active Filter:</span>
               <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
-                All Categories
+                {selectedCategories.length > 0 ? selectedCategories.join(", ") : "All Categories"}
               </Badge>
             </div>
           </div>
@@ -423,57 +389,59 @@ export default function VendorsPage() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 container mx-auto p-4 md:p-6">
+      <main className="flex-1 container mx-auto p-3 sm:p-4 md:p-6">
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="space-y-4">
           <TabsContent value="graph" className="m-0 border-none p-0 outline-none">
-            <NetworkGraph
-              vendors={filteredVendors}
-              userAddress={wallet || undefined}
-              onPaymentRequest={handlePaymentRequest}
-            />
+            <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
+              <NetworkGraph
+                vendors={filteredVendors}
+                userAddress={wallet || undefined}
+                onPaymentRequest={handlePaymentRequest}
+              />
+            </div>
 
             {/* Stats Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6">
               <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
+                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Network Volume
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-mono font-medium">
+                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  <div className="text-lg sm:text-2xl font-mono font-medium">
                     ${filteredVendors.reduce((sum, v) => sum + (v.totalReceived || 0), 0).toLocaleString()}
                   </div>
                 </CardContent>
               </Card>
               <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
+                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Active Entities
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-mono font-medium">{filteredVendors.length}</div>
+                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  <div className="text-lg sm:text-2xl font-mono font-medium">{filteredVendors.length}</div>
                 </CardContent>
               </Card>
               <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
+                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Avg. Transaction
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-mono font-medium">$1,240.50</div>
+                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  <div className="text-lg sm:text-2xl font-mono font-medium">$1,240</div>
                 </CardContent>
               </Card>
               <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
+                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Health Score
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-mono font-medium text-emerald-500">98.2%</div>
+                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  <div className="text-lg sm:text-2xl font-mono font-medium text-emerald-500">98.2%</div>
                 </CardContent>
               </Card>
             </div>

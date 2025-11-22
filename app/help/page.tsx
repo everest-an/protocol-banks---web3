@@ -1,14 +1,13 @@
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { Wallet, Layers, Shield, Network, Coins, Lock, HelpCircle } from "lucide-react"
 
 export default function HelpPage() {
   return (
     <div className="min-h-screen bg-black font-sans text-zinc-100 selection:bg-white/20">
-      <Header />
-      <main className="max-w-4xl mx-auto px-6 py-24">
-        <h1 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">Usage Guide & Help Center</h1>
-        <p className="text-xl text-zinc-400 mb-16 leading-relaxed">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-24">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 tracking-tight">
+          Usage Guide & Help Center
+        </h1>
+        <p className="text-lg sm:text-xl text-zinc-400 mb-12 sm:mb-16 leading-relaxed">
           Master the Protocol Bank interface. Learn how to manage multi-chain payments, visualize your financial
           network, and secure your enterprise assets.
         </p>
@@ -207,8 +206,7 @@ export default function HelpPage() {
             </div>
           </section>
         </div>
-      </main>
-      <Footer />
+      </div>
     </div>
   )
 }
