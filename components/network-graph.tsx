@@ -16,6 +16,7 @@ interface Vendor {
   notes?: string
   tier?: "subsidiary" | "partner" | "vendor"
   parentId?: string
+  email?: string
 }
 
 interface Node {
@@ -312,13 +313,13 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
                     onMouseLeave={() => setHoveredNode(null)}
                     style={{
                       transformOrigin: `${node.x}px ${node.y}px`,
-                      opacity: dimmed ? 0.3 : 1,
+                      opacity: dimmed ? 0.5 : 1, // Increased opacity for dimmed nodes from 0.3 to 0.6
                     }}
                     className="transition-all duration-300 cursor-pointer"
                   >
                     {/* Glow Effect */}
                     {(isSelected || isHovered) && (
-                      <circle cx={node.x} cy={node.y} r={node.r * 2} fill="url(#node-glow)" opacity="0.15" />
+                      <circle cx={node.x} cy={node.y} r={node.r * 2} fill="url(#node-glow)" opacity="0.4" /> // Increased glow opacity from 0.15 to 0.4
                     )}
 
                     {/* Main Node Body */}
@@ -326,7 +327,7 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
                       cx={node.x}
                       cy={node.y}
                       r={node.r}
-                      fill={isRoot ? "#fff" : "#000"}
+                      fill={isRoot ? "#fff" : "#18181b"} // Use brighter white for root, keep black for others but maybe lighter stroke
                       stroke={node.color}
                       strokeWidth={isSelected ? 3 : 1.5}
                       className="transition-all duration-300"

@@ -6,6 +6,7 @@ import "./globals.css"
 import { Web3Provider } from "@/contexts/web3-context"
 import { DemoProvider } from "@/contexts/demo-context"
 import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
@@ -38,6 +39,7 @@ export default function RootLayout({
             <div className="relative min-h-screen flex flex-col">
               <Header />
               <main className="flex-1">{children}</main>
+              <Footer />
             </div>
             <Toaster />
           </DemoProvider>
