@@ -13,9 +13,9 @@ Protocol Bank is a comprehensive financial dashboard designed for modern enterpr
    - **Real-time Balances**: Aggregated view of your assets across all connected networks.
    - **Smart Routing**: Automatically selects the correct wallet provider based on the target network.
 
-### 2. **Advanced Batch Payments**
+### 2. **Advanced Batch Payments & x402 Protocol**
    - **Mixed-Token Batches**: Send USDT, USDC, and DAI to multiple recipients in a single session.
-   - **x402 Protocol Integration**: Support for ERC-3009 (TransferWithAuthorization) for gas-optimized, delegated USDC payments.
+   - **x402 Protocol / ERC-3009**: Implements the *TransferWithAuthorization* standard for gasless, delegated USDC payments. This allows AI agents and automated systems to propose payments that are signed securely by treasury managers off-chain.
    - **Multi-Chain Dispatch**: Orchestrate payments across Ethereum, Solana, and Bitcoin from a single CSV or form input.
 
 ### 3. **Entity Network Visualization (Wallet Tags)**
@@ -33,7 +33,11 @@ Protocol Bank is a comprehensive financial dashboard designed for modern enterpr
 
 - **Frontend**: Next.js 14 (App Router), React, Tailwind CSS
 - **Visualization**: Recharts, Framer Motion, Custom SVG Graph
-- **Web3 Integration**: ethers.js, Solana Web3 (Adapter), Bitcoin/Unisat API
+- **Web3 Integration**: ethers.js (v6), Solana Web3 (Adapter), Bitcoin/Unisat API
+- **Payment Standards**: 
+  - **ERC-20**: Standard Token Transfers
+  - **ERC-3009**: Transfer With Authorization (x402 Protocol)
+  - **EIP-712**: Typed Data Signing for secure approvals
 - **Data Layer**: Supabase (PostgreSQL) with Row Level Security (RLS)
 - **Indexer**: Etherscan API Integration
 
@@ -43,11 +47,9 @@ Protocol Bank is a comprehensive financial dashboard designed for modern enterpr
 - **Data Segregation**: The application filters all data by the connected wallet address.
 - **Transparent Logic**: Open-source code allows for full auditing of payment routing logic.
 
-## 📄 Whitepaper Abstract
+## 📄 Whitepaper
 
-**Protocol Bank: Decentralized Treasury Management for the AI Era**
-
-*Abstract*: As decentralized organizations (DAOs) and AI agents become economic actors, the need for a programmable, cross-chain treasury management layer becomes critical. Protocol Bank proposes a unified interface for "Entity Resource Planning" (ERP) on the blockchain. By abstracting chain-specific complexities and integrating standard accounting practices (tags, categories, reports) directly with on-chain events, Protocol Bank enables seamless financial operations for the next generation of digital enterprises. Our "x402" standard extension allows for gasless, delegated settlements, paving the way for autonomous agent payments.
+For a deep dive into the economic model, market analysis, and technical implementation of the x402 protocol, please read the complete [Whitepaper](WHITEPAPER.md).
 
 ## 🏁 Getting Started
 
