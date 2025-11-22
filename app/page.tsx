@@ -20,7 +20,7 @@ interface DashboardStats {
 }
 
 export default function HomePage() {
-  const { isConnected, connectWallet, wallet, usdtBalance, usdcBalance, daiBalance } = useWeb3()
+  const { isConnected, connectWallet, wallet, usdtBalance, usdcBalance, daiBalance, chainId } = useWeb3()
   const isDemoMode = !isConnected
   const [stats, setStats] = useState<DashboardStats>({
     totalSent: 0,
@@ -47,32 +47,60 @@ export default function HomePage() {
     try {
       const supabase = getSupabase()
 
-      if (!supabase) {
-        console.warn("[v0] Supabase client not initialized")
-        setLoading(false)
-        return
-      }
-
-      const { data: vendors } = await supabase.from("vendors").select("*").eq("created_by", wallet)
+      const { data: vendors } = supabase
+        ? await supabase.from("vendors").select("*").eq("created_by", wallet)
+        : { data: [] }
 
       // Ideally: .select("*, vendors(*)")
-      const { data: payments, error } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("from_address", wallet)
-        .order("timestamp", { ascending: false })
+      const { data: payments, error } = supabase
+        ? await supabase
+            .from("payments")
+            .select("*")
+            .eq("from_address", wallet)
+            .order("timestamp", { ascending: false })
+        : { data: [], error: null }
 
       if (error) throw error
 
-      const enrichedPayments = payments?.map((p) => {
+      let allPayments = payments || []
+
+      if (wallet) {
+        try {
+          const currentChainId = chainId || "1"
+          const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
+          const data = await response.json()
+
+          if (data.transactions) {
+            const externalTxs = data.transactions
+
+            // Create Set of existing tx_hashes to prevent duplicates
+            const existingHashes = new Set(allPayments.map((p: any) => p.tx_hash.toLowerCase()))
+
+            const newExternalTxs = externalTxs.filter(
+              (tx: any) =>
+                !existingHashes.has(tx.tx_hash.toLowerCase()) && tx.from_address.toLowerCase() === wallet.toLowerCase(),
+            )
+
+            // Merge and sort
+            allPayments = [...allPayments, ...newExternalTxs].sort(
+              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+            )
+          }
+        } catch (err) {
+          console.error("[v0] Failed to fetch external transactions:", err)
+        }
+      }
+
+      const enrichedPayments = allPayments.map((p) => {
         const vendor =
-          vendors?.find((v) => v.id === p.vendor_id) || vendors?.find((v) => v.wallet_address === p.to_address)
+          vendors?.find((v) => v.id === p.vendor_id) ||
+          vendors?.find((v) => v.wallet_address.toLowerCase() === p.to_address.toLowerCase())
         return { ...p, vendor }
       })
 
       const enrichedVendors = vendors?.map((v) => {
-        const totalReceived = payments
-          ?.filter((p) => p.vendor_id === v.id || p.to_address === v.wallet_address)
+        const totalReceived = allPayments
+          .filter((p) => p.vendor_id === v.id || p.to_address.toLowerCase() === v.wallet_address.toLowerCase())
           .reduce((sum, p) => sum + (p.amount_usd || 0), 0)
         return { ...v, totalReceived }
       })
@@ -81,14 +109,14 @@ export default function HomePage() {
       setVendorsList(enrichedVendors || [])
 
       // Calculate statistics
-      const totalSent = (payments || []).reduce((sum, p) => sum + (p.amount_usd || 0), 0)
-      const totalTransactions = payments?.length || 0
+      const totalSent = allPayments.reduce((sum, p) => sum + (p.amount_usd || 0), 0)
+      const totalTransactions = allPayments.length
       const totalVendors = vendors?.length || 0
 
       // Get payments from last 7 days
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const recentPayments = (payments || []).filter((p) => new Date(p.timestamp) >= sevenDaysAgo).length
+      const recentPayments = allPayments.filter((p) => new Date(p.timestamp) >= sevenDaysAgo).length
 
       setStats({
         totalSent,
@@ -105,7 +133,7 @@ export default function HomePage() {
       })
 
       const chartData = last7Days.map((date) => {
-        const dayPayments = (payments || []).filter((p) => p.timestamp.startsWith(date))
+        const dayPayments = allPayments.filter((p) => p.timestamp.startsWith(date))
         const total = dayPayments.reduce((sum, p) => sum + (p.amount_usd || 0), 0)
         return {
           date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -209,7 +237,7 @@ export default function HomePage() {
         )}
 
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-foreground">{isDemoMode ? "Demo Dashboard" : "Dashboard"}</h1>
+          <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">Manage your crypto payments and vendors</p>
         </div>
 

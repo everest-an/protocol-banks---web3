@@ -108,7 +108,7 @@ const generateEnterpriseDemoData = (): Vendor[] => {
 const demoVendors = generateEnterpriseDemoData()
 
 export default function VendorsPage() {
-  const { wallet, isConnected } = useWeb3()
+  const { wallet, isConnected, chainId } = useWeb3()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const router = useRouter()
@@ -167,18 +167,54 @@ export default function VendorsPage() {
 
       if (error) throw error
 
-      // In a real app, we would join with payments table here or fetch efficiently
-      // For now, fetching payments to calculate volumes on client side
+      let allPayments: any[] = []
+
+      // 1. Fetch internal payments from Supabase
       const { data: paymentsData } = await supabase
         .from("payments")
-        .select("amount_usd, to_address, vendor_id")
+        .select("amount_usd, to_address, vendor_id, tx_hash")
         .eq("from_address", wallet)
 
+      if (paymentsData) {
+        allPayments = [...paymentsData]
+      }
+
+      // 2. Fetch external transactions if wallet is connected
+      if (wallet) {
+        try {
+          const currentChainId = chainId || "1"
+          const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
+          const data = await response.json()
+
+          if (data.transactions) {
+            const externalTxs = data.transactions
+
+            // Avoid duplicates using tx_hash
+            const existingHashes = new Set(allPayments.map((p) => p.tx_hash?.toLowerCase()).filter(Boolean))
+
+            const newExternalTxs = externalTxs.filter(
+              (tx: any) =>
+                !existingHashes.has(tx.tx_hash.toLowerCase()) && tx.from_address.toLowerCase() === wallet.toLowerCase(),
+            )
+
+            allPayments = [...allPayments, ...newExternalTxs]
+          }
+        } catch (err) {
+          console.error("[v0] Failed to fetch external transactions for vendors:", err)
+        }
+      }
+
       const vendorsWithStats = (vendorsData || []).map((vendor) => {
-        const vendorPayments = (paymentsData || []).filter(
-          (p) => p.vendor_id === vendor.id || p.to_address === vendor.wallet_address,
+        const vendorPayments = allPayments.filter(
+          (p) =>
+            p.vendor_id === vendor.id ||
+            (p.to_address &&
+              vendor.wallet_address &&
+              p.to_address.toLowerCase() === vendor.wallet_address.toLowerCase()),
         )
+
         const totalReceived = vendorPayments.reduce((sum, p) => sum + (Number(p.amount_usd) || 0), 0)
+
         return {
           ...vendor,
           totalReceived,
