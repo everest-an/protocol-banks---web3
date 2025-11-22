@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen } from "lucide-react"
+import Image from "next/image"
 
 export function Footer() {
   return (
@@ -9,10 +10,9 @@ export function Footer() {
           {/* Brand Column */}
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="relative w-8 h-8">
-                <img src="/logo.png" alt="Protocol Bank Logo" className="w-full h-full object-contain brightness-200" />
+              <div className="relative h-8 w-40">
+                <Image src="/logo-text-white.png" alt="Protocol Bank" fill className="object-contain object-left" />
               </div>
-              <span className="font-mono font-bold text-white tracking-tighter text-lg">PROTOCOL BANK</span>
             </div>
             <p className="text-zinc-500 text-sm leading-relaxed">
               Enterprise-grade crypto payment infrastructure for modern businesses. Manage batch payments, track
@@ -82,7 +82,7 @@ export function Footer() {
                   Contact Us
                 </Link>
               </li>
-              <li className="text-xs text-zinc-600 mt-4">everest9812@gmail.com</li>
+              <li className="text-xs text-zinc-600 mt-4">protocolbanks@gmail.com</li>
             </ul>
           </div>
         </div>

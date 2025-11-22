@@ -29,14 +29,14 @@ export function ContactForm() {
       if (error) throw error
 
       // 2. Also open mailto link as fallback/confirmation for the user
-      const mailtoLink = `mailto:everest9812@gmail.com?subject=[${data.subject}] Contact from ${data.name}&body=${encodeURIComponent(data.message)}%0A%0AFrom: ${data.email}`
+      const mailtoLink = `mailto:protocolbanks@gmail.com?subject=[${data.subject}] Contact from ${data.name}&body=${encodeURIComponent(data.message)}%0A%0AFrom: ${data.email}`
       window.location.href = mailtoLink
 
       setIsSuccess(true)
     } catch (error) {
       console.error("Error submitting form:", error)
       // Fallback to mailto even if DB fails
-      const mailtoLink = `mailto:everest9812@gmail.com?subject=[${data.subject}] Contact from ${data.name}&body=${encodeURIComponent(data.message)}%0A%0AFrom: ${data.email}`
+      const mailtoLink = `mailto:protocolbanks@gmail.com?subject=[${data.subject}] Contact from ${data.name}&body=${encodeURIComponent(data.message)}%0A%0AFrom: ${data.email}`
       window.location.href = mailtoLink
       setIsSuccess(true)
     } finally {

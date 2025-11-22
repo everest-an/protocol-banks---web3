@@ -143,8 +143,15 @@ export async function getTokenBalance(walletAddress: string, tokenAddress: strin
     return "0"
   }
 
+  if (!ethers.isAddress(walletAddress) || !ethers.isAddress(tokenAddress)) {
+    console.warn("[v0] Invalid address provided to getTokenBalance")
+    return "0"
+  }
+
   try {
     const provider = new ethers.BrowserProvider(window.ethereum)
+    const network = await provider.getNetwork()
+    const chainId = Number(network.chainId)
 
     // Check cache first
     if (contractExistsCache[tokenAddress] === undefined) {
@@ -217,6 +224,13 @@ export async function sendToken(tokenAddress: string, toAddress: string, amount:
 
   if (typeof window === "undefined" || !window.ethereum) {
     throw new Error("MetaMask is not available")
+  }
+
+  if (!ethers.isAddress(toAddress)) {
+    throw new Error("Invalid recipient address")
+  }
+  if (!ethers.isAddress(tokenAddress)) {
+    throw new Error("Invalid token contract address")
   }
 
   const provider = new ethers.BrowserProvider(window.ethereum)
