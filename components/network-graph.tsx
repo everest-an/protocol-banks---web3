@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, type MouseEvent, type WheelEvent } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -45,6 +45,10 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
 
   // Advanced Layout Calculation
   const { nodes, edges } = useMemo(() => {
@@ -152,6 +156,39 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
     return () => window.removeEventListener("resize", updateDimensions)
   }, [])
 
+  const handleWheel = (e: WheelEvent) => {
+    e.preventDefault()
+    const scaleAmount = -e.deltaY * 0.001
+    const newScale = Math.min(Math.max(0.5, transform.k + scaleAmount), 4)
+
+    // Zoom towards mouse pointer could be added here, but simple center zoom or just scaling is often enough for MVP.
+    // Let's stick to simple scaling for robustness, or attempt relative zoom.
+
+    setTransform((prev) => ({
+      ...prev,
+      k: newScale,
+    }))
+  }
+
+  const handleMouseDown = (e: MouseEvent) => {
+    setIsDragging(true)
+    setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y })
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setTransform((prev) => ({
+        ...prev,
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      }))
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
   return (
     <div className="flex flex-col lg:flex-row h-[750px] border border-border rounded-xl overflow-hidden bg-[#09090b] text-white shadow-2xl">
       {/* Main Visualization Area */}
@@ -190,112 +227,153 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
         </div>
 
         {/* Graph Container */}
-        <div className="flex-1 overflow-hidden cursor-crosshair relative z-10" ref={containerRef}>
-          <svg width="100%" height="100%" className="block">
+        <div
+          className="flex-1 overflow-hidden cursor-move relative z-10" // changed cursor to move
+          ref={containerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          <svg width="100%" height="100%" className="block select-none">
+            {" "}
+            {/* added select-none */}
             <defs>
               <radialGradient id="node-glow">
                 <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
                 <stop offset="100%" stopColor="#fff" stopOpacity="0" />
               </radialGradient>
             </defs>
+            <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
+              {/* Connecting Lines */}
+              {edges.map((edge, i) => {
+                const isHovered =
+                  hoveredNode && (hoveredNode.id === edge.source.id || hoveredNode.id === edge.target.id)
+                const isSelected =
+                  selectedNode && (selectedNode.id === edge.source.id || selectedNode.id === edge.target.id)
+                const active = isHovered || isSelected
 
-            {/* Connecting Lines */}
-            {edges.map((edge, i) => {
-              const isHovered = hoveredNode && (hoveredNode.id === edge.source.id || hoveredNode.id === edge.target.id)
-              const isSelected =
-                selectedNode && (selectedNode.id === edge.source.id || selectedNode.id === edge.target.id)
-              const active = isHovered || isSelected
-
-              return (
-                <g key={`edge-${i}`} className="pointer-events-none">
-                  <path
-                    d={`M${edge.source.x},${edge.source.y} Q ${(edge.source.x + edge.target.x) / 2} ${(edge.source.y + edge.target.y) / 2} ${edge.target.x},${edge.target.y}`}
-                    stroke={active ? "#fff" : "#27272a"}
-                    strokeWidth={active ? 1.5 : 0.5}
-                    fill="none"
-                    className="transition-all duration-300"
-                  />
-                  {/* Flow Particles */}
-                  <circle r="1.5" fill={active ? "#fff" : "#52525b"}>
-                    <animateMotion
-                      dur={`${2 + Math.random() * 3}s`}
-                      repeatCount="indefinite"
-                      path={`M${edge.source.x},${edge.source.y} L${edge.target.x},${edge.target.y}`}
+                return (
+                  <g key={`edge-${i}`} className="pointer-events-none">
+                    <path
+                      d={`M${edge.source.x},${edge.source.y} Q ${(edge.source.x + edge.target.x) / 2} ${(edge.source.y + edge.target.y) / 2} ${edge.target.x},${edge.target.y}`}
+                      stroke={active ? "#fff" : "#27272a"}
+                      strokeWidth={active ? 1.5 : 0.5}
+                      fill="none"
+                      className="transition-all duration-300"
                     />
-                  </circle>
-                  {/* Secondary Particles for busy routes */}
-                  {edge.weight > 1 && (
-                    <circle r="1" fill={active ? "#fff" : "#3f3f46"}>
+                    {/* Flow Particles */}
+                    <circle r="1.5" fill={active ? "#fff" : "#52525b"}>
                       <animateMotion
-                        dur={`${3 + Math.random() * 3}s`}
-                        begin="1s"
+                        dur={`${2 + Math.random() * 3}s`}
                         repeatCount="indefinite"
                         path={`M${edge.source.x},${edge.source.y} L${edge.target.x},${edge.target.y}`}
                       />
                     </circle>
-                  )}
-                </g>
-              )
-            })}
-
-            {/* Nodes */}
-            {nodes.map((node) => {
-              const isRoot = node.type === "root"
-              const isSelected = selectedNode?.id === node.id
-              const isHovered = hoveredNode?.id === node.id
-              const dimmed =
-                (selectedNode || hoveredNode) &&
-                !isSelected &&
-                !isHovered &&
-                !edges.some(
-                  (e) =>
-                    (e.source.id === node.id && e.target.id === (selectedNode?.id || hoveredNode?.id)) ||
-                    (e.target.id === node.id && e.source.id === (selectedNode?.id || hoveredNode?.id)),
+                    {/* Secondary Particles for busy routes */}
+                    {edge.weight > 1 && (
+                      <circle r="1" fill={active ? "#fff" : "#3f3f46"}>
+                        <animateMotion
+                          dur={`${3 + Math.random() * 3}s`}
+                          begin="1s"
+                          repeatCount="indefinite"
+                          path={`M${edge.source.x},${edge.source.y} L${edge.target.x},${edge.target.y}`}
+                        />
+                      </circle>
+                    )}
+                  </g>
                 )
+              })}
 
-              return (
-                <g
-                  key={node.id}
-                  onClick={() => setSelectedNode(node)}
-                  onMouseEnter={() => setHoveredNode(node)}
-                  onMouseLeave={() => setHoveredNode(null)}
-                  style={{
-                    transformOrigin: `${node.x}px ${node.y}px`,
-                    opacity: dimmed ? 0.3 : 1,
-                  }}
-                  className="transition-all duration-300 cursor-pointer"
-                >
-                  {/* Glow Effect */}
-                  {(isSelected || isHovered) && (
-                    <circle cx={node.x} cy={node.y} r={node.r * 2} fill="url(#node-glow)" opacity="0.15" />
-                  )}
+              {/* Nodes */}
+              {nodes.map((node) => {
+                const isRoot = node.type === "root"
+                const isSelected = selectedNode?.id === node.id
+                const isHovered = hoveredNode?.id === node.id
+                const dimmed =
+                  (selectedNode || hoveredNode) &&
+                  !isSelected &&
+                  !isHovered &&
+                  !edges.some(
+                    (e) =>
+                      (e.source.id === node.id && e.target.id === (selectedNode?.id || hoveredNode?.id)) ||
+                      (e.target.id === node.id && e.source.id === (selectedNode?.id || hoveredNode?.id)),
+                  )
 
-                  {/* Main Node Body */}
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={node.r}
-                    fill={isRoot ? "#fff" : "#000"}
-                    stroke={node.color}
-                    strokeWidth={isSelected ? 3 : 1.5}
-                    className="transition-all duration-300"
-                  />
+                return (
+                  <g
+                    key={node.id}
+                    onMouseDown={(e) => {
+                      e.stopPropagation()
+                      setSelectedNode(node)
+                    }}
+                    onMouseEnter={() => setHoveredNode(node)}
+                    onMouseLeave={() => setHoveredNode(null)}
+                    style={{
+                      transformOrigin: `${node.x}px ${node.y}px`,
+                      opacity: dimmed ? 0.3 : 1,
+                    }}
+                    className="transition-all duration-300 cursor-pointer"
+                  >
+                    {/* Glow Effect */}
+                    {(isSelected || isHovered) && (
+                      <circle cx={node.x} cy={node.y} r={node.r * 2} fill="url(#node-glow)" opacity="0.15" />
+                    )}
 
-                  {/* Label */}
-                  {(node.r > 10 || isSelected || isHovered) && (
-                    <text
-                      x={node.x}
-                      y={node.y + node.r + 15}
-                      textAnchor="middle"
-                      fill={isSelected ? "#fff" : "#71717a"}
-                      className="text-[10px] font-mono tracking-wider font-medium pointer-events-none select-none uppercase"
-                    >
-                      {node.data?.name.substring(0, 15)}
-                    </text>
-                  )}
-                </g>
-              )
-            })}
+                    {/* Main Node Body */}
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={node.r}
+                      fill={isRoot ? "#fff" : "#000"}
+                      stroke={node.color}
+                      strokeWidth={isSelected ? 3 : 1.5}
+                      className="transition-all duration-300"
+                    />
+
+                    {/* Label */}
+                    {(node.r > 10 || isSelected || isHovered) && (
+                      <text
+                        x={node.x}
+                        y={node.y + node.r + 15}
+                        textAnchor="middle"
+                        fill={isSelected ? "#fff" : "#71717a"}
+                        className="text-[10px] font-mono tracking-wider font-medium pointer-events-none select-none uppercase"
+                      >
+                        {node.data?.name.substring(0, 15)}
+                      </text>
+                    )}
+                  </g>
+                )
+              })}
+            </g>
+            <div className="absolute bottom-6 right-6 flex flex-col gap-2 z-30">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+                onClick={() => setTransform((prev) => ({ ...prev, k: Math.min(prev.k + 0.2, 4) }))}
+              >
+                +
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+                onClick={() => setTransform((prev) => ({ ...prev, k: Math.max(prev.k - 0.2, 0.5) }))}
+              >
+                -
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+                onClick={() => setTransform({ x: 0, y: 0, k: 1 })}
+              >
+                ⟲
+              </Button>
+            </div>
           </svg>
         </div>
       </div>

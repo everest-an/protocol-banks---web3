@@ -126,7 +126,7 @@ export default function VendorsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formData, setFormData] = useState({ name: "", wallet_address: "", email: "", notes: "" })
 
-  const displayVendors = isDemoMode ? demoVendors : vendors
+  const displayVendors = !isConnected || isDemoMode ? demoVendors : vendors
 
   const filteredVendors = useMemo(() => {
     return displayVendors.filter((v) => {
@@ -146,7 +146,7 @@ export default function VendorsPage() {
   useEffect(() => {
     if (isConnected && wallet) {
       loadVendors()
-    } else if (isDemoMode) {
+    } else {
       setLoading(false)
     }
   }, [isConnected, wallet, isDemoMode])
@@ -228,19 +228,13 @@ export default function VendorsPage() {
     }
   }
 
-  if (!isConnected && !isDemoMode) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <h2 className="text-xl font-medium">Connect Wallet</h2>
-          <p className="text-muted-foreground">Access your enterprise network visualization.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
+      {!isConnected && (
+        <div className="bg-indigo-600 text-white px-4 py-2 text-center text-sm font-medium animate-in slide-in-from-top">
+          You are viewing a live demo. Connect your wallet to visualize your own payment network.
+        </div>
+      )}
       {/* Enterprise Header Toolbar */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-30">
         <div className="container mx-auto py-3 px-4 flex flex-col md:flex-row items-center justify-between gap-4">
