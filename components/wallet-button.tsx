@@ -175,7 +175,12 @@ export function WalletButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="border-border bg-transparent">
+        <Button
+          variant={activeWallet ? "default" : "outline"}
+          className={
+            activeWallet ? "border-0" : "border-border bg-transparent hover:bg-accent hover:text-accent-foreground"
+          }
+        >
           {activeChain === "BITCOIN" ? (
             <Bitcoin className="mr-2 h-4 w-4 text-orange-500" />
           ) : activeChain === "SOLANA" ? (
@@ -184,7 +189,7 @@ export function WalletButton() {
             <Wallet className="mr-2 h-4 w-4" />
           )}
           <span className="hidden sm:inline">{activeWallet ? formatAddress(activeWallet) : "Connect Wallet"}</span>
-          <span className="ml-2 text-xs text-muted-foreground hidden md:inline">
+          <span className="ml-2 text-xs text-white/80 hidden md:inline">
             ({activeChain === "EVM" ? (chainId === CHAIN_IDS.MAINNET ? "Mainnet" : "Sepolia") : activeChain})
           </span>
         </Button>

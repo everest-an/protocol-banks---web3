@@ -1,10 +1,8 @@
 "use client"
 
 import { useWeb3 } from "@/contexts/web3-context"
-import { useDemo } from "@/contexts/demo-context"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Wallet, Users, Send, BarChart3, DollarSign, TrendingUp } from "lucide-react"
+import { ArrowRight, Users, Send, BarChart3, DollarSign, TrendingUp, Info } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getSupabase } from "@/lib/supabase"
@@ -12,6 +10,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { FinancialReport } from "@/components/financial-report"
 import { VendorSidebar } from "@/components/vendor-sidebar"
 import { BusinessMetrics } from "@/components/business-metrics"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface DashboardStats {
   totalSent: number
@@ -22,7 +21,7 @@ interface DashboardStats {
 
 export default function HomePage() {
   const { isConnected, connectWallet, wallet, usdtBalance, usdcBalance, daiBalance } = useWeb3()
-  const { isDemoMode } = useDemo()
+  const isDemoMode = !isConnected
   const [stats, setStats] = useState<DashboardStats>({
     totalSent: 0,
     totalTransactions: 0,
@@ -192,41 +191,23 @@ export default function HomePage() {
   const displayChartData = isDemoMode ? demoChartData : chartData
   const displayVendors = isDemoMode ? demoVendors : vendorsList
   const displayPayments = isDemoMode ? demoPayments : paymentsList
-  const showDashboard = isConnected || isDemoMode
-
-  if (!showDashboard) {
-    return (
-      <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
-        <Card className="max-w-md w-full bg-card border-border">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Wallet className="h-8 w-8 text-primary" />
-            </div>
-            <CardTitle className="text-2xl text-foreground">Welcome to Protocol Banks</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Connect your MetaMask wallet to start managing batch cryptocurrency payments
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={connectWallet}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              size="lg"
-            >
-              <Wallet className="mr-2 h-5 w-5" />
-              Connect Wallet
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* {isDemoMode && <PaymentNetworkGraph />} */}
 
       <div className="container py-8 px-4 space-y-8">
+        {isDemoMode && (
+          <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-500">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Demo Mode Active</AlertTitle>
+            <AlertDescription>
+              You are viewing the dashboard in demo mode with simulated data. Connect your wallet to see your real
+              activity.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-2">
           <h1 className="text-4xl font-bold text-foreground">{isDemoMode ? "Demo Dashboard" : "Dashboard"}</h1>
           <p className="text-muted-foreground">Manage your crypto payments and vendors</p>

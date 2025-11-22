@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Trash2, Plus, Send, Loader2, Wallet, Bitcoin } from "lucide-react" // Added Wallet and Bitcoin to lucide-react import
+import { Trash2, Plus, Send, Loader2, Wallet, Bitcoin, Info } from "lucide-react" // Added Wallet, Bitcoin, and Info to lucide-react import
 import { useToast } from "@/hooks/use-toast"
 import { sendToken, getTokenAddress, signERC3009Authorization } from "@/lib/web3"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { getSupabase } from "@/lib/supabase"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert" // Import Alert components
 
 interface PaymentRecipient {
   id: string
@@ -44,21 +45,56 @@ export default function BatchPaymentPage() {
   const { toast } = useToast()
   const router = useRouter()
 
+  const isDemoMode = !isConnected
+
   const currentWallet = wallets[activeChain]
 
-  const [recipients, setRecipients] = useState<PaymentRecipient[]>([
-    { id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }, // Initialize with token
-  ])
+  const [recipients, setRecipients] = useState<PaymentRecipient[]>(() => {
+    if (!isConnected) {
+      return [
+        {
+          id: "1",
+          address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+          amount: "402",
+          vendorName: "Cloud Services Inc",
+          vendorId: "demo-1",
+          token: "USDT",
+        },
+        {
+          id: "2",
+          address: "0x123f681646d4a755815f9cb19e1acc8565a0c2ac",
+          amount: "3009",
+          vendorName: "Global Consultants",
+          vendorId: "demo-2",
+          token: "USDC",
+        },
+      ]
+    }
+    return [{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }]
+  })
+
   const [defaultToken, setDefaultToken] = useState<"USDT" | "USDC" | "DAI">("USDT")
-  const [vendors, setVendors] = useState<Vendor[]>([])
+  const [vendors, setVendors] = useState<Vendor[]>(() => {
+    if (!isConnected) {
+      return [
+        { id: "demo-1", name: "Cloud Services Inc", wallet_address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e" },
+        { id: "demo-2", name: "Global Consultants", wallet_address: "0x123f681646d4a755815f9cb19e1acc8565a0c2ac" },
+        { id: "demo-3", name: "Office Supplies Co", wallet_address: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7" },
+      ]
+    }
+    return []
+  })
+
   const [loadingVendors, setLoadingVendors] = useState(true)
-  const [selectedToken, setSelectedToken] = useState<"USDT" | "USDC" | "DAI" | "CUSTOM">("USDT") // Declare selectedToken variable
-  const [useX402, setUseX402] = useState(false) // Added state for x402 mode
-  const [isProcessing, setIsProcessing] = useState(false) // Added explicit state for processing
+  const [selectedToken, setSelectedToken] = useState<"USDT" | "USDC" | "DAI" | "CUSTOM">("USDT")
+  const [useX402, setUseX402] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
     if (isConnected && currentWallet) {
       loadVendors()
+    } else {
+      setLoadingVendors(false)
     }
   }, [isConnected, currentWallet])
 
@@ -147,6 +183,17 @@ export default function BatchPaymentPage() {
   }
 
   const processBatchPayment = async () => {
+    if (isDemoMode) {
+      setIsProcessing(true)
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      toast({
+        title: "Demo Payment Successful",
+        description: "This is a simulation. No real funds were moved.",
+      })
+      setIsProcessing(false)
+      return
+    }
+
     if (!isConnected || !currentWallet) {
       toast({
         title: "Wallet not connected",
@@ -314,45 +361,40 @@ export default function BatchPaymentPage() {
     }
   }
 
-  if (!isConnected) {
-    return (
-      <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
-        <Card className="max-w-md w-full bg-card border-border">
-          <CardHeader className="text-center">
-            <CardTitle className="text-foreground">Connect Wallet</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Please connect your wallet to create batch payments
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    )
-  }
-
   return (
     <div className="container py-8 px-4 space-y-6">
-      <div className="flex items-center justify-between">
+      {isDemoMode && (
+        <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-500 mb-6">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Demo Mode Active</AlertTitle>
+          <AlertDescription>
+            You are viewing the batch payment interface in demo mode. Connect your wallet to perform real transactions.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-foreground">Batch Payment</h1>
-          <p className="text-muted-foreground">Send crypto to multiple recipients at once</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">Batch Payment</h1>
+          <p className="text-muted-foreground mt-1">Send crypto to multiple recipients at once</p>
         </div>
-        <div className="flex items-center space-x-2 bg-card p-3 rounded-lg border">
+        <div className="flex items-center space-x-2 bg-card p-3 rounded-lg border shrink-0">
           <Switch id="x402-mode" checked={useX402} onCheckedChange={setUseX402} />
           <div className="flex flex-col">
-            <Label htmlFor="x402-mode" className="font-semibold cursor-pointer">
+            <Label htmlFor="x402-mode" className="font-semibold cursor-pointer whitespace-nowrap">
               x402 Protocol
             </Label>
-            <span className="text-xs text-muted-foreground">Enable Gasless Auth (ERC-3009)</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Enable Gasless Auth</span>
           </div>
           {useX402 && (
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 whitespace-nowrap">
               Active
             </Badge>
           )}
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-wrap gap-4 mb-6">
         <Button
           variant={activeChain === "EVM" ? "default" : "outline"}
           onClick={() => setActiveChain("EVM")}
@@ -391,17 +433,17 @@ export default function BatchPaymentPage() {
             <div className="flex gap-4 text-sm mb-4 bg-muted/30 p-3 rounded-md overflow-x-auto">
               <div className="flex flex-col">
                 <span className="text-muted-foreground">USDT Balance</span>
-                <span className="font-mono font-bold">{Number(usdtBalance).toFixed(2)}</span>
+                <span className="font-mono font-bold">{isDemoMode ? "10,000.00" : Number(usdtBalance).toFixed(2)}</span>
               </div>
               <div className="w-px bg-border mx-2"></div>
               <div className="flex flex-col">
                 <span className="text-muted-foreground">USDC Balance</span>
-                <span className="font-mono font-bold">{Number(usdcBalance).toFixed(2)}</span>
+                <span className="font-mono font-bold">{isDemoMode ? "15,500.00" : Number(usdcBalance).toFixed(2)}</span>
               </div>
               <div className="w-px bg-border mx-2"></div>
               <div className="flex flex-col">
                 <span className="text-muted-foreground">DAI Balance</span>
-                <span className="font-mono font-bold">{Number(daiBalance).toFixed(2)}</span>
+                <span className="font-mono font-bold">{isDemoMode ? "5,000.00" : Number(daiBalance).toFixed(2)}</span>
               </div>
             </div>
 

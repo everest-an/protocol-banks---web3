@@ -237,18 +237,18 @@ export default function VendorsPage() {
       )}
       {/* Enterprise Header Toolbar */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-30">
-        <div className="container mx-auto py-3 px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <h1 className="text-lg font-semibold tracking-tight whitespace-nowrap">Entity Network</h1>
-            <div className="h-4 w-px bg-border hidden md:block"></div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground hidden md:flex">
+        <div className="container mx-auto py-3 px-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+          <div className="flex items-center justify-between w-full lg:w-auto gap-4">
+            <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">Wallet Tags</h1>
+            <div className="h-4 w-px bg-border hidden lg:block"></div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground hidden lg:flex whitespace-nowrap">
               <Calendar className="w-4 h-4" />
               <span>Fiscal Year: {allowRange ? `${yearRange[0]} - ${yearRange[1]}` : yearRange[0]}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full md:w-64">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search entities..."
@@ -257,84 +257,92 @@ export default function VendorsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex items-center border border-border rounded-md bg-secondary/30 p-1">
-              <Button
-                variant={viewMode === "graph" ? "secondary" : "ghost"}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setViewMode("graph")}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setViewMode("list")}
-              >
-                <ListIcon className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="bg-white text-black hover:bg-zinc-200" disabled={isDemoMode}>
-                  <Plus className="w-4 h-4 mr-2" /> Add Entity
+            <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+              <div className="flex items-center border border-border rounded-md bg-secondary/30 p-1 shrink-0">
+                <Button
+                  variant={viewMode === "graph" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setViewMode("graph")}
+                >
+                  <LayoutGrid className="w-4 h-4" />
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Entity</DialogTitle>
-                  <DialogDescription>Add a new vendor or partner to your network.</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleAddSubmit} className="space-y-4 pt-4">
-                  <div className="grid gap-2">
-                    <Label>Name</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Wallet Address</Label>
-                    <Input
-                      value={formData.wallet_address}
-                      onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
-                      required
-                      className="font-mono"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Email (Optional)</Label>
-                    <Input
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Notes</Label>
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Create Entity
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setViewMode("list")}
+                >
+                  <ListIcon className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="bg-white text-black hover:bg-zinc-200 whitespace-nowrap shrink-0"
+                    disabled={isDemoMode}
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Add Entity
                   </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Entity</DialogTitle>
+                    <DialogDescription>Add a new vendor or partner to your network.</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAddSubmit} className="space-y-4 pt-4">
+                    <div className="grid gap-2">
+                      <Label>Name</Label>
+                      <Input
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Wallet Address</Label>
+                      <Input
+                        value={formData.wallet_address}
+                        onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
+                        required
+                        className="font-mono"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Email (Optional)</Label>
+                      <Input
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Notes</Label>
+                      <Textarea
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      />
+                    </div>
+                    <Button type="submit" className="w-full">
+                      Create Entity
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Secondary Filters Bar */}
-      <div className="border-b border-border bg-background py-3 px-4">
-        <div className="container mx-auto flex items-center justify-between">
+      <div className="border-b border-border bg-background py-3 px-4 overflow-x-auto">
+        <div className="container mx-auto flex items-center justify-between min-w-[600px]">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Time Range</span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                Time Range
+              </span>
               <div className="w-48 px-2">
                 <Slider
                   defaultValue={[2024]}

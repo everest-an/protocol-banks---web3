@@ -35,11 +35,13 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="left" className="w-[240px] sm:w-[300px] bg-card border-border">
               <div className="flex flex-col gap-6 py-4">
-                <Link href="/" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
-                  <div className="h-8 w-8 relative">
-                    <Image src="/logo.png" alt="Protocol Banks Logo" fill className="object-contain" />
+                <Link href="/" className="flex items-center space-x-3" onClick={() => setIsOpen(false)}>
+                  <div className="h-8 w-8 relative shrink-0">
+                    <Image src="/logo.png" alt="Protocol Bank Mark" fill className="object-contain" />
                   </div>
-                  <span className="text-xl font-bold text-foreground">Protocol Banks</span>
+                  <div className="h-5 w-32 relative">
+                    <Image src="/logo-text-white.png" alt="Protocol Bank" fill className="object-contain object-left" />
+                  </div>
                 </Link>
                 <nav className="flex flex-col gap-2">
                   {navItems.map((item) => {
@@ -66,15 +68,20 @@ export function Header() {
             </SheetContent>
           </Sheet>
 
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 relative">
-              <Image src="/logo.png" alt="Protocol Banks Logo" fill className="object-contain" />
+          <Link href="/" className="flex items-center space-x-3">
+            <div className="h-8 w-8 relative shrink-0">
+              <Image src="/logo.png" alt="Protocol Bank Mark" fill className="object-contain" />
             </div>
-            <span className="hidden sm:inline-block text-xl font-bold text-foreground">Protocol Banks</span>
+            <div className="hidden sm:block h-5 w-32 relative">
+              <Image src="/logo-text-white.png" alt="Protocol Bank" fill className="object-contain object-left" />
+            </div>
           </Link>
 
           {isDemoMode && (
-            <Badge variant="outline" className="hidden sm:inline-flex border-primary text-primary animate-pulse">
+            <Badge
+              variant="outline"
+              className="hidden sm:inline-flex border-primary text-primary animate-pulse whitespace-nowrap"
+            >
               DEMO MODE
             </Badge>
           )}
@@ -103,10 +110,14 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <Button
-            variant={isDemoMode ? "default" : "outline"}
+            variant="outline"
             size="sm"
             onClick={toggleDemoMode}
-            className={isDemoMode ? "text-white" : "border-primary/50 text-primary hover:bg-primary/10"}
+            className={
+              isDemoMode
+                ? "text-white border-white/20 bg-white/5 hover:bg-white/10"
+                : "border-white text-white hover:bg-white/10 bg-transparent"
+            }
           >
             {isDemoMode ? (
               <>
