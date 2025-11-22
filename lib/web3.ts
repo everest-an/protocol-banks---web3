@@ -15,7 +15,7 @@ export const TOKEN_ADDRESSES = {
   [CHAIN_IDS.SEPOLIA]: {
     // Using Aave V3 Faucet tokens for Sepolia testing
     USDT: "0xaa8e23fb1079ea71e0a56f48a2aa51851d8433d0",
-    USDC: "0x94a9d9ac8a22534e3faca9f4e7f2e2cf85d5e4c8",
+    USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     DAI: "0xFF34B3d4Aee8ddCd6F9AFFFB6Fe49bD371b8a357",
   },
 } as const
@@ -302,7 +302,7 @@ export async function signERC3009Authorization(
 
   const domain = {
     name: name === "USDC" ? "USD Coin" : name,
-    version: "2",
+    version: name === "USDC" ? "2" : "1",
     chainId: chainId,
     verifyingContract: tokenAddress,
   }
@@ -336,4 +336,40 @@ export async function signERC3009Authorization(
   const { v, r, s } = ethers.Signature.from(signature)
 
   return { v, r, s, nonce, validAfter, validBefore }
+}
+
+export async function executeERC3009Transfer(
+  tokenAddress: string,
+  from: string,
+  to: string,
+  amount: string,
+  auth: { v: number; r: string; s: string; nonce: string; validAfter: number; validBefore: number },
+): Promise<string> {
+  if (typeof window === "undefined" || !window.ethereum) {
+    throw new Error("MetaMask is not available")
+  }
+
+  const provider = new ethers.BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  const contract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
+  const decimals = await contract.decimals()
+  const value = ethers.parseUnits(amount, decimals)
+
+  console.log("[v0] Executing EIP-3009 TransferWithAuthorization...")
+  const tx = await contract.transferWithAuthorization(
+    from,
+    to,
+    value,
+    auth.validAfter,
+    auth.validBefore,
+    auth.nonce,
+    auth.v,
+    auth.r,
+    auth.s,
+  )
+
+  console.log("[v0] Transaction sent:", tx.hash)
+  await tx.wait()
+  return tx.hash
 }

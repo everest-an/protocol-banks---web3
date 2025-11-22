@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Trash2, Plus, Send, Loader2, Wallet, Bitcoin, Info } from "lucide-react" // Added Wallet, Bitcoin, and Info to lucide-react import
 import { useToast } from "@/hooks/use-toast"
-import { sendToken, getTokenAddress, signERC3009Authorization } from "@/lib/web3"
+import { sendToken, getTokenAddress, signERC3009Authorization, executeERC3009Transfer } from "@/lib/web3"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
@@ -297,6 +297,11 @@ export default function BatchPaymentPage() {
           }
 
           if (useX402 && recipient.token === "USDC") {
+            toast({
+              title: "Signing Authorization",
+              description: "Please sign the EIP-3009 message in your wallet...",
+            })
+
             const auth = await signERC3009Authorization(
               tokenAddress,
               wallets.EVM!,
@@ -305,8 +310,13 @@ export default function BatchPaymentPage() {
               chainId,
             )
             console.log("[v0] x402 Authorization Signed:", auth)
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-            txHash = "0x" + auth.nonce.slice(2) // Mock hash for signed auth
+
+            toast({
+              title: "Processing Transaction",
+              description: "Submitting authorized transfer to the blockchain...",
+            })
+
+            txHash = await executeERC3009Transfer(tokenAddress, wallets.EVM!, recipient.address, recipient.amount, auth)
           } else {
             txHash = await sendToken(tokenAddress, recipient.address, recipient.amount)
           }

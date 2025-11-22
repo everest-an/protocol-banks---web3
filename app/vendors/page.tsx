@@ -192,7 +192,7 @@ export default function VendorsPage() {
             allPayments = [...allPayments, ...newExternalTxs]
           }
         } catch (err) {
-          console.error("[v0] Failed to fetch external transactions for vendors:", err)
+          console.error("Failed to fetch external transactions for vendors:", err)
         }
       }
 
@@ -264,7 +264,7 @@ export default function VendorsPage() {
         </div>
       )}
       {/* Enterprise Header Toolbar */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-16 z-20">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto py-3 px-3 sm:px-4 flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
