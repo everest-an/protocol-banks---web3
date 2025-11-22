@@ -47,6 +47,7 @@
     "date-fns": "latest",
     "embla-carousel-react": "8.5.1",
     "ethers": "latest",
+    "framer-motion": "12.23.24",
     "input-otp": "1.4.1",
     "jspdf": "latest",
     "jspdf-autotable": "latest",
