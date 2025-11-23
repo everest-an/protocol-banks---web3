@@ -105,21 +105,15 @@ export async function connectWallet(type: ChainType): Promise<string | null> {
   }
 
   try {
-    console.log(`[Web3] Starting ${type} wallet connection...`)
     let address = ""
 
     if (type === "EVM") {
-      console.log("[v0] Attempting to connect to MetaMask...")
       const provider = new ethers.BrowserProvider(window.ethereum)
       const accounts = await provider.send("eth_requestAccounts", [])
-      console.log("[v0] Successfully connected:", accounts[0])
       address = accounts[0]
     }
 
     if (address) {
-      console.log("[Web3] Wallet connected:", address)
-      // setWallets((prev) => ({ ...prev, [type]: address }))
-      // setActiveChain(type)
       return address
     }
   } catch (error: any) {
@@ -377,24 +371,26 @@ export async function executeERC3009Transfer(
   const provider = new ethers.BrowserProvider(window.ethereum)
   const signer = await provider.getSigner()
 
-  const contract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
+  const contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider)
   const decimals = await contract.decimals()
   const value = ethers.parseUnits(amount, decimals)
 
-  console.log("[v0] Executing EIP-3009 TransferWithAuthorization...")
-  const tx = await contract.transferWithAuthorization(
-    from,
-    to,
-    value,
-    auth.validAfter,
-    auth.validBefore,
-    auth.nonce,
-    auth.v,
-    auth.r,
-    auth.s,
-  )
+  try {
+    const tx = await contract.transferWithAuthorization(
+      from,
+      to,
+      value,
+      auth.validAfter,
+      auth.validBefore,
+      auth.nonce,
+      auth.v,
+      auth.r,
+      auth.s,
+    )
 
-  console.log("[v0] Transaction sent:", tx.hash)
-  await tx.wait()
-  return tx.hash
+    await tx.wait()
+    return tx.hash
+  } catch (error: any) {
+    throw new Error(error.message || "Transaction failed")
+  }
 }

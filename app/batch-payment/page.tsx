@@ -107,6 +107,12 @@ export default function BatchPaymentPage() {
     }
   }, [isConnected, currentWallet])
 
+  useEffect(() => {
+    if (isConnected) {
+      setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
+    }
+  }, [isConnected])
+
   const loadVendors = async () => {
     try {
       const supabase = getSupabase()
@@ -193,16 +199,37 @@ export default function BatchPaymentPage() {
 
   const fetchBill = async () => {
     if (!billUrl) return
+    if (!billUrl.startsWith("http://") && !billUrl.startsWith("https://")) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid URL starting with http:// or https://",
+        variant: "destructive",
+      })
+      return
+    }
     setIsLoadingBill(true)
     try {
       // Mock HTTP fetch - in production this would be: await fetch(billUrl).then(res => res.json())
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Simulated response based on URL or random for demo
+      let parsedAmount = "150.00"
+      let parsedTo = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F" // Valid dummy address
+      let parsedToken = "USDC"
+
+      try {
+        const urlObj = new URL(billUrl)
+        const params = new URLSearchParams(urlObj.search)
+        if (params.get("amount")) parsedAmount = params.get("amount")!
+        if (params.get("to")) parsedTo = params.get("to")!
+        if (params.get("token")) parsedToken = params.get("token")!
+      } catch (e) {
+        // Ignore parsing errors, use defaults
+      }
+
       setBillData({
-        to: "0x123f681646d4a755815f9cb19e1acc8565a0c2ac",
-        amount: "150.00",
-        token: "USDC",
+        to: parsedTo,
+        amount: parsedAmount,
+        token: parsedToken,
         vendorName: "Cloud Host Provider LLC",
         dueDate: new Date(Date.now() + 86400000 * 7).toLocaleDateString(),
       })
@@ -240,7 +267,7 @@ export default function BatchPaymentPage() {
       // In a real x402 flow, we would POST this 'auth' object to the Biller's API
       // For this demo, we simulate the submission or execute it on-chain if we want to close the loop
 
-      console.log("[v0] Submitting x402 Signature:", auth)
+      // console.log("[v0] Submitting x402 Signature:", auth)
 
       // Verify if we should execute on-chain for demo purposes or just "Send" the sig
       // The prompt says "HTTP + Signature Authorization". Usually this means the CLIENT just sends the sig.
@@ -490,6 +517,15 @@ export default function BatchPaymentPage() {
         </TabsList>
 
         <TabsContent value="standard" className="space-y-6">
+          <Alert className="bg-emerald-500/10 border-emerald-500/20 text-emerald-500">
+            <Info className="h-4 w-4" />
+            <AlertTitle>x402 Batch Ready</AlertTitle>
+            <AlertDescription>
+              Gasless payments (EIP-3009) are automatically enabled for USDC transactions in this batch. Transactions
+              will be recorded in your payment history and linked to your Wallet Tags.
+            </AlertDescription>
+          </Alert>
+
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Existing Card Content for Recipients */}
             <Card className="lg:col-span-2 bg-card border-border">
@@ -644,7 +680,7 @@ export default function BatchPaymentPage() {
                   <span className="text-muted-foreground">Recipients</span>
                   <span className="font-bold text-foreground">{recipients.filter((r) => r.address).length}</span>
                 </div>
-                <div className="border-t border-border pt-4 space-y-2">
+                <div className="border-t border-border/50 pt-4 space-y-2">
                   {(() => {
                     const totals = getTotalAmounts()
                     return (
@@ -695,35 +731,42 @@ export default function BatchPaymentPage() {
         </TabsContent>
 
         <TabsContent value="x402">
-          <Card className="max-w-2xl mx-auto border-blue-500/20 bg-blue-950/5">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Receipt className="w-6 h-6 text-blue-500" />
-                </div>
-                <div>
-                  <CardTitle>x402 Bill Payment</CardTitle>
-                  <CardDescription>Gasless payment via HTTP Signature Authorization</CardDescription>
+          <Card className="max-w-3xl mx-auto border-blue-500/20 bg-blue-950/5 shadow-lg mt-8">
+            <CardHeader className="text-center pb-8 border-b border-border/50">
+              <div className="flex justify-center mb-4">
+                <div className="p-4 bg-blue-500/10 rounded-full">
+                  <Receipt className="w-10 h-10 text-blue-500" />
                 </div>
               </div>
+              <CardTitle className="text-2xl">x402 Bill Payment</CardTitle>
+              <CardDescription className="text-base max-w-md mx-auto mt-2">
+                Paste your payment request URL below to instantly parse and authorize gasless payments.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Bill URL / Payment Request</Label>
-                <div className="flex gap-2">
+            <CardContent className="space-y-8 p-8">
+              <div className="space-y-4">
+                <Label className="text-lg font-medium">Bill URL / Payment Request</Label>
+                <div className="flex gap-3">
                   <div className="relative flex-1">
-                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
-                      placeholder="https://api.vendor.com/pay/req_123..."
-                      className="pl-9"
+                      placeholder="Paste your x402 bill link here (e.g., https://api.vendor.com/pay/...)"
+                      className="pl-12 h-14 text-lg bg-background shadow-sm border-blue-200/20 focus-visible:ring-blue-500"
                       value={billUrl}
                       onChange={(e) => setBillUrl(e.target.value)}
                     />
                   </div>
-                  <Button onClick={fetchBill} disabled={isLoadingBill || !billUrl}>
-                    {isLoadingBill ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch Bill"}
+                  <Button
+                    onClick={fetchBill}
+                    disabled={isLoadingBill || !billUrl}
+                    className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-700 shadow-md"
+                  >
+                    {isLoadingBill ? <Loader2 className="w-5 h-5 animate-spin" /> : "Load Bill"}
                   </Button>
                 </div>
+                <p className="text-sm text-muted-foreground pl-1">
+                  Supported formats: Standard Payment Links, x402 Request URIs, Vendor Invoices
+                </p>
               </div>
 
               {billData && (
