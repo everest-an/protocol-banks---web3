@@ -63,7 +63,14 @@ declare global {
 
 export function isMetaMaskAvailable(): boolean {
   if (typeof window === "undefined") return false
-  return !!(window.ethereum && window.ethereum.isMetaMask)
+  const eth = window.ethereum as any
+  if (!eth) return false
+
+  if (eth.providers) {
+    return eth.providers.some((p: any) => p.isMetaMask)
+  }
+
+  return !!eth.isMetaMask
 }
 
 export function isMobileDevice(): boolean {
@@ -108,8 +115,18 @@ export async function connectWallet(type: ChainType): Promise<string | null> {
     let address = ""
 
     if (type === "EVM") {
+      let provider = window.ethereum as any
+      if (provider.providers) {
+        const metaMaskProvider = provider.providers.find((p: any) => p.isMetaMask)
+        if (metaMaskProvider) {
+          provider = metaMaskProvider
+        }
+      }
+
+      console.log("[Web3] Requesting accounts from provider:", provider)
+
       // This is more reliable for triggering the popup
-      const accounts = (await window.ethereum.request({
+      const accounts = (await provider.request({
         method: "eth_requestAccounts",
       })) as string[]
       address = accounts[0]
