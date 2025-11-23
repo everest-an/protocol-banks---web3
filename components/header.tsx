@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { WalletButton } from "./wallet-button"
-import { LayoutDashboard, Users, Send, Play, StopCircle, Menu } from "lucide-react"
+import { LayoutDashboard, Users, Send, Play, StopCircle, Menu, Receipt } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 import { useDemo } from "@/contexts/demo-context"
@@ -19,6 +19,7 @@ export function Header() {
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/batch-payment", label: "Batch Payment", icon: Send },
+    { href: "/receive", label: "Receive", icon: Receipt },
     { href: "/vendors", label: "Wallet Tags", icon: Users },
   ]
 
