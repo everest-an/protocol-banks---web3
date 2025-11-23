@@ -371,7 +371,7 @@ export async function executeERC3009Transfer(
   const provider = new ethers.BrowserProvider(window.ethereum)
   const signer = await provider.getSigner()
 
-  const contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider)
+  const contract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
   const decimals = await contract.decimals()
   const value = ethers.parseUnits(amount, decimals)
 
