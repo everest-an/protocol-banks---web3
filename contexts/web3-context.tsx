@@ -121,7 +121,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error("[v0] Failed to connect wallet:", error.message)
       if (error.code !== 4001) {
-        // alert(error.message || "Failed to connect wallet")
+        alert(error.message || "Failed to connect wallet")
       }
     } finally {
       setIsConnecting(false)

@@ -9,9 +9,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 import { Wallet, LogOut, Copy, CheckCircle, ExternalLink, AlertTriangle, Smartphone, Bitcoin } from "lucide-react"
 import { useState, useEffect } from "react"
@@ -103,10 +100,10 @@ export function WalletButton() {
           <div className="grid gap-4 py-4">
             <Button
               variant="outline"
-              className="justify-start h-14 bg-transparent"
-              onClick={() => {
-                connectWallet("EVM")
+              className="justify-start h-14 bg-transparent hover:bg-accent"
+              onClick={async () => {
                 setShowConnectModal(false)
+                await connectWallet("EVM")
               }}
             >
               <div className="bg-blue-100 p-2 rounded-full mr-4">
@@ -120,10 +117,10 @@ export function WalletButton() {
 
             <Button
               variant="outline"
-              className="justify-start h-14 bg-transparent"
-              onClick={() => {
-                connectWallet("SOLANA")
+              className="justify-start h-14 bg-transparent hover:bg-accent"
+              onClick={async () => {
                 setShowConnectModal(false)
+                await connectWallet("SOLANA")
               }}
             >
               <div className="bg-purple-100 p-2 rounded-full mr-4">
@@ -137,10 +134,10 @@ export function WalletButton() {
 
             <Button
               variant="outline"
-              className="justify-start h-14 bg-transparent"
-              onClick={() => {
-                connectWallet("BITCOIN")
+              className="justify-start h-14 bg-transparent hover:bg-accent"
+              onClick={async () => {
                 setShowConnectModal(false)
+                await connectWallet("BITCOIN")
               }}
             >
               <div className="bg-orange-100 p-2 rounded-full mr-4">
@@ -345,27 +342,12 @@ export function WalletButton() {
           )}
         </DropdownMenuItem>
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <LogOut className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-            Disconnect
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {wallets.EVM && (
-              <DropdownMenuItem onClick={() => disconnectWallet("EVM")}>Disconnect Ethereum</DropdownMenuItem>
-            )}
-            {wallets.SOLANA && (
-              <DropdownMenuItem onClick={() => disconnectWallet("SOLANA")}>Disconnect Solana</DropdownMenuItem>
-            )}
-            {wallets.BITCOIN && (
-              <DropdownMenuItem onClick={() => disconnectWallet("BITCOIN")}>Disconnect Bitcoin</DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => disconnectWallet()} className="text-destructive">
-              Disconnect All
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        <DropdownMenuSeparator className="bg-border" />
+
+        <DropdownMenuItem onClick={() => disconnectWallet()} className="cursor-pointer text-red-500 focus:text-red-500">
+          <LogOut className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+          Disconnect Wallet
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
