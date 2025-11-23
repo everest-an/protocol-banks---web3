@@ -1,4 +1,4 @@
-import { Wallet, Layers, Shield, Network, Coins, Lock, HelpCircle } from "lucide-react"
+import { Wallet, Layers, Shield, Network, Coins, Lock, HelpCircle, Globe, Zap } from "lucide-react"
 
 export default function HelpPage() {
   return (
@@ -50,27 +50,75 @@ export default function HelpPage() {
               <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-blue-400">
                 <Layers className="w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold">Batch Payments & x402 Protocol</h2>
+              <h2 className="text-2xl font-bold">Batch Payments & Advanced Protocols</h2>
             </div>
             <div className="prose prose-invert max-w-none text-zinc-400">
               <p>
-                The Batch Payment tool allows you to send multiple transactions in a single session. You can mix
-                different tokens (USDT, USDC) and recipients.
+                The Batch Payment tool allows you to send multiple transactions in a single session. Protocol Bank
+                integrates advanced standards to optimize for cost, speed, and cross-chain interoperability.
               </p>
-              <h3 className="text-lg font-semibold text-white mt-6 mb-2">Using the x402 Protocol</h3>
-              <p>
-                Enable the <strong className="text-white">x402 Protocol</strong> toggle to use ERC-3009 gasless
-                authorization for USDC payments. This allows you to sign a secure authorization message instead of
-                broadcasting a standard transaction, which can then be settled by a relayer or smart contract,
-                optimizing gas efficiency for high-volume enterprise operations.
-              </p>
+
+              <div className="grid gap-6 md:grid-cols-2 mt-8">
+                {/* X402 / ERC-3009 Card */}
+                <div className="bg-zinc-900/30 p-6 rounded-xl border border-zinc-800">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Zap className="w-6 h-6 text-yellow-400" />
+                    <h3 className="text-lg font-bold text-white">X402 & ERC-3009 (Gasless)</h3>
+                  </div>
+                  <p className="mb-4">
+                    <strong>What is it?</strong> ERC-3009 is a standard for "Transfer with Authorization". It allows you
+                    to move USDC without holding ETH for gas fees.
+                  </p>
+                  <ul className="list-disc pl-5 space-y-2 text-sm">
+                    <li>
+                      <span className="text-white font-medium">Gasless for Sender:</span> You cryptographically sign an
+                      authorization message instead of a transaction.
+                    </li>
+                    <li>
+                      <span className="text-white font-medium">Delegated Execution:</span> A third-party relayer pays
+                      the gas to submit your transaction.
+                    </li>
+                    <li>
+                      <span className="text-white font-medium">How to use:</span> Toggle "x402 Protocol" in the Batch
+                      Payment settings. When prompted, sign the typed data message in your wallet.
+                    </li>
+                  </ul>
+                </div>
+
+                {/* CCTP Card */}
+                <div className="bg-zinc-900/30 p-6 rounded-xl border border-zinc-800">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Globe className="w-6 h-6 text-blue-400" />
+                    <h3 className="text-lg font-bold text-white">CCTP (Cross-Chain)</h3>
+                  </div>
+                  <p className="mb-4">
+                    <strong>What is it?</strong> Circle's Cross-Chain Transfer Protocol (CCTP) enables native USDC
+                    transfers between blockchains without traditional lock-and-mint bridges.
+                  </p>
+                  <ul className="list-disc pl-5 space-y-2 text-sm">
+                    <li>
+                      <span className="text-white font-medium">1:1 Efficiency:</span> USDC is burned on the source chain
+                      and minted natively on the destination chain.
+                    </li>
+                    <li>
+                      <span className="text-white font-medium">No Slippage:</span> Unlike liquidity pools, you receive
+                      exactly what you send (minus network fees).
+                    </li>
+                    <li>
+                      <span className="text-white font-medium">How to use:</span> In Batch Payment, simply select a
+                      different <strong>Destination Chain</strong> for any recipient. The system automatically routes
+                      via CCTP.
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             {/* Cost Analysis Report */}
             <div className="mt-8 border border-zinc-800 rounded-xl overflow-hidden">
               <div className="bg-zinc-900/50 p-4 border-b border-zinc-800 flex items-center gap-2">
                 <Coins className="w-5 h-5 text-yellow-400" />
-                <h3 className="font-bold text-white">Payment Cost Analysis Report</h3>
+                <h3 className="font-bold text-white">Payment Cost & Efficiency Analysis</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm text-zinc-400">
@@ -94,6 +142,12 @@ export default function HelpPage() {
                       <td className="p-4">Ethereum Mainnet</td>
                       <td className="p-4 text-green-400 font-bold">$0.00 (Gasless for User)</td>
                       <td className="p-4">Instant Signature</td>
+                    </tr>
+                    <tr className="hover:bg-zinc-900/30 bg-purple-950/10">
+                      <td className="p-4 font-medium text-purple-200">CCTP Cross-Chain</td>
+                      <td className="p-4">Eth ↔ Base/Op/Arb</td>
+                      <td className="p-4 text-green-400">~ $0.50 (Gas only)</td>
+                      <td className="p-4">~13 mins (Finality)</td>
                     </tr>
                     <tr className="hover:bg-zinc-900/30">
                       <td className="p-4 font-medium text-white">Layer 2 Transfer</td>
