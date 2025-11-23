@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
             )
           }
         } catch (err) {
-          console.error("[v0] Failed to fetch external transactions:", err)
+          console.error("[Analytics] Failed to fetch external transactions:", err)
           // Continue with just Supabase data if external fetch fails
         }
       }
@@ -215,7 +215,7 @@ export default function AnalyticsPage() {
         avgTransaction,
       })
     } catch (error) {
-      console.error("[v0] Failed to load analytics data:", error)
+      console.error("[Analytics] Failed to load analytics data:", error)
     } finally {
       setLoading(false)
     }
@@ -254,7 +254,7 @@ export default function AnalyticsPage() {
       setSelectedPayment({ ...selectedPayment, tags: updatedTags })
       setNewTag("")
     } catch (error) {
-      console.error("[v0] Failed to add tag:", error)
+      console.error("[Analytics] Failed to add tag:", error)
       alert("Failed to add tag. Please try again.")
     }
   }
@@ -278,7 +278,7 @@ export default function AnalyticsPage() {
         setSelectedPayment({ ...selectedPayment, tags: updatedTags })
       }
     } catch (error) {
-      console.error("[v0] Failed to remove tag:", error)
+      console.error("[Analytics] Failed to remove tag:", error)
       alert("Failed to remove tag. Please try again.")
     }
   }
@@ -632,7 +632,7 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 lg:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Sent</CardTitle>

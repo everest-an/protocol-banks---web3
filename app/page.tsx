@@ -87,7 +87,7 @@ export default function HomePage() {
             )
           }
         } catch (err) {
-          console.error("[v0] Failed to fetch external transactions:", err)
+          console.error("[Dashboard] Failed to fetch external transactions:", err)
         }
       }
 
@@ -143,7 +143,7 @@ export default function HomePage() {
 
       setChartData(chartData)
     } catch (error) {
-      console.error("[v0] Failed to load dashboard data:", error)
+      console.error("[Dashboard] Failed to load dashboard data:", error)
     } finally {
       setLoading(false)
     }

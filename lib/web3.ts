@@ -3,6 +3,7 @@ import { ethers } from "ethers"
 export const CHAIN_IDS = {
   MAINNET: 1,
   SEPOLIA: 11155111,
+  BASE: 8453,
 } as const
 
 // USDT, USDC, and DAI contract addresses
@@ -17,6 +18,16 @@ export const TOKEN_ADDRESSES = {
     USDT: "0xaa8e23fb1079ea71e0a56f48a2aa51851d8433d0",
     USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     DAI: "0xFF34B3d4Aee8ddCd6F9AFFFB6Fe49bD371b8a357",
+  },
+  [CHAIN_IDS.BASE]: {
+    // Base Mainnet Addresses
+    // Bridged USDT (Axelar or Celer common, but usually users want Native USDC)
+    // We will use the canonical bridged USDT from standard bridge if available, or just placeholder.
+    // Official Bridged USDT (from Ethereum) doesn't exist as native, but there is "USDbC" which is Bridged USDC (Legacy).
+    // The user specifically wants USDC (Native) x402 support.
+    USDT: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", // Bridged USDT (unofficial standard)
+    USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Native USDC (Circle)
+    DAI: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", // Bridged DAI
   },
 } as const
 
@@ -78,7 +89,7 @@ export async function getChainId(): Promise<number> {
   return Number(network.chainId)
 }
 
-export async function connectWallet(): Promise<string | null> {
+export async function connectWallet(type: ChainType): Promise<string | null> {
   if (typeof window === "undefined") {
     throw new Error("Window is not available")
   }
@@ -94,18 +105,32 @@ export async function connectWallet(): Promise<string | null> {
   }
 
   try {
-    console.log("[v0] Attempting to connect to MetaMask...")
-    const provider = new ethers.BrowserProvider(window.ethereum)
-    const accounts = await provider.send("eth_requestAccounts", [])
-    console.log("[v0] Successfully connected:", accounts[0])
-    return accounts[0]
-  } catch (error: any) {
-    if (error.code === 4001) {
-      throw new Error("Connection request rejected by user")
+    console.log(`[Web3] Starting ${type} wallet connection...`)
+    let address = ""
+
+    if (type === "EVM") {
+      console.log("[v0] Attempting to connect to MetaMask...")
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const accounts = await provider.send("eth_requestAccounts", [])
+      console.log("[v0] Successfully connected:", accounts[0])
+      address = accounts[0]
     }
-    console.error("[v0] Failed to connect wallet:", error)
-    throw new Error(error.message || "Failed to connect to MetaMask")
+
+    if (address) {
+      console.log("[Web3] Wallet connected:", address)
+      // setWallets((prev) => ({ ...prev, [type]: address }))
+      // setActiveChain(type)
+      return address
+    }
+  } catch (error: any) {
+    console.error("[Web3] Failed to connect wallet:", error.message)
+    if (error.code !== 4001) {
+      // alert(error.message || "Failed to connect wallet")
+    }
+    throw new Error(error.message || "Failed to connect wallet")
   }
+
+  return null
 }
 
 export function getTokenAddress(chainId: number, symbol: string): string | undefined {

@@ -671,6 +671,24 @@ export default function BatchPaymentPage() {
                     )
                   })()}
                 </div>
+                <Button
+                  className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/90"
+                  size="lg"
+                  onClick={processBatchPayment}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Batch Payment
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
