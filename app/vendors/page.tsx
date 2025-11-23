@@ -18,6 +18,18 @@ import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Plus } from "lucide-react"
 
 // Mock categories for categorization logic
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
@@ -116,7 +128,14 @@ export default function VendorsPage() {
 
   // Dialog States
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [formData, setFormData] = useState({ name: "", wallet_address: "", email: "", notes: "" })
+  const [formData, setFormData] = useState({
+    name: "",
+    wallet_address: "",
+    email: "",
+    notes: "",
+    category: "",
+    tier: "vendor",
+  })
 
   const displayVendors = !isConnected || isDemoMode ? demoVendors : vendors
 
@@ -211,7 +230,8 @@ export default function VendorsPage() {
           ...vendor,
           totalReceived,
           transactionCount: vendorPayments.length,
-          category: categories[vendor.id.charCodeAt(0) % categories.length], // Mock cat logic
+          category: vendor.category || categories[vendor.id.charCodeAt(0) % categories.length], // Use real category if available
+          tier: vendor.tier || "vendor",
         }
       })
 
@@ -231,8 +251,9 @@ export default function VendorsPage() {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // ... existing submission logic ...
-    // Simplified for brevity as logic is unchanged, just restoring context
+
+    if (!wallet) return
+
     try {
       const supabase = getSupabase()
       if (!supabase) return
@@ -242,6 +263,8 @@ export default function VendorsPage() {
         wallet_address: formData.wallet_address,
         email: formData.email,
         notes: formData.notes,
+        category: formData.category,
+        tier: formData.tier,
         created_by: wallet,
       })
 
@@ -249,7 +272,7 @@ export default function VendorsPage() {
 
       toast({ title: "Success", description: "Vendor added successfully" })
       setDialogOpen(false)
-      setFormData({ name: "", wallet_address: "", email: "", notes: "" })
+      setFormData({ name: "", wallet_address: "", email: "", notes: "", category: "", tier: "vendor" })
       loadVendors()
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" })
@@ -277,6 +300,94 @@ export default function VendorsPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="hidden sm:flex gap-2">
+                    <Plus className="w-4 h-4" /> Add Tag
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Wallet Tag</DialogTitle>
+                    <DialogDescription>
+                      Tag a wallet address with business metadata for easier identification.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAddSubmit} className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="address">Wallet Address</Label>
+                      <Input
+                        id="address"
+                        placeholder="0x..."
+                        value={formData.wallet_address}
+                        onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">Entity / Company Name</Label>
+                      <Input
+                        id="name"
+                        placeholder="e.g. Acme Corp"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="category">Category</Label>
+                        <Select
+                          value={formData.category}
+                          onValueChange={(val) => setFormData({ ...formData, category: val })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat} value={cat}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="tier">Tier / Attribute</Label>
+                        <Select value={formData.tier} onValueChange={(val) => setFormData({ ...formData, tier: val })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="vendor">Vendor</SelectItem>
+                            <SelectItem value="partner">Partner</SelectItem>
+                            <SelectItem value="subsidiary">Subsidiary</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="notes">Notes</Label>
+                      <Textarea
+                        id="notes"
+                        placeholder="Additional details..."
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit">Save Tag</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              <div className="sm:hidden fixed bottom-20 right-4 z-50">
+                <Button size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setDialogOpen(true)}>
+                  <Plus className="w-6 h-6" />
+                </Button>
+              </div>
+
               <div className="relative flex-1 sm:flex-none sm:w-48 lg:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                 <Input
