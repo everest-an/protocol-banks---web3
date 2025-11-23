@@ -11,13 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Trash2, Plus, Send, Loader2, Info, LinkIcon, Receipt } from "lucide-react" // Added Wallet, Bitcoin, Info, LinkIcon, and Receipt to lucide-react import
 import { useToast } from "@/hooks/use-toast"
-import { sendToken, getTokenAddress, signERC3009Authorization, executeERC3009Transfer } from "@/lib/web3"
+import {
+  sendToken,
+  getTokenAddress,
+  signERC3009Authorization,
+  executeERC3009Transfer,
+  switchNetwork,
+  CHAIN_IDS,
+  CCTP_DOMAINS,
+  CCTP_TOKEN_MESSENGER_ADDRESSES,
+  executeCCTPTransfer,
+} from "@/lib/web3"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { getSupabase } from "@/lib/supabase"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert" // Import Alert components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Added Tabs components
-import { switchNetwork, CHAIN_IDS } from "@/lib/web3" // Import switchNetwork and CHAIN_IDS
 
 interface PaymentRecipient {
   id: string
@@ -27,6 +36,7 @@ interface PaymentRecipient {
   vendorId?: string
   token: "USDT" | "USDC" | "DAI" | "CUSTOM" // Added token field to recipient
   customTokenAddress?: string // Added custom address to recipient
+  destinationChainId?: number // Added destinationChainId
 }
 
 interface Vendor {
@@ -60,6 +70,7 @@ export default function BatchPaymentPage() {
           vendorName: "Cloud Services Inc",
           vendorId: "demo-1",
           token: "USDT",
+          destinationChainId: CHAIN_IDS.MAINNET, // Added default chain
         },
         {
           id: "2",
@@ -68,10 +79,21 @@ export default function BatchPaymentPage() {
           vendorName: "Global Consultants",
           vendorId: "demo-2",
           token: "USDC",
+          destinationChainId: CHAIN_IDS.BASE, // Added Base chain for demo
         },
       ]
     }
-    return [{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }]
+    return [
+      {
+        id: "1",
+        address: "",
+        amount: "",
+        vendorName: "",
+        vendorId: "",
+        token: "USDT",
+        destinationChainId: CHAIN_IDS.MAINNET, // Default to Mainnet
+      },
+    ]
   })
 
   const [defaultToken, setDefaultToken] = useState<"USDT" | "USDC" | "DAI">("USDT")
@@ -112,9 +134,19 @@ export default function BatchPaymentPage() {
 
   useEffect(() => {
     if (isConnected) {
-      setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
+      setRecipients([
+        {
+          id: "1",
+          address: "",
+          amount: "",
+          vendorName: "",
+          vendorId: "",
+          token: "USDT",
+          destinationChainId: selectedNetwork, // Use selected network as default
+        },
+      ])
     }
-  }, [isConnected])
+  }, [isConnected, selectedNetwork]) // Added selectedNetwork dependency
 
   useEffect(() => {
     if (isConnected && activeChain === "EVM") {
@@ -153,6 +185,7 @@ export default function BatchPaymentPage() {
         vendorName: "",
         vendorId: "",
         token: defaultToken,
+        destinationChainId: selectedNetwork, // Use selected network
       },
     ])
   }
@@ -163,7 +196,7 @@ export default function BatchPaymentPage() {
     }
   }
 
-  const updateRecipient = (id: string, field: keyof PaymentRecipient, value: string) => {
+  const updateRecipient = (id: string, field: keyof PaymentRecipient, value: any) => {
     setRecipients(
       recipients.map((r) => {
         if (r.id === id) {
@@ -269,8 +302,14 @@ export default function BatchPaymentPage() {
         description: `Authorizing payment of ${billData.amount} ${billData.token} to ${billData.vendorName}`,
       })
 
-      const tokenAddress = getTokenAddress(chainId, billData.token as any) || ""
-      const auth = await signERC3009Authorization(tokenAddress, currentWallet, billData.to, billData.amount, chainId)
+      const tokenAddress = getTokenAddress(selectedNetwork, billData.token as any) || ""
+      const auth = await signERC3009Authorization(
+        tokenAddress,
+        currentWallet,
+        billData.to,
+        billData.amount,
+        selectedNetwork,
+      )
 
       // 2. Submit Signature (HTTP POST)
       // In a real x402 flow, we would POST this 'auth' object to the Biller's API
@@ -365,13 +404,17 @@ export default function BatchPaymentPage() {
     const invalidRecipients = recipients.filter((r) => {
       if (!r.address || !VALIDATORS[activeChain as keyof typeof VALIDATORS](r.address)) return true
       if (r.token === "CUSTOM" && !r.customTokenAddress) return true
+      // Basic check for destination chain ID if it's a cross-chain operation
+      if (r.destinationChainId !== undefined && r.destinationChainId !== selectedNetwork && activeChain === "EVM") {
+        // Further validation would be needed here, e.g., checking if the token supports cross-chain on that destination
+      }
       return false
     })
 
     if (invalidRecipients.length > 0) {
       toast({
         title: "Invalid Recipients",
-        description: "Please check addresses and token selections",
+        description: "Please check addresses, token selections, and chain IDs.",
         variant: "destructive",
       })
       return
@@ -436,32 +479,74 @@ export default function BatchPaymentPage() {
 
         try {
           let txHash = ""
+          const isCrossChain =
+            recipient.destinationChainId && recipient.destinationChainId !== selectedNetwork && activeChain === "EVM"
 
-          let tokenAddress = ""
-          if (recipient.token === "CUSTOM") {
-            tokenAddress = recipient.customTokenAddress || ""
-          } else {
-            const addr = getTokenAddress(selectedNetwork, recipient.token)
-            if (!addr) throw new Error(`Token address not found for ${recipient.token}`)
-            tokenAddress = addr
-          }
+          if (isCrossChain) {
+            if (recipient.token !== "USDC") {
+              throw new Error("Cross-chain transfers are currently only supported for USDC via CCTP")
+            }
 
-          if (recipient.token === "USDC" && activeChain === "EVM") {
-            const auth = await signERC3009Authorization(
+            const tokenAddress = getTokenAddress(selectedNetwork, "USDC")
+            if (!tokenAddress) throw new Error("USDC address not found on source chain")
+
+            const messengerAddress =
+              CCTP_TOKEN_MESSENGER_ADDRESSES[selectedNetwork as keyof typeof CCTP_TOKEN_MESSENGER_ADDRESSES]
+            if (!messengerAddress) throw new Error("CCTP TokenMessenger not found on source chain")
+
+            const destinationDomain = CCTP_DOMAINS[recipient.destinationChainId as keyof typeof CCTP_DOMAINS]
+            if (destinationDomain === undefined) throw new Error("Destination chain not supported by CCTP")
+
+            // We need a signer, executeCCTPTransfer uses browser provider internally if we updated it,
+            // or we pass the signer. Let's look at executeCCTPTransfer signature in lib/web3.ts
+            // It expects `signer: ethers.Signer`.
+            // We need to get the signer here.
+            const { ethers } = await import("ethers")
+            const provider = new ethers.BrowserProvider(window.ethereum)
+            const signer = await provider.getSigner()
+
+            txHash = await executeCCTPTransfer(
               tokenAddress,
-              wallets.EVM!,
-              recipient.address,
+              messengerAddress,
               recipient.amount,
-              selectedNetwork,
+              destinationDomain,
+              recipient.address,
+              signer,
             )
-
-            // For Standard Batch, we assume immediate execution (Self-Relay or Direct Execution)
-            // If we want "Gasless" strictly, we'd send this to a relayer.
-            // But to ensure "Real Usage" where funds move, we execute it.
-            // The benefit here is using the modern standard.
-            txHash = await executeERC3009Transfer(tokenAddress, wallets.EVM!, recipient.address, recipient.amount, auth)
           } else {
-            txHash = await sendToken(tokenAddress, recipient.address, recipient.amount)
+            // Existing Intrachain Logic
+            let tokenAddress = ""
+            if (recipient.token === "CUSTOM") {
+              tokenAddress = recipient.customTokenAddress || ""
+            } else {
+              const addr = getTokenAddress(selectedNetwork, recipient.token)
+              if (!addr) throw new Error(`Token address not found for ${recipient.token}`)
+              tokenAddress = addr
+            }
+
+            if (recipient.token === "USDC" && activeChain === "EVM") {
+              const auth = await signERC3009Authorization(
+                tokenAddress,
+                wallets.EVM!,
+                recipient.address,
+                recipient.amount,
+                selectedNetwork,
+              )
+
+              // For Standard Batch, we assume immediate execution (Self-Relay or Direct Execution)
+              // If we want "Gasless" strictly, we'd send this to a relayer.
+              // But to ensure "Real Usage" where funds move, we execute it.
+              // The benefit here is using the modern standard.
+              txHash = await executeERC3009Transfer(
+                tokenAddress,
+                wallets.EVM!,
+                recipient.address,
+                recipient.amount,
+                auth,
+              )
+            } else {
+              txHash = await sendToken(tokenAddress, recipient.address, recipient.amount)
+            }
           }
 
           const { data: paymentData, error: paymentError } = await supabase
@@ -472,10 +557,12 @@ export default function BatchPaymentPage() {
               to_address: recipient.address,
               vendor_id: recipient.vendorId || null,
               token_symbol: recipient.token,
-              token_address: tokenAddress,
+              token_address: getTokenAddress(selectedNetwork, recipient.token) || "",
               amount: recipient.amount,
               amount_usd: Number.parseFloat(recipient.amount),
               status: "completed",
+              // We could store it in 'notes' or 'tags' if we had them in this insert, or extend the schema.
+              // For now, we stick to standard fields.
             })
             .select()
             .single()
@@ -500,7 +587,17 @@ export default function BatchPaymentPage() {
         description: `Successfully sent ${selectedToken} to ${recipients.length} recipients`,
       })
 
-      setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
+      setRecipients([
+        {
+          id: "1",
+          address: "",
+          amount: "",
+          vendorName: "",
+          vendorId: "",
+          token: "USDT",
+          destinationChainId: selectedNetwork,
+        },
+      ])
 
       setTimeout(() => router.push("/analytics"), 2000)
     } catch (error: any) {
@@ -606,13 +703,15 @@ export default function BatchPaymentPage() {
                           Wallet Address
                         </TableHead>
                         <TableHead className="text-foreground whitespace-nowrap min-w-[100px]">Token</TableHead>
+                        <TableHead className="text-foreground whitespace-nowrap w-[120px]">Chain</TableHead>{" "}
+                        {/* Added Chain Column Header */}
                         <TableHead className="text-foreground whitespace-nowrap min-w-[120px]">Amount</TableHead>
                         <TableHead className="text-foreground whitespace-nowrap w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {recipients.map((recipient) => (
-                        <TableRow key={recipient.id} className="border-border">
+                        <TableRow key={recipient.id}>
                           <TableCell>
                             <Select
                               value={recipient.vendorId}
@@ -672,6 +771,22 @@ export default function BatchPaymentPage() {
                                 onChange={(e) => updateRecipient(recipient.id, "customTokenAddress", e.target.value)}
                               />
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={recipient.destinationChainId?.toString() || selectedNetwork.toString()}
+                              onValueChange={(val) => updateRecipient(recipient.id, "destinationChainId", Number(val))}
+                              disabled={activeChain !== "EVM"}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={CHAIN_IDS.MAINNET.toString()}>Ethereum</SelectItem>
+                                <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
+                                <SelectItem value={CHAIN_IDS.SEPOLIA.toString()}>Sepolia</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <Input

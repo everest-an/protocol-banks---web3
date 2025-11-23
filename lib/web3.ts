@@ -1,9 +1,24 @@
 import { ethers } from "ethers"
+import type { ChainType } from "./path-to-chain-type" // Assuming ChainType is declared in another file
 
 export const CHAIN_IDS = {
   MAINNET: 1,
   SEPOLIA: 11155111,
   BASE: 8453,
+} as const
+
+export const CCTP_DOMAINS = {
+  [CHAIN_IDS.MAINNET]: 0,
+  [CHAIN_IDS.BASE]: 6,
+  [CHAIN_IDS.SEPOLIA]: 0, // Eth Sepolia is 0
+  // Note: Base Sepolia is 6, but we treat Sepolia as Eth testnet mostly here.
+  // If we support Base Sepolia, we'd need a new Chain ID in CHAIN_IDS.
+} as const
+
+export const CCTP_TOKEN_MESSENGER_ADDRESSES = {
+  [CHAIN_IDS.MAINNET]: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d", // Verified Mainnet
+  [CHAIN_IDS.BASE]: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d", // Verified Base
+  [CHAIN_IDS.SEPOLIA]: "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA", // Verified Sepolia
 } as const
 
 // USDT, USDC, and DAI contract addresses
@@ -41,7 +56,9 @@ export const ERC20_ABI = [
   "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external",
 ]
 
-export type ChainType = "EVM" | "SOLANA" | "BITCOIN"
+export const CCTP_ABI = [
+  "function depositForBurn(uint256 amount, uint32 destinationDomain, bytes32 mintRecipient, address burnToken) external returns (uint64)",
+]
 
 declare global {
   interface Window {
@@ -90,7 +107,7 @@ export function getMetaMaskDeepLink(path = ""): string {
 }
 
 export async function getChainId(): Promise<number> {
-  if (typeof window === "undefined" || !window.ethereum) return CHAIN_IDS.MAINNET
+  if (typeof window === "undefined") return CHAIN_IDS.MAINNET
   const provider = new ethers.BrowserProvider(window.ethereum)
   const network = await provider.getNetwork()
   return Number(network.chainId)
@@ -412,4 +429,44 @@ export async function executeERC3009Transfer(
   } catch (error: any) {
     throw new Error(error.message || "Transaction failed")
   }
+}
+
+export function addressToBytes32(address: string): string {
+  if (!ethers.isAddress(address)) throw new Error("Invalid address")
+  return ethers.zeroPadValue(address, 32)
+}
+
+export async function executeCCTPTransfer(
+  tokenAddress: string,
+  messengerAddress: string,
+  amount: string,
+  destinationDomain: number,
+  recipientAddress: string,
+  signer: ethers.Signer,
+): Promise<string> {
+  const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
+  const messengerContract = new ethers.Contract(messengerAddress, CCTP_ABI, signer)
+
+  const decimals = await tokenContract.decimals()
+  const amountInWei = ethers.parseUnits(amount, decimals)
+
+  // 1. Approve
+  console.log("[v0] Approving TokenMessenger...")
+  const currentAllowance = await tokenContract.allowance(await signer.getAddress(), messengerAddress)
+  if (currentAllowance < amountInWei) {
+    const approveTx = await tokenContract.approve(messengerAddress, amountInWei)
+    await approveTx.wait()
+    console.log("[v0] Approved")
+  }
+
+  // 2. DepositForBurn
+  const mintRecipient = addressToBytes32(recipientAddress)
+  console.log(
+    `[v0] Calling depositForBurn: amount=${amount}, domain=${destinationDomain}, recipient=${recipientAddress}`,
+  )
+
+  const tx = await messengerContract.depositForBurn(amountInWei, destinationDomain, mintRecipient, tokenAddress)
+
+  await tx.wait()
+  return tx.hash
 }
