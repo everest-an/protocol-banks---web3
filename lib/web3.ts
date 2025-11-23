@@ -108,8 +108,10 @@ export async function connectWallet(type: ChainType): Promise<string | null> {
     let address = ""
 
     if (type === "EVM") {
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const accounts = await provider.send("eth_requestAccounts", [])
+      // This is more reliable for triggering the popup
+      const accounts = (await window.ethereum.request({
+        method: "eth_requestAccounts",
+      })) as string[]
       address = accounts[0]
     }
 
