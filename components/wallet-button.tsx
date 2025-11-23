@@ -73,14 +73,34 @@ export function WalletButton() {
 
   if (!isMetaMaskInstalled) {
     return (
-      <Button
-        onClick={() => window.open("https://metamask.io/download/", "_blank")}
-        size="sm"
-        className="bg-orange-600 text-white hover:bg-orange-700 text-xs sm:text-sm px-2 sm:px-4"
-      >
-        <ExternalLink className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-        <span className="hidden xs:inline">Install </span>MetaMask
-      </Button>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button
+            size="sm"
+            className="bg-orange-600 text-white hover:bg-orange-700 text-xs sm:text-sm px-2 sm:px-4"
+          >
+            <Wallet className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Connect </span>Wallet
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>MetaMask Not Detected</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              MetaMask wallet extension is not detected in your browser. Please install MetaMask to connect your wallet.
+            </p>
+            <Button
+              onClick={() => window.open("https://metamask.io/download/", "_blank")}
+              className="w-full"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Install MetaMask
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     )
   }
 
