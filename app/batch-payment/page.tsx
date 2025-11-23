@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import { getSupabase } from "@/lib/supabase"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert" // Import Alert components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Added Tabs components
+import { switchNetwork, CHAIN_IDS } from "@/lib/web3" // Import switchNetwork and CHAIN_IDS
 
 interface PaymentRecipient {
   id: string
@@ -99,6 +100,8 @@ export default function BatchPaymentPage() {
   } | null>(null)
   const [isLoadingBill, setIsLoadingBill] = useState(false)
 
+  const [selectedNetwork, setSelectedNetwork] = useState<number>(CHAIN_IDS.MAINNET)
+
   useEffect(() => {
     if (isConnected && currentWallet) {
       loadVendors()
@@ -112,6 +115,12 @@ export default function BatchPaymentPage() {
       setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
     }
   }, [isConnected])
+
+  useEffect(() => {
+    if (isConnected && activeChain === "EVM") {
+      setSelectedNetwork(chainId)
+    }
+  }, [isConnected, activeChain, chainId])
 
   const loadVendors = async () => {
     try {
@@ -334,6 +343,25 @@ export default function BatchPaymentPage() {
       return
     }
 
+    if (activeChain === "EVM" && chainId !== selectedNetwork) {
+      try {
+        toast({
+          title: "Switching Network",
+          description: "Please confirm the network switch in your wallet.",
+        })
+        await switchNetwork(selectedNetwork)
+        // Wait a moment for the chainId to update in context/provider
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+      } catch (error: any) {
+        toast({
+          title: "Network Switch Failed",
+          description: "Could not switch to the selected network. Please switch manually.",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     const invalidRecipients = recipients.filter((r) => {
       if (!r.address || !VALIDATORS[activeChain as keyof typeof VALIDATORS](r.address)) return true
       if (r.token === "CUSTOM" && !r.customTokenAddress) return true
@@ -413,23 +441,18 @@ export default function BatchPaymentPage() {
           if (recipient.token === "CUSTOM") {
             tokenAddress = recipient.customTokenAddress || ""
           } else {
-            const addr = getTokenAddress(chainId, recipient.token)
+            const addr = getTokenAddress(selectedNetwork, recipient.token)
             if (!addr) throw new Error(`Token address not found for ${recipient.token}`)
             tokenAddress = addr
           }
 
           if (recipient.token === "USDC" && activeChain === "EVM") {
-            toast({
-              title: "Signing Authorization (EIP-3009)",
-              description: "Using gas-efficient authorization for USDC...",
-            })
-
             const auth = await signERC3009Authorization(
               tokenAddress,
               wallets.EVM!,
               recipient.address,
               recipient.amount,
-              chainId,
+              selectedNetwork,
             )
 
             // For Standard Batch, we assume immediate execution (Self-Relay or Direct Execution)
@@ -508,6 +531,22 @@ export default function BatchPaymentPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">Batch Payment</h1>
           <p className="text-muted-foreground mt-1">Send crypto to multiple recipients at once</p>
         </div>
+
+        {activeChain === "EVM" && (
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap">Network:</Label>
+            <Select value={selectedNetwork.toString()} onValueChange={(val) => setSelectedNetwork(Number(val))}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Network" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={CHAIN_IDS.MAINNET.toString()}>Ethereum Mainnet</SelectItem>
+                <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
+                <SelectItem value={CHAIN_IDS.SEPOLIA.toString()}>Sepolia (Testnet)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="standard" className="w-full">
@@ -526,9 +565,8 @@ export default function BatchPaymentPage() {
             </AlertDescription>
           </Alert>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Existing Card Content for Recipients */}
-            <Card className="lg:col-span-2 bg-card border-border">
+          <div className="grid gap-6 lg:grid-cols-12">
+            <Card className="lg:col-span-8 bg-card border-border">
               <CardHeader>
                 <CardTitle className="text-foreground">Recipients</CardTitle>
                 <CardDescription className="text-muted-foreground">
@@ -569,7 +607,7 @@ export default function BatchPaymentPage() {
                         </TableHead>
                         <TableHead className="text-foreground whitespace-nowrap min-w-[100px]">Token</TableHead>
                         <TableHead className="text-foreground whitespace-nowrap min-w-[120px]">Amount</TableHead>
-                        <TableHead className="w-12"></TableHead>
+                        <TableHead className="text-foreground whitespace-nowrap w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -670,8 +708,7 @@ export default function BatchPaymentPage() {
               </CardContent>
             </Card>
 
-            {/* Existing Summary Card */}
-            <Card className="h-fit sticky top-24 bg-card border-border">
+            <Card className="lg:col-span-4 h-fit sticky top-24 bg-card border-border">
               <CardHeader>
                 <CardTitle className="text-foreground">Summary</CardTitle>
               </CardHeader>
@@ -703,6 +740,12 @@ export default function BatchPaymentPage() {
                             <span className="font-mono font-bold">{totals.DAI.toFixed(2)}</span>
                           </div>
                         )}
+                        {totals.CUSTOM > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Total Custom</span>
+                            <span className="font-mono font-bold">{totals.CUSTOM.toFixed(2)}</span>
+                          </div>
+                        )}
                       </>
                     )
                   })()}
@@ -730,91 +773,145 @@ export default function BatchPaymentPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="x402">
-          <Card className="max-w-3xl mx-auto border-blue-500/20 bg-blue-950/5 shadow-lg mt-8">
-            <CardHeader className="text-center pb-8 border-b border-border/50">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-blue-500/10 rounded-full">
-                  <Receipt className="w-10 h-10 text-blue-500" />
-                </div>
-              </div>
-              <CardTitle className="text-2xl">x402 Bill Payment</CardTitle>
-              <CardDescription className="text-base max-w-md mx-auto mt-2">
-                Paste your payment request URL below to instantly parse and authorize gasless payments.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-8 p-8">
-              <div className="space-y-4">
-                <Label className="text-lg font-medium">Bill URL / Payment Request</Label>
-                <div className="flex gap-3">
-                  <div className="relative flex-1">
-                    <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      placeholder="Paste your x402 bill link here (e.g., https://api.vendor.com/pay/...)"
-                      className="pl-12 h-14 text-lg bg-background shadow-sm border-blue-200/20 focus-visible:ring-blue-500"
-                      value={billUrl}
-                      onChange={(e) => setBillUrl(e.target.value)}
-                    />
+        <TabsContent value="x402" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-12">
+            <Card className="lg:col-span-8 border-blue-500/20 bg-blue-950/5 shadow-lg">
+              <CardHeader className="text-center pb-8 border-b border-border/50">
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-blue-500/10 rounded-full">
+                    <Receipt className="w-10 h-10 text-blue-500" />
                   </div>
-                  <Button
-                    onClick={fetchBill}
-                    disabled={isLoadingBill || !billUrl}
-                    className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-700 shadow-md"
-                  >
-                    {isLoadingBill ? <Loader2 className="w-5 h-5 animate-spin" /> : "Load Bill"}
-                  </Button>
                 </div>
-                <p className="text-sm text-muted-foreground pl-1">
-                  Supported formats: Standard Payment Links, x402 Request URIs, Vendor Invoices
-                </p>
-              </div>
-
-              {billData && (
-                <div className="rounded-lg border bg-card p-6 space-y-4 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-lg">{billData.vendorName || "Unknown Vendor"}</h3>
-                      <p className="text-sm text-muted-foreground">Due: {billData.dueDate}</p>
+                <CardTitle className="text-2xl">x402 Bill Payment</CardTitle>
+                <CardDescription className="text-base max-w-md mx-auto mt-2">
+                  Paste your payment request URL below to instantly parse and authorize gasless payments.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8 p-8">
+                <div className="space-y-4">
+                  <Label className="text-lg font-medium">Bill URL / Payment Request</Label>
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        placeholder="Paste your x402 bill link here (e.g., https://api.vendor.com/pay/...)"
+                        className="pl-12 h-14 text-lg bg-background shadow-sm border-blue-200/20 focus-visible:ring-blue-500"
+                        value={billUrl}
+                        onChange={(e) => setBillUrl(e.target.value)}
+                      />
                     </div>
-                    <Badge variant="outline" className="text-lg py-1 px-3 border-blue-500 text-blue-500">
-                      {billData.amount} {billData.token}
-                    </Badge>
-                  </div>
-
-                  <div className="p-3 bg-muted/50 rounded-md text-sm font-mono break-all">
-                    <span className="text-muted-foreground select-none">To: </span>
-                    {billData.to}
-                  </div>
-
-                  <div className="pt-4 border-t flex justify-end">
                     <Button
-                      className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={handleBillPayment}
-                      disabled={isProcessing}
+                      onClick={fetchBill}
+                      disabled={isLoadingBill || !billUrl}
+                      className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-700 shadow-md"
                     >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Authorizing...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Sign & Pay (Gasless)
-                        </>
-                      )}
+                      {isLoadingBill ? <Loader2 className="w-5 h-5 animate-spin" /> : "Load Bill"}
                     </Button>
                   </div>
+                  <p className="text-sm text-muted-foreground pl-1">
+                    Supported formats: Standard Payment Links, x402 Request URIs, Vendor Invoices
+                  </p>
                 </div>
-              )}
 
-              {!billData && (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  Enter a payment request URL to automatically load bill details.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {billData && (
+                  <div className="rounded-lg border bg-card p-6 space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-lg">{billData.vendorName || "Unknown Vendor"}</h3>
+                        <p className="text-sm text-muted-foreground">Due: {billData.dueDate}</p>
+                      </div>
+                      <Badge variant="outline" className="text-lg py-1 px-3 border-blue-500 text-blue-500">
+                        {billData.amount} {billData.token}
+                      </Badge>
+                    </div>
+
+                    <div className="p-3 bg-muted/50 rounded-md text-sm font-mono break-all">
+                      <span className="text-muted-foreground select-none">To: </span>
+                      {billData.to}
+                    </div>
+
+                    <div className="pt-4 border-t flex justify-end">
+                      <Button
+                        className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={handleBillPayment}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Authorizing...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Sign & Pay (Gasless)
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {!billData && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    Enter a payment request URL to automatically load bill details.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="lg:col-span-4 space-y-6">
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-base">How x402 Works</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-3">
+                  <p>
+                    x402 uses the <strong>EIP-3009</strong> standard to enable gasless payments for compatible tokens
+                    (like USDC).
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-2">
+                    <li>Enter the bill URL from your vendor.</li>
+                    <li>Review the parsed payment details.</li>
+                    <li>Sign the authorization securely in your wallet.</li>
+                    <li>The vendor submits the transaction, paying the gas fees for you.</li>
+                  </ol>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-base">Supported Tokens</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">USDC (Ethereum)</span>
+                    <Badge variant="secondary" className="text-xs">
+                      Native
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">USDC (Base)</span>
+                    <Badge variant="secondary" className="text-xs">
+                      Native
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">USDC (Polygon)</span>
+                    <Badge variant="secondary" className="text-xs">
+                      Native
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">USDC (Optimism)</span>
+                    <Badge variant="secondary" className="text-xs">
+                      Native
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
