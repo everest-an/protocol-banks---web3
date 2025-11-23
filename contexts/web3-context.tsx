@@ -98,7 +98,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       let address = ""
 
       if (type === "EVM") {
-        const addr = await connectWeb3Wallet()
+        const addr = await connectWeb3Wallet("EVM")
         if (addr) address = addr
       } else if (type === "SOLANA") {
         address = await connectSolana()
