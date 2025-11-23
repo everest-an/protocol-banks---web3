@@ -15,7 +15,7 @@ Protocol Bank is a comprehensive financial dashboard designed for modern enterpr
 
 ### 2. **Advanced Batch Payments & x402 Protocol**
    - **Mixed-Token Batches**: Send USDT, USDC, and DAI to multiple recipients in a single session.
-   - **x402 Protocol / ERC-3009**: Implements the *TransferWithAuthorization* standard for gasless, delegated USDC payments. This allows AI agents and automated systems to propose payments that are signed securely by treasury managers off-chain.
+   - **x402 Protocol / ERC-3009**: Implements the *TransferWithAuthorization* standard for gasless, delegated USDC（BASE） payments. This allows AI agents and automated systems to propose payments that are signed securely by treasury managers off-chain.
    - **Multi-Chain Dispatch**: Orchestrate payments across Ethereum, Solana, and Bitcoin from a single CSV or form input.
 
 ### 3. **Entity Network Visualization (Wallet Tags)**
