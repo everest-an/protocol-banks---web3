@@ -224,7 +224,7 @@ export default function HomePage() {
     <div className="flex flex-col min-h-screen">
       {/* {isDemoMode && <PaymentNetworkGraph />} */}
 
-      <div className="container py-8 px-4 space-y-8">
+      <div className="container mx-auto py-8 px-4 space-y-8">
         {isDemoMode && (
           <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-500">
             <Info className="h-4 w-4" />

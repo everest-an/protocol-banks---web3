@@ -472,7 +472,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="container py-8 px-4 space-y-6">
+    <div className="container mx-auto py-8 px-4 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold text-foreground">Financial Intelligence</h1>

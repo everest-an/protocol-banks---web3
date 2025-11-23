@@ -515,7 +515,7 @@ export default function BatchPaymentPage() {
   }
 
   return (
-    <div className="container py-8 px-4 space-y-6">
+    <div className="container mx-auto py-8 px-4 space-y-6">
       {isDemoMode && (
         <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-500 mb-6">
           <Info className="h-4 w-4" />
