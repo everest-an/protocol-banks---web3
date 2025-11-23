@@ -55,7 +55,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const [usdcBalance, setUsdcBalance] = useState("0")
   const [daiBalance, setDaiBalance] = useState("0")
   const [chainId, setChainId] = useState<number>(CHAIN_IDS.MAINNET)
-  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false)
+  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(() => { if (typeof window !== "undefined") { return isMetaMaskAvailable() } return false })
 
   const isSupportedNetwork =
     chainId === CHAIN_IDS.MAINNET || chainId === CHAIN_IDS.SEPOLIA || chainId === CHAIN_IDS.BASE
