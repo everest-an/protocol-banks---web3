@@ -1,4 +1,18 @@
-import { Wallet, Layers, Shield, Network, Coins, Lock, HelpCircle, Globe, Zap } from "lucide-react"
+import {
+  Wallet,
+  Layers,
+  Shield,
+  Network,
+  Coins,
+  Lock,
+  HelpCircle,
+  Globe,
+  Zap,
+  AlertTriangle,
+  FileCheck,
+  Eye,
+  History,
+} from "lucide-react"
 
 export default function HelpPage() {
   return (
@@ -212,10 +226,158 @@ export default function HelpPage() {
               <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-green-400">
                 <Shield className="w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold">Security & Privacy FAQ</h2>
+              <h2 className="text-2xl font-bold">Security Architecture</h2>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <p className="text-zinc-400 leading-relaxed">
+              Protocol Bank 采用多层次的企业级安全架构，确保您的资产和数据在交易前、交易中、交易后始终受到保护。
+            </p>
+
+            {/* Security Feature Grid */}
+            <div className="grid gap-4 md:grid-cols-2 mt-6">
+              {/* Minimum Authorization */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <Lock className="w-5 h-5 text-yellow-400" />
+                  <h3 className="font-bold text-white">最小授权原则</h3>
+                </div>
+                <ul className="text-zinc-400 text-sm space-y-2">
+                  <li>
+                    • <strong className="text-white">精确授权</strong>：每次交易仅授权实际需要的金额，避免无限授权
+                  </li>
+                  <li>
+                    • <strong className="text-white">金额验证</strong>：系统对比 UI 显示金额与实际提交金额，防止篡改
+                  </li>
+                  <li>
+                    • <strong className="text-white">批量限额</strong>：单笔最高 $100,000，单批最高 $500,000
+                  </li>
+                </ul>
+              </div>
+
+              {/* Rate Limiting */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-400" />
+                  <h3 className="font-bold text-white">频率限制 (Rate Limiting)</h3>
+                </div>
+                <ul className="text-zinc-400 text-sm space-y-2">
+                  <li>
+                    • <strong className="text-white">批量支付</strong>：每小时最多 3 次
+                  </li>
+                  <li>
+                    • <strong className="text-white">单笔支付</strong>：每分钟最多 10 次
+                  </li>
+                  <li>
+                    • <strong className="text-white">API 请求</strong>：自动检测异常流量并阻止
+                  </li>
+                </ul>
+              </div>
+
+              {/* Address Validation */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <FileCheck className="w-5 h-5 text-blue-400" />
+                  <h3 className="font-bold text-white">地址校验与防篡改</h3>
+                </div>
+                <ul className="text-zinc-400 text-sm space-y-2">
+                  <li>
+                    • <strong className="text-white">EIP-55 校验和</strong>：验证地址大小写混合格式，检测输入错误
+                  </li>
+                  <li>
+                    • <strong className="text-white">同形字符检测</strong>：识别视觉相似的恶意字符 (如西里尔字母)
+                  </li>
+                  <li>
+                    • <strong className="text-white">完整性哈希</strong>：存储地址哈希值，转账前再次验证
+                  </li>
+                </ul>
+              </div>
+
+              {/* Audit Logging */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <History className="w-5 h-5 text-purple-400" />
+                  <h3 className="font-bold text-white">审计日志 (Audit Log)</h3>
+                </div>
+                <ul className="text-zinc-400 text-sm space-y-2">
+                  <li>
+                    • <strong className="text-white">操作记录</strong>：所有支付、修改、登录操作均有日志
+                  </li>
+                  <li>
+                    • <strong className="text-white">地址变更追踪</strong>：供应商钱包地址修改历史完整保存
+                  </li>
+                  <li>
+                    • <strong className="text-white">IP/设备记录</strong>：异常访问可追溯
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Transaction Lifecycle Security */}
+            <div className="mt-8 border border-zinc-800 rounded-xl overflow-hidden">
+              <div className="bg-zinc-900/50 p-4 border-b border-zinc-800 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-green-400" />
+                <h3 className="font-bold text-white">交易生命周期安全</h3>
+              </div>
+              <div className="divide-y divide-zinc-800">
+                <div className="p-4 flex gap-4">
+                  <div className="w-24 shrink-0 text-sm font-medium text-emerald-400">转账前</div>
+                  <div className="text-zinc-400 text-sm">
+                    <strong className="text-white">输入净化</strong> - 过滤 SQL 注入、XSS 攻击、隐形 Unicode 字符；
+                    <strong className="text-white">地址校验</strong> - EIP-55 校验和 + 同形字符检测；
+                    <strong className="text-white">金额验证</strong> - 范围、精度、限额检查
+                  </div>
+                </div>
+                <div className="p-4 flex gap-4">
+                  <div className="w-24 shrink-0 text-sm font-medium text-blue-400">转账中</div>
+                  <div className="text-zinc-400 text-sm">
+                    <strong className="text-white">完整性哈希</strong> - 客户端生成交易参数哈希，服务端验证一致性；
+                    <strong className="text-white">频率检查</strong> - 实时速率限制防止恶意刷单；
+                    <strong className="text-white">审计记录</strong> - 操作立即写入日志
+                  </div>
+                </div>
+                <div className="p-4 flex gap-4">
+                  <div className="w-24 shrink-0 text-sm font-medium text-purple-400">转账后</div>
+                  <div className="text-zinc-400 text-sm">
+                    <strong className="text-white">交易验证</strong> - 链上确认后更新状态；
+                    <strong className="text-white">异常告警</strong> - 失败或可疑交易自动触发安全警报；
+                    <strong className="text-white">历史保护</strong> - 数据库 RLS 策略防止越权访问
+                  </div>
+                </div>
+                <div className="p-4 flex gap-4">
+                  <div className="w-24 shrink-0 text-sm font-medium text-orange-400">长期存储</div>
+                  <div className="text-zinc-400 text-sm">
+                    <strong className="text-white">地址哈希校验</strong> - 定期验证供应商地址未被篡改；
+                    <strong className="text-white">变更历史</strong> - 所有地址修改保留完整记录；
+                    <strong className="text-white">访问控制</strong> - Row-Level Security (RLS) 确保数据隔离
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Malicious Content Protection */}
+            <div className="mt-6 bg-red-950/20 border border-red-900/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+                <h3 className="font-bold text-white">恶意内容防护</h3>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-red-300 font-medium mb-1">恶意文本/乱码</p>
+                  <p className="text-zinc-400">自动过滤隐形字符、零宽字符、控制字符</p>
+                </div>
+                <div>
+                  <p className="text-red-300 font-medium mb-1">恶意合约地址</p>
+                  <p className="text-zinc-400">校验和验证 + 可选黑名单检查</p>
+                </div>
+                <div>
+                  <p className="text-red-300 font-medium mb-1">注入攻击</p>
+                  <p className="text-zinc-400">SQL/XSS/脚本标签完全过滤</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Original FAQ Cards */}
+            <div className="grid md:grid-cols-2 gap-6 mt-8">
               <div className="bg-zinc-900/30 p-6 rounded-xl border border-zinc-800">
                 <div className="flex items-center gap-3 mb-3 text-white">
                   <Lock className="w-5 h-5 text-green-400" />
