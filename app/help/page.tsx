@@ -230,26 +230,30 @@ export default function HelpPage() {
             </div>
 
             <p className="text-zinc-400 leading-relaxed">
-              Protocol Bank 采用多层次的企业级安全架构，确保您的资产和数据在交易前、交易中、交易后始终受到保护。
+              Protocol Bank employs a multi-layered enterprise-grade security architecture to protect your assets and
+              data before, during, and after transactions.
             </p>
 
             {/* Security Feature Grid */}
             <div className="grid gap-4 md:grid-cols-2 mt-6">
-              {/* Minimum Authorization */}
+              {/* Principle of Least Privilege */}
               <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
                 <div className="flex items-center gap-3 mb-3">
                   <Lock className="w-5 h-5 text-yellow-400" />
-                  <h3 className="font-bold text-white">最小授权原则</h3>
+                  <h3 className="font-bold text-white">Principle of Least Privilege</h3>
                 </div>
                 <ul className="text-zinc-400 text-sm space-y-2">
                   <li>
-                    • <strong className="text-white">精确授权</strong>：每次交易仅授权实际需要的金额，避免无限授权
+                    • <strong className="text-white">Exact Authorization</strong>: Each transaction only approves the
+                    exact amount needed, avoiding unlimited approvals.
                   </li>
                   <li>
-                    • <strong className="text-white">金额验证</strong>：系统对比 UI 显示金额与实际提交金额，防止篡改
+                    • <strong className="text-white">Amount Verification</strong>: System compares UI-displayed amount
+                    with actually submitted amount to prevent tampering.
                   </li>
                   <li>
-                    • <strong className="text-white">批量限额</strong>：单笔最高 $100,000，单批最高 $500,000
+                    • <strong className="text-white">Batch Limits</strong>: Maximum $100,000 per transaction, $500,000
+                    per batch.
                   </li>
                 </ul>
               </div>
@@ -258,36 +262,40 @@ export default function HelpPage() {
               <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
                 <div className="flex items-center gap-3 mb-3">
                   <AlertTriangle className="w-5 h-5 text-orange-400" />
-                  <h3 className="font-bold text-white">频率限制 (Rate Limiting)</h3>
+                  <h3 className="font-bold text-white">Rate Limiting</h3>
                 </div>
                 <ul className="text-zinc-400 text-sm space-y-2">
                   <li>
-                    • <strong className="text-white">批量支付</strong>：每小时最多 3 次
+                    • <strong className="text-white">Batch Payments</strong>: Maximum 3 per hour
                   </li>
                   <li>
-                    • <strong className="text-white">单笔支付</strong>：每分钟最多 10 次
+                    • <strong className="text-white">Single Payments</strong>: Maximum 10 per minute
                   </li>
                   <li>
-                    • <strong className="text-white">API 请求</strong>：自动检测异常流量并阻止
+                    • <strong className="text-white">API Requests</strong>: Automatic detection and blocking of
+                    anomalous traffic
                   </li>
                 </ul>
               </div>
 
-              {/* Address Validation */}
+              {/* Address Validation & Tamper Protection */}
               <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
                 <div className="flex items-center gap-3 mb-3">
                   <FileCheck className="w-5 h-5 text-blue-400" />
-                  <h3 className="font-bold text-white">地址校验与防篡改</h3>
+                  <h3 className="font-bold text-white">Address Validation & Tamper Protection</h3>
                 </div>
                 <ul className="text-zinc-400 text-sm space-y-2">
                   <li>
-                    • <strong className="text-white">EIP-55 校验和</strong>：验证地址大小写混合格式，检测输入错误
+                    • <strong className="text-white">EIP-55 Checksum</strong>: Validates mixed-case address format to
+                    detect input errors.
                   </li>
                   <li>
-                    • <strong className="text-white">同形字符检测</strong>：识别视觉相似的恶意字符 (如西里尔字母)
+                    • <strong className="text-white">Homograph Detection</strong>: Identifies visually similar malicious
+                    characters (e.g., Cyrillic letters).
                   </li>
                   <li>
-                    • <strong className="text-white">完整性哈希</strong>：存储地址哈希值，转账前再次验证
+                    • <strong className="text-white">Integrity Hash</strong>: Stores address hash values, re-verified
+                    before each transfer.
                   </li>
                 </ul>
               </div>
@@ -296,17 +304,19 @@ export default function HelpPage() {
               <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
                 <div className="flex items-center gap-3 mb-3">
                   <History className="w-5 h-5 text-purple-400" />
-                  <h3 className="font-bold text-white">审计日志 (Audit Log)</h3>
+                  <h3 className="font-bold text-white">Audit Logging</h3>
                 </div>
                 <ul className="text-zinc-400 text-sm space-y-2">
                   <li>
-                    • <strong className="text-white">操作记录</strong>：所有支付、修改、登录操作均有日志
+                    • <strong className="text-white">Operation Records</strong>: All payments, modifications, and logins
+                    are logged.
                   </li>
                   <li>
-                    • <strong className="text-white">地址变更追踪</strong>：供应商钱包地址修改历史完整保存
+                    • <strong className="text-white">Address Change Tracking</strong>: Complete history of vendor wallet
+                    address modifications.
                   </li>
                   <li>
-                    • <strong className="text-white">IP/设备记录</strong>：异常访问可追溯
+                    • <strong className="text-white">IP/Device Logging</strong>: Anomalous access can be traced.
                   </li>
                 </ul>
               </div>
@@ -316,39 +326,45 @@ export default function HelpPage() {
             <div className="mt-8 border border-zinc-800 rounded-xl overflow-hidden">
               <div className="bg-zinc-900/50 p-4 border-b border-zinc-800 flex items-center gap-2">
                 <Eye className="w-5 h-5 text-green-400" />
-                <h3 className="font-bold text-white">交易生命周期安全</h3>
+                <h3 className="font-bold text-white">Transaction Lifecycle Security</h3>
               </div>
               <div className="divide-y divide-zinc-800">
                 <div className="p-4 flex gap-4">
-                  <div className="w-24 shrink-0 text-sm font-medium text-emerald-400">转账前</div>
+                  <div className="w-28 shrink-0 text-sm font-medium text-emerald-400">Pre-Transfer</div>
                   <div className="text-zinc-400 text-sm">
-                    <strong className="text-white">输入净化</strong> - 过滤 SQL 注入、XSS 攻击、隐形 Unicode 字符；
-                    <strong className="text-white">地址校验</strong> - EIP-55 校验和 + 同形字符检测；
-                    <strong className="text-white">金额验证</strong> - 范围、精度、限额检查
+                    <strong className="text-white">Input Sanitization</strong> - Filters SQL injection, XSS attacks,
+                    invisible Unicode characters; <strong className="text-white">Address Validation</strong> - EIP-55
+                    checksum + homograph detection; <strong className="text-white">Amount Verification</strong> - Range,
+                    precision, and limit checks.
                   </div>
                 </div>
                 <div className="p-4 flex gap-4">
-                  <div className="w-24 shrink-0 text-sm font-medium text-blue-400">转账中</div>
+                  <div className="w-28 shrink-0 text-sm font-medium text-blue-400">During Transfer</div>
                   <div className="text-zinc-400 text-sm">
-                    <strong className="text-white">完整性哈希</strong> - 客户端生成交易参数哈希，服务端验证一致性；
-                    <strong className="text-white">频率检查</strong> - 实时速率限制防止恶意刷单；
-                    <strong className="text-white">审计记录</strong> - 操作立即写入日志
+                    <strong className="text-white">Integrity Hash</strong> - Client generates transaction parameter
+                    hash, server verifies consistency; <strong className="text-white">Rate Check</strong> - Real-time
+                    rate limiting prevents malicious spamming; <strong className="text-white">Audit Recording</strong> -
+                    Operations immediately written to logs.
                   </div>
                 </div>
                 <div className="p-4 flex gap-4">
-                  <div className="w-24 shrink-0 text-sm font-medium text-purple-400">转账后</div>
+                  <div className="w-28 shrink-0 text-sm font-medium text-purple-400">Post-Transfer</div>
                   <div className="text-zinc-400 text-sm">
-                    <strong className="text-white">交易验证</strong> - 链上确认后更新状态；
-                    <strong className="text-white">异常告警</strong> - 失败或可疑交易自动触发安全警报；
-                    <strong className="text-white">历史保护</strong> - 数据库 RLS 策略防止越权访问
+                    <strong className="text-white">Transaction Verification</strong> - Status updated after on-chain
+                    confirmation; <strong className="text-white">Anomaly Alerts</strong> - Failed or suspicious
+                    transactions automatically trigger security alerts;{" "}
+                    <strong className="text-white">History Protection</strong> - Database RLS policies prevent
+                    unauthorized access.
                   </div>
                 </div>
                 <div className="p-4 flex gap-4">
-                  <div className="w-24 shrink-0 text-sm font-medium text-orange-400">长期存储</div>
+                  <div className="w-28 shrink-0 text-sm font-medium text-orange-400">Long-Term Storage</div>
                   <div className="text-zinc-400 text-sm">
-                    <strong className="text-white">地址哈希校验</strong> - 定期验证供应商地址未被篡改；
-                    <strong className="text-white">变更历史</strong> - 所有地址修改保留完整记录；
-                    <strong className="text-white">访问控制</strong> - Row-Level Security (RLS) 确保数据隔离
+                    <strong className="text-white">Address Hash Verification</strong> - Periodic verification that
+                    vendor addresses have not been tampered with; <strong className="text-white">Change History</strong>{" "}
+                    - Complete records retained for all address modifications;{" "}
+                    <strong className="text-white">Access Control</strong> - Row-Level Security (RLS) ensures data
+                    isolation.
                   </div>
                 </div>
               </div>
@@ -358,20 +374,22 @@ export default function HelpPage() {
             <div className="mt-6 bg-red-950/20 border border-red-900/30 rounded-xl p-5">
               <div className="flex items-center gap-3 mb-3">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
-                <h3 className="font-bold text-white">恶意内容防护</h3>
+                <h3 className="font-bold text-white">Malicious Content Protection</h3>
               </div>
               <div className="grid md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <p className="text-red-300 font-medium mb-1">恶意文本/乱码</p>
-                  <p className="text-zinc-400">自动过滤隐形字符、零宽字符、控制字符</p>
+                  <p className="text-red-300 font-medium mb-1">Malicious Text / Garbage Data</p>
+                  <p className="text-zinc-400">
+                    Automatically filters invisible characters, zero-width characters, control characters.
+                  </p>
                 </div>
                 <div>
-                  <p className="text-red-300 font-medium mb-1">恶意合约地址</p>
-                  <p className="text-zinc-400">校验和验证 + 可选黑名单检查</p>
+                  <p className="text-red-300 font-medium mb-1">Malicious Contract Addresses</p>
+                  <p className="text-zinc-400">Checksum validation + optional blacklist checking.</p>
                 </div>
                 <div>
-                  <p className="text-red-300 font-medium mb-1">注入攻击</p>
-                  <p className="text-zinc-400">SQL/XSS/脚本标签完全过滤</p>
+                  <p className="text-red-300 font-medium mb-1">Injection Attacks</p>
+                  <p className="text-zinc-400">SQL/XSS/script tags completely filtered.</p>
                 </div>
               </div>
             </div>
@@ -417,6 +435,33 @@ export default function HelpPage() {
                 <div className="flex items-center gap-2 text-xs text-green-400 bg-green-950/20 px-3 py-2 rounded border border-green-900/30 w-fit">
                   <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                   Audited & Verified Secure
+                </div>
+              </div>
+            </div>
+
+            {/* User Responsibility Disclaimer */}
+            <div className="mt-8 bg-amber-950/20 border border-amber-900/30 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-bold text-amber-200 mb-2">Important: User Responsibility Disclaimer</h3>
+                  <p className="text-zinc-400 text-sm leading-relaxed mb-3">
+                    While Protocol Bank implements robust security measures to protect you from common risks,
+                    <strong className="text-white"> you are ultimately responsible for your own security</strong>. This
+                    includes but is not limited to:
+                  </p>
+                  <ul className="text-zinc-400 text-sm space-y-1.5 list-disc pl-5">
+                    <li>Safeguarding your private keys and seed phrases - never share them with anyone.</li>
+                    <li>Verifying recipient addresses before confirming any transaction.</li>
+                    <li>Using hardware wallets for large holdings.</li>
+                    <li>Keeping your browser, wallet extensions, and devices updated and secure.</li>
+                    <li>Being vigilant against phishing attacks and social engineering.</li>
+                  </ul>
+                  <p className="text-zinc-500 text-xs mt-4 italic">
+                    Protocol Bank provides tools and safeguards, but cannot be held liable for losses resulting from
+                    user negligence, compromised devices, phishing attacks, or actions outside our control.
+                    Cryptocurrency transactions are irreversible. Please proceed with caution.
+                  </p>
                 </div>
               </div>
             </div>
