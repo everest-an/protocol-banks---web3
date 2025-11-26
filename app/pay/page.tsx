@@ -10,6 +10,9 @@ import { Loader2, Wallet, CheckCircle2, AlertCircle, ShieldAlert, ShieldCheck, E
 import { useWeb3 } from "@/contexts/web3-context"
 import { useToast } from "@/hooks/use-toast"
 import { getTokenAddress, signERC3009Authorization, executeERC3009Transfer, sendToken } from "@/lib/web3"
+import { FeePreview } from "@/components/fee-preview"
+import { recordFee, calculateFee } from "@/lib/protocol-fees"
+import { getSupabase } from "@/lib/supabase"
 
 interface PaymentVerification {
   signatureValid: boolean
@@ -99,6 +102,7 @@ function PaymentContent() {
   const [showSecurityModal, setShowSecurityModal] = useState(false)
   const [transactionLock, setTransactionLock] = useState<TransactionLock | null>(null)
   const [verificationResult, setVerificationResult] = useState<PaymentVerification | null>(null)
+  const [feeEstimate, setFeeEstimate] = useState<{ finalFee: number } | null>(null)
 
   // Get params
   const to = searchParams.get("to")
@@ -148,6 +152,20 @@ function PaymentContent() {
     setSecurityChecked(true)
     setLoading(false)
   }, [to, amount, token, networkParam, sig, exp])
+
+  useEffect(() => {
+    async function estimateFee() {
+      if (amount && wallets.EVM) {
+        try {
+          const fee = await calculateFee(Number(amount), wallets.EVM, "standard")
+          setFeeEstimate(fee)
+        } catch (err) {
+          console.warn("Fee estimation failed:", err)
+        }
+      }
+    }
+    estimateFee()
+  }, [amount, wallets.EVM])
 
   const createLock = useCallback(() => {
     if (!to || !amount || !token) return null
@@ -263,6 +281,42 @@ function PaymentContent() {
         }
 
         hash = await sendToken(tokenAddress, to!, amount!)
+      }
+
+      const supabase = getSupabase()
+      if (supabase) {
+        try {
+          const { data: paymentData } = await supabase
+            .from("payments")
+            .insert({
+              tx_hash: hash,
+              from_address: wallets.EVM,
+              to_address: to,
+              token_symbol: token,
+              token_address: tokenAddress,
+              amount: amount,
+              amount_usd: Number(amount),
+              status: "completed",
+            })
+            .select()
+            .single()
+
+          // Record protocol fee
+          if (paymentData) {
+            await recordFee({
+              paymentId: paymentData.id,
+              amount: Number(amount),
+              fromAddress: wallets.EVM,
+              tokenSymbol: token!,
+              chainId: chainId,
+              tier: "standard",
+              collectionMethod: "deferred",
+            })
+          }
+        } catch (dbError) {
+          console.warn("[v0] Database recording failed:", dbError)
+          // Don't fail the payment if DB recording fails
+        }
       }
 
       setTxHash(hash)
@@ -467,6 +521,15 @@ function PaymentContent() {
               )}
             </div>
 
+            {amount && Number(amount) > 0 && wallets.EVM && (
+              <FeePreview
+                amount={Number(amount)}
+                walletAddress={wallets.EVM}
+                tokenSymbol={token || "USDC"}
+                compact={true}
+              />
+            )}
+
             {!isConnected ? (
               <Alert className="bg-primary/5 border-primary/20">
                 <AlertTitle>Connect Wallet</AlertTitle>
@@ -486,6 +549,9 @@ function PaymentContent() {
             ) : (
               <>
                 Pay {amount} {token}
+                {feeEstimate && (
+                  <span className="text-xs ml-1 opacity-70">(+${feeEstimate.finalFee.toFixed(2)} fee)</span>
+                )}
               </>
             )}
           </Button>

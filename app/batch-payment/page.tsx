@@ -39,6 +39,8 @@ import {
   createAuditLog,
   type AuditAction,
 } from "@/lib/security"
+import { FeePreview } from "@/components/fee-preview" // Added FeePreview
+import { recordFee, calculateFee } from "@/lib/protocol-fees" // Added fee related functions
 
 interface PaymentRecipient {
   id: string
@@ -141,6 +143,7 @@ export default function BatchPaymentPage() {
 
   const [securityWarnings, setSecurityWarnings] = useState<string[]>([])
   const [integrityHashes, setIntegrityHashes] = useState<Map<string, string>>(new Map())
+  const [feePreview, setFeePreview] = useState<any>(null) // State for fee preview
 
   useEffect(() => {
     if (isConnected && currentWallet) {
@@ -171,6 +174,16 @@ export default function BatchPaymentPage() {
       setSelectedNetwork(chainId)
     }
   }, [isConnected, activeChain, chainId])
+
+  // Calculate fee preview whenever recipients or selected network change
+  useEffect(() => {
+    const calculatedFeePreview = calculateFee(
+      recipients.filter((r) => Number(r.amount) > 0),
+      selectedNetwork,
+      "standard", // TODO: Detect user tier
+    )
+    setFeePreview(calculatedFeePreview)
+  }, [recipients, selectedNetwork])
 
   const loadVendors = async () => {
     try {
@@ -744,6 +757,22 @@ export default function BatchPaymentPage() {
 
           if (paymentError) throw paymentError
 
+          try {
+            await recordFee({
+              paymentId: paymentData.id,
+              batchId: batchData.id,
+              amount: Number(recipient.amount),
+              fromAddress: currentWallet,
+              tokenSymbol: recipient.token,
+              chainId: selectedNetwork,
+              tier: "standard", // TODO: Detect user tier
+              collectionMethod: "deferred",
+            })
+          } catch (feeError) {
+            console.warn("[v0] Fee recording failed:", feeError)
+            // Don't fail the payment if fee recording fails
+          }
+
           const paymentAuditLog = createAuditLog({
             action: "PAYMENT_COMPLETED" as AuditAction,
             actor: currentWallet,
@@ -1101,6 +1130,9 @@ export default function BatchPaymentPage() {
                       )
                     })()}
                   </div>
+
+                  {feePreview && <FeePreview data={feePreview} />}
+
                   <Button
                     className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/90"
                     size="lg"
