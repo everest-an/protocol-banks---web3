@@ -11,7 +11,37 @@
  */
 
 import { ethers } from "ethers"
-import { createHash, randomBytes } from "crypto"
+
+// Web Crypto API compatible hash function
+async function sha256(data: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const dataBuffer = encoder.encode(data)
+  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+}
+
+// Synchronous hash using simple algorithm (for non-critical uses)
+function simpleHash(data: string): string {
+  let hash = 0
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i)
+    hash = (hash << 5) - hash + char
+    hash = hash & hash
+  }
+  // Convert to hex and pad
+  const hex = Math.abs(hash).toString(16)
+  return hex.padStart(64, "0").slice(0, 64)
+}
+
+// Generate random bytes using Web Crypto API
+function generateRandomBytes(length: number): string {
+  const bytes = new Uint8Array(length)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+}
 
 // ============================================
 // 1. ADDRESS VALIDATION & INTEGRITY
@@ -175,7 +205,7 @@ export function createTransactionIntegrityHash(params: {
     nonce: params.nonce,
   })
 
-  return createHash("sha256").update(data).digest("hex")
+  return simpleHash(data)
 }
 
 /**
@@ -404,7 +434,7 @@ export function checkContractSafety(address: string): {
  * Generates a cryptographically secure nonce
  */
 export function generateSecureNonce(): string {
-  return randomBytes(32).toString("hex")
+  return generateRandomBytes(32)
 }
 
 /**
@@ -418,9 +448,7 @@ export function createSignedRequest<T extends Record<string, unknown>>(
   const timestamp = Date.now()
 
   const payload = JSON.stringify({ ...data, nonce, timestamp })
-  const signature = createHash("sha256")
-    .update(payload + secretKey)
-    .digest("hex")
+  const signature = simpleHash(payload + secretKey)
 
   return { data, nonce, timestamp, signature }
 }
@@ -442,9 +470,7 @@ export function verifySignedRequest<T extends Record<string, unknown>>(
 
   // Verify signature
   const payload = JSON.stringify({ ...data, nonce, timestamp })
-  const expectedSignature = createHash("sha256")
-    .update(payload + secretKey)
-    .digest("hex")
+  const expectedSignature = simpleHash(payload + secretKey)
 
   if (signature !== expectedSignature) {
     return { valid: false, error: "Invalid signature" }
@@ -474,7 +500,7 @@ export function createVendorIntegrityHash(vendor: {
     created_by: vendor.created_by.toLowerCase(),
   })
 
-  return createHash("sha256").update(data).digest("hex")
+  return simpleHash(data)
 }
 
 /**

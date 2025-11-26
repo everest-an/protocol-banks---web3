@@ -12,6 +12,12 @@ import {
   FileCheck,
   Eye,
   History,
+  Fingerprint,
+  Link2,
+  Ban,
+  ShieldCheck,
+  Repeat,
+  ScanSearch,
 } from "lucide-react"
 
 export default function HelpPage() {
@@ -464,6 +470,187 @@ export default function HelpPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Section 5: Advanced Blockchain Security */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-red-400">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold">Advanced Blockchain Security</h2>
+            </div>
+
+            <p className="text-zinc-400 leading-relaxed">
+              Protocol Bank implements cutting-edge protections against sophisticated blockchain attack vectors. Our
+              pre-transaction security analysis automatically scans for these threats before any funds leave your
+              wallet.
+            </p>
+
+            {/* Attack Vector Protection Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-6">
+              {/* Proxy Contract Backdoors */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <ScanSearch className="w-5 h-5 text-red-400" />
+                  <h3 className="font-bold text-white text-sm">Proxy Contract Backdoors</h3>
+                </div>
+                <p className="text-zinc-400 text-xs mb-3">
+                  Malicious upgradeable contracts can change behavior after deployment.
+                </p>
+                <ul className="text-zinc-500 text-xs space-y-1">
+                  <li>• Bytecode analysis for proxy patterns</li>
+                  <li>• Detection of upgrade functions</li>
+                  <li>• Verified contract whitelist checking</li>
+                  <li>• Self-destruct capability warnings</li>
+                </ul>
+              </div>
+
+              {/* Signature Phishing */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <Fingerprint className="w-5 h-5 text-orange-400" />
+                  <h3 className="font-bold text-white text-sm">Signature Phishing</h3>
+                </div>
+                <p className="text-zinc-400 text-xs mb-3">Malicious dApps trick users into signing harmful messages.</p>
+                <ul className="text-zinc-500 text-xs space-y-1">
+                  <li>• EIP-712 typed data validation</li>
+                  <li>• Domain name verification</li>
+                  <li>• Unlimited approval detection</li>
+                  <li>• Spender address analysis</li>
+                </ul>
+              </div>
+
+              {/* Flash Loan Attacks */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <Zap className="w-5 h-5 text-yellow-400" />
+                  <h3 className="font-bold text-white text-sm">Flash Loan Attacks</h3>
+                </div>
+                <p className="text-zinc-400 text-xs mb-3">
+                  Attackers manipulate prices within a single transaction block.
+                </p>
+                <ul className="text-zinc-500 text-xs space-y-1">
+                  <li>• Large transaction warnings</li>
+                  <li>• Price impact analysis</li>
+                  <li>• MEV/sandwich attack detection</li>
+                  <li>• Private mempool recommendations</li>
+                </ul>
+              </div>
+
+              {/* Cross-Chain Bridge Attacks */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <Link2 className="w-5 h-5 text-blue-400" />
+                  <h3 className="font-bold text-white text-sm">Cross-Chain Bridge Attacks</h3>
+                </div>
+                <p className="text-zinc-400 text-xs mb-3">Bridge exploits have caused billions in losses.</p>
+                <ul className="text-zinc-500 text-xs space-y-1">
+                  <li>• Official CCTP contract verification</li>
+                  <li>• Destination chain validation</li>
+                  <li>• Amount limit enforcement</li>
+                  <li>• Recipient address verification</li>
+                </ul>
+              </div>
+
+              {/* Double Spending */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <Repeat className="w-5 h-5 text-purple-400" />
+                  <h3 className="font-bold text-white text-sm">Double Spending</h3>
+                </div>
+                <p className="text-zinc-400 text-xs mb-3">Duplicate transactions or nonce manipulation attacks.</p>
+                <ul className="text-zinc-500 text-xs space-y-1">
+                  <li>• Pending transaction tracking</li>
+                  <li>• Nonce conflict detection</li>
+                  <li>• Duplicate transaction warnings</li>
+                  <li>• 30-second rapid-fire protection</li>
+                </ul>
+              </div>
+
+              {/* Malicious Approvals */}
+              <div className="bg-zinc-900/30 p-5 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <Ban className="w-5 h-5 text-rose-400" />
+                  <h3 className="font-bold text-white text-sm">Malicious Approvals</h3>
+                </div>
+                <p className="text-zinc-400 text-xs mb-3">Unlimited token approvals can drain your entire balance.</p>
+                <ul className="text-zinc-500 text-xs space-y-1">
+                  <li>• Max uint256 approval detection</li>
+                  <li>• Exact-amount approval enforcement</li>
+                  <li>• Existing approval scanning</li>
+                  <li>• Safe approval calculation</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Pre-Transaction Security Modal */}
+            <div className="mt-8 border border-zinc-800 rounded-xl overflow-hidden">
+              <div className="bg-zinc-900/50 p-4 border-b border-zinc-800 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-bold text-white">Pre-Transaction Security Check</h3>
+              </div>
+              <div className="p-6">
+                <p className="text-zinc-400 text-sm mb-4">
+                  Before any transaction is submitted to the blockchain, Protocol Bank performs an automated security
+                  analysis. You will see a modal displaying:
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-zinc-800/50 p-4 rounded-lg">
+                    <h4 className="text-white font-medium text-sm mb-2">Risk Assessment</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-1 text-xs rounded bg-green-500/20 text-green-400 border border-green-500/30">
+                        SAFE
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                        LOW
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                        MEDIUM
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                        HIGH
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                        CRITICAL
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-zinc-800/50 p-4 rounded-lg">
+                    <h4 className="text-white font-medium text-sm mb-2">Security Checks</h4>
+                    <ul className="text-zinc-400 text-xs space-y-1">
+                      <li>✓ Contract Verification</li>
+                      <li>✓ Double Spend Protection</li>
+                      <li>✓ Flash Loan Risk Analysis</li>
+                      <li>✓ Signature Safety (if applicable)</li>
+                      <li>✓ Bridge Security (if cross-chain)</li>
+                    </ul>
+                  </div>
+                </div>
+                <p className="text-zinc-500 text-xs mt-4">
+                  <strong className="text-amber-400">Note:</strong> Transactions with CRITICAL risk level will be
+                  blocked. For HIGH/MEDIUM risk, you must acknowledge the warnings before proceeding.
+                </p>
+              </div>
+            </div>
+
+            {/* Transaction Simulation */}
+            <div className="mt-6 bg-emerald-950/20 border border-emerald-900/30 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <Eye className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-bold text-white">Transaction Simulation</h3>
+              </div>
+              <p className="text-zinc-400 text-sm">
+                For complex transactions, Protocol Bank can simulate the outcome before submission using
+                <code className="mx-1 px-1.5 py-0.5 bg-zinc-800 rounded text-emerald-300 text-xs">eth_call</code>. This
+                allows you to preview:
+              </p>
+              <ul className="text-zinc-400 text-sm mt-3 space-y-1">
+                <li>• Whether the transaction will succeed or revert</li>
+                <li>• Estimated gas consumption</li>
+                <li>• Potential revert reasons (decoded from error data)</li>
+              </ul>
             </div>
           </section>
         </div>
