@@ -10,6 +10,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { FinancialReport } from "@/components/financial-report"
 import { VendorSidebar } from "@/components/vendor-sidebar"
 import { BusinessMetrics } from "@/components/business-metrics"
+import { PaymentActivity } from "@/components/payment-activity"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface DashboardStats {
@@ -307,7 +308,7 @@ export default function HomePage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="bg-card border-border lg:col-span-2">
             <CardHeader>
-              <CardTitle className="text-foreground">Payment Activity</CardTitle>
+              <CardTitle className="text-foreground">Payment Trend</CardTitle>
               <CardDescription className="text-muted-foreground">
                 Your transaction volume over the last 7 days
               </CardDescription>
@@ -354,6 +355,14 @@ export default function HomePage() {
             <VendorSidebar vendors={displayVendors} loading={loading && !isDemoMode} />
           </div>
         </div>
+
+        <PaymentActivity
+          payments={displayPayments}
+          walletAddress={wallet}
+          loading={loading && !isDemoMode}
+          title="Recent Transactions"
+          description="Your latest payment activity"
+        />
 
         <FinancialReport payments={displayPayments} loading={loading && !isDemoMode} />
 

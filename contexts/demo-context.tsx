@@ -18,7 +18,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [demoBlockReason, setDemoBlockReason] = useState<string | null>(null)
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_ALLOW_DEMO_MODE) {
+    const allowDemoMode = process.env.NEXT_PUBLIC_ALLOW_DEMO_MODE === "true"
+    if (!allowDemoMode) {
       setDemoModeBlocked(true)
       setDemoBlockReason("Demo mode is disabled in production")
       setIsDemoMode(false)

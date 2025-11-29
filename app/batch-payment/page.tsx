@@ -966,8 +966,7 @@ export default function BatchPaymentPage() {
                             Wallet Address
                           </TableHead>
                           <TableHead className="text-foreground whitespace-nowrap min-w-[100px]">Token</TableHead>
-                          <TableHead className="text-foreground whitespace-nowrap w-[120px]">Chain</TableHead>{" "}
-                          {/* Added Chain Column Header */}
+                          <TableHead className="text-foreground whitespace-nowrap w-[120px]">Chain</TableHead>
                           <TableHead className="text-foreground whitespace-nowrap min-w-[120px]">Amount</TableHead>
                           <TableHead className="text-foreground whitespace-nowrap w-[50px]"></TableHead>
                         </TableRow>

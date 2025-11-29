@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Web3Provider } from "@/contexts/web3-context"
 import { DemoProvider } from "@/contexts/demo-context"
@@ -44,7 +43,7 @@ export default function RootLayout({
             <Toaster />
           </DemoProvider>
         </Web3Provider>
-        <Analytics />
+        {/* Analytics will be added automatically when deployed to Vercel */}
       </body>
     </html>
   )

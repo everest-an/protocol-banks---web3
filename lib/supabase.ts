@@ -1,31 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr"
 
-export const supabase =
-  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    ? createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    : ({
-        from: () => ({
-          select: () => ({ data: [], error: { message: "Supabase not configured" } }),
-          insert: () => ({ error: { message: "Supabase not configured" } }),
-        }),
-      } as any)
-
+// Singleton instance
 let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null
-
-export function getSupabase() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.warn("[v0] Supabase env vars missing. Please check your environment variables.")
-    return null
-  }
-
-  if (!supabaseInstance) {
-    supabaseInstance = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    )
-  }
-  return supabaseInstance
-}
 
 export function createClient() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -36,6 +12,8 @@ export function createClient() {
         insert: () => ({ data: null, error: { message: "Supabase not configured" } }),
         update: () => ({ data: null, error: { message: "Supabase not configured" } }),
         delete: () => ({ data: null, error: { message: "Supabase not configured" } }),
+        single: () => ({ data: null, error: { message: "Supabase not configured" } }),
+        eq: () => ({ data: [], error: { message: "Supabase not configured" } }),
       }),
       rpc: () => ({ data: null, error: { message: "Supabase not configured" } }),
     } as any
@@ -49,3 +27,9 @@ export function createClient() {
   }
   return supabaseInstance
 }
+
+export function getSupabase() {
+  return createClient()
+}
+
+export const supabase = createClient()
