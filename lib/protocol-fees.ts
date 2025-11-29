@@ -167,6 +167,10 @@ export async function getTreasuryAddress(chainType: "evm" | "solana" | "bitcoin"
  * Get monthly transaction volume for a wallet
  */
 export async function getMonthlyVolume(walletAddress: string): Promise<number> {
+  if (!walletAddress || typeof walletAddress !== "string") {
+    return 0
+  }
+
   const supabase = createClient()
   const monthYear = new Date().toISOString().slice(0, 7) // YYYY-MM
 
@@ -192,6 +196,21 @@ export async function calculateFee(
   walletAddress: string,
   tier: UserTier = "standard",
 ): Promise<FeeCalculation> {
+  if (!walletAddress || typeof walletAddress !== "string") {
+    const config = await getFeeConfig()
+    let baseFee = amount * config.baseRate
+    baseFee = Math.max(baseFee, config.minFeeUsd)
+    baseFee = Math.min(baseFee, config.maxFeeUsd)
+    return {
+      baseFee: Math.round(baseFee * 1000000) / 1000000,
+      discountAmount: 0,
+      finalFee: Math.round(baseFee * 1000000) / 1000000,
+      feeRate: config.baseRate,
+      volumeDiscount: 0,
+      tierDiscount: 0,
+    }
+  }
+
   const [config, tierDiscounts, volumeDiscounts, monthlyVolume] = await Promise.all([
     getFeeConfig(),
     getTierDiscounts(),
@@ -287,8 +306,10 @@ export async function getFeeStats(
 } | null> {
   const supabase = createClient()
 
+  const safeWalletAddress = walletAddress && typeof walletAddress === "string" ? walletAddress.toLowerCase() : null
+
   const { data, error } = await supabase.rpc("get_protocol_fee_stats", {
-    p_wallet: walletAddress?.toLowerCase() || null,
+    p_wallet: safeWalletAddress,
     p_start_date: startDate?.toISOString() || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     p_end_date: endDate?.toISOString() || new Date().toISOString(),
   })
@@ -312,6 +333,10 @@ export async function getFeeStats(
  * Get monthly fee summary for a wallet
  */
 export async function getMonthlyFeeSummary(walletAddress: string): Promise<MonthlyFeeSummary | null> {
+  if (!walletAddress || typeof walletAddress !== "string") {
+    return null
+  }
+
   const supabase = createClient()
   const monthYear = new Date().toISOString().slice(0, 7)
 
@@ -342,6 +367,10 @@ export async function getMonthlyFeeSummary(walletAddress: string): Promise<Month
  * Get recent protocol fees for a wallet
  */
 export async function getRecentFees(walletAddress: string, limit = 10): Promise<ProtocolFee[]> {
+  if (!walletAddress || typeof walletAddress !== "string") {
+    return []
+  }
+
   const supabase = createClient()
 
   const { data, error } = await supabase
