@@ -11,11 +11,11 @@ Add these variables in the **Vars** section of your v0 project or in your deploy
 **Get your keys from:** https://www.google.com/recaptcha/admin
 
 ```env
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6Lcy2S4sAAAAAPvp87hb-Fd6Ilt5JKOEtDCP_Jdk
+RECAPTCHA_SITE_KEY=6Lcy2S4sAAAAAPvp87hb-Fd6Ilt5JKOEtDCP_Jdk
 RECAPTCHA_SECRET_KEY=6Lcy2S4sAAAAAH06AlrmdD_mCEK5Q8xM_L09GOv6
 ```
 
-- `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`: Site key for reCAPTCHA (fetched via server action)
+- `RECAPTCHA_SITE_KEY`: Site key for reCAPTCHA (fetched via server action)
 - `RECAPTCHA_SECRET_KEY`: Private key used for server-side verification (keep secure)
 
 ### 2. Email Service (Resend)
@@ -41,9 +41,11 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ### 4. Ethereum Configuration (Already Configured)
 
 ```env
-NEXT_PUBLIC_ETHERSCAN_API_KEY=your_etherscan_api_key
+ETHERSCAN_API_KEY=your_etherscan_api_key
 NEXT_PUBLIC_ALLOW_DEMO_MODE=true
 ```
+
+**Note:** `ETHERSCAN_API_KEY` is used server-side only in API routes, so it does not need the `NEXT_PUBLIC_` prefix.
 
 ## How to Add Variables in v0
 
@@ -70,7 +72,7 @@ After adding the variables:
 
 ## Troubleshooting
 
-- **reCAPTCHA not loading**: Check that `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` is set correctly
+- **reCAPTCHA not loading**: Check that `RECAPTCHA_SITE_KEY` is set correctly
 - **Email not sending**: Verify `RESEND_API_KEY` is valid and active
 - **"Verification failed" error**: Check that `RECAPTCHA_SECRET_KEY` matches your reCAPTCHA configuration
 

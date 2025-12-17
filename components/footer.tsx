@@ -99,7 +99,6 @@ export function Footer() {
                   Contact Us
                 </Link>
               </li>
-              <li className="text-[10px] sm:text-xs text-zinc-600 mt-4 break-all">everest9812@gmail.com</li>
             </ul>
           </div>
         </div>
