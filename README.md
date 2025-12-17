@@ -63,4 +63,46 @@ For a deep dive into the economic model, market analysis, and technical implemen
 
 ---
 
+V1.1
+Technical Whitepaper: ProtocolBanks Architecture
+Title: A Non-Custodial Decentralized Banking Infrastructure with Integrated Fiat-to-Crypto Solutions
+
+1. Executive Summary 
+ProtocolBanks is a decentralized neo-banking protocol designed to bridge traditional fiat systems with on-chain finance. By leveraging ERC-4337 (Account Abstraction) and strategic partnerships with liquidity gateways like Transak, ProtocolBanks provides a secure, non-custodial environment where users retain full control over their assets while enjoying the convenience of traditional banking services, such as debit cards and real-time payments.
+
+2. Core Infrastructure
+The platform is built on three specialized layers:
+
+A. User Interface & Integration Layer
+Transak Gateway Integration: Utilizing Transak’s White-label API to provide seamless fiat on-ramp/off-ramp services directly within the application.
+
+Security: Users interact with the protocol via social login or hardware wallets, with no private keys stored on ProtocolBanks servers.
+
+B. Smart Account Layer (The "Vault")
+ERC-4337 Account Abstraction: Every user is assigned a programmable Smart Contract Wallet (SCW).
+
+Spending Limit Module: A core security feature that allows users to define "Pre-authorized" spending limits. This ensures that only a specific portion of the funds is accessible for daily card transactions, while the majority remains secured in the vault.
+
+C. Payment Execution Layer
+Auth-Forwarding Logic: When a user initiates a transaction via a linked crypto-card, the payment network triggers a real-time Webhook. ProtocolBanks verifies the on-chain balance and the pre-defined spending limits before approving the transaction.
+
+3. Transaction Workflow
+Direct Deposit (Fiat to On-chain): Users initiate a purchase via Transak. Funds are settled directly to the user’s Safe {Core} address. ProtocolBanks acts as the interface, ensuring zero-custody risk.
+
+Real-time Pre-authorization: When a linked Visa/Mastercard is swiped, the system checks the "Locked" vs "Available" balance within the user's Smart Account.
+
+Settlement: The protocol executes an automated swap and transfer only for the authorized amount, leaving the remaining user funds untouched and secured on the blockchain.
+
+4. Revenue Model & Sustainability
+Transaction Mark-up: A transparent service fee (0.2%-0.5%) added to fiat-crypto conversions.
+
+SaaS & Premium Tiers: Subscription-based models for institutional users and high-net-worth individuals requiring advanced multi-sig banking features.
+
+Interoperability Fees: Commissions from cross-chain liquidity routing and DeFi yield aggregation.
+
+5. Compliance & Security 
+Non-Custodial Nature: ProtocolBanks never assumes custody of user funds, significantly reducing regulatory hurdles and enhancing user trust.
+
+AML/KYC Integration: Fiat-related compliance is handled through Transak’s fully licensed KYC/AML engine, ensuring all on-ramp activities meet global regulatory standards.
+
 *Note: This project is a production-ready demo. For the "Entity Network" visualization, a simulation mode is active for unauthenticated users to demonstrate the platform's capabilities at scale.*
