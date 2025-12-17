@@ -22,8 +22,8 @@ export default function ContactPage() {
                   <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-white mb-1">Email Us</h3>
-                  <p className="text-sm sm:text-base text-zinc-400 break-all">protocolbanks@gmail.com</p>
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-1">Get in Touch</h3>
+                  <p className="text-sm sm:text-base text-zinc-400">Fill out the form and we'll get back to you</p>
                   <p className="text-zinc-500 text-xs sm:text-sm mt-1">Typical response time: 24 hours</p>
                 </div>
               </div>
@@ -34,8 +34,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-white mb-1">Socials</h3>
-                  <p className="text-sm sm:text-base text-zinc-400">Twitter: @protocolbank</p>
-                  <p className="text-sm sm:text-base text-zinc-400">GitHub: Protocol-Banks-web3</p>
+                  <p className="text-sm sm:text-base text-zinc-400">Twitter: @0xPrococolBank</p>
+                  <p className="text-sm sm:text-base text-zinc-400">GitHub: everest-an/protocol-banks---web3</p>
                 </div>
               </div>
 

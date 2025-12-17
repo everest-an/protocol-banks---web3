@@ -1,18 +1,53 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
-import { Loader2, Send, CheckCircle2 } from "lucide-react"
+import { Loader2, Send, CheckCircle2, Shield } from "lucide-react"
+import { getRecaptchaSiteKey } from "@/app/actions/get-recaptcha-key"
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void
+      execute: (siteKey: string, options: { action: string }) => Promise<string>
+    }
+  }
+}
 
 export function ContactForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [recaptchaReady, setRecaptchaReady] = useState(false)
+  const [siteKey, setSiteKey] = useState<string>("")
+
+  useEffect(() => {
+    getRecaptchaSiteKey().then((key) => setSiteKey(key))
+  }, [])
+
+  useEffect(() => {
+    if (!siteKey) return
+
+    const checkRecaptcha = () => {
+      if (window.grecaptcha && window.grecaptcha.ready) {
+        window.grecaptcha.ready(() => {
+          setRecaptchaReady(true)
+        })
+      }
+    }
+
+    checkRecaptcha()
+    const interval = setInterval(checkRecaptcha, 100)
+    setTimeout(() => clearInterval(interval), 10000)
+
+    return () => clearInterval(interval)
+  }, [siteKey])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
     const formData = new FormData(e.currentTarget)
     const data = {
@@ -23,22 +58,40 @@ export function ContactForm() {
     }
 
     try {
-      // 1. Try to save to database if table exists
-      const { error } = await supabase.from("contact_messages").insert([data])
+      let recaptchaToken = ""
+      if (recaptchaReady && window.grecaptcha && siteKey) {
+        try {
+          recaptchaToken = await window.grecaptcha.execute(siteKey, { action: "contact_form" })
+        } catch (err) {
+          console.error("reCAPTCHA error:", err)
+          throw new Error("Verification failed. Please try again.")
+        }
+      }
 
-      if (error) throw error
+      const response = await fetch("/api/send-contact-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          recaptchaToken,
+        }),
+      })
 
-      // 2. Also open mailto link as fallback/confirmation for the user
-      const mailtoLink = `mailto:protocolbanks@gmail.com?subject=[${data.subject}] Contact from ${data.name}&body=${encodeURIComponent(data.message)}%0A%0AFrom: ${data.email}`
-      window.location.href = mailtoLink
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to send message")
+      }
+
+      await supabase.from("contact_messages").insert([data])
 
       setIsSuccess(true)
+      ;(e.target as HTMLFormElement).reset()
     } catch (error) {
       console.error("Error submitting form:", error)
-      // Fallback to mailto even if DB fails
-      const mailtoLink = `mailto:protocolbanks@gmail.com?subject=[${data.subject}] Contact from ${data.name}&body=${encodeURIComponent(data.message)}%0A%0AFrom: ${data.email}`
-      window.location.href = mailtoLink
-      setIsSuccess(true)
+      setError(error instanceof Error ? error.message : "Failed to send message. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -52,8 +105,7 @@ export function ContactForm() {
         </div>
         <h3 className="text-2xl font-bold text-white">Message Sent!</h3>
         <p className="text-zinc-400 max-w-xs">
-          Thank you for reaching out. We've opened your email client to finalize the transmission. We'll get back to you
-          shortly.
+          Thank you for reaching out. We've received your message and will get back to you within 24 hours.
         </p>
         <button
           onClick={() => setIsSuccess(false)}
@@ -125,13 +177,42 @@ export function ContactForm() {
         />
       </div>
 
+      {error && (
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{error}</div>
+      )}
+
+      <div className="flex items-start gap-2 text-xs text-zinc-500">
+        <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <p>
+          This form is protected by reCAPTCHA. By submitting, you agree to Google's{" "}
+          <a
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-zinc-400"
+          >
+            Privacy Policy
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://policies.google.com/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-zinc-400"
+          >
+            Terms of Service
+          </a>
+          .
+        </p>
+      </div>
+
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || !recaptchaReady}
         className="w-full py-4 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-        Send Message
+        {!recaptchaReady && !isLoading ? "Loading verification..." : "Send Message"}
       </button>
     </form>
   )
