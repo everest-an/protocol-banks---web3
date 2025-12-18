@@ -6,14 +6,8 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 async function verifyRecaptcha(token: string): Promise<boolean> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY
 
-  if (!secretKey) {
-    console.warn("[v0] reCAPTCHA verification skipped - RECAPTCHA_SECRET_KEY not configured")
-    return true
-  }
-
-  if (!token) {
-    console.warn("[v0] reCAPTCHA verification skipped - no token provided")
-    return true
+  if (!secretKey || !token) {
+    return true // Allow submission if reCAPTCHA not configured
   }
 
   try {
@@ -26,18 +20,9 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
     })
 
     const data = await response.json()
-
-    console.log("[v0] reCAPTCHA verification result:", {
-      success: data.success,
-      score: data.score,
-      action: data.action,
-      errorCodes: data["error-codes"],
-    })
-
     return data.success && (!data.score || data.score >= 0.3)
   } catch (error) {
-    console.error("[v0] reCAPTCHA verification error:", error)
-    return true
+    return true // Allow submission on verification error
   }
 }
 
@@ -45,8 +30,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { name, email, subject, message, recaptchaToken } = body
-
-    console.log("[v0] Contact form submission:", { name, email, subject, hasToken: !!recaptchaToken })
 
     const isHuman = await verifyRecaptcha(recaptchaToken)
 
@@ -63,7 +46,6 @@ export async function POST(request: Request) {
     const resendApiKey = process.env.RESEND_API_KEY
 
     if (!resendApiKey) {
-      console.warn("[v0] RESEND_API_KEY not configured - email not sent")
       return NextResponse.json(
         {
           success: false,
@@ -128,7 +110,6 @@ export async function POST(request: Request) {
     })
 
     if (error) {
-      console.error("[v0] Resend error:", error)
       return NextResponse.json(
         {
           success: false,
@@ -138,8 +119,6 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log("[v0] Email sent successfully:", data)
-
     return NextResponse.json(
       {
         success: true,
@@ -148,7 +127,6 @@ export async function POST(request: Request) {
       { status: 200 },
     )
   } catch (error) {
-    console.error("[v0] Error sending contact email:", error)
     return NextResponse.json(
       {
         success: false,

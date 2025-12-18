@@ -27,10 +27,12 @@ import {
   DollarSign,
   Shield,
   ArrowRight,
+  Building2,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { CHAIN_IDS, isMobileDevice, getMetaMaskDeepLink } from "@/lib/web3"
 import { useToast } from "@/hooks/use-toast"
+import { OffRampModal } from "@/components/offramp-modal"
 
 export function UnifiedWalletButton() {
   const {
@@ -57,16 +59,15 @@ export function UnifiedWalletButton() {
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showOffRampModal, setShowOffRampModal] = useState(false)
 
   useEffect(() => {
     setIsMobile(isMobileDevice())
   }, [])
 
-  // Determine overall connection status
   const isConnected = isWeb3Connected || isReownConnected
   const activeAddress = reownAddress || wallets[activeChain]
 
-  // Auto-detect user type based on connection method
   useEffect(() => {
     if (isReownConnected && !isWeb3Connected) {
       setUserType("web2")
@@ -106,7 +107,6 @@ export function UnifiedWalletButton() {
     try {
       await connectWallet(chain)
     } catch (error: any) {
-      // Handle user rejection gracefully - this is not an error
       if (error?.message?.includes("rejected") || error?.message?.includes("denied") || error?.code === 4001) {
         toast({
           title: "Connection Cancelled",
@@ -126,7 +126,6 @@ export function UnifiedWalletButton() {
           variant: "destructive",
         })
       }
-      // Reset user type if connection failed
       setUserType(null)
     }
   }
@@ -145,7 +144,10 @@ export function UnifiedWalletButton() {
     openReown({ view: "OnRampProviders" })
   }
 
-  // Not connected - show login options
+  const handleOffRamp = () => {
+    setShowOffRampModal(true)
+  }
+
   if (!isConnected) {
     return (
       <>
@@ -168,7 +170,6 @@ export function UnifiedWalletButton() {
             </DialogHeader>
 
             <div className="grid gap-6 py-4">
-              {/* Web2 Section - For beginners */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                   <HelpCircle className="h-4 w-4" />
@@ -213,7 +214,6 @@ export function UnifiedWalletButton() {
                 </div>
               </div>
 
-              {/* Web3 Section - For crypto users */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                   <Wallet className="h-4 w-4" />
@@ -271,7 +271,6 @@ export function UnifiedWalletButton() {
     )
   }
 
-  // Connected but wrong network (only for EVM Web3 users)
   if (userType === "web3" && activeChain === "EVM" && wallets.EVM && !isSupportedNetwork) {
     return (
       <DropdownMenu>
@@ -289,249 +288,258 @@ export function UnifiedWalletButton() {
     )
   }
 
-  // Connected state - different UI for Web2 vs Web3
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm" className="text-xs sm:text-sm px-2 sm:px-3">
-          {isWeb2User ? (
-            <User className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-          ) : activeChain === "BITCOIN" ? (
-            <Bitcoin className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
-          ) : activeChain === "SOLANA" ? (
-            <div className="mr-1 sm:mr-2 h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-purple-500" />
-          ) : (
-            <Wallet className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-          )}
-          <span className="hidden xs:inline truncate max-w-[80px] sm:max-w-none">
-            {activeAddress ? formatAddress(activeAddress) : isWeb2User ? "My Account" : "Connected"}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end" className="w-80 bg-card border-border">
-        {/* Web2 User UI - Simplified */}
-        {isWeb2User ? (
-          <>
-            <DropdownMenuLabel className="text-foreground">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                My Account
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-border" />
-
-            {/* Simplified balance display */}
-            <div className="px-3 py-3 space-y-2">
-              <div className="text-xs text-muted-foreground mb-2">Your Balance</div>
-              <div className="bg-secondary/30 rounded-lg p-3 space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Digital Dollars</span>
-                  </div>
-                  <span className="font-mono font-semibold">
-                    ${(Number.parseFloat(usdtBalance) + Number.parseFloat(usdcBalance)).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground mt-2">
-                Your digital dollars work just like regular money, but can be sent anywhere in the world instantly.
-              </p>
-            </div>
-
-            <DropdownMenuSeparator className="bg-border" />
-
-            {/* Web2-friendly actions */}
-            <DropdownMenuItem onClick={handleBuyCrypto} className="cursor-pointer">
-              <CreditCard className="mr-2 h-4 w-4 text-green-500" />
-              <div className="flex flex-col">
-                <span>Add Funds</span>
-                <span className="text-xs text-muted-foreground">Use card or bank transfer</span>
-              </div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem onClick={() => openReown({ view: "Account" })} className="cursor-pointer">
-              <User className="mr-2 h-4 w-4" />
-              Account Settings
-            </DropdownMenuItem>
-
-            <DropdownMenuItem onClick={() => activeAddress && copyAddress(activeAddress)} className="cursor-pointer">
-              {copied ? (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy Account ID
-                </>
-              )}
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator className="bg-border" />
-
-            <DropdownMenuItem onClick={handleDisconnect} className="cursor-pointer text-red-500 focus:text-red-500">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </DropdownMenuItem>
-          </>
-        ) : (
-          /* Web3 User UI - Technical */
-          <>
-            <DropdownMenuLabel className="text-foreground">Connected Wallets</DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-border" />
-
-            {/* EVM Section */}
-            <div className="px-2 py-2">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center">
-                  <Wallet className="mr-2 h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium">Ethereum</span>
-                </div>
-                {wallets.EVM ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formatAddress(wallets.EVM)}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => setActiveChain("EVM")}
-                      disabled={activeChain === "EVM"}
-                    >
-                      {activeChain === "EVM" && <CheckCircle className="h-3 w-3 text-green-500" />}
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs bg-transparent"
-                    onClick={() => connectWallet("EVM")}
-                  >
-                    Connect
-                  </Button>
-                )}
-              </div>
-              {wallets.EVM && activeChain === "EVM" && (
-                <div className="pl-6 space-y-1 mt-2 bg-secondary/20 p-2 rounded">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">USDT:</span>
-                    <span className="font-mono">{Number.parseFloat(usdtBalance).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">USDC:</span>
-                    <span className="font-mono">{Number.parseFloat(usdcBalance).toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <DropdownMenuSeparator className="bg-border" />
-
-            {/* Solana Section */}
-            <div className="px-2 py-2">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center">
-                  <div className="mr-2 h-4 w-4 rounded-full bg-purple-500" />
-                  <span className="text-sm font-medium">Solana</span>
-                </div>
-                {wallets.SOLANA ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formatAddress(wallets.SOLANA)}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => setActiveChain("SOLANA")}
-                      disabled={activeChain === "SOLANA"}
-                    >
-                      {activeChain === "SOLANA" && <CheckCircle className="h-3 w-3 text-green-500" />}
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs bg-transparent"
-                    onClick={() => connectWallet("SOLANA")}
-                  >
-                    Connect
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <DropdownMenuSeparator className="bg-border" />
-
-            {/* Bitcoin Section */}
-            <div className="px-2 py-2">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center">
-                  <Bitcoin className="mr-2 h-4 w-4 text-orange-500" />
-                  <span className="text-sm font-medium">Bitcoin</span>
-                </div>
-                {wallets.BITCOIN ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formatAddress(wallets.BITCOIN)}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => setActiveChain("BITCOIN")}
-                      disabled={activeChain === "BITCOIN"}
-                    >
-                      {activeChain === "BITCOIN" && <CheckCircle className="h-3 w-3 text-green-500" />}
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs bg-transparent"
-                    onClick={() => connectWallet("BITCOIN")}
-                  >
-                    Connect
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <DropdownMenuSeparator className="bg-border" />
-
-            {activeChain === "EVM" && wallets.EVM && (
-              <DropdownMenuItem
-                onClick={() => switchNetwork(chainId === CHAIN_IDS.MAINNET ? CHAIN_IDS.SEPOLIA : CHAIN_IDS.MAINNET)}
-              >
-                Switch to {chainId === CHAIN_IDS.MAINNET ? "Sepolia" : "Mainnet"}
-              </DropdownMenuItem>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="default" size="sm" className="text-xs sm:text-sm px-2 sm:px-3">
+            {isWeb2User ? (
+              <User className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            ) : activeChain === "BITCOIN" ? (
+              <Bitcoin className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
+            ) : activeChain === "SOLANA" ? (
+              <div className="mr-1 sm:mr-2 h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-purple-500" />
+            ) : (
+              <Wallet className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             )}
+            <span className="hidden xs:inline truncate max-w-[80px] sm:max-w-none">
+              {activeAddress ? formatAddress(activeAddress) : isWeb2User ? "My Account" : "Connected"}
+            </span>
+          </Button>
+        </DropdownMenuTrigger>
 
-            <DropdownMenuItem onClick={() => activeAddress && copyAddress(activeAddress)} className="cursor-pointer">
-              {copied ? (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                  Copied Address
-                </>
-              ) : (
-                <>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy Active Address
-                </>
+        <DropdownMenuContent align="end" className="w-80 bg-card border-border">
+          {isWeb2User ? (
+            <>
+              <DropdownMenuLabel className="text-foreground">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  My Account
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-border" />
+
+              <div className="px-3 py-3 space-y-2">
+                <div className="text-xs text-muted-foreground mb-2">Your Balance</div>
+                <div className="bg-secondary/30 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-green-500" />
+                      <span className="text-sm">Digital Dollars</span>
+                    </div>
+                    <span className="font-mono font-semibold">
+                      ${(Number.parseFloat(usdtBalance) + Number.parseFloat(usdcBalance)).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground mt-2">
+                  Your digital dollars work just like regular money, but can be sent anywhere in the world instantly.
+                </p>
+              </div>
+
+              <DropdownMenuSeparator className="bg-border" />
+
+              <DropdownMenuItem onClick={handleBuyCrypto} className="cursor-pointer">
+                <CreditCard className="mr-2 h-4 w-4 text-green-500" />
+                <div className="flex flex-col">
+                  <span>Add Funds</span>
+                  <span className="text-xs text-muted-foreground">Use card or bank transfer</span>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={handleOffRamp} className="cursor-pointer">
+                <Building2 className="mr-2 h-4 w-4 text-blue-500" />
+                <div className="flex flex-col">
+                  <span>Withdraw to Bank</span>
+                  <span className="text-xs text-muted-foreground">Convert to cash</span>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={() => openReown({ view: "Account" })} className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                Account Settings
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={() => activeAddress && copyAddress(activeAddress)} className="cursor-pointer">
+                {copied ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy Account ID
+                  </>
+                )}
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="bg-border" />
+
+              <DropdownMenuItem onClick={handleDisconnect} className="cursor-pointer text-red-500 focus:text-red-500">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <>
+              <DropdownMenuLabel className="text-foreground">Connected Wallets</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-border" />
+
+              <div className="px-2 py-2">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center">
+                    <Wallet className="mr-2 h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">Ethereum</span>
+                  </div>
+                  {wallets.EVM ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{formatAddress(wallets.EVM)}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setActiveChain("EVM")}
+                        disabled={activeChain === "EVM"}
+                      >
+                        {activeChain === "EVM" && <CheckCircle className="h-3 w-3 text-green-500" />}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs bg-transparent"
+                      onClick={() => connectWallet("EVM")}
+                    >
+                      Connect
+                    </Button>
+                  )}
+                </div>
+                {wallets.EVM && activeChain === "EVM" && (
+                  <div className="pl-6 space-y-1 mt-2 bg-secondary/20 p-2 rounded">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">USDT:</span>
+                      <span className="font-mono">{Number.parseFloat(usdtBalance).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">USDC:</span>
+                      <span className="font-mono">{Number.parseFloat(usdcBalance).toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <DropdownMenuSeparator className="bg-border" />
+
+              <div className="px-2 py-2">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center">
+                    <div className="mr-2 h-4 w-4 rounded-full bg-purple-500" />
+                    <span className="text-sm font-medium">Solana</span>
+                  </div>
+                  {wallets.SOLANA ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{formatAddress(wallets.SOLANA)}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setActiveChain("SOLANA")}
+                        disabled={activeChain === "SOLANA"}
+                      >
+                        {activeChain === "SOLANA" && <CheckCircle className="h-3 w-3 text-green-500" />}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs bg-transparent"
+                      onClick={() => connectWallet("SOLANA")}
+                    >
+                      Connect
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <DropdownMenuSeparator className="bg-border" />
+
+              <div className="px-2 py-2">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center">
+                    <Bitcoin className="mr-2 h-4 w-4 text-orange-500" />
+                    <span className="text-sm font-medium">Bitcoin</span>
+                  </div>
+                  {wallets.BITCOIN ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{formatAddress(wallets.BITCOIN)}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setActiveChain("BITCOIN")}
+                        disabled={activeChain === "BITCOIN"}
+                      >
+                        {activeChain === "BITCOIN" && <CheckCircle className="h-3 w-3 text-green-500" />}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs bg-transparent"
+                      onClick={() => connectWallet("BITCOIN")}
+                    >
+                      Connect
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <DropdownMenuSeparator className="bg-border" />
+
+              {activeChain === "EVM" && wallets.EVM && (
+                <DropdownMenuItem
+                  onClick={() => switchNetwork(chainId === CHAIN_IDS.MAINNET ? CHAIN_IDS.SEPOLIA : CHAIN_IDS.MAINNET)}
+                >
+                  Switch to {chainId === CHAIN_IDS.MAINNET ? "Sepolia" : "Mainnet"}
+                </DropdownMenuItem>
               )}
-            </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem onClick={() => activeAddress && copyAddress(activeAddress)} className="cursor-pointer">
+                {copied ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                    Copied Address
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy Active Address
+                  </>
+                )}
+              </DropdownMenuItem>
 
-            <DropdownMenuItem onClick={handleDisconnect} className="cursor-pointer text-red-500 focus:text-red-500">
-              <LogOut className="mr-2 h-4 w-4" />
-              Disconnect Wallet
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+              <DropdownMenuSeparator className="bg-border" />
+
+              <DropdownMenuItem onClick={handleDisconnect} className="cursor-pointer text-red-500 focus:text-red-500">
+                <LogOut className="mr-2 h-4 w-4" />
+                Disconnect Wallet
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <OffRampModal
+        open={showOffRampModal}
+        onOpenChange={setShowOffRampModal}
+        walletAddress={activeAddress || ""}
+        balance={usdcBalance}
+      />
+    </>
   )
 }
