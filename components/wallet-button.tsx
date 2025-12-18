@@ -13,7 +13,15 @@ import {
 import { Wallet, LogOut, Copy, CheckCircle, ExternalLink, AlertTriangle, Smartphone, Bitcoin } from "lucide-react"
 import { useState, useEffect } from "react"
 import { CHAIN_IDS, isMobileDevice, getMetaMaskDeepLink } from "@/lib/web3"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { ReownWalletButton } from "./reown-wallet-button"
 
 export function WalletButton() {
   const {
@@ -73,84 +81,99 @@ export function WalletButton() {
 
   if (!isMetaMaskInstalled) {
     return (
-      <Button
-        onClick={() => window.open("https://metamask.io/download/", "_blank")}
-        size="sm"
-        className="bg-orange-600 text-white hover:bg-orange-700 text-xs sm:text-sm px-2 sm:px-4"
-      >
-        <ExternalLink className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-        <span className="hidden xs:inline">Install </span>MetaMask
-      </Button>
+      <div className="flex gap-2">
+        <ReownWalletButton />
+        <Button
+          onClick={() => window.open("https://metamask.io/download/", "_blank")}
+          size="sm"
+          variant="outline"
+          className="bg-orange-600 text-white hover:bg-orange-700 text-xs sm:text-sm px-2 sm:px-4"
+        >
+          <ExternalLink className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="hidden xs:inline">Install </span>MetaMask
+        </Button>
+      </div>
     )
   }
 
   if (!isConnected) {
     return (
-      <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
-        <DialogTrigger asChild>
-          <Button disabled={isConnecting} size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
-            <Wallet className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline">{isConnecting ? "Connecting..." : "Connect"}</span>
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Connect Wallet</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
+      <div className="flex gap-2">
+        <ReownWalletButton />
+        <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
+          <DialogTrigger asChild>
             <Button
+              disabled={isConnecting}
+              size="sm"
               variant="outline"
-              className="justify-start h-14 bg-transparent hover:bg-accent"
-              onClick={async () => {
-                setShowConnectModal(false)
-                await connectWallet("EVM")
-              }}
+              className="text-xs sm:text-sm px-2 sm:px-4 bg-transparent"
             >
-              <div className="bg-blue-100 p-2 rounded-full mr-4">
-                <Wallet className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="font-semibold">Ethereum / EVM</span>
-                <span className="text-xs text-muted-foreground">MetaMask, Rainbow, etc.</span>
-              </div>
+              <Wallet className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">{isConnecting ? "Connecting..." : "Wallet"}</span>
             </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Connect Crypto Wallet</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Or use Email/Social Login for easier access
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Button
+                variant="outline"
+                className="justify-start h-14 bg-transparent hover:bg-accent"
+                onClick={async () => {
+                  setShowConnectModal(false)
+                  await connectWallet("EVM")
+                }}
+              >
+                <div className="bg-blue-100 p-2 rounded-full mr-4">
+                  <Wallet className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="font-semibold">Ethereum / EVM</span>
+                  <span className="text-xs text-muted-foreground">MetaMask, Rainbow, etc.</span>
+                </div>
+              </Button>
 
-            <Button
-              variant="outline"
-              className="justify-start h-14 bg-transparent hover:bg-accent"
-              onClick={async () => {
-                setShowConnectModal(false)
-                await connectWallet("SOLANA")
-              }}
-            >
-              <div className="bg-purple-100 p-2 rounded-full mr-4">
-                <div className="h-5 w-5 rounded-full bg-purple-600" />
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="font-semibold">Solana</span>
-                <span className="text-xs text-muted-foreground">Phantom, Solflare</span>
-              </div>
-            </Button>
+              <Button
+                variant="outline"
+                className="justify-start h-14 bg-transparent hover:bg-accent"
+                onClick={async () => {
+                  setShowConnectModal(false)
+                  await connectWallet("SOLANA")
+                }}
+              >
+                <div className="bg-purple-100 p-2 rounded-full mr-4">
+                  <div className="h-5 w-5 rounded-full bg-purple-600" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="font-semibold">Solana</span>
+                  <span className="text-xs text-muted-foreground">Phantom, Solflare</span>
+                </div>
+              </Button>
 
-            <Button
-              variant="outline"
-              className="justify-start h-14 bg-transparent hover:bg-accent"
-              onClick={async () => {
-                setShowConnectModal(false)
-                await connectWallet("BITCOIN")
-              }}
-            >
-              <div className="bg-orange-100 p-2 rounded-full mr-4">
-                <Bitcoin className="h-5 w-5 text-orange-600" />
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="font-semibold">Bitcoin</span>
-                <span className="text-xs text-muted-foreground">Unisat, Xverse</span>
-              </div>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+              <Button
+                variant="outline"
+                className="justify-start h-14 bg-transparent hover:bg-accent"
+                onClick={async () => {
+                  setShowConnectModal(false)
+                  await connectWallet("BITCOIN")
+                }}
+              >
+                <div className="bg-orange-100 p-2 rounded-full mr-4">
+                  <Bitcoin className="h-5 w-5 text-orange-600" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="font-semibold">Bitcoin</span>
+                  <span className="text-xs text-muted-foreground">Unisat, Xverse</span>
+                </div>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     )
   }
 

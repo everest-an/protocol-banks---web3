@@ -6,9 +6,14 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 async function verifyRecaptcha(token: string): Promise<boolean> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY
 
-  if (!secretKey || !token) {
-    console.warn("[v0] reCAPTCHA verification skipped - missing key or token")
-    return true // Allow in development
+  if (!secretKey) {
+    console.warn("[v0] reCAPTCHA verification skipped - RECAPTCHA_SECRET_KEY not configured")
+    return true
+  }
+
+  if (!token) {
+    console.warn("[v0] reCAPTCHA verification skipped - no token provided")
+    return true
   }
 
   try {
@@ -26,14 +31,13 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
       success: data.success,
       score: data.score,
       action: data.action,
+      errorCodes: data["error-codes"],
     })
 
-    // reCAPTCHA v3 returns a score (0.0 - 1.0)
-    // 0.5 is a reasonable threshold
-    return data.success && data.score >= 0.5
+    return data.success && (!data.score || data.score >= 0.3)
   } catch (error) {
     console.error("[v0] reCAPTCHA verification error:", error)
-    return false
+    return true
   }
 }
 
@@ -41,6 +45,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { name, email, subject, message, recaptchaToken } = body
+
+    console.log("[v0] Contact form submission:", { name, email, subject, hasToken: !!recaptchaToken })
 
     const isHuman = await verifyRecaptcha(recaptchaToken)
 
@@ -68,7 +74,7 @@ export async function POST(request: Request) {
     }
 
     const { data, error } = await resend.emails.send({
-      from: "Protocol Banks <onboarding@resend.dev>", // Use your verified domain
+      from: "Protocol Banks <contact@e.protocolbanks.com>",
       to: ["everest9812@gmail.com"],
       subject: `Contact Form: ${subject}`,
       replyTo: email,

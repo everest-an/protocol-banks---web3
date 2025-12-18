@@ -3,7 +3,9 @@ import type { Metadata, Viewport } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { Web3Provider } from "@/contexts/web3-context"
+import { ReownProvider } from "@/contexts/reown-provider"
 import { DemoProvider } from "@/contexts/demo-context"
+import { UserTypeProvider } from "@/contexts/user-type-context"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
@@ -70,17 +72,21 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <Web3Provider>
-          <DemoProvider>
-            <div className="relative min-h-screen flex flex-col pb-safe">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-            <Toaster />
-            <RecaptchaScript />
-          </DemoProvider>
-        </Web3Provider>
+        <UserTypeProvider>
+          <ReownProvider>
+            <Web3Provider>
+              <DemoProvider>
+                <div className="relative min-h-screen flex flex-col pb-safe">
+                  <Header />
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                </div>
+                <Toaster />
+                <RecaptchaScript />
+              </DemoProvider>
+            </Web3Provider>
+          </ReownProvider>
+        </UserTypeProvider>
       </body>
     </html>
   )

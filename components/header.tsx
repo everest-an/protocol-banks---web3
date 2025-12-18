@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { WalletButton } from "./wallet-button"
+import { UnifiedWalletButton } from "./unified-wallet-button"
 import { LayoutDashboard, Users, Send, Play, StopCircle, Menu, Receipt } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -132,7 +132,7 @@ export function Header() {
               </>
             )}
           </Button>
-          <WalletButton />
+          <UnifiedWalletButton />
         </div>
       </div>
     </header>
