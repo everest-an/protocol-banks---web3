@@ -25,17 +25,21 @@ let appKit: ReturnType<typeof createAppKit> | null = null
 
 if (projectId && projectId !== "") {
   try {
-    // Create AppKit instance
-    // Note: Features (email, socials, onramp) should be configured on dashboard.reown.com
-    // Local configuration will be ignored if remote config exists
     appKit = createAppKit({
       adapters: [ethersAdapter],
       networks,
       metadata,
       projectId,
+      // Enable email and social login features
+      features: {
+        email: true,
+        socials: ["google", "apple", "discord", "github", "x", "facebook"],
+        emailShowWallets: true,
+        onramp: true, // Enable fiat on-ramp for buying crypto
+      },
       themeMode: "dark",
       themeVariables: {
-        "--w3m-accent": "hsl(var(--primary))",
+        "--w3m-accent": "hsl(222.2 47.4% 11.2%)",
         "--w3m-border-radius-master": "8px",
       },
     })
