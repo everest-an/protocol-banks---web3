@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { Search, LayoutGrid, ListIcon, Download, Calendar, Filter } from "lucide-react"
+import { Search, LayoutGrid, ListIcon, Download, Calendar, Filter, Plus, Edit, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getSupabase } from "@/lib/supabase"
 import { NetworkGraph } from "@/components/network-graph"
@@ -27,9 +27,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus } from "lucide-react"
 
 // Mock categories for categorization logic
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
@@ -128,6 +137,11 @@ export default function VendorsPage() {
 
   // Dialog States
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null)
+
   const [formData, setFormData] = useState({
     name: "",
     wallet_address: "",
@@ -249,6 +263,45 @@ export default function VendorsPage() {
     router.push(url)
   }
 
+  const handleEditVendor = (vendor: Vendor) => {
+    setEditingVendor(vendor)
+    setFormData({
+      name: vendor.name,
+      wallet_address: vendor.wallet_address,
+      email: vendor.email || "",
+      notes: vendor.notes || "",
+      category: vendor.category || "",
+      tier: vendor.tier || "vendor",
+    })
+    setEditMode(true)
+    setDialogOpen(true)
+  }
+
+  const handleDeleteVendor = (vendor: Vendor) => {
+    setVendorToDelete(vendor)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteVendor = async () => {
+    if (!vendorToDelete || !wallet) return
+
+    try {
+      const supabase = getSupabase()
+      if (!supabase) return
+
+      const { error } = await supabase.from("vendors").delete().eq("id", vendorToDelete.id).eq("created_by", wallet)
+
+      if (error) throw error
+
+      toast({ title: "Success", description: "Vendor deleted successfully" })
+      setDeleteDialogOpen(false)
+      setVendorToDelete(null)
+      loadVendors()
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" })
+    }
+  }
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -258,24 +311,55 @@ export default function VendorsPage() {
       const supabase = getSupabase()
       if (!supabase) return
 
-      const { error } = await supabase.from("vendors").insert({
-        name: formData.name,
-        wallet_address: formData.wallet_address,
-        email: formData.email,
-        notes: formData.notes,
-        category: formData.category,
-        tier: formData.tier,
-        created_by: wallet,
-      })
+      if (editMode && editingVendor) {
+        // Update existing vendor
+        const { error } = await supabase
+          .from("vendors")
+          .update({
+            name: formData.name,
+            wallet_address: formData.wallet_address,
+            email: formData.email,
+            notes: formData.notes,
+            category: formData.category,
+            tier: formData.tier,
+          })
+          .eq("id", editingVendor.id)
+          .eq("created_by", wallet)
 
-      if (error) throw error
+        if (error) throw error
+        toast({ title: "Success", description: "Vendor updated successfully" })
+      } else {
+        // Insert new vendor
+        const { error } = await supabase.from("vendors").insert({
+          name: formData.name,
+          wallet_address: formData.wallet_address,
+          email: formData.email,
+          notes: formData.notes,
+          category: formData.category,
+          tier: formData.tier,
+          created_by: wallet,
+        })
 
-      toast({ title: "Success", description: "Vendor added successfully" })
+        if (error) throw error
+        toast({ title: "Success", description: "Vendor added successfully" })
+      }
+
       setDialogOpen(false)
+      setEditMode(false)
+      setEditingVendor(null)
       setFormData({ name: "", wallet_address: "", email: "", notes: "", category: "", tier: "vendor" })
       loadVendors()
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" })
+    }
+  }
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open)
+    if (!open) {
+      setEditMode(false)
+      setEditingVendor(null)
+      setFormData({ name: "", wallet_address: "", email: "", notes: "", category: "", tier: "vendor" })
     }
   }
 
@@ -300,7 +384,7 @@ export default function VendorsPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="hidden sm:flex gap-2">
                     <Plus className="w-4 h-4" /> Add Tag
@@ -308,9 +392,11 @@ export default function VendorsPage() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Add New Wallet Tag</DialogTitle>
+                    <DialogTitle>{editMode ? "Edit Wallet Tag" : "Add New Wallet Tag"}</DialogTitle>
                     <DialogDescription>
-                      Tag a wallet address with business metadata for easier identification.
+                      {editMode
+                        ? "Update the wallet tag information below."
+                        : "Tag a wallet address with business metadata for easier identification."}
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleAddSubmit} className="space-y-4">
@@ -377,7 +463,7 @@ export default function VendorsPage() {
                       />
                     </div>
                     <DialogFooter>
-                      <Button type="submit">Save Tag</Button>
+                      <Button type="submit">{editMode ? "Update Tag" : "Save Tag"}</Button>
                     </DialogFooter>
                   </form>
                 </DialogContent>
@@ -586,9 +672,29 @@ export default function VendorsPage() {
                       </TableCell>
                       <TableCell className="text-right font-mono">{vendor.transactionCount ?? 0}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handlePaymentRequest(vendor)}>
-                          Pay
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditVendor(vendor)}
+                            disabled={isDemoMode || !isConnected}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteVendor(vendor)}
+                            disabled={isDemoMode || !isConnected}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handlePaymentRequest(vendor)}>
+                            Pay
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -598,6 +704,27 @@ export default function VendorsPage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Wallet Tag</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{vendorToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteVendor}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

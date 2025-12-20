@@ -28,6 +28,8 @@ import {
   Shield,
   ArrowRight,
   Building2,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { CHAIN_IDS, isMobileDevice, getMetaMaskDeepLink } from "@/lib/web3"
@@ -147,6 +149,9 @@ export function UnifiedWalletButton() {
   const handleOffRamp = () => {
     setShowOffRampModal(true)
   }
+
+  const totalBalance = Number.parseFloat(usdtBalance) + Number.parseFloat(usdcBalance)
+  const hasZeroBalance = totalBalance === 0
 
   if (!isConnected) {
     return (
@@ -305,6 +310,7 @@ export function UnifiedWalletButton() {
             <span className="hidden xs:inline truncate max-w-[80px] sm:max-w-none">
               {activeAddress ? formatAddress(activeAddress) : isWeb2User ? "My Account" : "Connected"}
             </span>
+            <ChevronDown className="ml-auto h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
 
@@ -327,23 +333,38 @@ export function UnifiedWalletButton() {
                       <DollarSign className="h-4 w-4 text-green-500" />
                       <span className="text-sm">Digital Dollars</span>
                     </div>
-                    <span className="font-mono font-semibold">
-                      ${(Number.parseFloat(usdtBalance) + Number.parseFloat(usdcBalance)).toFixed(2)}
-                    </span>
+                    <span className="font-mono font-semibold">${totalBalance.toFixed(2)}</span>
                   </div>
                 </div>
 
-                <p className="text-xs text-muted-foreground mt-2">
-                  Your digital dollars work just like regular money, but can be sent anywhere in the world instantly.
-                </p>
+                {hasZeroBalance ? (
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 mt-2">
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="h-4 w-4 text-primary mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-primary">Get Started!</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Add funds to start sending payments worldwide instantly.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your digital dollars work just like regular money, but can be sent anywhere in the world instantly.
+                  </p>
+                )}
               </div>
 
               <DropdownMenuSeparator className="bg-border" />
 
-              <DropdownMenuItem onClick={handleBuyCrypto} className="cursor-pointer">
-                <CreditCard className="mr-2 h-4 w-4 text-green-500" />
+              <DropdownMenuItem
+                onClick={handleBuyCrypto}
+                className={`cursor-pointer ${hasZeroBalance ? "bg-primary/10 text-primary" : ""}`}
+              >
+                <CreditCard className={`mr-2 h-4 w-4 ${hasZeroBalance ? "text-primary" : "text-green-500"}`} />
                 <div className="flex flex-col">
-                  <span>Add Funds</span>
+                  <span>{hasZeroBalance ? "Add Funds to Get Started" : "Add Funds"}</span>
                   <span className="text-xs text-muted-foreground">Use card or bank transfer</span>
                 </div>
               </DropdownMenuItem>
@@ -498,6 +519,24 @@ export function UnifiedWalletButton() {
                   )}
                 </div>
               </div>
+
+              <DropdownMenuSeparator className="bg-border" />
+
+              <DropdownMenuItem onClick={handleBuyCrypto} className="cursor-pointer">
+                <CreditCard className="mr-2 h-4 w-4 text-green-500" />
+                <div className="flex flex-col">
+                  <span>Buy Crypto</span>
+                  <span className="text-xs text-muted-foreground">Purchase with card or bank</span>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={handleOffRamp} className="cursor-pointer">
+                <Building2 className="mr-2 h-4 w-4 text-blue-500" />
+                <div className="flex flex-col">
+                  <span>Off-Ramp</span>
+                  <span className="text-xs text-muted-foreground">Convert to fiat</span>
+                </div>
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator className="bg-border" />
 

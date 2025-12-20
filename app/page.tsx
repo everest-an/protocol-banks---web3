@@ -2,7 +2,7 @@
 
 import { useWeb3 } from "@/contexts/web3-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Users, Send, BarChart3, DollarSign, TrendingUp, Info } from "lucide-react"
+import { ArrowRight, Users, Send, BarChart3, DollarSign, TrendingUp, Info, Receipt } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getSupabase } from "@/lib/supabase"
@@ -371,7 +371,7 @@ export default function HomePage() {
           <p className="text-muted-foreground">Access your main features</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
             <Link href="/batch-payment">
               <CardHeader>
@@ -382,6 +382,21 @@ export default function HomePage() {
                 <CardTitle className="text-foreground">Batch Payment</CardTitle>
                 <CardDescription className="text-muted-foreground">
                   Send USDT/USDC to multiple recipients in one transaction
+                </CardDescription>
+              </CardHeader>
+            </Link>
+          </Card>
+
+          <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
+            <Link href="/receive">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <Receipt className="h-8 w-8 text-primary" />
+                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <CardTitle className="text-foreground">Receive</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Generate secure payment links to receive funds
                 </CardDescription>
               </CardHeader>
             </Link>

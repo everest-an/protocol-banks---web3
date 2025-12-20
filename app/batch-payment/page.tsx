@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Trash2, Plus, Send, Loader2, Info, LinkIcon, Receipt, AlertTriangle } from "lucide-react" // Added Wallet, Bitcoin, Info, LinkIcon, Receipt, and AlertTriangle to lucide-react import
+import { Trash2, Plus, Send, Loader2, Info, LinkIcon, Receipt, AlertTriangle, Save, FolderOpen } from "lucide-react" // Added Save and FolderOpen to lucide-react import
 import { useToast } from "@/hooks/use-toast"
 import {
   sendToken,
@@ -144,6 +144,16 @@ export default function BatchPaymentPage() {
   const [securityWarnings, setSecurityWarnings] = useState<string[]>([])
   const [integrityHashes, setIntegrityHashes] = useState<Map<string, string>>(new Map())
   const [feePreview, setFeePreview] = useState<any>(null) // State for fee preview
+
+  const [hasDraft, setHasDraft] = useState(false)
+
+  // Check for saved draft on mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem("batch-payment-draft")
+    if (savedDraft) {
+      setHasDraft(true)
+    }
+  }, [])
 
   useEffect(() => {
     if (isConnected && currentWallet) {
@@ -435,6 +445,48 @@ export default function BatchPaymentPage() {
     [],
   )
 
+  const saveDraft = () => {
+    const draft = {
+      recipients,
+      selectedNetwork,
+      timestamp: new Date().toISOString(),
+    }
+    localStorage.setItem("batch-payment-draft", JSON.stringify(draft))
+    setHasDraft(true)
+    toast({
+      title: "Draft Saved",
+      description: "Your batch payment has been saved. You can continue later.",
+    })
+  }
+
+  const loadDraft = () => {
+    const savedDraft = localStorage.getItem("batch-payment-draft")
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft)
+        setRecipients(draft.recipients)
+        if (draft.selectedNetwork) {
+          setSelectedNetwork(draft.selectedNetwork)
+        }
+        toast({
+          title: "Draft Loaded",
+          description: "Your saved batch payment has been restored.",
+        })
+      } catch (e) {
+        toast({
+          title: "Error",
+          description: "Failed to load draft.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const clearDraft = () => {
+    localStorage.removeItem("batch-payment-draft")
+    setHasDraft(false)
+  }
+
   const processBatchPayment = async () => {
     if (isDemoMode) {
       setIsProcessing(true)
@@ -444,6 +496,8 @@ export default function BatchPaymentPage() {
         description: "This is a simulation. No real funds were moved.",
       })
       setIsProcessing(false)
+      // Clear draft after successful payment
+      clearDraft()
       return
     }
 
@@ -844,6 +898,9 @@ export default function BatchPaymentPage() {
         },
       ])
 
+      // Clear draft after successful payment
+      clearDraft()
+
       setTimeout(() => router.push("/analytics"), 2000)
     } catch (error: any) {
       toast({
@@ -926,167 +983,191 @@ export default function BatchPaymentPage() {
             </Alert>
 
             <div className="grid gap-6 lg:grid-cols-12">
-              <Card className="lg:col-span-8 bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground">Recipients</CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    Add wallet addresses and amounts for batch payment
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-4 text-sm mb-4 bg-muted/30 p-3 rounded-md overflow-x-auto">
-                    <div className="flex flex-col">
-                      <span className="text-muted-foreground">USDT Balance</span>
-                      <span className="font-mono font-bold">
-                        {isDemoMode ? "10,000.00" : Number(usdtBalance).toFixed(2)}
-                      </span>
+              <div className="lg:col-span-8 space-y-6">
+                {hasDraft && (
+                  <Alert className="bg-yellow-500/10 border-yellow-500/20">
+                    <FolderOpen className="h-4 w-4 text-yellow-500" />
+                    <AlertTitle className="text-yellow-500">Saved Draft Available</AlertTitle>
+                    <AlertDescription className="flex items-center justify-between">
+                      <span className="text-muted-foreground">You have a saved batch payment draft.</span>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={loadDraft}>
+                          Load Draft
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={clearDraft}>
+                          Discard
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <Card className="lg:col-span-8 bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="text-foreground">Recipients</CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                      Add wallet addresses and amounts for batch payment
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex gap-4 text-sm mb-4 bg-muted/30 p-3 rounded-md overflow-x-auto">
+                      <div className="flex flex-col">
+                        <span className="text-muted-foreground">USDT Balance</span>
+                        <span className="font-mono font-bold">
+                          {isDemoMode ? "10,000.00" : Number(usdtBalance).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="w-px bg-border mx-2"></div>
+                      <div className="flex flex-col">
+                        <span className="text-muted-foreground">USDC Balance</span>
+                        <span className="font-mono font-bold">
+                          {isDemoMode ? "15,500.00" : Number(usdcBalance).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="w-px bg-border mx-2"></div>
+                      <div className="flex flex-col">
+                        <span className="text-muted-foreground">DAI Balance</span>
+                        <span className="font-mono font-bold">
+                          {isDemoMode ? "5,000.00" : Number(daiBalance).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="w-px bg-border mx-2"></div>
-                    <div className="flex flex-col">
-                      <span className="text-muted-foreground">USDC Balance</span>
-                      <span className="font-mono font-bold">
-                        {isDemoMode ? "15,500.00" : Number(usdcBalance).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="w-px bg-border mx-2"></div>
-                    <div className="flex flex-col">
-                      <span className="text-muted-foreground">DAI Balance</span>
-                      <span className="font-mono font-bold">
-                        {isDemoMode ? "5,000.00" : Number(daiBalance).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="rounded-lg border border-border overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-                          <TableHead className="text-foreground whitespace-nowrap min-w-[150px]">Wallet Tag</TableHead>
-                          <TableHead className="text-foreground whitespace-nowrap min-w-[200px]">
-                            Wallet Address
-                          </TableHead>
-                          <TableHead className="text-foreground whitespace-nowrap min-w-[100px]">Token</TableHead>
-                          <TableHead className="text-foreground whitespace-nowrap w-[120px]">Chain</TableHead>
-                          <TableHead className="text-foreground whitespace-nowrap min-w-[120px]">Amount</TableHead>
-                          <TableHead className="text-foreground whitespace-nowrap w-[50px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recipients.map((recipient) => (
-                          <TableRow key={recipient.id}>
-                            <TableCell>
-                              <Select
-                                value={recipient.vendorId}
-                                onValueChange={(v) => updateRecipient(recipient.id, "vendorId", v)}
-                              >
-                                <SelectTrigger className="bg-background border-border text-foreground">
-                                  <SelectValue placeholder="Select tag" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-card border-border">
-                                  {vendors.map((vendor) => (
-                                    <SelectItem key={vendor.id} value={vendor.id}>
-                                      {vendor.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                placeholder="0x..."
-                                value={recipient.address}
-                                onChange={(e) => updateRecipient(recipient.id, "address", e.target.value)}
-                                className="bg-background border-border text-foreground font-mono"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
+                    <div className="rounded-lg border border-border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-secondary/50 hover:bg-secondary/50">
+                            <TableHead className="text-foreground whitespace-nowrap min-w-[150px]">
+                              Wallet Tag
+                            </TableHead>
+                            <TableHead className="text-foreground whitespace-nowrap min-w-[200px]">
+                              Wallet Address
+                            </TableHead>
+                            <TableHead className="text-foreground whitespace-nowrap min-w-[100px]">Token</TableHead>
+                            <TableHead className="text-foreground whitespace-nowrap w-[120px]">Chain</TableHead>
+                            <TableHead className="text-foreground whitespace-nowrap min-w-[120px]">Amount</TableHead>
+                            <TableHead className="text-foreground whitespace-nowrap w-[50px]"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {recipients.map((recipient) => (
+                            <TableRow key={recipient.id}>
+                              <TableCell>
                                 <Select
-                                  value={recipient.token}
-                                  onValueChange={(v) => updateRecipient(recipient.id, "token", v)}
+                                  value={recipient.vendorId}
+                                  onValueChange={(v) => updateRecipient(recipient.id, "vendorId", v)}
                                 >
-                                  <SelectTrigger className="bg-background border-border text-foreground w-[100px]">
-                                    <SelectValue />
+                                  <SelectTrigger className="bg-background border-border text-foreground">
+                                    <SelectValue placeholder="Select tag" />
                                   </SelectTrigger>
                                   <SelectContent className="bg-card border-border">
-                                    <SelectItem value="USDT">USDT</SelectItem>
-                                    <SelectItem value="USDC">USDC</SelectItem>
-                                    <SelectItem value="DAI">DAI</SelectItem>
-                                    <SelectItem value="CUSTOM">Custom</SelectItem>
+                                    {vendors.map((vendor) => (
+                                      <SelectItem key={vendor.id} value={vendor.id}>
+                                        {vendor.name}
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
-                                {recipient.token === "USDC" && activeChain === "EVM" && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[10px] h-5 px-1 border-green-200 text-green-600"
-                                    title="Optimized with EIP-3009"
-                                  >
-                                    EIP-3009
-                                  </Badge>
-                                )}
-                              </div>
-                              {recipient.token === "CUSTOM" && (
+                              </TableCell>
+                              <TableCell>
                                 <Input
-                                  placeholder="Token Addr"
-                                  className="mt-2 h-8 text-xs font-mono"
-                                  value={recipient.customTokenAddress || ""}
-                                  onChange={(e) => updateRecipient(recipient.id, "customTokenAddress", e.target.value)}
+                                  placeholder="0x..."
+                                  value={recipient.address}
+                                  onChange={(e) => updateRecipient(recipient.id, "address", e.target.value)}
+                                  className="bg-background border-border text-foreground font-mono"
                                 />
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Select
-                                value={recipient.destinationChainId?.toString() || selectedNetwork.toString()}
-                                onValueChange={(val) =>
-                                  updateRecipient(recipient.id, "destinationChainId", Number(val))
-                                }
-                                disabled={activeChain !== "EVM"}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value={CHAIN_IDS.MAINNET.toString()}>Ethereum</SelectItem>
-                                  <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
-                                  <SelectItem value={CHAIN_IDS.SEPOLIA.toString()}>Sepolia</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                placeholder="0.00"
-                                value={recipient.amount}
-                                onChange={(e) => updateRecipient(recipient.id, "amount", e.target.value)}
-                                className="bg-background border-border text-foreground font-mono"
-                                step="0.01"
-                                min="0"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeRecipient(recipient.id)}
-                                disabled={recipients.length === 1}
-                                className="text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Select
+                                    value={recipient.token}
+                                    onValueChange={(v) => updateRecipient(recipient.id, "token", v)}
+                                  >
+                                    <SelectTrigger className="bg-background border-border text-foreground w-[100px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-card border-border">
+                                      <SelectItem value="USDT">USDT</SelectItem>
+                                      <SelectItem value="USDC">USDC</SelectItem>
+                                      <SelectItem value="DAI">DAI</SelectItem>
+                                      <SelectItem value="CUSTOM">Custom</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {recipient.token === "USDC" && activeChain === "EVM" && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] h-5 px-1 border-green-200 text-green-600"
+                                      title="Optimized with EIP-3009"
+                                    >
+                                      EIP-3009
+                                    </Badge>
+                                  )}
+                                </div>
+                                {recipient.token === "CUSTOM" && (
+                                  <Input
+                                    placeholder="Token Addr"
+                                    className="mt-2 h-8 text-xs font-mono"
+                                    value={recipient.customTokenAddress || ""}
+                                    onChange={(e) =>
+                                      updateRecipient(recipient.id, "customTokenAddress", e.target.value)
+                                    }
+                                  />
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={recipient.destinationChainId?.toString() || selectedNetwork.toString()}
+                                  onValueChange={(val) =>
+                                    updateRecipient(recipient.id, "destinationChainId", Number(val))
+                                  }
+                                  disabled={activeChain !== "EVM"}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value={CHAIN_IDS.MAINNET.toString()}>Ethereum</SelectItem>
+                                    <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
+                                    <SelectItem value={CHAIN_IDS.SEPOLIA.toString()}>Sepolia</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={recipient.amount}
+                                  onChange={(e) => updateRecipient(recipient.id, "amount", e.target.value)}
+                                  className="bg-background border-border text-foreground font-mono"
+                                  step="0.01"
+                                  min="0"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeRecipient(recipient.id)}
+                                  disabled={recipients.length === 1}
+                                  className="text-muted-foreground hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
 
-                  <Button onClick={addRecipient} variant="outline" className="w-full border-border bg-transparent">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Recipient
-                  </Button>
-                </CardContent>
-              </Card>
+                    <Button onClick={addRecipient} variant="outline" className="w-full border-border bg-transparent">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Recipient
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
 
+              {/* Summary Card */}
               <Card className="lg:col-span-4 h-fit sticky top-24 bg-card border-border">
                 <CardHeader>
                   <CardTitle className="text-foreground">Summary</CardTitle>
@@ -1096,11 +1177,25 @@ export default function BatchPaymentPage() {
                     <span className="text-muted-foreground">Recipients</span>
                     <span className="font-bold text-foreground">{recipients.filter((r) => r.address).length}</span>
                   </div>
-                  <div className="border-t border-border/50 pt-4 space-y-2">
-                    {(() => {
-                      const totals = getTotalAmounts()
-                      return (
-                        <>
+                  {(() => {
+                    const totals = getTotalAmounts()
+                    const grandTotal = totals.USDT + totals.USDC + totals.DAI + totals.CUSTOM
+                    return (
+                      <>
+                        {grandTotal > 0 && (
+                          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4">
+                            <div className="text-xs text-muted-foreground mb-1">Total Amount</div>
+                            <div className="text-3xl font-bold text-primary font-mono">
+                              $
+                              {grandTotal.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="border-t border-border/50 pt-4 space-y-2">
                           {totals.USDT > 0 && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Total USDT</span>
@@ -1125,15 +1220,28 @@ export default function BatchPaymentPage() {
                               <span className="font-mono font-bold">{totals.CUSTOM.toFixed(2)}</span>
                             </div>
                           )}
-                        </>
-                      )
-                    })()}
-                  </div>
+                        </div>
+                      </>
+                    )
+                  })()}
 
                   {feePreview && <FeePreview data={feePreview} />}
 
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={saveDraft}
+                      disabled={recipients.filter((r) => r.address).length === 0}
+                      className="flex-1"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Draft
+                    </Button>
+                  </div>
+
                   <Button
-                    className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="w-full mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
                     size="lg"
                     onClick={processBatchPayment}
                     disabled={isProcessing}

@@ -2,7 +2,18 @@
 
 import Link from "next/link"
 import { UnifiedWalletButton } from "./unified-wallet-button"
-import { LayoutDashboard, Users, Send, Play, StopCircle, Menu, Receipt } from "lucide-react"
+import {
+  LayoutDashboard,
+  Users,
+  Send,
+  Play,
+  StopCircle,
+  Menu,
+  Receipt,
+  BarChart3,
+  Shield,
+  DollarSign,
+} from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 import { useDemo } from "@/contexts/demo-context"
@@ -21,6 +32,13 @@ export function Header() {
     { href: "/batch-payment", label: "Batch Payment", icon: Send },
     { href: "/receive", label: "Receive", icon: Receipt },
     { href: "/vendors", label: "Wallet Tags", icon: Users },
+    { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  ]
+
+  // Secondary nav items for mobile menu
+  const secondaryNavItems = [
+    { href: "/security", label: "Security", icon: Shield },
+    { href: "/fees", label: "Fees", icon: DollarSign },
   ]
 
   return (
@@ -45,7 +63,7 @@ export function Header() {
                   </div>
                 </Link>
                 <nav className="flex flex-col gap-2">
-                  {navItems.map((item) => {
+                  {[...navItems, ...secondaryNavItems].map((item) => {
                     const Icon = item.icon
                     const isActive = pathname === item.href
                     return (
@@ -65,6 +83,33 @@ export function Header() {
                     )
                   })}
                 </nav>
+                <div className="pt-4 border-t border-border">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      toggleDemoMode()
+                      setIsOpen(false)
+                    }}
+                    className={`w-full ${
+                      isDemoMode
+                        ? "text-primary border-primary/20 bg-primary/5 hover:bg-primary/10"
+                        : "border-border text-foreground hover:bg-secondary/50 bg-transparent"
+                    }`}
+                  >
+                    {isDemoMode ? (
+                      <>
+                        <StopCircle className="mr-2 h-4 w-4" />
+                        Exit Demo
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        Try Demo
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

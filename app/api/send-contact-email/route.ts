@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server"
 import { Resend } from "resend"
+import { sanitizeTextInput, checkRateLimit } from "@/lib/security"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+const INPUT_LIMITS = {
+  name: 100,
+  email: 254,
+  subject: 200,
+  message: 5000,
+}
 
 async function verifyRecaptcha(token: string): Promise<boolean> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY
 
   if (!secretKey || !token) {
-    return true // Allow submission if reCAPTCHA not configured
+    return true
   }
 
   try {
@@ -22,14 +30,79 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
     const data = await response.json()
     return data.success && (!data.score || data.score >= 0.3)
   } catch (error) {
-    return true // Allow submission on verification error
+    return true
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const clientIP = request.headers.get("x-forwarded-for") || "unknown"
+    const rateCheck = checkRateLimit({
+      identifier: `contact:${clientIP}`,
+      maxRequests: 5,
+      windowMs: 60 * 1000, // 5 requests per minute
+    })
+
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Too many requests. Please try again later.",
+        },
+        { status: 429 },
+      )
+    }
+
     const body = await request.json()
     const { name, email, subject, message, recaptchaToken } = body
+
+    if (!name || !email || !subject || !message) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "All fields are required.",
+        },
+        { status: 400 },
+      )
+    }
+
+    if (
+      name.length > INPUT_LIMITS.name ||
+      email.length > INPUT_LIMITS.email ||
+      subject.length > INPUT_LIMITS.subject ||
+      message.length > INPUT_LIMITS.message
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Input exceeds maximum length.",
+        },
+        { status: 400 },
+      )
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid email format.",
+        },
+        { status: 400 },
+      )
+    }
+
+    const { sanitized: sanitizedName, warnings: nameWarnings } = sanitizeTextInput(name)
+    const { sanitized: sanitizedSubject, warnings: subjectWarnings } = sanitizeTextInput(subject)
+    const { sanitized: sanitizedMessage, warnings: messageWarnings } = sanitizeTextInput(message)
+
+    const allWarnings = [...nameWarnings, ...subjectWarnings, ...messageWarnings]
+    if (allWarnings.length > 0) {
+      console.warn("[Security] Suspicious input detected in contact form:", {
+        ip: clientIP,
+        warnings: allWarnings,
+      })
+    }
 
     const isHuman = await verifyRecaptcha(recaptchaToken)
 
@@ -58,7 +131,7 @@ export async function POST(request: Request) {
     const { data, error } = await resend.emails.send({
       from: "Protocol Banks <contact@e.protocolbanks.com>",
       to: ["everest9812@gmail.com"],
-      subject: `Contact Form: ${subject}`,
+      subject: `Contact Form: ${sanitizedSubject}`,
       replyTo: email,
       html: `
         <!DOCTYPE html>
@@ -84,7 +157,7 @@ export async function POST(request: Request) {
               <div class="content">
                 <div class="field">
                   <div class="label">From:</div>
-                  <div class="value">${name}</div>
+                  <div class="value">${sanitizedName}</div>
                 </div>
                 <div class="field">
                   <div class="label">Email:</div>
@@ -92,15 +165,15 @@ export async function POST(request: Request) {
                 </div>
                 <div class="field">
                   <div class="label">Subject:</div>
-                  <div class="value">${subject}</div>
+                  <div class="value">${sanitizedSubject}</div>
                 </div>
                 <div class="field">
                   <div class="label">Message:</div>
-                  <div class="value">${message.replace(/\n/g, "<br>")}</div>
+                  <div class="value">${sanitizedMessage.replace(/\n/g, "<br>")}</div>
                 </div>
                 <div class="footer">
                   <p>This email was sent from the Protocol Banks contact form.</p>
-                  <p>Reply to this email to respond directly to ${name}.</p>
+                  <p>Reply to this email to respond directly to ${sanitizedName}.</p>
                 </div>
               </div>
             </div>

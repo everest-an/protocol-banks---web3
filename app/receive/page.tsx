@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Copy, Check, ArrowRight, Share2, QrCode, Terminal, Shield, Clock, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
+import { QRCodeSVG } from "qrcode.react"
 
 function generateLinkSignature(params: { to: string; amount: string; token: string; expiry: string }): string {
   // Client-side signature using a deterministic hash
@@ -55,6 +56,7 @@ export default function ReceivePage() {
   const [clipboardRecord, setClipboardRecord] = useState<ClipboardRecord | null>(null)
   const [addressError, setAddressError] = useState("")
   const [amountError, setAmountError] = useState("")
+  const [showQRCode, setShowQRCode] = useState(false)
 
   useEffect(() => {
     if (isConnected && wallets[activeChain]) {
@@ -338,6 +340,12 @@ export default function ReceivePage() {
                 )}
               </div>
 
+              {link && showQRCode && (
+                <div className="flex justify-center p-4 bg-white rounded-lg">
+                  <QRCodeSVG value={link} size={200} level="H" includeMargin={true} />
+                </div>
+              )}
+
               {clipboardRecord && Date.now() - clipboardRecord.timestamp < 60000 && (
                 <Alert className="bg-green-500/5 border-green-500/20">
                   <Shield className="h-4 w-4 text-green-500" />
@@ -365,19 +373,31 @@ export default function ReceivePage() {
                 <Button
                   variant="outline"
                   className="w-full bg-transparent"
+                  onClick={() => setShowQRCode(!showQRCode)}
+                  disabled={!link}
+                >
+                  <QrCode className="mr-2 h-4 w-4" />
+                  {showQRCode ? "Hide QR" : "Show QR"}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent"
                   onClick={verifyAndShare}
                   disabled={!clipboardRecord}
                 >
                   <Shield className="mr-2 h-4 w-4" />
                   Verify & Share
                 </Button>
-              </div>
 
-              <Button variant="outline" asChild className="w-full bg-transparent">
-                <Link href={link || "#"} target="_blank" className={!link ? "pointer-events-none opacity-50" : ""}>
-                  Test Link <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+                <Button variant="outline" asChild className="w-full bg-transparent">
+                  <Link href={link || "#"} target="_blank" className={!link ? "pointer-events-none opacity-50" : ""}>
+                    Test Link <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

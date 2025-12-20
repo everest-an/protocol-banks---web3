@@ -43,6 +43,19 @@ function generateRandomBytes(length: number): string {
     .join("")
 }
 
+export function secureCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false
+  }
+
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+
+  return result === 0
+}
+
 // ============================================
 // 1. ADDRESS VALIDATION & INTEGRITY
 // ============================================
@@ -216,7 +229,7 @@ export function verifyTransactionIntegrity(
   params: Parameters<typeof createTransactionIntegrityHash>[0],
 ): boolean {
   const computedHash = createTransactionIntegrityHash(params)
-  return originalHash === computedHash
+  return secureCompare(originalHash, computedHash)
 }
 
 // ============================================
@@ -426,6 +439,43 @@ export function checkContractSafety(address: string): {
   return { safe: warnings.length === 0, warnings }
 }
 
+export function detectMaliciousPayload(input: string): {
+  isMalicious: boolean
+  threats: string[]
+} {
+  const threats: string[] = []
+
+  // Prototype pollution
+  if (/__proto__|constructor\[|prototype\[/.test(input)) {
+    threats.push("Prototype pollution attempt")
+  }
+
+  // Server-side template injection
+  if (/\{\{.*\}\}|\$\{.*\}|<%.*%>/.test(input)) {
+    threats.push("Template injection attempt")
+  }
+
+  // XXE injection
+  if (/<!ENTITY|<!DOCTYPE.*\[/.test(input)) {
+    threats.push("XXE injection attempt")
+  }
+
+  // LDAP injection
+  if (/[)(|*\\]/.test(input) && /[a-zA-Z]=/.test(input)) {
+    threats.push("LDAP injection attempt")
+  }
+
+  // Log4j / JNDI injection
+  if (/\$\{jndi:|lookup\s*\(/.test(input)) {
+    threats.push("JNDI injection attempt")
+  }
+
+  return {
+    isMalicious: threats.length > 0,
+    threats,
+  }
+}
+
 // ============================================
 // 5. NONCE GENERATION & VERIFICATION
 // ============================================
@@ -510,7 +560,7 @@ export function verifyVendorIntegrity(
   vendor: Parameters<typeof createVendorIntegrityHash>[0],
   storedHash: string,
 ): boolean {
-  return createVendorIntegrityHash(vendor) === storedHash
+  return secureCompare(createVendorIntegrityHash(vendor), storedHash)
 }
 
 // ============================================
