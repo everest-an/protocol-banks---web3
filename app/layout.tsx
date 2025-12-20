@@ -12,6 +12,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { RecaptchaScript } from "@/components/recaptcha-script"
 import { WelcomeGuide } from "@/components/welcome-guide"
 
+export const dynamic = "force-dynamic"
+
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" })
 

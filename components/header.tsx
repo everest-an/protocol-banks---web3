@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { UnifiedWalletButton } from "./unified-wallet-button"
+import dynamic from "next/dynamic"
 import {
   LayoutDashboard,
   Users,
@@ -13,6 +13,7 @@ import {
   BarChart3,
   Shield,
   DollarSign,
+  Loader2,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -21,6 +22,16 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
+
+const UnifiedWalletButton = dynamic(() => import("./unified-wallet-button").then((mod) => mod.UnifiedWalletButton), {
+  ssr: false,
+  loading: () => (
+    <Button variant="default" size="sm" disabled className="text-xs sm:text-sm px-3 sm:px-4">
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      Loading...
+    </Button>
+  ),
+})
 
 export function Header() {
   const pathname = usePathname()

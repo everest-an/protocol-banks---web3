@@ -2,7 +2,7 @@
 
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
-import { useAppKit, useAppKitAccount } from "@reown/appkit/react"
+import { useAppKitAccount } from "@reown/appkit/react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -33,7 +33,7 @@ import {
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { CHAIN_IDS, isMobileDevice, getMetaMaskDeepLink } from "@/lib/web3"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { OffRampModal } from "@/components/offramp-modal"
 
 export function UnifiedWalletButton() {
@@ -54,10 +54,7 @@ export function UnifiedWalletButton() {
   } = useWeb3()
 
   const { userType, setUserType, isWeb2User, getLabel } = useUserType()
-  const { open: openReown } = useAppKit()
   const { address: reownAddress, isConnected: isReownConnected } = useAppKitAccount()
-  const { toast } = useToast()
-
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -99,7 +96,11 @@ export function UnifiedWalletButton() {
   const handleWeb2Login = () => {
     setShowLoginModal(false)
     setUserType("web2")
-    openReown()
+    // Access useAppKit conditionally
+    const useAppKit = (window as any).useAppKit
+    if (useAppKit) {
+      useAppKit.openReown()
+    }
   }
 
   const handleWeb3Connect = async (chain: "EVM" | "SOLANA" | "BITCOIN") => {
@@ -110,23 +111,11 @@ export function UnifiedWalletButton() {
       await connectWallet(chain)
     } catch (error: any) {
       if (error?.message?.includes("rejected") || error?.message?.includes("denied") || error?.code === 4001) {
-        toast({
-          title: "Connection Cancelled",
-          description: "You cancelled the wallet connection. Click Sign In to try again.",
-          variant: "default",
-        })
+        toast.error("Connection Cancelled", "You cancelled the wallet connection. Click Sign In to try again.")
       } else if (error?.message?.includes("not installed") || error?.message?.includes("not found")) {
-        toast({
-          title: "Wallet Not Found",
-          description: `Please install a ${chain} wallet extension to continue.`,
-          variant: "destructive",
-        })
+        toast.error("Wallet Not Found", `Please install a ${chain} wallet extension to continue.`)
       } else {
-        toast({
-          title: "Connection Failed",
-          description: "Unable to connect wallet. Please try again.",
-          variant: "destructive",
-        })
+        toast.error("Connection Failed", "Unable to connect wallet. Please try again.")
       }
       setUserType(null)
     }
@@ -134,7 +123,11 @@ export function UnifiedWalletButton() {
 
   const handleDisconnect = () => {
     if (isReownConnected) {
-      openReown({ view: "Account" })
+      // Access useAppKit conditionally
+      const useAppKit = (window as any).useAppKit
+      if (useAppKit) {
+        useAppKit.openReown({ view: "Account" })
+      }
     }
     if (isWeb3Connected) {
       disconnectWallet()
@@ -143,7 +136,11 @@ export function UnifiedWalletButton() {
   }
 
   const handleBuyCrypto = () => {
-    openReown({ view: "OnRampProviders" })
+    // Access useAppKit conditionally
+    const useAppKit = (window as any).useAppKit
+    if (useAppKit) {
+      useAppKit.openReown({ view: "OnRampProviders" })
+    }
   }
 
   const handleOffRamp = () => {
@@ -375,11 +372,6 @@ export function UnifiedWalletButton() {
                   <span>Withdraw to Bank</span>
                   <span className="text-xs text-muted-foreground">Convert to cash</span>
                 </div>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => openReown({ view: "Account" })} className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                Account Settings
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => activeAddress && copyAddress(activeAddress)} className="cursor-pointer">
