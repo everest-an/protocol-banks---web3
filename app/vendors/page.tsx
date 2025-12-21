@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { generateIntegrityHash } from "@/lib/encryption"
 
 // Mock categories for categorization logic
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
@@ -55,6 +56,8 @@ interface Vendor {
   category?: string
   tier?: "subsidiary" | "partner" | "vendor" // Added tier for hierarchy
   parentId?: string // For connection logic
+  integrity_hash?: string
+  updated_at?: string
 }
 
 // Generate 50+ realistic enterprise nodes
@@ -305,14 +308,32 @@ export default function VendorsPage() {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!wallet) return
+    if (!wallet) {
+      toast({
+        title: "Wallet Required",
+        description: "Please connect your wallet to add vendors",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
       const supabase = getSupabase()
-      if (!supabase) return
+      if (!supabase) {
+        toast({
+          title: "Error",
+          description: "Database connection not available",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const integrityHash = generateIntegrityHash(wallet, {
+        name: formData.name,
+        wallet_address: formData.wallet_address,
+      })
 
       if (editMode && editingVendor) {
-        // Update existing vendor
         const { error } = await supabase
           .from("vendors")
           .update({
@@ -322,6 +343,8 @@ export default function VendorsPage() {
             notes: formData.notes,
             category: formData.category,
             tier: formData.tier,
+            integrity_hash: integrityHash,
+            updated_at: new Date().toISOString(),
           })
           .eq("id", editingVendor.id)
           .eq("created_by", wallet)
@@ -329,7 +352,6 @@ export default function VendorsPage() {
         if (error) throw error
         toast({ title: "Success", description: "Vendor updated successfully" })
       } else {
-        // Insert new vendor
         const { error } = await supabase.from("vendors").insert({
           name: formData.name,
           wallet_address: formData.wallet_address,
@@ -338,6 +360,7 @@ export default function VendorsPage() {
           category: formData.category,
           tier: formData.tier,
           created_by: wallet,
+          integrity_hash: integrityHash,
         })
 
         if (error) throw error
@@ -350,6 +373,7 @@ export default function VendorsPage() {
       setFormData({ name: "", wallet_address: "", email: "", notes: "", category: "", tier: "vendor" })
       loadVendors()
     } catch (err: any) {
+      console.error("[v0] Failed to save vendor:", err)
       toast({ title: "Error", description: err.message, variant: "destructive" })
     }
   }

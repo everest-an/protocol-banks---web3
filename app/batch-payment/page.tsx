@@ -721,6 +721,12 @@ export default function BatchPaymentPage() {
   }
 
   const processBatchPayment = async () => {
+    console.log("[v0] processBatchPayment called")
+    console.log("[v0] isDemoMode:", isDemoMode)
+    console.log("[v0] isConnected:", isConnected)
+    console.log("[v0] currentWallet:", currentWallet)
+    console.log("[v0] recipients:", recipients)
+
     if (isDemoMode) {
       setIsProcessing(true)
       await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -729,12 +735,12 @@ export default function BatchPaymentPage() {
         description: "This is a simulation. No real funds were moved.",
       })
       setIsProcessing(false)
-      // Clear draft after successful payment
       clearDraft()
       return
     }
 
     if (!isConnected || !currentWallet) {
+      console.log("[v0] Wallet not connected, showing toast")
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet first",
@@ -743,156 +749,167 @@ export default function BatchPaymentPage() {
       return
     }
 
-    const rateLimitResult = checkRateLimit({
-      ...RATE_LIMITS.BATCH_PAYMENT,
-      identifier: currentWallet,
-    })
-
-    if (!rateLimitResult.allowed) {
-      toast({
-        title: "Rate Limit Exceeded",
-        description: rateLimitResult.error || "Please wait before submitting another batch.",
-        variant: "destructive",
-      })
-
-      // Log security alert
-      const alertLog = createAuditLog({
-        action: "RATE_LIMIT_EXCEEDED" as AuditAction,
-        actor: currentWallet,
-        details: {
-          action_type: "BATCH_PAYMENT",
-          reset_at: rateLimitResult.resetAt,
-        },
-      })
-      console.warn("[Security] Rate limit exceeded:", alertLog)
-      return
-    }
-
-    const securityIssues: string[] = []
-    const validatedRecipients: PaymentRecipient[] = []
-
-    for (const recipient of recipients) {
-      const validation = validateRecipientSecurity(recipient)
-
-      if (!validation.valid) {
-        securityIssues.push(`${recipient.vendorName || recipient.address}: ${validation.errors.join(", ")}`)
-      } else {
-        // Use checksummed address
-        validatedRecipients.push({
-          ...recipient,
-          address: validation.checksummedAddress || recipient.address,
-        })
-      }
-
-      if (validation.warnings.length > 0) {
-        setSecurityWarnings((prev) => [...prev, ...validation.warnings])
-      }
-    }
-
-    if (securityIssues.length > 0) {
-      toast({
-        title: "Security Validation Failed",
-        description: securityIssues.slice(0, 3).join("; ") + (securityIssues.length > 3 ? "..." : ""),
-        variant: "destructive",
-      })
-      return
-    }
-
-    const totals = getTotalAmounts()
-    const totalBatchAmount = totals.USDT + totals.USDC + totals.DAI
-
-    if (totalBatchAmount > SECURITY_CONFIG.MAX_BATCH_TOTAL_USD) {
-      toast({
-        title: "Batch Amount Exceeds Limit",
-        description: `Maximum batch total is $${SECURITY_CONFIG.MAX_BATCH_TOTAL_USD.toLocaleString()}`,
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (recipients.length > SECURITY_CONFIG.MAX_BATCH_RECIPIENTS) {
-      toast({
-        title: "Too Many Recipients",
-        description: `Maximum ${SECURITY_CONFIG.MAX_BATCH_RECIPIENTS} recipients per batch`,
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (activeChain !== "EVM") {
-      toast({
-        title: "Not Supported",
-        description: "Batch payments are currently only supported for Ethereum/EVM networks.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (activeChain === "EVM" && chainId !== selectedNetwork) {
-      try {
-        toast({
-          title: "Switching Network",
-          description: "Please confirm the network switch in your wallet.",
-        })
-        await switchNetwork(selectedNetwork)
-        // Wait a moment for the chainId to update in context/provider
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-      } catch (error: any) {
-        toast({
-          title: "Network Switch Failed",
-          description: "Could not switch to the selected network. Please switch manually.",
-          variant: "destructive",
-        })
-        return
-      }
-    }
-
-    const invalidRecipients = validatedRecipients.filter((r) => {
-      if (!r.address || !VALIDATORS[activeChain as keyof typeof VALIDATORS](r.address)) return true
-      if (r.token === "CUSTOM" && !r.customTokenAddress) return true
-      // Basic check for destination chain ID if it's a cross-chain operation
-      if (r.destinationChainId !== undefined && r.destinationChainId !== selectedNetwork && activeChain === "EVM") {
-        // Further validation would be needed here, e.g., checking if the token supports cross-chain on that destination
-      }
-      return false
-    })
-
-    if (invalidRecipients.length > 0) {
-      toast({
-        title: "Invalid Recipients",
-        description: "Please check addresses, token selections, and chain IDs.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (totals.USDT > Number(usdtBalance)) {
-      toast({
-        title: "Insufficient USDT",
-        description: `Need ${totals.USDT}, have ${usdtBalance}`,
-        variant: "destructive",
-      })
-      return
-    }
-    if (totals.USDC > Number(usdcBalance)) {
-      toast({
-        title: "Insufficient USDC",
-        description: `Need ${totals.USDC}, have ${usdcBalance}`,
-        variant: "destructive",
-      })
-      return
-    }
-    if (totals.DAI > Number(daiBalance)) {
-      toast({
-        title: "Insufficient DAI",
-        description: `Need ${totals.DAI}, have ${daiBalance}`,
-        variant: "destructive",
-      })
-      return
-    }
+    setIsProcessing(true)
+    console.log("[v0] Starting batch payment processing...")
 
     try {
-      setIsProcessing(true)
+      const rateLimitResult = checkRateLimit({
+        ...RATE_LIMITS.BATCH_PAYMENT,
+        identifier: currentWallet,
+      })
+
+      if (!rateLimitResult.allowed) {
+        toast({
+          title: "Rate Limit Exceeded",
+          description: rateLimitResult.error || "Please wait before submitting another batch.",
+          variant: "destructive",
+        })
+        const alertLog = createAuditLog({
+          action: "RATE_LIMIT_EXCEEDED" as AuditAction,
+          actor: currentWallet,
+          details: {
+            action_type: "BATCH_PAYMENT",
+            reset_at: rateLimitResult.resetAt,
+          },
+        })
+        console.warn("[Security] Rate limit exceeded:", alertLog)
+        setIsProcessing(false) // Ensure processing is reset on rate limit
+        return
+      }
+
+      const securityIssues: string[] = []
+      const validatedRecipients: PaymentRecipient[] = []
+
+      for (const recipient of recipients) {
+        const validation = validateRecipientSecurity(recipient)
+
+        if (!validation.valid) {
+          securityIssues.push(`${recipient.vendorName || recipient.address}: ${validation.errors.join(", ")}`)
+        } else {
+          // Use checksummed address
+          validatedRecipients.push({
+            ...recipient,
+            address: validation.checksummedAddress || recipient.address,
+          })
+        }
+
+        if (validation.warnings.length > 0) {
+          setSecurityWarnings((prev) => [...prev, ...validation.warnings])
+        }
+      }
+
+      if (securityIssues.length > 0) {
+        toast({
+          title: "Security Validation Failed",
+          description: securityIssues.slice(0, 3).join("; ") + (securityIssues.length > 3 ? "..." : ""),
+          variant: "destructive",
+        })
+        setIsProcessing(false) // Ensure processing is reset on validation failure
+        return
+      }
+
+      const totals = getTotalAmounts()
+      const totalBatchAmount = totals.USDT + totals.USDC + totals.DAI
+
+      if (totalBatchAmount > SECURITY_CONFIG.MAX_BATCH_TOTAL_USD) {
+        toast({
+          title: "Batch Amount Exceeds Limit",
+          description: `Maximum batch total is $${SECURITY_CONFIG.MAX_BATCH_TOTAL_USD.toLocaleString()}`,
+          variant: "destructive",
+        })
+        setIsProcessing(false)
+        return
+      }
+
+      if (recipients.length > SECURITY_CONFIG.MAX_BATCH_RECIPIENTS) {
+        toast({
+          title: "Too Many Recipients",
+          description: `Maximum ${SECURITY_CONFIG.MAX_BATCH_RECIPIENTS} recipients per batch`,
+          variant: "destructive",
+        })
+        setIsProcessing(false)
+        return
+      }
+
+      if (activeChain !== "EVM") {
+        toast({
+          title: "Not Supported",
+          description: "Batch payments are currently only supported for Ethereum/EVM networks.",
+          variant: "destructive",
+        })
+        setIsProcessing(false)
+        return
+      }
+
+      if (activeChain === "EVM" && chainId !== selectedNetwork) {
+        try {
+          toast({
+            title: "Switching Network",
+            description: "Please confirm the network switch in your wallet.",
+          })
+          await switchNetwork(selectedNetwork)
+          // Wait a moment for the chainId to update in context/provider
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+        } catch (error: any) {
+          toast({
+            title: "Network Switch Failed",
+            description: "Could not switch to the selected network. Please switch manually.",
+            variant: "destructive",
+          })
+          setIsProcessing(false) // Ensure processing is reset on network switch failure
+          return
+        }
+      }
+
+      const invalidRecipients = validatedRecipients.filter((r) => {
+        if (!r.address || !VALIDATORS[activeChain as keyof typeof VALIDATORS](r.address)) return true
+        if (r.token === "CUSTOM" && !r.customTokenAddress) return true
+        // Basic check for destination chain ID if it's a cross-chain operation
+        if (r.destinationChainId !== undefined && r.destinationChainId !== selectedNetwork && activeChain === "EVM") {
+          // Further validation would be needed here, e.g., checking if the token supports cross-chain on that destination
+        }
+        return false
+      })
+
+      if (invalidRecipients.length > 0) {
+        toast({
+          title: "Invalid Recipients",
+          description: "Please check addresses, token selections, and chain IDs.",
+          variant: "destructive",
+        })
+        setIsProcessing(false)
+        return
+      }
+
+      // Check balances
+      if (totals.USDT > Number(usdtBalance)) {
+        toast({
+          title: "Insufficient USDT",
+          description: `Need ${totals.USDT}, have ${usdtBalance}`,
+          variant: "destructive",
+        })
+        setIsProcessing(false)
+        return
+      }
+      if (totals.USDC > Number(usdcBalance)) {
+        toast({
+          title: "Insufficient USDC",
+          description: `Need ${totals.USDC}, have ${usdcBalance}`,
+          variant: "destructive",
+        })
+        setIsProcessing(false)
+        return
+      }
+      if (totals.DAI > Number(daiBalance)) {
+        toast({
+          title: "Insufficient DAI",
+          description: `Need ${totals.DAI}, have ${daiBalance}`,
+          variant: "destructive",
+        })
+        setIsProcessing(false)
+        return
+      }
+
       const supabase = getSupabase()
 
       if (!supabase) {
@@ -1136,13 +1153,14 @@ export default function BatchPaymentPage() {
 
       setTimeout(() => router.push("/analytics"), 2000)
     } catch (error: any) {
+      console.error("[v0] Batch payment failed:", error)
       toast({
         title: "Payment failed",
         description: error.message || "Failed to process batch payment",
         variant: "destructive",
       })
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false) // Ensure processing state is reset
     }
   }
 
