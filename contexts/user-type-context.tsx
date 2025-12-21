@@ -12,6 +12,7 @@ interface UserTypeContextType {
   isWeb3User: boolean
   // Simplified labels for Web2 users
   getLabel: (web3Term: string) => string
+  translateTerm: (web3Term: string) => string
 }
 
 const UserTypeContext = createContext<UserTypeContextType | undefined>(undefined)
@@ -47,6 +48,15 @@ const web2FriendlyLabels: Record<string, string> = {
   Failed: "Unsuccessful",
   "Network Fee": "Service Fee",
   Slippage: "Price Variation",
+  "Omnichain Vault": "Universal Account",
+  omnichainVault: "Universal Account",
+  "Cross-Chain Swap": "Currency Exchange",
+  ZetaChain: "Universal Network",
+  "ZRC-20": "Universal Token",
+  "BTC Deposit": "Bitcoin Deposit",
+  TSS: "Secure Address",
+  CCTX: "Cross-Network Transfer",
+  connectWallet: "Sign In",
 }
 
 export function UserTypeProvider({ children }: { children: ReactNode }) {
@@ -92,6 +102,7 @@ export function UserTypeProvider({ children }: { children: ReactNode }) {
         isWeb2User: userType === "web2",
         isWeb3User: userType === "web3",
         getLabel,
+        translateTerm: getLabel,
       }}
     >
       {children}

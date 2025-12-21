@@ -2,7 +2,7 @@
 
 import { useWeb3 } from "@/contexts/web3-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Users, Send, BarChart3, DollarSign, TrendingUp, Info, Receipt } from "lucide-react"
+import { ArrowRight, Users, Send, BarChart3, DollarSign, TrendingUp, Info, Receipt, Globe } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getSupabase } from "@/lib/supabase"
@@ -12,6 +12,7 @@ import { VendorSidebar } from "@/components/vendor-sidebar"
 import { BusinessMetrics } from "@/components/business-metrics"
 import { PaymentActivity } from "@/components/payment-activity"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { QuickSwapWidget } from "@/components/quick-swap-widget"
 
 interface DashboardStats {
   totalSent: number
@@ -356,13 +357,20 @@ export default function HomePage() {
           </div>
         </div>
 
-        <PaymentActivity
-          payments={displayPayments}
-          walletAddress={wallet}
-          loading={loading && !isDemoMode}
-          title="Recent Transactions"
-          description="Your latest payment activity"
-        />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <PaymentActivity
+              payments={displayPayments}
+              walletAddress={wallet}
+              loading={loading && !isDemoMode}
+              title="Recent Transactions"
+              description="Your latest payment activity"
+            />
+          </div>
+          <div className="lg:col-span-1">
+            <QuickSwapWidget compact />
+          </div>
+        </div>
 
         <FinancialReport payments={displayPayments} loading={loading && !isDemoMode} />
 
@@ -371,7 +379,7 @@ export default function HomePage() {
           <p className="text-muted-foreground">Access your main features</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
           <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
             <Link href="/batch-payment">
               <CardHeader>
@@ -380,9 +388,7 @@ export default function HomePage() {
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle className="text-foreground">Batch Payment</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Send USDT/USDC to multiple recipients in one transaction
-                </CardDescription>
+                <CardDescription className="text-muted-foreground">Send to multiple recipients</CardDescription>
               </CardHeader>
             </Link>
           </Card>
@@ -395,9 +401,20 @@ export default function HomePage() {
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle className="text-foreground">Receive</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Generate secure payment links to receive funds
-                </CardDescription>
+                <CardDescription className="text-muted-foreground">Generate payment links</CardDescription>
+              </CardHeader>
+            </Link>
+          </Card>
+
+          <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
+            <Link href="/omnichain">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <Globe className="h-8 w-8 text-primary" />
+                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <CardTitle className="text-foreground">Omnichain</CardTitle>
+                <CardDescription className="text-muted-foreground">Cross-chain swaps & vault</CardDescription>
               </CardHeader>
             </Link>
           </Card>
@@ -410,9 +427,7 @@ export default function HomePage() {
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle className="text-foreground">Wallet Tags</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Manage and organize your wallet address tags
-                </CardDescription>
+                <CardDescription className="text-muted-foreground">Manage address labels</CardDescription>
               </CardHeader>
             </Link>
           </Card>
@@ -425,9 +440,7 @@ export default function HomePage() {
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle className="text-foreground">Analytics</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  View detailed payment history and financial reports
-                </CardDescription>
+                <CardDescription className="text-muted-foreground">Financial reports & history</CardDescription>
               </CardHeader>
             </Link>
           </Card>
