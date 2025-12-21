@@ -23,13 +23,11 @@ import {
   ArrowDownUp,
   Clock,
   Fuel,
-  TrendingUp,
   AlertCircle,
   CheckCircle2,
   Loader2,
   Zap,
   ChevronRight,
-  Star,
   Shield,
   Search,
   X,
@@ -340,7 +338,78 @@ export function CrossChainSwap({
     </Button>
   )
 
-  // Render route card
+  // Visual route path diagram component
+  const RoutePathDiagram = ({
+    route,
+    fromToken,
+    toToken,
+  }: { route: RangoRoute; fromToken: TokenInfo | null; toToken: TokenInfo | null }) => {
+    return (
+      <div className="flex items-center justify-between py-3">
+        {/* From Token */}
+        <div className="flex flex-col items-center">
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            {fromToken?.logo ? (
+              <Image
+                src={fromToken.logo || "/placeholder.svg"}
+                alt={fromToken.symbol}
+                width={24}
+                height={24}
+                className="rounded-full"
+              />
+            ) : (
+              <span className="text-xs font-bold">{fromToken?.symbol?.charAt(0)}</span>
+            )}
+          </div>
+          <span className="text-[10px] text-muted-foreground mt-1">{fromToken?.symbol}</span>
+        </div>
+
+        {/* Route Path with Bridges */}
+        <div className="flex-1 mx-3 relative">
+          <div className="absolute top-1/2 left-0 right-0 h-px bg-border -translate-y-1/2" />
+          <div className="flex justify-center gap-2 relative">
+            {route.swaps.map((swap, i) => (
+              <div key={i} className="flex flex-col items-center bg-background px-2">
+                <div className="w-7 h-7 rounded-lg bg-muted border border-border flex items-center justify-center">
+                  {swap.swapperLogo ? (
+                    <Image
+                      src={swap.swapperLogo || "/placeholder.svg"}
+                      alt={swap.swapperId}
+                      width={18}
+                      height={18}
+                      className="rounded"
+                    />
+                  ) : (
+                    <span className="text-[8px] font-medium">{swap.swapperId.slice(0, 2)}</span>
+                  )}
+                </div>
+                <span className="text-[9px] text-muted-foreground mt-0.5 max-w-[50px] truncate">{swap.swapperId}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* To Token */}
+        <div className="flex flex-col items-center">
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            {toToken?.logo ? (
+              <Image
+                src={toToken.logo || "/placeholder.svg"}
+                alt={toToken.symbol}
+                width={24}
+                height={24}
+                className="rounded-full"
+              />
+            ) : (
+              <span className="text-xs font-bold">{toToken?.symbol?.charAt(0)}</span>
+            )}
+          </div>
+          <span className="text-[10px] text-muted-foreground mt-1">{toToken?.symbol}</span>
+        </div>
+      </div>
+    )
+  }
+
   const renderRouteCard = (route: RangoRoute, isSelected: boolean) => {
     const isBest = route.tags.some((t) => t.value === "RECOMMENDED")
     const isFastest = route.tags.some((t) => t.value === "FASTEST")
@@ -350,75 +419,51 @@ export function CrossChainSwap({
       <button
         key={route.requestId}
         onClick={() => setSelectedRoute(route)}
-        className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
           isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/50"
         }`}
       >
-        <div className="flex items-start justify-between gap-4">
-          {/* Left: Route info */}
-          <div className="flex-1 space-y-2">
-            {/* Tags */}
-            <div className="flex flex-wrap gap-1">
-              {isBest && (
-                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                  <Star className="h-3 w-3 mr-1" />
-                  Best Price
-                </Badge>
-              )}
-              {isFastest && (
-                <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                  <Zap className="h-3 w-3 mr-1" />
-                  Fastest
-                </Badge>
-              )}
-              {isLowestFee && (
-                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                  <Fuel className="h-3 w-3 mr-1" />
-                  Lowest Fee
-                </Badge>
-              )}
-            </div>
-
-            {/* Swapper route */}
-            <div className="flex items-center gap-2 text-sm">
-              {route.swaps.map((swap, i) => (
-                <div key={i} className="flex items-center gap-1">
-                  <Image
-                    src={swap.swapperLogo || "/placeholder.svg?height=16&width=16&query=swap"}
-                    alt={swap.swapperId}
-                    width={16}
-                    height={16}
-                    className="rounded"
-                  />
-                  <span className="text-muted-foreground">{swap.swapperId}</span>
-                  {i < route.swaps.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                </div>
-              ))}
-            </div>
-
-            {/* Stats */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatTime(route.estimatedTimeInSeconds)}
-              </span>
-              <span className="flex items-center gap-1">
-                <Fuel className="h-3 w-3" />${route.totalFeeUsd.toFixed(2)}
-              </span>
-              {route.priceImpact > 1 && (
-                <span className="flex items-center gap-1 text-amber-500">
-                  <TrendingUp className="h-3 w-3" />
-                  {route.priceImpact.toFixed(2)}% impact
-                </span>
-              )}
-            </div>
+        {/* Top Row: Fee, Time, Steps, Tags */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Fuel className="h-3 w-3" />${route.totalFeeUsd.toFixed(2)}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {formatTime(route.estimatedTimeInSeconds)}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="text-muted-foreground/60">≡</span>
+              {route.swaps.length}
+            </span>
           </div>
-
-          {/* Right: Output amount */}
-          <div className="text-right">
-            <div className="text-lg font-semibold">{Number.parseFloat(route.outputAmount).toFixed(6)}</div>
-            <div className="text-xs text-muted-foreground">~${route.outputAmountUsd.toFixed(2)}</div>
+          <div className="flex gap-1">
+            {isBest && (
+              <Badge className="bg-cyan-500/10 text-cyan-500 border-0 text-[10px] px-1.5 py-0">Recommended</Badge>
+            )}
+            {isLowestFee && (
+              <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[10px] px-1.5 py-0">Lowest Fee</Badge>
+            )}
+            {isFastest && (
+              <Badge className="bg-orange-500/10 text-orange-500 border-0 text-[10px] px-1.5 py-0">Fastest</Badge>
+            )}
           </div>
+        </div>
+
+        {/* Visual Route Path */}
+        <RoutePathDiagram route={route} fromToken={fromToken} toToken={toToken} />
+
+        {/* Output Amount */}
+        <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-border/50">
+          <span className="text-lg font-semibold">{Number.parseFloat(route.outputAmount).toFixed(4)}</span>
+          <span className="text-sm text-muted-foreground">{toToken?.symbol}</span>
+          <span className="text-xs text-muted-foreground">~${route.outputAmountUsd.toFixed(2)}</span>
+          {route.priceImpact > 0.5 && (
+            <Badge variant="outline" className="text-amber-500 border-amber-500/30 text-[10px]">
+              -{route.priceImpact.toFixed(2)}%
+            </Badge>
+          )}
         </div>
       </button>
     )

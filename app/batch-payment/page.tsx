@@ -1,7 +1,6 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-
 import { useState, useEffect, useCallback } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +8,27 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Trash2, Plus, Send, Loader2, Info, LinkIcon, Receipt, AlertTriangle, Save, FolderOpen } from "lucide-react" // Added Save and FolderOpen to lucide-react import
+import {
+  Trash2,
+  Plus,
+  Send,
+  Loader2,
+  Info,
+  LinkIcon,
+  Receipt,
+  Save,
+  FolderOpen,
+  CreditCard,
+  Building2,
+  Pause,
+  Play,
+  X,
+  Calendar,
+  Clock,
+  Shield,
+  Settings,
+  ChevronRight,
+} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
   sendToken,
@@ -25,8 +44,8 @@ import {
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { getSupabase } from "@/lib/supabase"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert" // Import Alert components
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Added Tabs components
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   validateAndChecksumAddress,
   validateAmount,
@@ -39,8 +58,37 @@ import {
   createAuditLog,
   type AuditAction,
 } from "@/lib/security"
-import { FeePreview } from "@/components/fee-preview" // Added FeePreview
-import { recordFee, calculateFee } from "@/lib/protocol-fees" // Added fee related functions
+import { FeePreview } from "@/components/fee-preview"
+import { recordFee, calculateFee } from "@/lib/protocol-fees"
+import { Switch } from "@/components/ui/switch"
+
+interface Subscription {
+  id: string
+  serviceName: string
+  serviceIcon?: string
+  amount: string
+  token: "USDT" | "USDC" | "DAI"
+  frequency: "weekly" | "monthly" | "yearly"
+  nextPayment: Date
+  status: "active" | "paused" | "cancelled"
+  walletAddress: string
+  totalPaid: string
+  startDate: Date
+  category: "streaming" | "saas" | "membership" | "utility" | "other"
+}
+
+interface AutoPayment {
+  id: string
+  vendorName: string
+  vendorId: string
+  amount: string
+  token: "USDT" | "USDC" | "DAI"
+  frequency: "weekly" | "biweekly" | "monthly" | "quarterly"
+  nextPayment: Date
+  status: "active" | "paused"
+  maxAmount: string
+  walletAddress: string
+}
 
 interface PaymentRecipient {
   id: string
@@ -48,9 +96,11 @@ interface PaymentRecipient {
   amount: string
   vendorName?: string
   vendorId?: string
-  token: "USDT" | "USDC" | "DAI" | "CUSTOM" // Added token field to recipient
-  customTokenAddress?: string // Added custom address to recipient
-  destinationChainId?: number // Added destinationChainId
+  token: "USDT" | "USDC" | "DAI" | "CUSTOM"
+  customTokenAddress?: string
+  destinationChainId?: number
+  isAutoPayment?: boolean
+  autoPaymentFrequency?: "weekly" | "biweekly" | "monthly" | "quarterly"
 }
 
 interface Vendor {
@@ -68,14 +118,138 @@ const VALIDATORS = {
   BITCOIN: (address: string) => /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address),
 }
 
+const DEMO_SUBSCRIPTIONS: Subscription[] = [
+  {
+    id: "sub-1",
+    serviceName: "Netflix",
+    amount: "15.99",
+    token: "USDC",
+    frequency: "monthly",
+    nextPayment: new Date(Date.now() + 86400000 * 5),
+    status: "active",
+    walletAddress: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+    totalPaid: "191.88",
+    startDate: new Date(Date.now() - 86400000 * 365),
+    category: "streaming",
+  },
+  {
+    id: "sub-2",
+    serviceName: "Spotify Premium",
+    amount: "9.99",
+    token: "USDC",
+    frequency: "monthly",
+    nextPayment: new Date(Date.now() + 86400000 * 12),
+    status: "active",
+    walletAddress: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+    totalPaid: "119.88",
+    startDate: new Date(Date.now() - 86400000 * 400),
+    category: "streaming",
+  },
+  {
+    id: "sub-3",
+    serviceName: "ChatGPT Plus",
+    amount: "20.00",
+    token: "USDC",
+    frequency: "monthly",
+    nextPayment: new Date(Date.now() + 86400000 * 18),
+    status: "active",
+    walletAddress: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+    totalPaid: "160.00",
+    startDate: new Date(Date.now() - 86400000 * 240),
+    category: "saas",
+  },
+  {
+    id: "sub-4",
+    serviceName: "GitHub Pro",
+    amount: "4.00",
+    token: "USDC",
+    frequency: "monthly",
+    nextPayment: new Date(Date.now() + 86400000 * 3),
+    status: "paused",
+    walletAddress: "0x2546BcD3c84621e976D8185a91A922aE77ECEc30",
+    totalPaid: "48.00",
+    startDate: new Date(Date.now() - 86400000 * 365),
+    category: "saas",
+  },
+  {
+    id: "sub-5",
+    serviceName: "AWS Services",
+    amount: "127.45",
+    token: "USDT",
+    frequency: "monthly",
+    nextPayment: new Date(Date.now() + 86400000 * 8),
+    status: "active",
+    walletAddress: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
+    totalPaid: "1529.40",
+    startDate: new Date(Date.now() - 86400000 * 365),
+    category: "utility",
+  },
+  {
+    id: "sub-6",
+    serviceName: "Gym Membership",
+    amount: "49.99",
+    token: "USDC",
+    frequency: "monthly",
+    nextPayment: new Date(Date.now() + 86400000 * 22),
+    status: "active",
+    walletAddress: "0xcd3B766CCDd6AE721141F452C550Ca635964ce71",
+    totalPaid: "299.94",
+    startDate: new Date(Date.now() - 86400000 * 180),
+    category: "membership",
+  },
+]
+
+const DEMO_AUTO_PAYMENTS: AutoPayment[] = [
+  {
+    id: "auto-1",
+    vendorName: "Cloud Services Inc",
+    vendorId: "demo-1",
+    amount: "2500.00",
+    token: "USDC",
+    frequency: "monthly",
+    nextPayment: new Date(Date.now() + 86400000 * 7),
+    status: "active",
+    maxAmount: "3000.00",
+    walletAddress: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  },
+  {
+    id: "auto-2",
+    vendorName: "Office Supplies Co",
+    vendorId: "demo-3",
+    amount: "450.00",
+    token: "USDT",
+    frequency: "biweekly",
+    nextPayment: new Date(Date.now() + 86400000 * 3),
+    status: "active",
+    maxAmount: "600.00",
+    walletAddress: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7",
+  },
+  {
+    id: "auto-3",
+    vendorName: "Security Consultants",
+    vendorId: "demo-4",
+    amount: "5000.00",
+    token: "USDC",
+    frequency: "quarterly",
+    nextPayment: new Date(Date.now() + 86400000 * 45),
+    status: "paused",
+    maxAmount: "6000.00",
+    walletAddress: "0x123f681646d4a755815f9cb19e1acc8565a0c2ac",
+  },
+]
+
 export default function BatchPaymentPage() {
   const { wallets, activeChain, setActiveChain, isConnected, usdtBalance, usdcBalance, daiBalance, chainId } = useWeb3()
   const { toast } = useToast()
   const router = useRouter()
 
   const isDemoMode = !isConnected
-
   const currentWallet = wallets[activeChain]
+
+  const [mode, setMode] = useState<"personal" | "enterprise">("personal")
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(DEMO_SUBSCRIPTIONS)
+  const [autoPayments, setAutoPayments] = useState<AutoPayment[]>(DEMO_AUTO_PAYMENTS)
+  const [showAddSubscription, setShowAddSubscription] = useState(false)
 
   const [recipients, setRecipients] = useState<PaymentRecipient[]>(() => {
     if (!isConnected) {
@@ -87,7 +261,7 @@ export default function BatchPaymentPage() {
           vendorName: "Cloud Services Inc",
           vendorId: "demo-1",
           token: "USDT",
-          destinationChainId: CHAIN_IDS.MAINNET, // Added default chain
+          destinationChainId: CHAIN_IDS.MAINNET,
         },
         {
           id: "2",
@@ -96,7 +270,7 @@ export default function BatchPaymentPage() {
           vendorName: "Global Consultants",
           vendorId: "demo-2",
           token: "USDC",
-          destinationChainId: CHAIN_IDS.BASE, // Added Base chain for demo
+          destinationChainId: CHAIN_IDS.BASE,
         },
       ]
     }
@@ -213,6 +387,65 @@ export default function BatchPaymentPage() {
       console.error("[v0] Failed to load vendors:", error)
     } finally {
       setLoadingVendors(false)
+    }
+  }
+
+  const toggleSubscriptionStatus = (id: string) => {
+    setSubscriptions((subs) =>
+      subs.map((sub) => {
+        if (sub.id === id) {
+          const newStatus = sub.status === "active" ? "paused" : "active"
+          toast({
+            title: newStatus === "active" ? "Subscription Resumed" : "Subscription Paused",
+            description: `${sub.serviceName} has been ${newStatus === "active" ? "resumed" : "paused"}.`,
+          })
+          return { ...sub, status: newStatus }
+        }
+        return sub
+      }),
+    )
+  }
+
+  const cancelSubscription = (id: string) => {
+    const sub = subscriptions.find((s) => s.id === id)
+    if (sub) {
+      setSubscriptions((subs) => subs.map((s) => (s.id === id ? { ...s, status: "cancelled" as const } : s)))
+      toast({
+        title: "Subscription Cancelled",
+        description: `${sub.serviceName} has been cancelled. No future payments will be made.`,
+      })
+    }
+  }
+
+  const toggleAutoPaymentStatus = (id: string) => {
+    setAutoPayments((payments) =>
+      payments.map((payment) => {
+        if (payment.id === id) {
+          const newStatus = payment.status === "active" ? "paused" : "active"
+          toast({
+            title: newStatus === "active" ? "Auto-Payment Resumed" : "Auto-Payment Paused",
+            description: `${payment.vendorName} auto-payment has been ${newStatus === "active" ? "resumed" : "paused"}.`,
+          })
+          return { ...payment, status: newStatus }
+        }
+        return payment
+      }),
+    )
+  }
+
+  const getSubscriptionStats = () => {
+    const active = subscriptions.filter((s) => s.status === "active")
+    const monthlyTotal = active.reduce((sum, s) => {
+      const amount = Number.parseFloat(s.amount)
+      if (s.frequency === "weekly") return sum + amount * 4
+      if (s.frequency === "yearly") return sum + amount / 12
+      return sum + amount
+    }, 0)
+    return {
+      activeCount: active.length,
+      pausedCount: subscriptions.filter((s) => s.status === "paused").length,
+      monthlyTotal,
+      nextPayment: active.sort((a, b) => a.nextPayment.getTime() - b.nextPayment.getTime())[0],
     }
   }
 
@@ -913,359 +1146,529 @@ export default function BatchPaymentPage() {
     }
   }
 
+  const stats = getSubscriptionStats()
+
   return (
     <div className="min-h-screen bg-background">
-      {isDemoMode && (
-        <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-500 mb-6 mx-4">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Demo Mode Active</AlertTitle>
-          <AlertDescription>
-            You are viewing the batch payment interface in demo mode. Connect your wallet to perform real transactions.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {securityWarnings.length > 0 && (
-        <div className="mx-4 mb-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-          <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
-            <AlertTriangle className="h-5 w-5" />
-            <span className="font-medium">Security Notices</span>
-          </div>
-          <ul className="mt-2 text-sm text-yellow-600/80 dark:text-yellow-400/80 list-disc list-inside">
-            {securityWarnings.slice(0, 5).map((warning, i) => (
-              <li key={i}>{warning}</li>
-            ))}
-          </ul>
-          <Button variant="ghost" size="sm" className="mt-2 text-yellow-600" onClick={() => setSecurityWarnings([])}>
-            Dismiss
-          </Button>
-        </div>
-      )}
-
       <div className="container mx-auto py-8 px-4 space-y-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">Batch Payment</h1>
-            <p className="text-muted-foreground mt-1">Send crypto to multiple recipients at once</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">Payments</h1>
+            <p className="text-muted-foreground mt-1">Manage your payments and subscriptions</p>
           </div>
 
-          {activeChain === "EVM" && (
-            <div className="flex items-center gap-2">
-              <Label className="whitespace-nowrap">Network:</Label>
+          <div className="flex items-center gap-4">
+            {/* Mode Toggle */}
+            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+              <Button
+                variant={mode === "personal" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setMode("personal")}
+                className="gap-2"
+              >
+                <CreditCard className="h-4 w-4" />
+                Personal
+              </Button>
+              <Button
+                variant={mode === "enterprise" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setMode("enterprise")}
+                className="gap-2"
+              >
+                <Building2 className="h-4 w-4" />
+                Enterprise
+              </Button>
+            </div>
+
+            {activeChain === "EVM" && mode === "enterprise" && (
               <Select value={selectedNetwork.toString()} onValueChange={(val) => setSelectedNetwork(Number(val))}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select Network" />
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Network" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={CHAIN_IDS.MAINNET.toString()}>Ethereum Mainnet</SelectItem>
+                  <SelectItem value={CHAIN_IDS.MAINNET.toString()}>Ethereum</SelectItem>
                   <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
-                  <SelectItem value={CHAIN_IDS.SEPOLIA.toString()}>Sepolia (Testnet)</SelectItem>
+                  <SelectItem value={CHAIN_IDS.SEPOLIA.toString()}>Sepolia</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <Tabs defaultValue="standard" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px] mb-6">
-            <TabsTrigger value="standard">Standard Batch</TabsTrigger>
-            <TabsTrigger value="x402">x402 Bill Pay</TabsTrigger>
-          </TabsList>
+        {mode === "personal" && (
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="bg-card border-border">
+                <CardContent className="p-4">
+                  <div className="text-sm text-muted-foreground">Active Subscriptions</div>
+                  <div className="text-2xl font-bold text-foreground">{stats.activeCount}</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-4">
+                  <div className="text-sm text-muted-foreground">Paused</div>
+                  <div className="text-2xl font-bold text-amber-500">{stats.pausedCount}</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-4">
+                  <div className="text-sm text-muted-foreground">Monthly Total</div>
+                  <div className="text-2xl font-bold text-foreground">${stats.monthlyTotal.toFixed(2)}</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-4">
+                  <div className="text-sm text-muted-foreground">Next Payment</div>
+                  <div className="text-lg font-bold text-foreground">
+                    {stats.nextPayment ? new Date(stats.nextPayment.nextPayment).toLocaleDateString() : "N/A"}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          <TabsContent value="standard" className="space-y-6">
-            <Alert className="bg-emerald-500/10 border-emerald-500/20 text-emerald-500">
-              <Info className="h-4 w-4" />
-              <AlertTitle>x402 Batch Ready</AlertTitle>
-              <AlertDescription>
-                Gasless payments (EIP-3009) are automatically enabled for USDC transactions in this batch. Transactions
-                will be recorded in your payment history and linked to your Wallet Tags.
+            {/* Security Alert */}
+            <Alert className="bg-emerald-500/10 border-emerald-500/20">
+              <Shield className="h-4 w-4 text-emerald-500" />
+              <AlertTitle className="text-emerald-500">Payment Protection Enabled</AlertTitle>
+              <AlertDescription className="text-muted-foreground">
+                All subscriptions require your approval. You can pause or cancel any payment at any time. Unauthorized
+                transactions are automatically blocked.
               </AlertDescription>
             </Alert>
 
-            <div className="grid gap-6 lg:grid-cols-12">
-              <div className="lg:col-span-8 space-y-6">
-                {hasDraft && (
-                  <Alert className="bg-yellow-500/10 border-yellow-500/20">
-                    <FolderOpen className="h-4 w-4 text-yellow-500" />
-                    <AlertTitle className="text-yellow-500">Saved Draft Available</AlertTitle>
-                    <AlertDescription className="flex items-center justify-between">
-                      <span className="text-muted-foreground">You have a saved batch payment draft.</span>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={loadDraft}>
-                          Load Draft
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={clearDraft}>
-                          Discard
-                        </Button>
+            {/* Subscriptions List */}
+            <Card className="bg-card border-border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>My Subscriptions</CardTitle>
+                  <CardDescription>Manage your recurring payments and subscriptions</CardDescription>
+                </div>
+                <Button onClick={() => setShowAddSubscription(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Subscription
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {subscriptions
+                    .filter((s) => s.status !== "cancelled")
+                    .map((sub) => (
+                      <div
+                        key={sub.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${
+                          sub.status === "paused" ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/30 border-border"
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold ${
+                              sub.category === "streaming"
+                                ? "bg-purple-500/20 text-purple-500"
+                                : sub.category === "saas"
+                                  ? "bg-blue-500/20 text-blue-500"
+                                  : sub.category === "membership"
+                                    ? "bg-emerald-500/20 text-emerald-500"
+                                    : sub.category === "utility"
+                                      ? "bg-orange-500/20 text-orange-500"
+                                      : "bg-zinc-500/20 text-zinc-500"
+                            }`}
+                          >
+                            {sub.serviceName.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-foreground">{sub.serviceName}</span>
+                              {sub.status === "paused" && (
+                                <Badge variant="outline" className="text-amber-500 border-amber-500/30">
+                                  Paused
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              ${sub.amount} {sub.token} / {sub.frequency}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Next: {new Date(sub.nextPayment).toLocaleDateString()} · Total paid: ${sub.totalPaid}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleSubscriptionStatus(sub.id)}
+                            title={sub.status === "active" ? "Pause" : "Resume"}
+                          >
+                            {sub.status === "active" ? (
+                              <Pause className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Play className="h-4 w-4 text-emerald-500" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => cancelSubscription(sub.id)}
+                            title="Cancel subscription"
+                            className="hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <Settings className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
                       </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                <Card className="lg:col-span-8 bg-card border-border">
-                  <CardHeader>
-                    <CardTitle className="text-foreground">Recipients</CardTitle>
-                    <CardDescription className="text-muted-foreground">
-                      Add wallet addresses and amounts for batch payment
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex gap-4 text-sm mb-4 bg-muted/30 p-3 rounded-md overflow-x-auto">
-                      <div className="flex flex-col">
-                        <span className="text-muted-foreground">USDT Balance</span>
-                        <span className="font-mono font-bold">
-                          {isDemoMode ? "10,000.00" : Number(usdtBalance).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="w-px bg-border mx-2"></div>
-                      <div className="flex flex-col">
-                        <span className="text-muted-foreground">USDC Balance</span>
-                        <span className="font-mono font-bold">
-                          {isDemoMode ? "15,500.00" : Number(usdcBalance).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="w-px bg-border mx-2"></div>
-                      <div className="flex flex-col">
-                        <span className="text-muted-foreground">DAI Balance</span>
-                        <span className="font-mono font-bold">
-                          {isDemoMode ? "5,000.00" : Number(daiBalance).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
 
-                    <div className="rounded-lg border border-border overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-                            <TableHead className="text-foreground whitespace-nowrap min-w-[150px]">
-                              Wallet Tag
-                            </TableHead>
-                            <TableHead className="text-foreground whitespace-nowrap min-w-[200px]">
-                              Wallet Address
-                            </TableHead>
-                            <TableHead className="text-foreground whitespace-nowrap min-w-[100px]">Token</TableHead>
-                            <TableHead className="text-foreground whitespace-nowrap w-[120px]">Chain</TableHead>
-                            <TableHead className="text-foreground whitespace-nowrap min-w-[120px]">Amount</TableHead>
-                            <TableHead className="text-foreground whitespace-nowrap w-[50px]"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {recipients.map((recipient) => (
-                            <TableRow key={recipient.id}>
-                              <TableCell>
-                                <Select
-                                  value={recipient.vendorId}
-                                  onValueChange={(v) => updateRecipient(recipient.id, "vendorId", v)}
-                                >
-                                  <SelectTrigger className="bg-background border-border text-foreground">
-                                    <SelectValue placeholder="Select tag" />
-                                  </SelectTrigger>
-                                  <SelectContent className="bg-card border-border">
-                                    {vendors.map((vendor) => (
-                                      <SelectItem key={vendor.id} value={vendor.id}>
-                                        {vendor.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  placeholder="0x..."
-                                  value={recipient.address}
-                                  onChange={(e) => updateRecipient(recipient.id, "address", e.target.value)}
-                                  className="bg-background border-border text-foreground font-mono"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
+            {/* Upcoming Payments */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Upcoming Payments
+                </CardTitle>
+                <CardDescription>Payments scheduled for the next 30 days</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {subscriptions
+                    .filter((s) => s.status === "active")
+                    .sort((a, b) => new Date(a.nextPayment).getTime() - new Date(b.nextPayment).getTime())
+                    .slice(0, 5)
+                    .map((sub) => {
+                      const daysUntil = Math.ceil((new Date(sub.nextPayment).getTime() - Date.now()) / 86400000)
+                      return (
+                        <div
+                          key={sub.id}
+                          className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-2 h-2 rounded-full ${daysUntil <= 3 ? "bg-amber-500" : "bg-emerald-500"}`}
+                            />
+                            <span className="text-foreground">{sub.serviceName}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-muted-foreground text-sm">
+                              {daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
+                            </span>
+                            <span className="font-mono font-medium">${sub.amount}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {mode === "enterprise" && (
+          <Tabs defaultValue="batch" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 lg:w-[500px] mb-6">
+              <TabsTrigger value="batch">Batch Payment</TabsTrigger>
+              <TabsTrigger value="auto">Auto-Payments</TabsTrigger>
+              <TabsTrigger value="x402">x402 Bill Pay</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="batch" className="space-y-6">
+              <Alert className="bg-emerald-500/10 border-emerald-500/20 text-emerald-500">
+                <Info className="h-4 w-4" />
+                <AlertTitle>x402 Batch Ready</AlertTitle>
+                <AlertDescription>
+                  Gasless payments (EIP-3009) are automatically enabled for USDC transactions.
+                </AlertDescription>
+              </Alert>
+
+              {hasDraft && (
+                <Alert className="bg-yellow-500/10 border-yellow-500/20">
+                  <FolderOpen className="h-4 w-4 text-yellow-500" />
+                  <AlertTitle className="text-yellow-500">Saved Draft Available</AlertTitle>
+                  <AlertDescription className="flex items-center justify-between">
+                    <span className="text-muted-foreground">You have a saved batch payment draft.</span>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={loadDraft}>
+                        Load Draft
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={clearDraft}>
+                        Discard
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="grid gap-6 lg:grid-cols-12">
+                <div className="lg:col-span-8 space-y-6">
+                  <Card className="bg-card border-border">
+                    <CardHeader>
+                      <CardTitle>Recipients</CardTitle>
+                      <CardDescription>Add wallet addresses and amounts for batch payment</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex gap-4 text-sm mb-4 bg-muted/30 p-3 rounded-md overflow-x-auto">
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground">USDT</span>
+                          <span className="font-mono font-bold">
+                            {isDemoMode ? "10,000.00" : Number(usdtBalance).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="w-px bg-border mx-2" />
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground">USDC</span>
+                          <span className="font-mono font-bold">
+                            {isDemoMode ? "15,500.00" : Number(usdcBalance).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="w-px bg-border mx-2" />
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground">DAI</span>
+                          <span className="font-mono font-bold">
+                            {isDemoMode ? "5,000.00" : Number(daiBalance).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-border overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-secondary/50">
+                              <TableHead className="min-w-[150px]">Wallet Tag</TableHead>
+                              <TableHead className="min-w-[200px]">Address</TableHead>
+                              <TableHead className="min-w-[100px]">Token</TableHead>
+                              <TableHead className="w-[100px]">Chain</TableHead>
+                              <TableHead className="min-w-[120px]">Amount</TableHead>
+                              <TableHead className="w-[80px]">Auto</TableHead>
+                              <TableHead className="w-[50px]" />
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {recipients.map((recipient) => (
+                              <TableRow key={recipient.id}>
+                                <TableCell>
+                                  <Select
+                                    value={recipient.vendorId}
+                                    onValueChange={(v) => updateRecipient(recipient.id, "vendorId", v)}
+                                  >
+                                    <SelectTrigger className="bg-background">
+                                      <SelectValue placeholder="Select" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {vendors.map((vendor) => (
+                                        <SelectItem key={vendor.id} value={vendor.id}>
+                                          {vendor.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    placeholder="0x..."
+                                    value={recipient.address}
+                                    onChange={(e) => updateRecipient(recipient.id, "address", e.target.value)}
+                                    className="font-mono"
+                                  />
+                                </TableCell>
+                                <TableCell>
                                   <Select
                                     value={recipient.token}
                                     onValueChange={(v) => updateRecipient(recipient.id, "token", v)}
                                   >
-                                    <SelectTrigger className="bg-background border-border text-foreground w-[100px]">
+                                    <SelectTrigger className="w-[90px]">
                                       <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-card border-border">
+                                    <SelectContent>
                                       <SelectItem value="USDT">USDT</SelectItem>
                                       <SelectItem value="USDC">USDC</SelectItem>
                                       <SelectItem value="DAI">DAI</SelectItem>
-                                      <SelectItem value="CUSTOM">Custom</SelectItem>
                                     </SelectContent>
                                   </Select>
-                                  {recipient.token === "USDC" && activeChain === "EVM" && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-[10px] h-5 px-1 border-green-200 text-green-600"
-                                      title="Optimized with EIP-3009"
-                                    >
-                                      EIP-3009
-                                    </Badge>
-                                  )}
-                                </div>
-                                {recipient.token === "CUSTOM" && (
+                                </TableCell>
+                                <TableCell>
+                                  <Select
+                                    value={recipient.destinationChainId?.toString() || selectedNetwork.toString()}
+                                    onValueChange={(val) =>
+                                      updateRecipient(recipient.id, "destinationChainId", Number(val))
+                                    }
+                                  >
+                                    <SelectTrigger className="w-[100px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value={CHAIN_IDS.MAINNET.toString()}>ETH</SelectItem>
+                                      <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell>
                                   <Input
-                                    placeholder="Token Addr"
-                                    className="mt-2 h-8 text-xs font-mono"
-                                    value={recipient.customTokenAddress || ""}
-                                    onChange={(e) =>
-                                      updateRecipient(recipient.id, "customTokenAddress", e.target.value)
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={recipient.amount}
+                                    onChange={(e) => updateRecipient(recipient.id, "amount", e.target.value)}
+                                    className="font-mono"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Switch
+                                    checked={recipient.isAutoPayment || false}
+                                    onCheckedChange={(checked) =>
+                                      updateRecipient(recipient.id, "isAutoPayment", checked)
                                     }
                                   />
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Select
-                                  value={recipient.destinationChainId?.toString() || selectedNetwork.toString()}
-                                  onValueChange={(val) =>
-                                    updateRecipient(recipient.id, "destinationChainId", Number(val))
-                                  }
-                                  disabled={activeChain !== "EVM"}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value={CHAIN_IDS.MAINNET.toString()}>Ethereum</SelectItem>
-                                    <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
-                                    <SelectItem value={CHAIN_IDS.SEPOLIA.toString()}>Sepolia</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  type="number"
-                                  placeholder="0.00"
-                                  value={recipient.amount}
-                                  onChange={(e) => updateRecipient(recipient.id, "amount", e.target.value)}
-                                  className="bg-background border-border text-foreground font-mono"
-                                  step="0.01"
-                                  min="0"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeRecipient(recipient.id)}
-                                  disabled={recipients.length === 1}
-                                  className="text-muted-foreground hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeRecipient(recipient.id)}
+                                    disabled={recipients.length === 1}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      <Button onClick={addRecipient} variant="outline" className="w-full bg-transparent">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Recipient
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="lg:col-span-4 h-fit sticky top-24 bg-card border-border">
+                  <CardHeader>
+                    <CardTitle>Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Recipients</span>
+                      <span className="font-bold">{recipients.filter((r) => r.address).length}</span>
+                    </div>
+                    {(() => {
+                      const totals = getTotalAmounts()
+                      const grandTotal = totals.USDT + totals.USDC + totals.DAI
+                      return grandTotal > 0 ? (
+                        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                          <div className="text-xs text-muted-foreground mb-1">Total</div>
+                          <div className="text-2xl font-bold text-primary font-mono">${grandTotal.toFixed(2)}</div>
+                        </div>
+                      ) : null
+                    })()}
+
+                    {feePreview && <FeePreview data={feePreview} />}
+
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={saveDraft} className="flex-1 bg-transparent">
+                        <Save className="mr-2 h-4 w-4" />
+                        Save
+                      </Button>
                     </div>
 
-                    <Button onClick={addRecipient} variant="outline" className="w-full border-border bg-transparent">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Recipient
+                    <Button className="w-full" size="lg" onClick={processBatchPayment} disabled={isProcessing}>
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Send Payment
+                        </>
+                      )}
                     </Button>
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
 
-              {/* Summary Card */}
-              <Card className="lg:col-span-4 h-fit sticky top-24 bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground">Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Recipients</span>
-                    <span className="font-bold text-foreground">{recipients.filter((r) => r.address).length}</span>
+            <TabsContent value="auto" className="space-y-6">
+              <Alert className="bg-blue-500/10 border-blue-500/20">
+                <Clock className="h-4 w-4 text-blue-500" />
+                <AlertTitle className="text-blue-500">Automated Payments</AlertTitle>
+                <AlertDescription className="text-muted-foreground">
+                  Set up recurring payments to vendors. All auto-payments require initial approval and can be paused at
+                  any time.
+                </AlertDescription>
+              </Alert>
+
+              <Card className="bg-card border-border">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Scheduled Auto-Payments</CardTitle>
+                    <CardDescription>Manage recurring vendor payments</CardDescription>
                   </div>
-                  {(() => {
-                    const totals = getTotalAmounts()
-                    const grandTotal = totals.USDT + totals.USDC + totals.DAI + totals.CUSTOM
-                    return (
-                      <>
-                        {grandTotal > 0 && (
-                          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4">
-                            <div className="text-xs text-muted-foreground mb-1">Total Amount</div>
-                            <div className="text-3xl font-bold text-primary font-mono">
-                              $
-                              {grandTotal.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Auto-Payment
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {autoPayments.map((payment) => (
+                      <div
+                        key={payment.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${
+                          payment.status === "paused"
+                            ? "bg-amber-500/5 border-amber-500/20"
+                            : "bg-muted/30 border-border"
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Building2 className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{payment.vendorName}</span>
+                              {payment.status === "paused" && (
+                                <Badge variant="outline" className="text-amber-500 border-amber-500/30">
+                                  Paused
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              ${payment.amount} {payment.token} / {payment.frequency}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Next: {new Date(payment.nextPayment).toLocaleDateString()} · Max: ${payment.maxAmount}
                             </div>
                           </div>
-                        )}
-
-                        <div className="border-t border-border/50 pt-4 space-y-2">
-                          {totals.USDT > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Total USDT</span>
-                              <span className="font-mono font-bold">{totals.USDT.toFixed(2)}</span>
-                            </div>
-                          )}
-                          {totals.USDC > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Total USDC</span>
-                              <span className="font-mono font-bold">{totals.USDC.toFixed(2)}</span>
-                            </div>
-                          )}
-                          {totals.DAI > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Total DAI</span>
-                              <span className="font-mono font-bold">{totals.DAI.toFixed(2)}</span>
-                            </div>
-                          )}
-                          {totals.CUSTOM > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Total Custom</span>
-                              <span className="font-mono font-bold">{totals.CUSTOM.toFixed(2)}</span>
-                            </div>
-                          )}
                         </div>
-                      </>
-                    )
-                  })()}
-
-                  {feePreview && <FeePreview data={feePreview} />}
-
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={saveDraft}
-                      disabled={recipients.filter((r) => r.address).length === 0}
-                      className="flex-1"
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Draft
-                    </Button>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => toggleAutoPaymentStatus(payment.id)}>
+                            {payment.status === "active" ? (
+                              <Pause className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Play className="h-4 w-4 text-emerald-500" />
+                            )}
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <Settings className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-
-                  <Button
-                    className="w-full mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                    size="lg"
-                    onClick={processBatchPayment}
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Send Batch Payment
-                      </>
-                    )}
-                  </Button>
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="x402" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-12">
-              <Card className="lg:col-span-8 border-blue-500/20 bg-blue-950/5 shadow-lg">
+            <TabsContent value="x402" className="space-y-6">
+              <Card className="border-blue-500/20 bg-blue-950/5">
                 <CardHeader className="text-center pb-8 border-b border-border/50">
                   <div className="flex justify-center mb-4">
                     <div className="p-4 bg-blue-500/10 rounded-full">
@@ -1274,7 +1677,7 @@ export default function BatchPaymentPage() {
                   </div>
                   <CardTitle className="text-2xl">x402 Bill Payment</CardTitle>
                   <CardDescription className="text-base max-w-md mx-auto mt-2">
-                    Paste your payment request URL below to instantly parse and authorize gasless payments.
+                    Paste your payment request URL to authorize gasless payments.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8 p-8">
@@ -1284,126 +1687,53 @@ export default function BatchPaymentPage() {
                       <div className="relative flex-1">
                         <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <Input
-                          placeholder="Paste your x402 bill link here (e.g., https://api.vendor.com/pay/...)"
-                          className="pl-12 h-14 text-lg bg-background shadow-sm border-blue-200/20 focus-visible:ring-blue-500"
+                          placeholder="Paste your x402 bill link here..."
+                          className="pl-12 h-14 text-lg"
                           value={billUrl}
                           onChange={(e) => setBillUrl(e.target.value)}
                         />
                       </div>
-                      <Button
-                        onClick={fetchBill}
-                        disabled={isLoadingBill || !billUrl}
-                        className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-700 shadow-md"
-                      >
+                      <Button onClick={fetchBill} disabled={isLoadingBill || !billUrl} className="h-14 px-8">
                         {isLoadingBill ? <Loader2 className="w-5 h-5 animate-spin" /> : "Load Bill"}
                       </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground pl-1">
-                      Supported formats: Standard Payment Links, x402 Request URIs, Vendor Invoices
-                    </p>
                   </div>
 
                   {billData && (
-                    <div className="rounded-lg border bg-card p-6 space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="rounded-lg border bg-card p-6 space-y-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-semibold text-lg">{billData.vendorName || "Unknown Vendor"}</h3>
+                          <h3 className="font-semibold text-lg">{billData.vendorName}</h3>
                           <p className="text-sm text-muted-foreground">Due: {billData.dueDate}</p>
                         </div>
-                        <Badge variant="outline" className="text-lg py-1 px-3 border-blue-500 text-blue-500">
+                        <Badge variant="outline" className="text-lg py-1 px-3">
                           {billData.amount} {billData.token}
                         </Badge>
                       </div>
-
                       <div className="p-3 bg-muted/50 rounded-md text-sm font-mono break-all">
-                        <span className="text-muted-foreground select-none">To: </span>
+                        <span className="text-muted-foreground">To: </span>
                         {billData.to}
                       </div>
-
-                      <div className="pt-4 border-t flex justify-end">
-                        <Button
-                          className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={handleBillPayment}
-                          disabled={isProcessing}
-                        >
-                          {isProcessing ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Authorizing...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="mr-2 h-4 w-4" />
-                              Sign & Pay (Gasless)
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {!billData && (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      Enter a payment request URL to automatically load bill details.
+                      <Button className="w-full" onClick={handleBillPayment} disabled={isProcessing}>
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Authorizing...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Sign & Pay (Gasless)
+                          </>
+                        )}
+                      </Button>
                     </div>
                   )}
                 </CardContent>
               </Card>
-
-              <div className="lg:col-span-4 space-y-6">
-                <Card className="bg-card border-border">
-                  <CardHeader>
-                    <CardTitle className="text-base">How x402 Works</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground space-y-3">
-                    <p>
-                      x402 uses the <strong>EIP-3009</strong> standard to enable gasless payments for compatible tokens
-                      (like USDC).
-                    </p>
-                    <ol className="list-decimal pl-4 space-y-2">
-                      <li>Enter the bill URL from your vendor.</li>
-                      <li>Review the parsed payment details.</li>
-                      <li>Sign the authorization securely in your wallet.</li>
-                      <li>The vendor submits the transaction, paying the gas fees for you.</li>
-                    </ol>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card border-border">
-                  <CardHeader>
-                    <CardTitle className="text-base">Supported Tokens</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">USDC (Ethereum)</span>
-                      <Badge variant="secondary" className="text-xs">
-                        Native
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">USDC (Base)</span>
-                      <Badge variant="secondary" className="text-xs">
-                        Native
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">USDC (Polygon)</span>
-                      <Badge variant="secondary" className="text-xs">
-                        Native
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">USDC (Optimism)</span>
-                      <Badge variant="secondary" className="text-xs">
-                        Native
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </div>
   )

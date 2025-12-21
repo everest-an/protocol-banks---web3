@@ -7,17 +7,12 @@ import {
   Send,
   QrCode,
   History,
-  MoreHorizontal,
+  Menu,
   Play,
   StopCircle,
-  Menu,
-  Users,
-  Shield,
-  DollarSign,
   Loader2,
-  Globe,
-  BarChart3,
-  HelpCircle,
+  ArrowLeftRight,
+  CreditCard,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -25,13 +20,6 @@ import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { useState } from "react"
 
 const UnifiedWalletButton = dynamic(() => import("./unified-wallet-button").then((mod) => mod.UnifiedWalletButton), {
@@ -49,32 +37,19 @@ export function Header() {
   const { isDemoMode, toggleDemoMode } = useDemo()
   const [isOpen, setIsOpen] = useState(false)
 
-  const mainNavItems = [
-    { href: "/", label: "Account", icon: Wallet, description: "Balance & Overview" },
-    { href: "/send", label: "Pay", icon: Send, description: "Send Payments" },
-    { href: "/receive", label: "Receive", icon: QrCode, description: "Get Paid" },
-    { href: "/history", label: "History", icon: History, description: "Transactions" },
+  const navItems = [
+    { href: "/", label: "Account", icon: Wallet },
+    { href: "/batch-payment", label: "Pay", icon: Send },
+    { href: "/receive", label: "Receive", icon: QrCode },
+    { href: "/swap", label: "Swap", icon: ArrowLeftRight },
+    { href: "/card", label: "Card", icon: CreditCard },
+    { href: "/history", label: "History", icon: History },
   ]
-
-  // More menu items - less frequently used features
-  const moreNavItems = [
-    { href: "/omnichain", label: "Cross-Chain", icon: Globe, description: "Swap & Bridge" },
-    { href: "/vendors", label: "Contacts", icon: Users, description: "Address Book" },
-    { href: "/analytics", label: "Reports", icon: BarChart3, description: "Analytics" },
-    { href: "/security", label: "Security", icon: Shield, description: "Protection" },
-    { href: "/fees", label: "Fees", icon: DollarSign, description: "Fee Settings" },
-    { href: "/help", label: "Help", icon: HelpCircle, description: "Support" },
-  ]
-
-  // Check if current path matches any "more" item
-  const isMoreActive = moreNavItems.some((item) => pathname === item.href)
-  // Check if on batch-payment (which is accessed via /send)
-  const isSendActive = pathname === "/send" || pathname === "/batch-payment"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4">
-        <div className="flex items-center gap-2 sm:gap-4 md:gap-8 overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-4 md:gap-6 overflow-hidden">
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -94,12 +69,11 @@ export function Header() {
                   </div>
                 </Link>
 
-                {/* Main Navigation */}
+                {/* Navigation */}
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground px-4 mb-2">MAIN</p>
-                  {mainNavItems.map((item) => {
+                  {navItems.map((item) => {
                     const Icon = item.icon
-                    const isActive = item.href === "/send" ? isSendActive : pathname === item.href
+                    const isActive = pathname === item.href || (item.href === "/batch-payment" && pathname === "/send")
                     return (
                       <Link
                         key={item.href}
@@ -112,33 +86,6 @@ export function Header() {
                         }`}
                       >
                         <Icon className="h-5 w-5" />
-                        <div>
-                          <div>{item.label}</div>
-                          <div className="text-xs text-muted-foreground">{item.description}</div>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-
-                {/* More Navigation */}
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground px-4 mb-2">MORE</p>
-                  {moreNavItems.map((item) => {
-                    const Icon = item.icon
-                    const isActive = pathname === item.href
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                          isActive
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
                         <span>{item.label}</span>
                       </Link>
                     )
@@ -196,16 +143,16 @@ export function Header() {
             </Badge>
           )}
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {mainNavItems.map((item) => {
+          {/* Desktop Navigation - reduced gap for more items */}
+          <nav className="hidden md:flex items-center">
+            {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = item.href === "/send" ? isSendActive : pathname === item.href
+              const isActive = pathname === item.href || (item.href === "/batch-payment" && pathname === "/send")
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
@@ -216,44 +163,6 @@ export function Header() {
                 </Link>
               )
             })}
-
-            {/* More Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isMoreActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-                  }`}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span>More</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-                {moreNavItems.map((item, index) => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.href
-                  return (
-                    <div key={item.href}>
-                      {index === 3 && <DropdownMenuSeparator />}
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href={item.href}
-                          className={`flex items-center gap-2 cursor-pointer ${isActive ? "text-primary" : ""}`}
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </DropdownMenuItem>
-                    </div>
-                  )
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </nav>
         </div>
 

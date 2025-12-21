@@ -1,451 +1,365 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Users, Send, BarChart3, DollarSign, TrendingUp, Info, Receipt, Globe } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Wallet, Plus, ArrowUpRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { NetworkGraph } from "@/components/network-graph"
 import { getSupabase } from "@/lib/supabase"
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
-import { FinancialReport } from "@/components/financial-report"
-import { VendorSidebar } from "@/components/vendor-sidebar"
-import { BusinessMetrics } from "@/components/business-metrics"
-import { PaymentActivity } from "@/components/payment-activity"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { QuickSwapWidget } from "@/components/quick-swap-widget"
 
-interface DashboardStats {
-  totalSent: number
-  totalTransactions: number
-  totalVendors: number
-  recentPayments: number
+interface Vendor {
+  id: string
+  wallet_address: string
+  name: string
+  email: string
+  category?: string
+  notes?: string
+  tier?: "subsidiary" | "partner" | "vendor"
+  parentId?: string
+  totalReceived?: number
+  transactionCount?: number
 }
 
 export default function HomePage() {
-  const { isConnected, connectWallet, wallet, usdtBalance, usdcBalance, daiBalance, chainId } = useWeb3()
+  const { isConnected, connectWallet, wallet, usdtBalance, usdcBalance, daiBalance } = useWeb3()
   const isDemoMode = !isConnected
-  const [stats, setStats] = useState<DashboardStats>({
-    totalSent: 0,
-    totalTransactions: 0,
-    totalVendors: 0,
-    recentPayments: 0,
-  })
-  const [chartData, setChartData] = useState<Array<{ date: string; amount: number }>>([])
-  const [paymentsList, setPaymentsList] = useState<any[]>([])
-  const [vendorsList, setVendorsList] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [vendors, setVendors] = useState<Vendor[]>([])
+  const [loadingVendors, setLoadingVendors] = useState(true)
 
-  // Calculate total balance for runway estimation
   const totalBalance =
     Number.parseFloat(usdtBalance || "0") + Number.parseFloat(usdcBalance || "0") + Number.parseFloat(daiBalance || "0")
 
+  const demoBalance = {
+    usdc: "12,450.00",
+    usdt: "8,320.50",
+    dai: "3,200.00",
+    total: "23,970.50",
+  }
+
+  const displayBalance = isDemoMode
+    ? demoBalance.total
+    : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
   useEffect(() => {
-    if (isConnected && wallet) {
-      loadDashboardData()
-    }
+    loadVendors()
   }, [isConnected, wallet])
 
-  const loadDashboardData = async () => {
+  const loadVendors = async () => {
+    setLoadingVendors(true)
     try {
-      const supabase = getSupabase()
+      if (isDemoMode) {
+        setVendors([
+          // === SUBSIDIARIES ===
+          {
+            id: "sub-1",
+            wallet_address: "0x1111...aaaa",
+            name: "APAC DIVISION",
+            email: "apac@protocol.bank",
+            category: "Regional HQ",
+            tier: "subsidiary",
+            totalReceived: 1372857,
+            transactionCount: 168,
+          },
+          {
+            id: "sub-2",
+            wallet_address: "0x2222...bbbb",
+            name: "NORTH AMERICA H",
+            email: "na@protocol.bank",
+            category: "Regional HQ",
+            tier: "subsidiary",
+            totalReceived: 2100000,
+            transactionCount: 142,
+          },
+          {
+            id: "sub-3",
+            wallet_address: "0x3333...cccc",
+            name: "EMEA OPERATIONS",
+            email: "emea@protocol.bank",
+            category: "Regional HQ",
+            tier: "subsidiary",
+            totalReceived: 890000,
+            transactionCount: 95,
+          },
+          // === PARTNERS ===
+          {
+            id: "partner-1",
+            wallet_address: "0x5555...eeee",
+            name: "SALESFORCE",
+            email: "billing@salesforce.com",
+            category: "CRM",
+            tier: "partner",
+            parentId: "sub-1",
+            totalReceived: 450000,
+            transactionCount: 28,
+          },
+          {
+            id: "partner-2",
+            wallet_address: "0x6666...ffff",
+            name: "SLACK",
+            email: "finance@slack.com",
+            category: "Communication",
+            tier: "partner",
+            parentId: "sub-1",
+            totalReceived: 120000,
+            transactionCount: 12,
+          },
+          {
+            id: "partner-3",
+            wallet_address: "0x7777...0000",
+            name: "VENTURES LAB",
+            email: "treasury@ventures.io",
+            category: "Investment",
+            tier: "partner",
+            parentId: "sub-1",
+            totalReceived: 620000,
+            transactionCount: 34,
+          },
+          {
+            id: "partner-4",
+            wallet_address: "0x8888...1111",
+            name: "GOOGLE CLOUD",
+            email: "billing@google.com",
+            category: "Infrastructure",
+            tier: "partner",
+            parentId: "sub-2",
+            totalReceived: 380000,
+            transactionCount: 22,
+          },
+          {
+            id: "partner-5",
+            wallet_address: "0x9999...2222",
+            name: "WEWORK",
+            email: "accounts@wework.com",
+            category: "Real Estate",
+            tier: "partner",
+            parentId: "sub-2",
+            totalReceived: 195000,
+            transactionCount: 15,
+          },
+          {
+            id: "partner-6",
+            wallet_address: "0xaaaa...3333",
+            name: "STRIPE",
+            email: "partners@stripe.com",
+            category: "Payments",
+            tier: "partner",
+            parentId: "sub-2",
+            totalReceived: 240000,
+            transactionCount: 18,
+          },
+          {
+            id: "partner-7",
+            wallet_address: "0xbbbb...4444",
+            name: "CLOUDFLARE",
+            email: "enterprise@cloudflare.com",
+            category: "Security",
+            tier: "partner",
+            parentId: "sub-2",
+            totalReceived: 175000,
+            transactionCount: 8,
+          },
+          // === VENDORS ===
+          {
+            id: "vendor-1",
+            wallet_address: "0xf001...v001",
+            name: "VENDOR PRDOB LT",
+            email: "ap@vendor1.com",
+            category: "Supplies",
+            tier: "vendor",
+            parentId: "partner-6",
+            totalReceived: 45000,
+            transactionCount: 12,
+          },
+          {
+            id: "vendor-2",
+            wallet_address: "0xf002...v002",
+            name: "VENDOR EL3GF LT",
+            email: "billing@vendor2.com",
+            category: "Services",
+            tier: "vendor",
+            parentId: "partner-6",
+            totalReceived: 28000,
+            transactionCount: 8,
+          },
+          {
+            id: "vendor-3",
+            wallet_address: "0xf003...v003",
+            name: "VENDOR LT",
+            email: "accounts@vendor3.com",
+            category: "Logistics",
+            tier: "vendor",
+            parentId: "partner-7",
+            totalReceived: 62000,
+            transactionCount: 45,
+          },
+          {
+            id: "vendor-4",
+            wallet_address: "0xf004...v004",
+            name: "VENDOR 47VF5 LT",
+            email: "finance@vendor4.com",
+            category: "Hardware",
+            tier: "vendor",
+            parentId: "partner-7",
+            totalReceived: 85000,
+            transactionCount: 14,
+          },
+          {
+            id: "vendor-5",
+            wallet_address: "0xf005...v005",
+            name: "VENDOR VNP2L LT",
+            email: "pay@vendor5.com",
+            category: "Software",
+            tier: "vendor",
+            parentId: "partner-7",
+            totalReceived: 35000,
+            transactionCount: 4,
+          },
+          {
+            id: "vendor-6",
+            wallet_address: "0xf006...v006",
+            name: "VENDOR SI667 LT",
+            email: "ar@vendor6.com",
+            category: "Consulting",
+            tier: "vendor",
+            parentId: "partner-7",
+            totalReceived: 48000,
+            transactionCount: 16,
+          },
+          {
+            id: "vendor-7",
+            wallet_address: "0xf007...v007",
+            name: "VENDOR EUSWJ LT",
+            email: "sales@vendor7.com",
+            category: "Marketing",
+            tier: "vendor",
+            parentId: "partner-4",
+            totalReceived: 92000,
+            transactionCount: 24,
+          },
+          {
+            id: "vendor-8",
+            wallet_address: "0xf008...v008",
+            name: "VENDOR BKWFM LT",
+            email: "contact@vendor8.com",
+            category: "Support",
+            tier: "vendor",
+            parentId: "partner-4",
+            totalReceived: 55000,
+            transactionCount: 6,
+          },
+          {
+            id: "vendor-9",
+            wallet_address: "0xf009...v009",
+            name: "EIR LT",
+            email: "info@vendor9.com",
+            category: "Legal",
+            tier: "vendor",
+            parentId: "partner-5",
+            totalReceived: 125000,
+            transactionCount: 3,
+          },
+        ])
+      } else if (wallet) {
+        const supabase = getSupabase()
+        const { data } = await supabase
+          .from("vendors")
+          .select("*")
+          .eq("user_address", wallet.toLowerCase())
+          .order("created_at", { ascending: false })
 
-      const { data: vendors } = supabase
-        ? await supabase.from("vendors").select("*").eq("created_by", wallet)
-        : { data: [] }
-
-      // Ideally: .select("*, vendors(*)")
-      const { data: payments, error } = supabase
-        ? await supabase
-            .from("payments")
-            .select("*")
-            .eq("from_address", wallet)
-            .order("timestamp", { ascending: false })
-        : { data: [], error: null }
-
-      if (error) throw error
-
-      let allPayments = payments || []
-
-      if (wallet) {
-        try {
-          const currentChainId = chainId || "1"
-          const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
-          const data = await response.json()
-
-          if (data.transactions) {
-            const externalTxs = data.transactions
-
-            // Create Set of existing tx_hashes to prevent duplicates
-            const existingHashes = new Set(allPayments.map((p: any) => p.tx_hash.toLowerCase()))
-
-            const newExternalTxs = externalTxs.filter(
-              (tx: any) =>
-                !existingHashes.has(tx.tx_hash.toLowerCase()) && tx.from_address.toLowerCase() === wallet.toLowerCase(),
-            )
-
-            // Merge and sort
-            allPayments = [...allPayments, ...newExternalTxs].sort(
-              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-            )
-          }
-        } catch (err) {
-          console.error("[Dashboard] Failed to fetch external transactions:", err)
+        if (data) {
+          setVendors(
+            data.map((v) => ({
+              ...v,
+              totalReceived: Math.random() * 50000,
+              transactionCount: Math.floor(Math.random() * 20),
+            })),
+          )
         }
       }
-
-      const enrichedPayments = allPayments.map((p) => {
-        const vendor =
-          vendors?.find((v) => v.id === p.vendor_id) ||
-          vendors?.find((v) => v.wallet_address.toLowerCase() === p.to_address.toLowerCase())
-        return { ...p, vendor }
-      })
-
-      const enrichedVendors = vendors?.map((v) => {
-        const totalReceived = allPayments
-          .filter((p) => p.vendor_id === v.id || p.to_address.toLowerCase() === v.wallet_address.toLowerCase())
-          .reduce((sum, p) => sum + (p.amount_usd || 0), 0)
-        return { ...v, totalReceived }
-      })
-
-      setPaymentsList(enrichedPayments || [])
-      setVendorsList(enrichedVendors || [])
-
-      // Calculate statistics
-      const totalSent = allPayments.reduce((sum, p) => sum + (p.amount_usd || 0), 0)
-      const totalTransactions = allPayments.length
-      const totalVendors = vendors?.length || 0
-
-      // Get payments from last 7 days
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const recentPayments = allPayments.filter((p) => new Date(p.timestamp) >= sevenDaysAgo).length
-
-      setStats({
-        totalSent,
-        totalTransactions,
-        totalVendors,
-        recentPayments,
-      })
-
-      // Prepare chart data for last 7 days
-      const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date()
-        date.setDate(date.getDate() - (6 - i))
-        return date.toISOString().split("T")[0]
-      })
-
-      const chartData = last7Days.map((date) => {
-        const dayPayments = allPayments.filter((p) => p.timestamp.startsWith(date))
-        const total = dayPayments.reduce((sum, p) => sum + (p.amount_usd || 0), 0)
-        return {
-          date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          amount: Number.parseFloat(total.toFixed(2)),
-        }
-      })
-
-      setChartData(chartData)
     } catch (error) {
-      console.error("[Dashboard] Failed to load dashboard data:", error)
+      console.error("Failed to load vendors:", error)
     } finally {
-      setLoading(false)
+      setLoadingVendors(false)
     }
   }
 
-  // Mock data for Demo Mode
-  const demoStats: DashboardStats = {
-    totalSent: 124500.5,
-    totalTransactions: 1248,
-    totalVendors: 86,
-    recentPayments: 42,
-  }
-
-  const demoChartData = [
-    { date: "Nov 14", amount: 4500 },
-    { date: "Nov 15", amount: 12000 },
-    { date: "Nov 16", amount: 3200 },
-    { date: "Nov 17", amount: 18500 },
-    { date: "Nov 18", amount: 9000 },
-    { date: "Nov 19", amount: 24000 },
-    { date: "Nov 20", amount: 15600 },
-  ]
-
-  const demoVendors = [
-    { id: "1", name: "Cloud Services Inc", wallet_address: "0x123...abc", totalReceived: 45000 },
-    { id: "2", name: "Dev Team Alpha", wallet_address: "0x456...def", totalReceived: 32000 },
-    { id: "3", name: "Marketing Agency", wallet_address: "0x789...ghi", totalReceived: 15000 },
-    { id: "4", name: "Legal Consultants", wallet_address: "0xabc...jkl", totalReceived: 8500 },
-    { id: "5", name: "Office Supplies", wallet_address: "0xdef...mno", totalReceived: 2500 },
-  ]
-
-  const demoPayments = [
-    {
-      id: "1",
-      timestamp: new Date().toISOString(),
-      to_address: "0x123...abc",
-      amount: "5000",
-      amount_usd: 5000,
-      status: "completed",
-      notes: "Monthly Server Costs",
-      token_symbol: "USDC",
-      tx_hash: "0x...",
-      vendor: { name: "Cloud Services Inc" },
-    },
-    {
-      id: "2",
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-      to_address: "0x456...def",
-      amount: "3200",
-      amount_usd: 3200,
-      status: "completed",
-      notes: "Frontend Development Milestone",
-      token_symbol: "USDT",
-      tx_hash: "0x...",
-      vendor: { name: "Dev Team Alpha" },
-    },
-    {
-      id: "3",
-      timestamp: new Date(Date.now() - 172800000).toISOString(),
-      to_address: "0x789...ghi",
-      amount: "1500",
-      amount_usd: 1500,
-      status: "pending",
-      notes: "Q4 Marketing Campaign",
-      token_symbol: "USDC",
-      tx_hash: "0x...",
-      vendor: { name: "Marketing Agency" },
-    },
-  ]
-
-  // Use real stats or demo stats
-  const displayStats = isDemoMode ? demoStats : stats
-  const displayChartData = isDemoMode ? demoChartData : chartData
-  const displayVendors = isDemoMode ? demoVendors : vendorsList
-  const displayPayments = isDemoMode ? demoPayments : paymentsList
-
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* {isDemoMode && <PaymentNetworkGraph />} */}
-
-      <div className="container mx-auto py-8 px-4 space-y-8">
-        {isDemoMode && (
-          <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-500">
-            <Info className="h-4 w-4" />
-            <AlertTitle>Demo Mode Active</AlertTitle>
-            <AlertDescription>
-              You are viewing the dashboard in demo mode with simulated data. Connect your wallet to see your real
-              activity.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Manage your crypto payments and vendors</p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Sent</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground font-mono">
-                {loading && !isDemoMode
-                  ? "..."
-                  : `$${displayStats.totalSent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Lifetime payments</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Transactions</CardTitle>
-              <Send className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loading && !isDemoMode ? "..." : displayStats.totalTransactions.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Total payments made</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Wallet Tags</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loading && !isDemoMode ? "..." : displayStats.totalVendors.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Registered tags</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">This Week</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loading && !isDemoMode ? "..." : displayStats.recentPayments.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Payments last 7 days</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-foreground">Financial Health</h2>
-          <p className="text-muted-foreground">Key business performance indicators</p>
-        </div>
-
-        <BusinessMetrics payments={displayPayments} balance={totalBalance} loading={loading && !isDemoMode} />
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="bg-card border-border lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-foreground">Payment Trend</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Your transaction volume over the last 7 days
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading && !isDemoMode ? (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  Loading chart data...
-                </div>
-              ) : displayChartData.length === 0 || displayChartData.every((d) => d.amount === 0) ? (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  No payment data available. Start by creating your first batch payment.
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={displayChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                    <XAxis dataKey="date" stroke="#737373" style={{ fontSize: "12px" }} />
-                    <YAxis stroke="#737373" style={{ fontSize: "12px" }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#111111",
-                        border: "1px solid #262626",
-                        borderRadius: "8px",
-                        color: "#ededed",
-                      }}
-                      formatter={(value: number) => [`$${value.toLocaleString()}`, "Amount"]}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="amount"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={{ fill: "#3b82f6", r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="lg:col-span-1">
-            <VendorSidebar vendors={displayVendors} loading={loading && !isDemoMode} />
+    <main className="container mx-auto py-4 px-4 max-w-7xl">
+      {/* Balance Bar */}
+      <div className="mb-4 p-3 rounded-lg bg-card border border-border">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div>
+              <div className="text-xs text-muted-foreground">Balance</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono">${displayBalance}</div>
+            </div>
+            <div className="hidden sm:flex items-center gap-3 pl-4 border-l border-border text-xs">
+              <span className="text-muted-foreground">
+                <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-0 mr-1">
+                  USDC
+                </Badge>
+                {isDemoMode ? demoBalance.usdc : Number(usdcBalance || 0).toLocaleString()}
+              </span>
+              <span className="text-muted-foreground">
+                <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-0 mr-1">
+                  USDT
+                </Badge>
+                {isDemoMode ? demoBalance.usdt : Number(usdtBalance || 0).toLocaleString()}
+              </span>
+              <span className="text-muted-foreground">
+                <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-0 mr-1">
+                  DAI
+                </Badge>
+                {isDemoMode ? demoBalance.dai : Number(daiBalance || 0).toLocaleString()}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <PaymentActivity
-              payments={displayPayments}
-              walletAddress={wallet}
-              loading={loading && !isDemoMode}
-              title="Recent Transactions"
-              description="Your latest payment activity"
-            />
+          <div className="flex gap-2">
+            {!isConnected ? (
+              <Button onClick={connectWallet} size="sm">
+                <Wallet className="mr-2 h-4 w-4" />
+                Connect
+              </Button>
+            ) : (
+              <>
+                <Button variant="default" size="sm">
+                  <Plus className="mr-1 h-4 w-4" />
+                  Add
+                </Button>
+                <Button variant="outline" size="sm" className="bg-transparent">
+                  <ArrowUpRight className="mr-1 h-4 w-4" />
+                  Withdraw
+                </Button>
+              </>
+            )}
           </div>
-          <div className="lg:col-span-1">
-            <QuickSwapWidget compact />
-          </div>
-        </div>
-
-        <FinancialReport payments={displayPayments} loading={loading && !isDemoMode} />
-
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-foreground">Quick Actions</h2>
-          <p className="text-muted-foreground">Access your main features</p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-          <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
-            <Link href="/batch-payment">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <Send className="h-8 w-8 text-primary" />
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <CardTitle className="text-foreground">Batch Payment</CardTitle>
-                <CardDescription className="text-muted-foreground">Send to multiple recipients</CardDescription>
-              </CardHeader>
-            </Link>
-          </Card>
-
-          <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
-            <Link href="/receive">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <Receipt className="h-8 w-8 text-primary" />
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <CardTitle className="text-foreground">Receive</CardTitle>
-                <CardDescription className="text-muted-foreground">Generate payment links</CardDescription>
-              </CardHeader>
-            </Link>
-          </Card>
-
-          <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
-            <Link href="/omnichain">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <Globe className="h-8 w-8 text-primary" />
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <CardTitle className="text-foreground">Omnichain</CardTitle>
-                <CardDescription className="text-muted-foreground">Cross-chain swaps & vault</CardDescription>
-              </CardHeader>
-            </Link>
-          </Card>
-
-          <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
-            <Link href="/vendors">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <Users className="h-8 w-8 text-primary" />
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <CardTitle className="text-foreground">Wallet Tags</CardTitle>
-                <CardDescription className="text-muted-foreground">Manage address labels</CardDescription>
-              </CardHeader>
-            </Link>
-          </Card>
-
-          <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group">
-            <Link href="/analytics">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <BarChart3 className="h-8 w-8 text-primary" />
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <CardTitle className="text-foreground">Analytics</CardTitle>
-                <CardDescription className="text-muted-foreground">Financial reports & history</CardDescription>
-              </CardHeader>
-            </Link>
-          </Card>
         </div>
       </div>
-    </div>
+
+      {/* Global Payment Mesh - Full Width */}
+      <Card className="bg-card border-border overflow-hidden">
+        <CardContent className="p-0">
+          {loadingVendors ? (
+            <div className="h-[600px] flex items-center justify-center text-muted-foreground bg-[#0a0a0f]">
+              Loading network data...
+            </div>
+          ) : (
+            <div style={{ height: "600px" }}>
+              <NetworkGraph
+                vendors={vendors}
+                userAddress={wallet || "Protocol Banks HQ"}
+                onPaymentRequest={(vendor) => {
+                  window.location.href = `/batch-payment?to=${vendor.wallet_address}&name=${encodeURIComponent(vendor.name)}`
+                }}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </main>
   )
 }

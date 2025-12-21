@@ -3,8 +3,9 @@
 import { useState, useMemo, useEffect, useRef, type MouseEvent, type WheelEvent } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ExternalLink, Layers, Share2 } from "lucide-react"
+import { Share2, ExternalLink, Copy, Check, Calendar } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface Vendor {
   id: string
@@ -30,9 +31,12 @@ interface Node {
 }
 
 interface Edge {
-  source: Node
-  target: Node
-  weight: number
+  id: string
+  source: string
+  target: string
+  type: string
+  isStreaming?: boolean
+  isPending?: boolean
 }
 
 interface NetworkGraphProps {
@@ -46,27 +50,38 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
+  const [transform, setTransform] = useState({ x: 0, y: 0, k: 0.75 })
+  const [isPanning, setIsPanning] = useState(false)
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 })
+  const [hasInitialized, setHasInitialized] = useState(false)
+  const [filter, setFilter] = useState<"all" | "subsidiary" | "partner" | "vendor">("all")
+  const [timeRange, setTimeRange] = useState([75])
+  const [copied, setCopied] = useState(false)
+  const [dateRange, setDateRange] = useState({
+    start: new Date(new Date().setMonth(new Date().getMonth() - 3)),
+    end: new Date(),
+  })
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
-  const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 })
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({})
+  const [draggingNode, setDraggingNode] = useState<string | null>(null)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
-  // Advanced Layout Calculation
-  const { nodes, edges } = useMemo(() => {
-    if (!vendors.length) return { nodes: [], edges: [] }
+  const GRAPH_WIDTH = 1200
+  const GRAPH_HEIGHT = 800
 
-    const width = dimensions.width || 1200
-    const height = dimensions.height || 800
-    const centerX = width * 0.45 // Shift slightly left to accommodate sidebar
-    const centerY = height / 2
+  const { initialNodes, edges } = useMemo(() => {
+    if (!vendors.length) return { initialNodes: [], edges: [] }
 
-    // Root Node (Your Company)
+    const centerX = GRAPH_WIDTH / 2
+    const centerY = GRAPH_HEIGHT / 2
+
     const rootNode: Node = {
       id: "root",
       x: centerX,
       y: centerY,
       r: 40,
-      data: { name: "My Organization", wallet_address: userAddress || "0x..." } as Vendor,
+      data: { name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
       type: "root",
       color: "#ffffff",
     }
@@ -74,36 +89,46 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
     const processedNodes: Node[] = [rootNode]
     const processedEdges: Edge[] = []
 
-    // Helper to find parent node coordinates
-    const findParent = (id?: string) => processedNodes.find((n) => n.id === id) || rootNode
+    const findParentId = (id?: string) => {
+      const parent = processedNodes.find((n) => n.id === id)
+      return parent ? parent.id : "root"
+    }
+
+    const filteredVendors = filter === "all" ? vendors : vendors.filter((v) => v.tier === filter)
 
     // 1. Process Subsidiaries (Inner Ring)
-    const subsidiaries = vendors.filter((v) => v.tier === "subsidiary")
+    const subsidiaries = filteredVendors.filter((v) => v.tier === "subsidiary")
     subsidiaries.forEach((v, i) => {
-      const angle = (i / subsidiaries.length) * Math.PI * 2
+      const angle = (i / Math.max(subsidiaries.length, 1)) * Math.PI * 2 - Math.PI / 2
       const radius = 180
       const node: Node = {
         id: v.id,
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * radius,
-        r: 25,
+        r: 28,
         data: v,
         type: "subsidiary",
-        color: "#10b981", // Emerald
+        color: "#10b981",
       }
       processedNodes.push(node)
-      processedEdges.push({ source: rootNode, target: node, weight: 3 })
+      processedEdges.push({
+        id: `root-${v.id}`,
+        source: "root",
+        target: v.id,
+        type: "subsidiary",
+        isStreaming: i === 0 || i === 2,
+        isPending: i === 1,
+      })
     })
 
     // 2. Process Partners (Middle Ring)
-    const partners = vendors.filter((v) => v.tier === "partner")
+    const partners = filteredVendors.filter((v) => v.tier === "partner")
     partners.forEach((v, i) => {
-      // Group near parent if exists, otherwise distributed
-      const parent = findParent(v.parentId)
-      // Add randomness to angle for organic look
-      const angleOffset = (Math.random() - 0.5) * 0.5
-      let baseAngle = Math.atan2(parent.y - centerY, parent.x - centerX)
-      if (parent.id === "root") baseAngle = (i / partners.length) * Math.PI * 2
+      const parentId = findParentId(v.parentId)
+      const parentNode = processedNodes.find((n) => n.id === parentId) || rootNode
+      const angleOffset = (Math.random() - 0.5) * 0.4
+      let baseAngle = Math.atan2(parentNode.y - centerY, parentNode.x - centerX)
+      if (parentId === "root") baseAngle = (i / Math.max(partners.length, 1)) * Math.PI * 2 - Math.PI / 2
 
       const angle = baseAngle + angleOffset
       const radius = 320 + Math.random() * 40
@@ -112,400 +137,709 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
         id: v.id,
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * radius,
-        r: 15,
+        r: 18,
         data: v,
         type: "partner",
-        color: "#3b82f6", // Blue
+        color: "#3b82f6",
       }
       processedNodes.push(node)
-      processedEdges.push({ source: parent, target: node, weight: 2 })
+      processedEdges.push({
+        id: `${parentId}-${v.id}`,
+        source: parentId,
+        target: v.id,
+        type: "partner",
+        isStreaming: i % 4 === 0,
+        isPending: i % 3 === 0,
+      })
     })
 
     // 3. Process Vendors (Outer Cloud)
-    const regularVendors = vendors.filter((v) => !v.tier || v.tier === "vendor")
+    const regularVendors = filteredVendors.filter((v) => !v.tier || v.tier === "vendor")
     regularVendors.forEach((v, i) => {
-      const parent = findParent(v.parentId)
-      const baseAngle = Math.atan2(parent.y - centerY, parent.x - centerX)
+      const parentId = findParentId(v.parentId)
+      const parentNode = processedNodes.find((n) => n.id === parentId) || rootNode
+      const baseAngle = Math.atan2(parentNode.y - centerY, parentNode.x - centerX)
       const angle = baseAngle + (Math.random() - 0.5) * 1.0
-      const radius = 450 + Math.random() * 100
+      const radius = 460 + Math.random() * 80
 
       const node: Node = {
         id: v.id,
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * radius,
-        r: 6 + Math.random() * 6,
+        r: 10 + Math.random() * 4,
         data: v,
         type: "vendor",
-        color: "#a1a1aa", // Zinc
+        color: "#71717a",
       }
       processedNodes.push(node)
-      processedEdges.push({ source: parent, target: node, weight: 1 })
+      processedEdges.push({
+        id: `${parentId}-${v.id}`,
+        source: parentId,
+        target: v.id,
+        type: "vendor",
+        isPending: i % 5 === 0,
+      })
     })
 
-    return { nodes: processedNodes, edges: processedEdges }
-  }, [vendors, dimensions, userAddress])
+    return { initialNodes: processedNodes, edges: processedEdges }
+  }, [vendors, userAddress, filter])
+
+  const nodes = useMemo(() => {
+    return initialNodes.map((node) => {
+      const customPos = nodePositions[node.id]
+      if (customPos) {
+        return { ...node, x: customPos.x, y: customPos.y }
+      }
+      return node
+    })
+  }, [initialNodes, nodePositions])
+
+  const getNodeById = (id: string) => nodes.find((n) => n.id === id)
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalFlow = vendors.reduce((sum, v) => sum + (v.totalReceived || 0), 0)
+    return {
+      nodes: nodes.length,
+      links: edges.length,
+      flow: (totalFlow / 1000000).toFixed(2),
+    }
+  }, [nodes, edges, vendors])
 
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
         const { clientWidth, clientHeight } = containerRef.current
         setDimensions({ width: clientWidth, height: clientHeight })
+
+        if (!hasInitialized && clientWidth > 0 && clientHeight > 0) {
+          const scale = 0.7
+          const offsetX = (clientWidth - GRAPH_WIDTH * scale) / 2
+          const offsetY = (clientHeight - GRAPH_HEIGHT * scale) / 2
+          setTransform({ x: offsetX, y: offsetY, k: scale })
+          setHasInitialized(true)
+        }
       }
     }
     updateDimensions()
     window.addEventListener("resize", updateDimensions)
     return () => window.removeEventListener("resize", updateDimensions)
-  }, [])
+  }, [hasInitialized])
+
+  useEffect(() => {
+    if (nodes.length > 0 && !selectedNode) {
+      const firstSubsidiary = nodes.find((n) => n.type === "subsidiary")
+      if (firstSubsidiary) {
+        setSelectedNode(firstSubsidiary)
+      }
+    }
+  }, [nodes, selectedNode])
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
     const scaleAmount = -e.deltaY * 0.001
-    const newScale = Math.min(Math.max(0.5, transform.k + scaleAmount), 4)
-
-    // Zoom towards mouse pointer could be added here, but simple center zoom or just scaling is often enough for MVP.
-    // Let's stick to simple scaling for robustness, or attempt relative zoom.
-
-    setTransform((prev) => ({
-      ...prev,
-      k: newScale,
-    }))
+    const newScale = Math.min(Math.max(0.3, transform.k + scaleAmount), 3)
+    setTransform((prev) => ({ ...prev, k: newScale }))
   }
 
-  const handleMouseDown = (e: MouseEvent) => {
-    setIsDragging(true)
-    setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y })
+  const handleCanvasMouseDown = (e: MouseEvent) => {
+    if (draggingNode) return
+    setIsPanning(true)
+    setPanStart({ x: e.clientX - transform.x, y: e.clientY - transform.y })
   }
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging) {
+    if (draggingNode) {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const x = (e.clientX - rect.left - transform.x) / transform.k - dragOffset.x
+      const y = (e.clientY - rect.top - transform.y) / transform.k - dragOffset.y
+      setNodePositions((prev) => ({
+        ...prev,
+        [draggingNode]: { x, y },
+      }))
+    } else if (isPanning) {
       setTransform((prev) => ({
         ...prev,
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y,
       }))
     }
   }
 
   const handleMouseUp = () => {
-    setIsDragging(false)
+    setIsPanning(false)
+    setDraggingNode(null)
+  }
+
+  const handleNodeMouseDown = (e: MouseEvent, node: Node) => {
+    e.stopPropagation()
+    setSelectedNode(node)
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const mouseX = (e.clientX - rect.left - transform.x) / transform.k
+    const mouseY = (e.clientY - rect.top - transform.y) / transform.k
+    setDragOffset({ x: mouseX - node.x, y: mouseY - node.y })
+    setDraggingNode(node.id)
+  }
+
+  const resetView = () => {
+    if (dimensions.width > 0 && dimensions.height > 0) {
+      const scale = 0.7
+      const offsetX = (dimensions.width - GRAPH_WIDTH * scale) / 2
+      const offsetY = (dimensions.height - GRAPH_HEIGHT * scale) / 2
+      setTransform({ x: offsetX, y: offsetY, k: scale })
+      setNodePositions({}) // Reset custom positions
+    }
+  }
+
+  const copyAddress = (address: string) => {
+    navigator.clipboard.writeText(address)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const paymentFlowData = useMemo(() => {
+    return Array.from({ length: 12 }, () => 20 + Math.random() * 80)
+  }, [selectedNode])
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-[750px] border border-border rounded-xl overflow-hidden bg-[#09090b] text-white shadow-2xl">
-      {/* Main Visualization Area */}
-      <div className="relative flex-1 bg-[#050505] flex flex-col group">
-        {/* Technical Grid Background */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <svg width="100%" height="100%">
-            <pattern id="tech-grid" width="50" height="50" patternUnits="userSpaceOnUse">
-              <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#333" strokeWidth="0.5" />
-            </pattern>
-            <rect width="100%" height="100%" fill="url(#tech-grid)" />
-          </svg>
-        </div>
-
-        {/* HUD Overlay */}
-        <div className="absolute top-6 left-6 z-20 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-mono text-zinc-400 tracking-widest uppercase">System Online</span>
-          </div>
-          <h3 className="text-2xl font-light tracking-tight text-white">Global Payment Mesh</h3>
-          <div className="flex gap-4 text-xs text-zinc-500 font-mono pt-2">
-            <div>
-              NODES: <span className="text-zinc-300">{nodes.length}</span>
-            </div>
-            <div>
-              LINKS: <span className="text-zinc-300">{edges.length}</span>
-            </div>
-            <div>
-              FLOW:{" "}
-              <span className="text-zinc-300">
-                {(vendors.reduce((acc, v) => acc + (v.totalReceived || 0), 0) / 1000000).toFixed(2)}M
-              </span>
-            </div>
+    <div className="flex flex-col h-full bg-[#0a0a0f] text-white">
+      {/* Top Filter Bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/50 bg-[#0c0c12]">
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-zinc-500 uppercase tracking-wider">Filters:</span>
+          <div className="flex items-center gap-1">
+            {[
+              { key: "all", label: "All" },
+              { key: "vendor", label: "Suppliers" },
+              { key: "partner", label: "Partners" },
+              { key: "subsidiary", label: "Subsidiaries" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key as typeof filter)}
+                className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                  filter === f.key ? "bg-white text-black" : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
-
-        {/* Graph Container */}
-        <div
-          className="flex-1 overflow-hidden cursor-move relative z-10" // changed cursor to move
-          ref={containerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onWheel={handleWheel}
-        >
-          <svg width="100%" height="100%" className="block select-none">
-            {" "}
-            {/* added select-none */}
-            <defs>
-              <radialGradient id="node-glow">
-                <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#fff" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
-              {/* Connecting Lines */}
-              {edges.map((edge, i) => {
-                const isHovered =
-                  hoveredNode && (hoveredNode.id === edge.source.id || hoveredNode.id === edge.target.id)
-                const isSelected =
-                  selectedNode && (selectedNode.id === edge.source.id || selectedNode.id === edge.target.id)
-                const active = isHovered || isSelected
-
-                return (
-                  <g key={`edge-${i}`} className="pointer-events-none">
-                    <path
-                      d={`M${edge.source.x},${edge.source.y} Q ${(edge.source.x + edge.target.x) / 2} ${(edge.source.y + edge.target.y) / 2} ${edge.target.x},${edge.target.y}`}
-                      stroke={active ? "#fff" : "#27272a"}
-                      strokeWidth={active ? 1.5 : 0.5}
-                      fill="none"
-                      className="transition-all duration-300"
-                    />
-                    {/* Flow Particles */}
-                    <circle r="1.5" fill={active ? "#fff" : "#52525b"}>
-                      <animateMotion
-                        dur={`${2 + Math.random() * 3}s`}
-                        repeatCount="indefinite"
-                        path={`M${edge.source.x},${edge.source.y} L${edge.target.x},${edge.target.y}`}
-                      />
-                    </circle>
-                    {/* Secondary Particles for busy routes */}
-                    {edge.weight > 1 && (
-                      <circle r="1" fill={active ? "#fff" : "#3f3f46"}>
-                        <animateMotion
-                          dur={`${3 + Math.random() * 3}s`}
-                          begin="1s"
-                          repeatCount="indefinite"
-                          path={`M${edge.source.x},${edge.source.y} L${edge.target.x},${edge.target.y}`}
-                        />
-                      </circle>
-                    )}
-                  </g>
-                )
-              })}
-
-              {/* Nodes */}
-              {nodes.map((node) => {
-                const isRoot = node.type === "root"
-                const isSelected = selectedNode?.id === node.id
-                const isHovered = hoveredNode?.id === node.id
-                const dimmed =
-                  (selectedNode || hoveredNode) &&
-                  !isSelected &&
-                  !isHovered &&
-                  !edges.some(
-                    (e) =>
-                      (e.source.id === node.id && e.target.id === (selectedNode?.id || hoveredNode?.id)) ||
-                      (e.target.id === node.id && e.source.id === (selectedNode?.id || hoveredNode?.id)),
-                  )
-
-                return (
-                  <g
-                    key={node.id}
-                    onMouseDown={(e) => {
-                      e.stopPropagation()
-                      setSelectedNode(node)
-                    }}
-                    onMouseEnter={() => setHoveredNode(node)}
-                    onMouseLeave={() => setHoveredNode(null)}
-                    style={{
-                      transformOrigin: `${node.x}px ${node.y}px`,
-                      opacity: dimmed ? 0.5 : 1, // Increased opacity for dimmed nodes from 0.3 to 0.6
-                    }}
-                    className="transition-all duration-300 cursor-pointer"
-                  >
-                    {/* Glow Effect */}
-                    {(isSelected || isHovered) && (
-                      <circle cx={node.x} cy={node.y} r={node.r * 2} fill="url(#node-glow)" opacity="0.4" /> // Increased glow opacity from 0.15 to 0.4
-                    )}
-
-                    {/* Main Node Body */}
-                    <circle
-                      cx={node.x}
-                      cy={node.y}
-                      r={node.r}
-                      fill={isRoot ? "#fff" : "#18181b"} // Use brighter white for root, keep black for others but maybe lighter stroke
-                      stroke={node.color}
-                      strokeWidth={isSelected ? 3 : 1.5}
-                      className="transition-all duration-300"
-                    />
-
-                    {/* Label */}
-                    {(node.r > 10 || isSelected || isHovered) && (
-                      <text
-                        x={node.x}
-                        y={node.y + node.r + 15}
-                        textAnchor="middle"
-                        fill={isSelected ? "#fff" : "#71717a"}
-                        className="text-[10px] font-mono tracking-wider font-medium pointer-events-none select-none uppercase"
-                      >
-                        {node.data?.name.substring(0, 15)}
-                      </text>
-                    )}
-                  </g>
-                )
-              })}
-            </g>
-            <div className="absolute bottom-6 right-6 flex flex-col gap-2 z-30">
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-8 w-8 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
-                onClick={() => setTransform((prev) => ({ ...prev, k: Math.min(prev.k + 0.2, 4) }))}
-              >
-                +
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-8 w-8 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
-                onClick={() => setTransform((prev) => ({ ...prev, k: Math.max(prev.k - 0.2, 0.5) }))}
-              >
-                -
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-8 w-8 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
-                onClick={() => setTransform({ x: 0, y: 0, k: 1 })}
-              >
-                ⟲
-              </Button>
-            </div>
-          </svg>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="bg-zinc-900 border border-zinc-800 rounded px-3 py-1.5 text-xs w-40 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-1.5 text-zinc-500 hover:text-white">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <rect x="1" y="1" width="6" height="6" rx="1" />
+                <rect x="9" y="1" width="6" height="6" rx="1" />
+                <rect x="1" y="9" width="6" height="6" rx="1" />
+                <rect x="9" y="9" width="6" height="6" rx="1" />
+              </svg>
+            </button>
+            <button className="p-1.5 text-zinc-500 hover:text-white">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <rect x="1" y="2" width="14" height="2" rx="0.5" />
+                <rect x="1" y="7" width="14" height="2" rx="0.5" />
+                <rect x="1" y="12" width="14" height="2" rx="0.5" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Enterprise Inspector Panel */}
-      <div className="w-full lg:w-[400px] border-t lg:border-t-0 lg:border-l border-zinc-800 bg-[#09090b] flex flex-col shadow-xl z-20">
-        {selectedNode && selectedNode.data ? (
-          <div className="flex flex-col h-full animate-in slide-in-from-right duration-300">
-            {/* Header */}
-            <div className="p-8 border-b border-zinc-800 bg-zinc-900/50">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={`font-mono text-[10px] uppercase tracking-wider bg-transparent border-zinc-700 ${
-                      selectedNode.type === "subsidiary"
-                        ? "text-emerald-500 border-emerald-500/30"
-                        : selectedNode.type === "partner"
-                          ? "text-blue-500 border-blue-500/30"
-                          : "text-zinc-500"
-                    }`}
-                  >
-                    {selectedNode.type.toUpperCase()}
-                  </Badge>
-                  {selectedNode.data.parentId && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      <Share2 className="w-3 h-3 mr-1" /> Linked
-                    </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-zinc-500 hover:text-white"
-                  onClick={() => setSelectedNode(null)}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
-              </div>
+      {/* Time Range Bar */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/50 bg-[#0c0c12]/50">
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-zinc-500 uppercase tracking-wider">Time Range</span>
+          <div className="w-40">
+            <Slider
+              value={timeRange}
+              onValueChange={setTimeRange}
+              max={100}
+              step={1}
+              className="[&_[role=slider]]:bg-cyan-500 [&_[role=slider]]:border-0 [&_[role=slider]]:w-3 [&_[role=slider]]:h-3"
+            />
+          </div>
+          <span className="text-xs text-zinc-400">Range</span>
 
-              <h2 className="text-2xl font-light text-white mb-2">{selectedNode.data.name}</h2>
-              <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 bg-zinc-900 rounded px-2 py-1 w-fit">
-                <span className="truncate max-w-[200px]">{selectedNode.data.wallet_address}</span>
-                <button
-                  className="hover:text-white"
-                  onClick={() => navigator.clipboard.writeText(selectedNode.data!.wallet_address)}
-                >
-                  <Layers className="w-3 h-3" />
-                </button>
+          <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-2 px-3 py-1.5 text-xs bg-zinc-900 border border-zinc-800 rounded hover:border-zinc-600 transition-colors">
+                <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                <span className="text-zinc-300">
+                  {formatDate(dateRange.start)} - {formatDate(dateRange.end)}
+                </span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-4 bg-zinc-900 border-zinc-800" align="start">
+              <div className="space-y-4">
+                <div className="text-xs text-zinc-500 uppercase tracking-wider">Select Date Range</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-zinc-400 mb-1 block">Start Date</label>
+                    <input
+                      type="date"
+                      value={dateRange.start.toISOString().split("T")[0]}
+                      onChange={(e) => setDateRange((prev) => ({ ...prev, start: new Date(e.target.value) }))}
+                      className="w-full px-2 py-1.5 text-xs bg-zinc-800 border border-zinc-700 rounded text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-zinc-400 mb-1 block">End Date</label>
+                    <input
+                      type="date"
+                      value={dateRange.end.toISOString().split("T")[0]}
+                      onChange={(e) => setDateRange((prev) => ({ ...prev, end: new Date(e.target.value) }))}
+                      className="w-full px-2 py-1.5 text-xs bg-zinc-800 border border-zinc-700 rounded text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {["7D", "30D", "90D", "1Y", "ALL"].map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => {
+                        const end = new Date()
+                        let start = new Date()
+                        if (preset === "7D") start.setDate(end.getDate() - 7)
+                        else if (preset === "30D") start.setDate(end.getDate() - 30)
+                        else if (preset === "90D") start.setDate(end.getDate() - 90)
+                        else if (preset === "1Y") start.setFullYear(end.getFullYear() - 1)
+                        else start = new Date("2020-01-01")
+                        setDateRange({ start, end })
+                      }}
+                      className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white transition-colors"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
               </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-1 min-h-0">
+        {/* Graph Area */}
+        <div className="relative flex-1 min-h-[400px]">
+          {/* Technical Grid Background */}
+          <div className="absolute inset-0 opacity-30 pointer-events-none">
+            <svg width="100%" height="100%">
+              <pattern id="tech-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a2e" strokeWidth="0.5" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#tech-grid)" />
+            </svg>
+          </div>
+
+          {/* Header Overlay */}
+          <div className="absolute top-4 left-4 z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">System Online</span>
             </div>
-
-            <ScrollArea className="flex-1">
-              <div className="p-8 space-y-8">
-                {/* Primary Stats */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Total Volume</p>
-                    <p className="text-2xl font-light text-white tracking-tight">
-                      ${selectedNode.data.totalReceived?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? "0"}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Tx Count</p>
-                    <p className="text-2xl font-light text-white tracking-tight">
-                      {selectedNode.data.transactionCount ?? 0}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Flow Visualization (Mock) */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-end">
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Payment Flow (YTD)</p>
-                    <p className="text-xs text-emerald-500">+12.4% vs prev</p>
-                  </div>
-                  <div className="h-24 flex items-end gap-1 border-b border-l border-zinc-800 p-1">
-                    {Array.from({ length: 20 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 bg-zinc-800 hover:bg-zinc-600 transition-all rounded-t-sm"
-                        style={{ height: `${20 + Math.random() * 80}%` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Metadata Table */}
-                <div className="space-y-4">
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono border-b border-zinc-800 pb-2">
-                    Entity Details
-                  </p>
-                  <div className="grid grid-cols-[100px_1fr] gap-y-4 text-sm">
-                    <span className="text-zinc-500">Category</span>
-                    <span className="text-white font-medium">{selectedNode.data.category || "General"}</span>
-
-                    <span className="text-zinc-500">Email</span>
-                    <span className="text-zinc-300">{selectedNode.data.email || "N/A"}</span>
-
-                    <span className="text-zinc-500">Contract</span>
-                    <span className="text-zinc-300">{selectedNode.data.notes || "Standard Agreement"}</span>
-
-                    <span className="text-zinc-500">Status</span>
-                    <span className="flex items-center gap-2 text-emerald-500">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      Active Contract
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </ScrollArea>
-
-            {/* Action Footer */}
-            <div className="p-6 border-t border-zinc-800 bg-zinc-900/30">
-              <Button
-                className="w-full h-12 bg-white text-black hover:bg-zinc-200 font-medium text-sm tracking-wide"
-                onClick={() => onPaymentRequest && onPaymentRequest(selectedNode.data!)}
-              >
-                INITIATE TRANSFER
-              </Button>
+            <h2 className="text-2xl font-light text-white tracking-wide">Global Payment Mesh</h2>
+            <div className="flex items-center gap-4 mt-2 text-xs font-mono">
+              <span className="text-zinc-500">
+                NODES: <span className="text-zinc-300">{stats.nodes}</span>
+              </span>
+              <span className="text-zinc-500">
+                LINKS: <span className="text-zinc-300">{stats.links}</span>
+              </span>
+              <span className="text-zinc-500">
+                FLOW: <span className="text-zinc-300">{stats.flow}M</span>
+              </span>
             </div>
           </div>
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center p-12 text-center">
-            <div className="w-24 h-24 rounded-full border border-dashed border-zinc-800 flex items-center justify-center mb-6 animate-[spin_10s_linear_infinite]">
-              <div className="w-16 h-16 rounded-full border border-zinc-800" />
+
+          {/* Zoom Controls */}
+          <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 border border-zinc-800"
+              onClick={() => setTransform((prev) => ({ ...prev, k: Math.min(prev.k + 0.15, 3) }))}
+            >
+              +
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 border border-zinc-800"
+              onClick={() => setTransform((prev) => ({ ...prev, k: Math.max(prev.k - 0.15, 0.3) }))}
+            >
+              -
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 border border-zinc-800"
+              onClick={resetView}
+            >
+              ⟲
+            </Button>
+          </div>
+
+          <div
+            ref={containerRef}
+            className="absolute inset-0 overflow-hidden cursor-grab active:cursor-grabbing"
+            onMouseDown={handleCanvasMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
+          >
+            <svg width="100%" height="100%" style={{ overflow: "visible" }}>
+              <defs>
+                <radialGradient id="node-glow-green" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="node-glow-blue" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="node-glow-white" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+
+              <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
+                {/* Render Edges */}
+                {edges.map((edge) => {
+                  const sourceNode = getNodeById(edge.source)
+                  const targetNode = getNodeById(edge.target)
+                  if (!sourceNode || !targetNode) return null
+
+                  const isHighlighted =
+                    selectedNode &&
+                    (edge.source === selectedNode.id ||
+                      edge.target === selectedNode.id ||
+                      (selectedNode.data?.parentId && edge.source === selectedNode.data.parentId))
+
+                  return (
+                    <g key={edge.id}>
+                      {/* Base line */}
+                      <line
+                        x1={sourceNode.x}
+                        y1={sourceNode.y}
+                        x2={targetNode.x}
+                        y2={targetNode.y}
+                        stroke={isHighlighted ? "#ffffff" : "rgba(60,60,80,0.4)"}
+                        strokeWidth={isHighlighted ? 2 : 1}
+                        style={{ transition: "stroke 0.2s, stroke-width 0.2s" }}
+                      />
+
+                      {edge.isStreaming && (
+                        <g>
+                          <line
+                            x1={sourceNode.x}
+                            y1={sourceNode.y}
+                            x2={targetNode.x}
+                            y2={targetNode.y}
+                            stroke="#10b981"
+                            strokeWidth="4"
+                            strokeDasharray="10 15"
+                            strokeLinecap="round"
+                            opacity="0.9"
+                          >
+                            <animate
+                              attributeName="stroke-dashoffset"
+                              from="0"
+                              to="-50"
+                              dur="0.8s"
+                              repeatCount="indefinite"
+                            />
+                          </line>
+                          {/* Multiple flowing particles for better visibility */}
+                          <circle r="6" fill="#10b981" opacity="0.95">
+                            <animateMotion
+                              dur="1.5s"
+                              repeatCount="indefinite"
+                              path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
+                            />
+                          </circle>
+                          <circle r="3" fill="#ffffff">
+                            <animateMotion
+                              dur="1.5s"
+                              repeatCount="indefinite"
+                              path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
+                            />
+                          </circle>
+                          {/* Second particle offset */}
+                          <circle r="5" fill="#10b981" opacity="0.8">
+                            <animateMotion
+                              dur="1.5s"
+                              repeatCount="indefinite"
+                              begin="0.75s"
+                              path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
+                            />
+                          </circle>
+                        </g>
+                      )}
+
+                      {edge.isPending && !edge.isStreaming && (
+                        <line
+                          x1={sourceNode.x}
+                          y1={sourceNode.y}
+                          x2={targetNode.x}
+                          y2={targetNode.y}
+                          stroke="#f59e0b"
+                          strokeWidth="3"
+                          strokeDasharray="6 10"
+                          strokeLinecap="round"
+                          opacity="0.8"
+                        >
+                          <animate attributeName="opacity" values="0.4;1;0.4" dur="1s" repeatCount="indefinite" />
+                        </line>
+                      )}
+                    </g>
+                  )
+                })}
+
+                {/* Render Nodes */}
+                {nodes.map((node) => {
+                  const isRoot = node.type === "root"
+                  const isSelected = selectedNode?.id === node.id
+                  const isHovered = hoveredNode?.id === node.id
+                  const isDragging = draggingNode === node.id
+                  const dimmed =
+                    (selectedNode || hoveredNode) &&
+                    !isSelected &&
+                    !isHovered &&
+                    !edges.some(
+                      (e) =>
+                        (e.source === node.id && e.target === (selectedNode?.id || hoveredNode?.id)) ||
+                        (e.target === node.id && e.source === (selectedNode?.id || hoveredNode?.id)),
+                    )
+
+                  const glowId =
+                    node.type === "subsidiary"
+                      ? "node-glow-green"
+                      : node.type === "partner"
+                        ? "node-glow-blue"
+                        : "node-glow-white"
+
+                  return (
+                    <g
+                      key={node.id}
+                      onMouseDown={(e) => handleNodeMouseDown(e, node)}
+                      onMouseEnter={() => setHoveredNode(node)}
+                      onMouseLeave={() => setHoveredNode(null)}
+                      style={{
+                        opacity: dimmed ? 0.3 : 1,
+                        transition: "opacity 0.2s ease",
+                        cursor: isDragging ? "grabbing" : "pointer",
+                      }}
+                    >
+                      {/* Glow Effect */}
+                      {(isSelected || isHovered || isRoot) && (
+                        <circle cx={node.x} cy={node.y} r={node.r * 2.5} fill={`url(#${glowId})`} opacity="0.5" />
+                      )}
+
+                      {/* Main Node Body */}
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={node.r}
+                        fill={isRoot ? "#ffffff" : node.type === "subsidiary" ? "#0a0a0f" : "#0a0a0f"}
+                        stroke={
+                          isSelected
+                            ? "#3b82f6"
+                            : isDragging
+                              ? "#f59e0b"
+                              : isRoot
+                                ? "#ffffff"
+                                : node.type === "subsidiary"
+                                  ? "#10b981"
+                                  : node.type === "partner"
+                                    ? "#3b82f6"
+                                    : "#4a4a5a"
+                        }
+                        strokeWidth={isSelected || isDragging ? 3 : isRoot ? 0 : 2}
+                      />
+
+                      {/* Node Icon/Letter for non-root */}
+                      {!isRoot && (
+                        <text
+                          x={node.x}
+                          y={node.y}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill={
+                            node.type === "subsidiary" ? "#10b981" : node.type === "partner" ? "#3b82f6" : "#71717a"
+                          }
+                          fontSize={node.r * 0.8}
+                          fontWeight="600"
+                          style={{ pointerEvents: "none" }}
+                        >
+                          {node.data?.name?.charAt(0).toUpperCase()}
+                        </text>
+                      )}
+
+                      {/* Node Label - always visible */}
+                      <text
+                        x={node.x}
+                        y={node.y + node.r + 14}
+                        textAnchor="middle"
+                        fill="rgba(255,255,255,0.8)"
+                        fontSize="10"
+                        fontWeight="500"
+                        className="uppercase tracking-wider"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {node.data?.name && node.data.name.length > 12
+                          ? node.data.name.slice(0, 12) + "..."
+                          : node.data?.name}
+                      </text>
+                    </g>
+                  )
+                })}
+              </g>
+            </svg>
+          </div>
+
+          {/* Payment Status Legend */}
+          <div className="absolute bottom-4 right-4 z-10 bg-zinc-900/90 border border-zinc-800 rounded-lg p-3">
+            <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Payment Status</div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-0.5 bg-zinc-600" />
+                <span className="text-xs text-zinc-400">Completed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-1 bg-emerald-500 rounded animate-pulse" />
+                <span className="text-xs text-zinc-400">Streaming</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-0.5"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(90deg, #f59e0b 0px, #f59e0b 3px, transparent 3px, transparent 6px)",
+                  }}
+                />
+                <span className="text-xs text-zinc-400">Pending</span>
+              </div>
             </div>
-            <h3 className="text-lg font-light text-white mb-2">Select Entity Node</h3>
-            <p className="text-sm text-zinc-500 leading-relaxed max-w-[240px]">
-              Interact with the network graph to view deep analytics and transaction history for any connected entity.
-            </p>
+          </div>
+        </div>
+
+        {/* Entity Inspector Panel */}
+        {selectedNode && selectedNode.data && (
+          <div className="w-72 flex-shrink-0 border-l border-zinc-800/50 bg-[#0c0c12] p-4 overflow-y-auto overflow-x-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <Badge
+                variant="outline"
+                className={`uppercase text-[10px] tracking-wider ${
+                  selectedNode.type === "subsidiary"
+                    ? "border-emerald-500/50 text-emerald-400"
+                    : selectedNode.type === "partner"
+                      ? "border-blue-500/50 text-blue-400"
+                      : "border-zinc-600 text-zinc-400"
+                }`}
+              >
+                {selectedNode.type}
+              </Badge>
+              <button className="text-zinc-500 hover:text-white">
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            </div>
+
+            <h3 className="text-lg font-medium text-white mb-2 truncate">{selectedNode.data.name}</h3>
+
+            <div className="flex items-center gap-2 mb-6">
+              <code className="text-xs text-zinc-500 font-mono truncate max-w-[180px]">
+                {selectedNode.data.wallet_address?.slice(0, 10)}...
+                {selectedNode.data.wallet_address?.slice(-6)}
+              </code>
+              <button
+                onClick={() => copyAddress(selectedNode.data?.wallet_address || "")}
+                className="text-zinc-500 hover:text-white flex-shrink-0"
+              >
+                {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Total Volume</div>
+                <div className="text-xl font-semibold text-white">
+                  ${((selectedNode.data.totalReceived || 0) / 1000).toFixed(0)}K
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">TX Count</div>
+                <div className="text-xl font-semibold text-white">{selectedNode.data.transactionCount || 0}</div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Payment Flow (YTD)</div>
+                <span className="text-xs text-emerald-400">+12.4% vs prev</span>
+              </div>
+              <div className="flex items-end gap-1 h-16">
+                {paymentFlowData.map((value, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 bg-zinc-700 rounded-sm transition-all hover:bg-zinc-600"
+                    style={{ height: `${value}%` }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-800 pt-4">
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3">Entity Details</div>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-xs text-zinc-500">Category</span>
+                  <span className="text-xs text-white">{selectedNode.data.category || "Internal"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-zinc-500">Email</span>
+                  <span className="text-xs text-white truncate max-w-[140px]">{selectedNode.data.email || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-zinc-500">Contract</span>
+                  <span className="text-xs text-white">Internal Transfer</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-zinc-500">Status</span>
+                  <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Active
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {onPaymentRequest && (
+              <Button
+                className="w-full mt-6 bg-white text-black hover:bg-zinc-200"
+                onClick={() => onPaymentRequest(selectedNode.data!)}
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Send Payment
+              </Button>
+            )}
           </div>
         )}
       </div>
