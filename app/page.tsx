@@ -43,14 +43,17 @@ export default function HomePage() {
     : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   useEffect(() => {
+    console.log("[v0] HomePage mounted, isDemoMode:", isDemoMode, "wallet:", wallet)
     loadVendors()
   }, [isConnected, wallet])
 
   const loadVendors = async () => {
+    console.log("[v0] loadVendors called, isDemoMode:", isDemoMode)
     setLoadingVendors(true)
     try {
       if (isDemoMode) {
-        setVendors([
+        console.log("[v0] Setting demo vendors...")
+        const demoVendors = [
           // === SUBSIDIARIES ===
           {
             id: "sub-1",
@@ -58,7 +61,7 @@ export default function HomePage() {
             name: "APAC DIVISION",
             email: "apac@protocol.bank",
             category: "Regional HQ",
-            tier: "subsidiary",
+            tier: "subsidiary" as const,
             totalReceived: 1372857,
             transactionCount: 168,
           },
@@ -68,7 +71,7 @@ export default function HomePage() {
             name: "NORTH AMERICA H",
             email: "na@protocol.bank",
             category: "Regional HQ",
-            tier: "subsidiary",
+            tier: "subsidiary" as const,
             totalReceived: 2100000,
             transactionCount: 142,
           },
@@ -78,7 +81,7 @@ export default function HomePage() {
             name: "EMEA OPERATIONS",
             email: "emea@protocol.bank",
             category: "Regional HQ",
-            tier: "subsidiary",
+            tier: "subsidiary" as const,
             totalReceived: 890000,
             transactionCount: 95,
           },
@@ -89,7 +92,7 @@ export default function HomePage() {
             name: "SALESFORCE",
             email: "billing@salesforce.com",
             category: "CRM",
-            tier: "partner",
+            tier: "partner" as const,
             parentId: "sub-1",
             totalReceived: 450000,
             transactionCount: 28,
@@ -100,7 +103,7 @@ export default function HomePage() {
             name: "SLACK",
             email: "finance@slack.com",
             category: "Communication",
-            tier: "partner",
+            tier: "partner" as const,
             parentId: "sub-1",
             totalReceived: 120000,
             transactionCount: 12,
@@ -111,7 +114,7 @@ export default function HomePage() {
             name: "VENTURES LAB",
             email: "treasury@ventures.io",
             category: "Investment",
-            tier: "partner",
+            tier: "partner" as const,
             parentId: "sub-1",
             totalReceived: 620000,
             transactionCount: 34,
@@ -122,7 +125,7 @@ export default function HomePage() {
             name: "GOOGLE CLOUD",
             email: "billing@google.com",
             category: "Infrastructure",
-            tier: "partner",
+            tier: "partner" as const,
             parentId: "sub-2",
             totalReceived: 380000,
             transactionCount: 22,
@@ -133,7 +136,7 @@ export default function HomePage() {
             name: "WEWORK",
             email: "accounts@wework.com",
             category: "Real Estate",
-            tier: "partner",
+            tier: "partner" as const,
             parentId: "sub-2",
             totalReceived: 195000,
             transactionCount: 15,
@@ -144,7 +147,7 @@ export default function HomePage() {
             name: "STRIPE",
             email: "partners@stripe.com",
             category: "Payments",
-            tier: "partner",
+            tier: "partner" as const,
             parentId: "sub-2",
             totalReceived: 240000,
             transactionCount: 18,
@@ -155,7 +158,7 @@ export default function HomePage() {
             name: "CLOUDFLARE",
             email: "enterprise@cloudflare.com",
             category: "Security",
-            tier: "partner",
+            tier: "partner" as const,
             parentId: "sub-2",
             totalReceived: 175000,
             transactionCount: 8,
@@ -167,7 +170,7 @@ export default function HomePage() {
             name: "VENDOR PRDOB LT",
             email: "ap@vendor1.com",
             category: "Supplies",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-6",
             totalReceived: 45000,
             transactionCount: 12,
@@ -178,7 +181,7 @@ export default function HomePage() {
             name: "VENDOR EL3GF LT",
             email: "billing@vendor2.com",
             category: "Services",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-6",
             totalReceived: 28000,
             transactionCount: 8,
@@ -189,7 +192,7 @@ export default function HomePage() {
             name: "VENDOR LT",
             email: "accounts@vendor3.com",
             category: "Logistics",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-7",
             totalReceived: 62000,
             transactionCount: 45,
@@ -200,7 +203,7 @@ export default function HomePage() {
             name: "VENDOR 47VF5 LT",
             email: "finance@vendor4.com",
             category: "Hardware",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-7",
             totalReceived: 85000,
             transactionCount: 14,
@@ -211,7 +214,7 @@ export default function HomePage() {
             name: "VENDOR VNP2L LT",
             email: "pay@vendor5.com",
             category: "Software",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-7",
             totalReceived: 35000,
             transactionCount: 4,
@@ -222,7 +225,7 @@ export default function HomePage() {
             name: "VENDOR SI667 LT",
             email: "ar@vendor6.com",
             category: "Consulting",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-7",
             totalReceived: 48000,
             transactionCount: 16,
@@ -233,7 +236,7 @@ export default function HomePage() {
             name: "VENDOR EUSWJ LT",
             email: "sales@vendor7.com",
             category: "Marketing",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-4",
             totalReceived: 92000,
             transactionCount: 24,
@@ -244,7 +247,7 @@ export default function HomePage() {
             name: "VENDOR BKWFM LT",
             email: "contact@vendor8.com",
             category: "Support",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-4",
             totalReceived: 55000,
             transactionCount: 6,
@@ -255,12 +258,14 @@ export default function HomePage() {
             name: "EIR LT",
             email: "info@vendor9.com",
             category: "Legal",
-            tier: "vendor",
+            tier: "vendor" as const,
             parentId: "partner-5",
             totalReceived: 125000,
             transactionCount: 3,
           },
-        ])
+        ]
+        setVendors(demoVendors)
+        console.log("[v0] Demo vendors set:", demoVendors.length)
       } else if (wallet) {
         const supabase = getSupabase()
         const { data } = await supabase
@@ -280,11 +285,14 @@ export default function HomePage() {
         }
       }
     } catch (error) {
-      console.error("Failed to load vendors:", error)
+      console.error("[v0] Failed to load vendors:", error)
     } finally {
+      console.log("[v0] Setting loadingVendors to false")
       setLoadingVendors(false)
     }
   }
+
+  console.log("[v0] Rendering HomePage, loadingVendors:", loadingVendors, "vendors count:", vendors.length)
 
   return (
     <main className="container mx-auto py-4 px-4 max-w-7xl">

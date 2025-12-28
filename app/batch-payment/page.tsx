@@ -1,466 +1,693 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Trash2,
-  Plus,
-  Send,
-  Loader2,
-  Info,
-  LinkIcon,
-  Receipt,
-  Save,
-  FolderOpen,
-  CreditCard,
-  Building2,
-  Pause,
-  Play,
-  X,
-  Calendar,
-  Clock,
-  Shield,
-  Settings,
-  ChevronRight,
-} from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import {
-  sendToken,
-  getTokenAddress,
-  signERC3009Authorization,
-  executeERC3009Transfer,
-  switchNetwork,
-  CHAIN_IDS,
-  CCTP_DOMAINS,
-  CCTP_TOKEN_MESSENGER_ADDRESSES,
-  executeCCTPTransfer,
-} from "@/lib/web3"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { getSupabase } from "@/lib/supabase"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
-  validateAndChecksumAddress,
-  validateAmount,
-  sanitizeTextInput,
-  checkRateLimit,
-  RATE_LIMITS,
-  createTransactionIntegrityHash,
-  generateSecureNonce,
-  SECURITY_CONFIG,
-  createAuditLog,
-  type AuditAction,
-} from "@/lib/security"
-import { FeePreview } from "@/components/fee-preview"
-import { recordFee, calculateFee } from "@/lib/protocol-fees"
-import { Switch } from "@/components/ui/switch"
-
-interface Subscription {
-  id: string
-  serviceName: string
-  serviceIcon?: string
-  amount: string
-  token: "USDT" | "USDC" | "DAI"
-  frequency: "weekly" | "monthly" | "yearly"
-  nextPayment: Date
-  status: "active" | "paused" | "cancelled"
-  walletAddress: string
-  totalPaid: string
-  startDate: Date
-  category: "streaming" | "saas" | "membership" | "utility" | "other"
-}
-
-interface AutoPayment {
-  id: string
-  vendorName: string
-  vendorId: string
-  amount: string
-  token: "USDT" | "USDC" | "DAI"
-  frequency: "weekly" | "biweekly" | "monthly" | "quarterly"
-  nextPayment: Date
-  status: "active" | "paused"
-  maxAmount: string
-  walletAddress: string
-}
-
-interface PaymentRecipient {
-  id: string
-  address: string
-  amount: string
-  vendorName?: string
-  vendorId?: string
-  token: "USDT" | "USDC" | "DAI" | "CUSTOM"
-  customTokenAddress?: string
-  destinationChainId?: number
-  isAutoPayment?: boolean
-  autoPaymentFrequency?: "weekly" | "biweekly" | "monthly" | "quarterly"
-}
-
-interface Vendor {
-  id: string
-  wallet_address: string
-  name: string
-}
-
-const VALIDATORS = {
-  EVM: (address: string) => {
-    const result = validateAndChecksumAddress(address)
-    return result.valid
-  },
-  SOLANA: (address: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address),
-  BITCOIN: (address: string) => /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address),
-}
-
-const DEMO_SUBSCRIPTIONS: Subscription[] = [
-  {
-    id: "sub-1",
-    serviceName: "Netflix",
-    amount: "15.99",
-    token: "USDC",
-    frequency: "monthly",
-    nextPayment: new Date(Date.now() + 86400000 * 5),
-    status: "active",
-    walletAddress: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-    totalPaid: "191.88",
-    startDate: new Date(Date.now() - 86400000 * 365),
-    category: "streaming",
-  },
-  {
-    id: "sub-2",
-    serviceName: "Spotify Premium",
-    amount: "9.99",
-    token: "USDC",
-    frequency: "monthly",
-    nextPayment: new Date(Date.now() + 86400000 * 12),
-    status: "active",
-    walletAddress: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
-    totalPaid: "119.88",
-    startDate: new Date(Date.now() - 86400000 * 400),
-    category: "streaming",
-  },
-  {
-    id: "sub-3",
-    serviceName: "ChatGPT Plus",
-    amount: "20.00",
-    token: "USDC",
-    frequency: "monthly",
-    nextPayment: new Date(Date.now() + 86400000 * 18),
-    status: "active",
-    walletAddress: "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
-    totalPaid: "160.00",
-    startDate: new Date(Date.now() - 86400000 * 240),
-    category: "saas",
-  },
-  {
-    id: "sub-4",
-    serviceName: "GitHub Pro",
-    amount: "4.00",
-    token: "USDC",
-    frequency: "monthly",
-    nextPayment: new Date(Date.now() + 86400000 * 3),
-    status: "paused",
-    walletAddress: "0x2546BcD3c84621e976D8185a91A922aE77ECEc30",
-    totalPaid: "48.00",
-    startDate: new Date(Date.now() - 86400000 * 365),
-    category: "saas",
-  },
-  {
-    id: "sub-5",
-    serviceName: "AWS Services",
-    amount: "127.45",
-    token: "USDT",
-    frequency: "monthly",
-    nextPayment: new Date(Date.now() + 86400000 * 8),
-    status: "active",
-    walletAddress: "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
-    totalPaid: "1529.40",
-    startDate: new Date(Date.now() - 86400000 * 365),
-    category: "utility",
-  },
-  {
-    id: "sub-6",
-    serviceName: "Gym Membership",
-    amount: "49.99",
-    token: "USDC",
-    frequency: "monthly",
-    nextPayment: new Date(Date.now() + 86400000 * 22),
-    status: "active",
-    walletAddress: "0xcd3B766CCDd6AE721141F452C550Ca635964ce71",
-    totalPaid: "299.94",
-    startDate: new Date(Date.now() - 86400000 * 180),
-    category: "membership",
-  },
-]
-
-const DEMO_AUTO_PAYMENTS: AutoPayment[] = [
-  {
-    id: "auto-1",
-    vendorName: "Cloud Services Inc",
-    vendorId: "demo-1",
-    amount: "2500.00",
-    token: "USDC",
-    frequency: "monthly",
-    nextPayment: new Date(Date.now() + 86400000 * 7),
-    status: "active",
-    maxAmount: "3000.00",
-    walletAddress: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-  },
-  {
-    id: "auto-2",
-    vendorName: "Office Supplies Co",
-    vendorId: "demo-3",
-    amount: "450.00",
-    token: "USDT",
-    frequency: "biweekly",
-    nextPayment: new Date(Date.now() + 86400000 * 3),
-    status: "active",
-    maxAmount: "600.00",
-    walletAddress: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7",
-  },
-  {
-    id: "auto-3",
-    vendorName: "Security Consultants",
-    vendorId: "demo-4",
-    amount: "5000.00",
-    token: "USDC",
-    frequency: "quarterly",
-    nextPayment: new Date(Date.now() + 86400000 * 45),
-    status: "paused",
-    maxAmount: "6000.00",
-    walletAddress: "0x123f681646d4a755815f9cb19e1acc8565a0c2ac",
-  },
-]
+  Send,
+  Plus,
+  Trash2,
+  FileUp,
+  Save,
+  Loader2,
+  Clock,
+  LinkIcon,
+  Building2,
+  CreditCard,
+  Pause,
+  Play,
+  Settings,
+  Shield,
+  Zap,
+  Ban,
+  DollarSign,
+  Tag,
+  ChevronDown,
+  Bookmark,
+  Users,
+} from "lucide-react"
+import { createClient as getSupabase } from "@/lib/supabase-client"
+import { validateAndChecksumAddress } from "@/lib/web3"
 
 export default function BatchPaymentPage() {
-  const { wallets, activeChain, setActiveChain, isConnected, usdtBalance, usdcBalance, daiBalance, chainId } = useWeb3()
+  // ... existing state declarations ...
+  const { wallets, sendToken, signERC3009Authorization, isConnected } = useWeb3()
+  const { isDemoMode } = useDemo()
   const { toast } = useToast()
-  const router = useRouter()
-
-  const isDemoMode = !isConnected
+  const [mode, setMode] = useState<"personal" | "business">("personal")
+  const [activeTab, setActiveTab] = useState("batch")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [vendors, setVendors] = useState<Vendor[]>([])
+  const activeChain = "EVM"
   const currentWallet = wallets[activeChain]
 
-  const [mode, setMode] = useState<"personal" | "enterprise">("personal")
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>(DEMO_SUBSCRIPTIONS)
-  const [autoPayments, setAutoPayments] = useState<AutoPayment[]>(DEMO_AUTO_PAYMENTS)
+  const [tagDialogOpen, setTagDialogOpen] = useState(false)
+  const [tagFormData, setTagFormData] = useState({
+    name: "",
+    wallet_address: "",
+    category: "",
+    tier: "vendor",
+    chain: "Ethereum",
+    notes: "",
+  })
+  const [editingRecipientId, setEditingRecipientId] = useState<string | null>(null)
+  const [vendorSearchQuery, setVendorSearchQuery] = useState("")
+
+  // Subscription states
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [newSubscription, setNewSubscription] = useState({
+    serviceName: "",
+    walletAddress: "",
+    amount: "",
+    token: "USDT" as const,
+    frequency: "monthly" as const,
+    category: "other" as const,
+    maxAmount: "",
+  })
   const [showAddSubscription, setShowAddSubscription] = useState(false)
 
-  const [recipients, setRecipients] = useState<PaymentRecipient[]>(() => {
-    if (!isConnected) {
-      return [
-        {
-          id: "1",
-          address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-          amount: "402",
-          vendorName: "Cloud Services Inc",
-          vendorId: "demo-1",
-          token: "USDT",
-          destinationChainId: CHAIN_IDS.MAINNET,
-        },
-        {
-          id: "2",
-          address: "0x123f681646d4a755815f9cb19e1acc8565a0c2ac",
-          amount: "3009",
-          vendorName: "Global Consultants",
-          vendorId: "demo-2",
-          token: "USDC",
-          destinationChainId: CHAIN_IDS.BASE,
-        },
-      ]
-    }
-    return [
-      {
-        id: "1",
-        address: "",
-        amount: "",
-        vendorName: "",
-        vendorId: "",
-        token: "USDT",
-        destinationChainId: CHAIN_IDS.MAINNET, // Default to Mainnet
-      },
-    ]
-  })
+  // Auto payment states
+  const [autoPayments, setAutoPayments] = useState<AutoPayment[]>([])
 
-  const [defaultToken, setDefaultToken] = useState<"USDT" | "USDC" | "DAI">("USDT")
-  const [vendors, setVendors] = useState<Vendor[]>(() => {
-    if (!isConnected) {
-      return [
-        { id: "demo-1", name: "Cloud Services Inc", wallet_address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e" },
-        { id: "demo-2", name: "Global Consultants", wallet_address: "0x123f681646d4a755815f9cb19e1acc8565a0c2ac" },
-        { id: "demo-3", name: "Office Supplies Co", wallet_address: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7" },
-      ]
-    }
-    return []
-  })
+  // Batch payment states
+  const [recipients, setRecipients] = useState<PaymentRecipient[]>([
+    { id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" },
+  ])
 
-  const [loadingVendors, setLoadingVendors] = useState(true)
-  const [selectedToken, setSelectedToken] = useState<"USDT" | "USDC" | "DAI" | "CUSTOM">("USDT")
-  const [isProcessing, setIsProcessing] = useState(false)
+  // ... existing code for interfaces ...
 
-  const [billUrl, setBillUrl] = useState("")
-  const [billData, setBillData] = useState<{
-    to: string
-    amount: string
-    token: string
-    vendorName?: string
-    dueDate?: string
-  } | null>(null)
-  const [isLoadingBill, setIsLoadingBill] = useState(false)
+  // Demo data
+  const demoSubscriptions: Subscription[] = [
+    {
+      id: "demo-1",
+      serviceName: "Netflix",
+      amount: "15.99",
+      token: "USDT",
+      frequency: "monthly",
+      nextPayment: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      status: "active",
+      walletAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f7DCFF",
+      totalPaid: "191.88",
+      startDate: new Date("2024-01-15"),
+      category: "streaming",
+    },
+    {
+      id: "demo-2",
+      serviceName: "Spotify Premium",
+      amount: "9.99",
+      token: "USDC",
+      frequency: "monthly",
+      nextPayment: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000),
+      status: "active",
+      walletAddress: "0x8B3392483BA26D65E331dB86D4F430E9B3814E5e",
+      totalPaid: "119.88",
+      startDate: new Date("2024-02-01"),
+      category: "streaming",
+    },
+    {
+      id: "demo-3",
+      serviceName: "GitHub Pro",
+      amount: "4.00",
+      token: "USDC",
+      frequency: "monthly",
+      nextPayment: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000),
+      status: "active",
+      walletAddress: "0x1234567890123456789012345678901234567890",
+      totalPaid: "48.00",
+      startDate: new Date("2024-01-01"),
+      category: "saas",
+    },
+    {
+      id: "demo-4",
+      serviceName: "AWS",
+      amount: "125.00",
+      token: "USDT",
+      frequency: "monthly",
+      nextPayment: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+      status: "paused",
+      walletAddress: "0x9876543210987654321098765432109876543210",
+      totalPaid: "750.00",
+      startDate: new Date("2023-10-01"),
+      category: "saas",
+    },
+    {
+      id: "demo-5",
+      serviceName: "Gym Membership",
+      amount: "49.99",
+      token: "USDT",
+      frequency: "monthly",
+      nextPayment: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
+      status: "active",
+      walletAddress: "0xABCDEF1234567890ABCDEF1234567890ABCDEF12",
+      totalPaid: "599.88",
+      startDate: new Date("2023-06-01"),
+      category: "membership",
+    },
+    {
+      id: "demo-6",
+      serviceName: "OpenAI API",
+      amount: "20.00",
+      token: "USDC",
+      frequency: "monthly",
+      nextPayment: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      status: "active",
+      walletAddress: "0xDEF0123456789ABCDEF0123456789ABCDEF01234",
+      totalPaid: "80.00",
+      startDate: new Date("2024-05-01"),
+      category: "saas",
+    },
+  ]
 
-  const [selectedNetwork, setSelectedNetwork] = useState<number>(CHAIN_IDS.MAINNET)
+  const demoVendors: Vendor[] = [
+    {
+      id: "v1",
+      name: "Acme Corp",
+      wallet_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f7DCFF",
+      category: "Technology",
+      type: "Partner",
+      chain: "Ethereum",
+    },
+    {
+      id: "v2",
+      name: "Global Supplies Inc",
+      wallet_address: "0x8B3392483BA26D65E331dB86D4F430E9B3814E5e",
+      category: "Manufacturing",
+      type: "Vendor",
+      chain: "Polygon",
+    },
+    {
+      id: "v3",
+      name: "Tech Solutions Ltd",
+      wallet_address: "0x1234567890123456789012345678901234567890",
+      category: "Software",
+      type: "Partner",
+      chain: "Ethereum",
+    },
+    {
+      id: "v4",
+      name: "APAC Division",
+      wallet_address: "0x9876543210987654321098765432109876543210",
+      category: "Internal",
+      type: "Subsidiary",
+      chain: "Arbitrum",
+    },
+    {
+      id: "v5",
+      name: "Marketing Agency Pro",
+      wallet_address: "0xABCDEF1234567890ABCDEF1234567890ABCDEF12",
+      category: "Marketing",
+      type: "Vendor",
+      chain: "Base",
+    },
+    {
+      id: "v6",
+      name: "Cloud Services Co",
+      wallet_address: "0xDEF0123456789ABCDEF0123456789ABCDEF01234",
+      category: "Infrastructure",
+      type: "Vendor",
+      chain: "Ethereum",
+    },
+    {
+      id: "v7",
+      name: "Legal Partners LLP",
+      wallet_address: "0x1111222233334444555566667777888899990000",
+      category: "Legal",
+      type: "Partner",
+      chain: "Ethereum",
+    },
+    {
+      id: "v8",
+      name: "EMEA Operations",
+      wallet_address: "0x2222333344445555666677778888999900001111",
+      category: "Internal",
+      type: "Subsidiary",
+      chain: "Polygon",
+    },
+  ]
 
-  const [securityWarnings, setSecurityWarnings] = useState<string[]>([])
-  const [integrityHashes, setIntegrityHashes] = useState<Map<string, string>>(new Map())
-  const [feePreview, setFeePreview] = useState<any>(null) // State for fee preview
+  const demoAutoPayments: AutoPayment[] = [
+    {
+      id: "ap1",
+      vendorId: "v1",
+      vendorName: "Acme Corp",
+      walletAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f7DCFF",
+      amount: "5000",
+      token: "USDT",
+      frequency: "monthly",
+      status: "active",
+      nextPayment: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      maxAmount: "6000",
+    },
+    {
+      id: "ap2",
+      vendorId: "v6",
+      vendorName: "Cloud Services Co",
+      walletAddress: "0xDEF0123456789ABCDEF0123456789ABCDEF01234",
+      amount: "2500",
+      token: "USDC",
+      frequency: "monthly",
+      status: "active",
+      nextPayment: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: "ap3",
+      vendorId: "v4",
+      vendorName: "APAC Division",
+      walletAddress: "0x9876543210987654321098765432109876543210",
+      amount: "15000",
+      token: "USDT",
+      frequency: "monthly",
+      status: "paused",
+      nextPayment: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+    },
+  ]
 
-  const [hasDraft, setHasDraft] = useState(false)
+  // Use demo or real data
+  const displaySubscriptions = isDemoMode || !currentWallet ? demoSubscriptions : subscriptions
+  const displayVendors = isDemoMode || !currentWallet ? demoVendors : vendors
+  const displayAutoPayments = isDemoMode || !currentWallet ? demoAutoPayments : autoPayments
 
-  // Check for saved draft on mount
-  useEffect(() => {
-    const savedDraft = localStorage.getItem("batch-payment-draft")
-    if (savedDraft) {
-      setHasDraft(true)
-    }
-  }, [])
+  // Filter vendors by search query
+  const filteredVendors = displayVendors.filter(
+    (v) =>
+      v.name.toLowerCase().includes(vendorSearchQuery.toLowerCase()) ||
+      v.wallet_address.toLowerCase().includes(vendorSearchQuery.toLowerCase()) ||
+      v.category?.toLowerCase().includes(vendorSearchQuery.toLowerCase()),
+  )
 
-  useEffect(() => {
-    if (isConnected && currentWallet) {
-      loadVendors()
-    } else {
-      setLoadingVendors(false)
-    }
-  }, [isConnected, currentWallet])
+  // ... existing code for stats calculation ...
 
-  useEffect(() => {
-    if (isConnected) {
-      setRecipients([
-        {
-          id: "1",
-          address: "",
-          amount: "",
-          vendorName: "",
-          vendorId: "",
-          token: "USDT",
-          destinationChainId: selectedNetwork, // Use selected network as default
-        },
-      ])
-    }
-  }, [isConnected, selectedNetwork]) // Added selectedNetwork dependency
+  const stats = {
+    active: displaySubscriptions.filter((s) => s.status === "active").length,
+    paused: displaySubscriptions.filter((s) => s.status === "paused").length,
+    monthlyTotal: displaySubscriptions
+      .filter((s) => s.status === "active")
+      .reduce((sum, s) => {
+        const amount = Number.parseFloat(s.amount) || 0 // Use parseFloat and handle potential NaN
+        if (s.frequency === "weekly") return sum + amount * 4
+        if (s.frequency === "yearly") return sum + amount / 12
+        return sum + amount
+      }, 0),
+    nextPayment: displaySubscriptions
+      .filter((s) => s.status === "active")
+      .sort((a, b) => a.nextPayment.getTime() - b.nextPayment.getTime())[0],
+  }
 
-  useEffect(() => {
-    if (isConnected && activeChain === "EVM") {
-      setSelectedNetwork(chainId)
-    }
-  }, [isConnected, activeChain, chainId])
+  // Load vendors from database
+  const loadVendors = useCallback(async () => {
+    if (!currentWallet || isDemoMode) return
 
-  // Calculate fee preview whenever recipients or selected network change
-  useEffect(() => {
-    const calculatedFeePreview = calculateFee(
-      recipients.filter((r) => Number(r.amount) > 0),
-      selectedNetwork,
-      "standard", // TODO: Detect user tier
-    )
-    setFeePreview(calculatedFeePreview)
-  }, [recipients, selectedNetwork])
-
-  const loadVendors = async () => {
     try {
       const supabase = getSupabase()
+      if (!supabase) return
 
-      if (!supabase) {
-        console.warn("[v0] Supabase client not initialized")
-        setLoadingVendors(false)
-        return
-      }
-
-      const { data, error } = await supabase.from("vendors").select("*").eq("created_by", currentWallet).order("name")
+      const { data, error } = await supabase
+        .from("vendors")
+        .select("*")
+        .eq("created_by", currentWallet)
+        .order("created_at", { ascending: false })
 
       if (error) throw error
       setVendors(data || [])
-    } catch (error) {
-      console.error("[v0] Failed to load vendors:", error)
-    } finally {
-      setLoadingVendors(false)
+    } catch (err) {
+      console.error("[v0] Failed to load vendors:", err)
     }
+  }, [currentWallet, isDemoMode])
+
+  // Load subscriptions from database
+  const loadSubscriptions = useCallback(async () => {
+    if (!currentWallet || isDemoMode) return
+
+    try {
+      const supabase = getSupabase()
+      if (!supabase) return
+
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("owner_address", currentWallet)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+
+      const mapped = (data || []).map((row: any) => ({
+        id: row.id,
+        serviceName: row.service_name,
+        amount: row.amount,
+        token: row.token,
+        frequency: row.frequency,
+        nextPayment: new Date(row.next_payment_date),
+        status: row.status,
+        walletAddress: row.wallet_address,
+        totalPaid: row.total_paid || "0",
+        startDate: new Date(row.created_at),
+        category: row.category || "other",
+        maxAmount: row.max_amount,
+      }))
+      setSubscriptions(mapped)
+    } catch (err) {
+      console.error("[v0] Failed to load subscriptions:", err)
+    }
+  }, [currentWallet, isDemoMode])
+
+  useEffect(() => {
+    loadVendors()
+    loadSubscriptions()
+  }, [loadVendors, loadSubscriptions])
+
+  const openTagDialog = (recipientId?: string, address?: string) => {
+    setEditingRecipientId(recipientId || null)
+    setTagFormData({
+      name: "",
+      wallet_address: address || "",
+      category: "",
+      tier: "vendor",
+      chain: "Ethereum",
+      notes: "",
+    })
+    setTagDialogOpen(true)
   }
 
-  const toggleSubscriptionStatus = (id: string) => {
-    setSubscriptions((subs) =>
-      subs.map((sub) => {
-        if (sub.id === id) {
-          const newStatus = sub.status === "active" ? "paused" : "active"
-          toast({
-            title: newStatus === "active" ? "Subscription Resumed" : "Subscription Paused",
-            description: `${sub.serviceName} has been ${newStatus === "active" ? "resumed" : "paused"}.`,
-          })
-          return { ...sub, status: newStatus }
-        }
-        return sub
-      }),
-    )
-  }
-
-  const cancelSubscription = (id: string) => {
-    const sub = subscriptions.find((s) => s.id === id)
-    if (sub) {
-      setSubscriptions((subs) => subs.map((s) => (s.id === id ? { ...s, status: "cancelled" as const } : s)))
+  const saveWalletTag = async () => {
+    if (!tagFormData.name || !tagFormData.wallet_address) {
       toast({
-        title: "Subscription Cancelled",
-        description: `${sub.serviceName} has been cancelled. No future payments will be made.`,
+        title: "Missing Information",
+        description: "Please enter company name and wallet address.",
+        variant: "destructive",
       })
+      return
+    }
+
+    const addressValidation = validateAndChecksumAddress(tagFormData.wallet_address)
+    if (!addressValidation.isValid) {
+      toast({
+        title: "Invalid Address",
+        description: "Please enter a valid wallet address.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (isDemoMode) {
+      // In demo mode, just add to local state
+      const newVendor: Vendor = {
+        id: `demo-${Date.now()}`,
+        name: tagFormData.name,
+        wallet_address: addressValidation.checksumAddress || tagFormData.wallet_address,
+        category: tagFormData.category,
+        type: tagFormData.tier,
+        chain: tagFormData.chain,
+      }
+      setVendors((prev) => [...prev, newVendor])
+
+      // If editing a recipient, update it with the new vendor
+      if (editingRecipientId) {
+        updateRecipient(editingRecipientId, "vendorId", newVendor.id)
+        updateRecipient(editingRecipientId, "vendorName", newVendor.name)
+        updateRecipient(editingRecipientId, "address", newVendor.wallet_address)
+      }
+
+      toast({ title: "Success", description: "Wallet tagged successfully (Demo Mode)" })
+      setTagDialogOpen(false)
+      return
+    }
+
+    if (!currentWallet) {
+      toast({
+        title: "Wallet Required",
+        description: "Please connect your wallet to save tags.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error("Database not available")
+
+      const { data, error } = await supabase
+        .from("vendors")
+        .insert({
+          name: tagFormData.name,
+          wallet_address: addressValidation.checksumAddress || tagFormData.wallet_address,
+          category: tagFormData.category,
+          tier: tagFormData.tier,
+          notes: tagFormData.notes,
+          created_by: currentWallet,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Refresh vendors list
+      await loadVendors()
+
+      // If editing a recipient, update it
+      if (editingRecipientId && data) {
+        updateRecipient(editingRecipientId, "vendorId", data.id)
+        updateRecipient(editingRecipientId, "vendorName", data.name)
+        updateRecipient(editingRecipientId, "address", data.wallet_address)
+      }
+
+      toast({ title: "Success", description: "Wallet tagged successfully" })
+      setTagDialogOpen(false)
+    } catch (err: any) {
+      console.error("[v0] Failed to save wallet tag:", err)
+      toast({ title: "Error", description: err.message, variant: "destructive" })
     }
   }
 
-  const toggleAutoPaymentStatus = (id: string) => {
-    setAutoPayments((payments) =>
-      payments.map((payment) => {
-        if (payment.id === id) {
-          const newStatus = payment.status === "active" ? "paused" : "active"
-          toast({
-            title: newStatus === "active" ? "Auto-Payment Resumed" : "Auto-Payment Paused",
-            description: `${payment.vendorName} auto-payment has been ${newStatus === "active" ? "resumed" : "paused"}.`,
-          })
-          return { ...payment, status: newStatus }
-        }
-        return payment
-      }),
-    )
-  }
-
-  const getSubscriptionStats = () => {
-    const active = subscriptions.filter((s) => s.status === "active")
-    const monthlyTotal = active.reduce((sum, s) => {
-      const amount = Number.parseFloat(s.amount)
-      if (s.frequency === "weekly") return sum + amount * 4
-      if (s.frequency === "yearly") return sum + amount / 12
-      return sum + amount
-    }, 0)
-    return {
-      activeCount: active.length,
-      pausedCount: subscriptions.filter((s) => s.status === "paused").length,
-      monthlyTotal,
-      nextPayment: active.sort((a, b) => a.nextPayment.getTime() - b.nextPayment.getTime())[0],
+  // Select vendor and auto-fill address
+  const selectVendorForRecipient = (recipientId: string, vendorId: string) => {
+    const vendor = displayVendors.find((v) => v.id === vendorId)
+    if (vendor) {
+      updateRecipient(recipientId, "vendorId", vendor.id)
+      updateRecipient(recipientId, "vendorName", vendor.name)
+      updateRecipient(recipientId, "address", vendor.wallet_address)
     }
   }
 
+  // ... existing code for subscription functions ...
+
+  const toggleSubscriptionStatus = async (id: string) => {
+    if (isDemoMode) {
+      setSubscriptions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status: s.status === "active" ? "paused" : "active" } : s)),
+      )
+      // Also update demoSubscriptions display if it's being used
+      const sub = displaySubscriptions.find((s) => s.id === id)
+      if (sub) {
+        toast({
+          title: sub.status === "active" ? "Subscription Paused" : "Subscription Resumed",
+          description: `${sub.serviceName} has been ${sub.status === "active" ? "paused" : "resumed"}.`,
+        })
+      }
+      return
+    }
+
+    if (!currentWallet) return
+
+    try {
+      const supabase = getSupabase()
+      if (!supabase) return
+
+      const sub = subscriptions.find((s) => s.id === id)
+      if (!sub) return
+
+      const newStatus = sub.status === "active" ? "paused" : "active"
+      const { error } = await supabase.from("subscriptions").update({ status: newStatus }).eq("id", id)
+
+      if (error) throw error
+
+      setSubscriptions((prev) => prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s)))
+      toast({
+        title: newStatus === "active" ? "Subscription Resumed" : "Subscription Paused",
+        description: `${sub.serviceName} has been ${newStatus === "active" ? "resumed" : "paused"}.`,
+      })
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" })
+    }
+  }
+
+  const cancelSubscription = async (id: string) => {
+    if (isDemoMode) {
+      setSubscriptions((prev) => prev.map((s) => (s.id === id ? { ...s, status: "cancelled" } : s)))
+      toast({ title: "Subscription Cancelled", description: "The subscription has been cancelled." })
+      return
+    }
+
+    if (!currentWallet) return
+
+    try {
+      const supabase = getSupabase()
+      if (!supabase) return
+
+      const { error } = await supabase.from("subscriptions").update({ status: "cancelled" }).eq("id", id)
+
+      if (error) throw error
+
+      setSubscriptions((prev) => prev.map((s) => (s.id === id ? { ...s, status: "cancelled" } : s)))
+      toast({ title: "Subscription Cancelled", description: "The subscription has been cancelled." })
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" })
+    }
+  }
+
+  // Payment execution
+  const executeSubscriptionPayment = async (subscription: Subscription) => {
+    if (isDemoMode) {
+      toast({
+        title: "Demo Mode",
+        description: "Payment simulation - In production this would execute a real transaction.",
+      })
+      return
+    }
+
+    if (!currentWallet) {
+      toast({ title: "Error", description: "Please connect your wallet", variant: "destructive" })
+      return
+    }
+
+    try {
+      setIsProcessing(true)
+      // Dummy sendToken call for demo
+      await sendToken(subscription.walletAddress, subscription.amount, subscription.token)
+      toast({ title: "Payment Sent", description: `Paid $${subscription.amount} to ${subscription.serviceName}` })
+      // In a real scenario, you'd update the subscription's nextPayment date and totalPaid here
+    } catch (err: any) {
+      toast({ title: "Payment Failed", description: err.message, variant: "destructive" })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  // Add subscription
+  const addSubscription = async () => {
+    if (!newSubscription.serviceName || !newSubscription.walletAddress || !newSubscription.amount) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const addressValidation = validateAndChecksumAddress(newSubscription.walletAddress)
+    if (!addressValidation.isValid) {
+      toast({
+        title: "Invalid Address",
+        description: "Please enter a valid wallet address.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const nextDate = new Date()
+    if (newSubscription.frequency === "weekly") nextDate.setDate(nextDate.getDate() + 7)
+    else if (newSubscription.frequency === "monthly") nextDate.setMonth(nextDate.getMonth() + 1)
+    else if (newSubscription.frequency === "yearly") nextDate.setFullYear(nextDate.getFullYear() + 1)
+
+    const subData: Subscription = {
+      id: `sub-${Date.now()}`,
+      serviceName: newSubscription.serviceName,
+      walletAddress: addressValidation.checksumAddress || newSubscription.walletAddress,
+      amount: newSubscription.amount,
+      token: newSubscription.token,
+      frequency: newSubscription.frequency,
+      category: newSubscription.category,
+      status: "active",
+      nextPayment: nextDate,
+      startDate: new Date(),
+      totalPaid: "0",
+      maxAmount: newSubscription.maxAmount || undefined,
+    }
+
+    if (isDemoMode) {
+      setSubscriptions((prev) => [...prev, subData])
+      toast({ title: "Subscription Added", description: `${subData.serviceName} has been added (Demo Mode)` })
+      setShowAddSubscription(false)
+      setNewSubscription({
+        serviceName: "",
+        walletAddress: "",
+        amount: "",
+        token: "USDT",
+        frequency: "monthly",
+        category: "other",
+        maxAmount: "",
+      })
+      return
+    }
+
+    if (!currentWallet) {
+      toast({ title: "Error", description: "Please connect wallet", variant: "destructive" })
+      return
+    }
+
+    try {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error("Database not available")
+
+      const { error } = await supabase.from("subscriptions").insert({
+        owner_address: currentWallet,
+        service_name: subData.serviceName,
+        wallet_address: subData.walletAddress,
+        amount: subData.amount,
+        token: subData.token,
+        frequency: subData.frequency,
+        category: subData.category,
+        status: subData.status,
+        next_payment_date: subData.nextPayment.toISOString(),
+        max_amount: subData.maxAmount,
+        // startDate and totalPaid are not directly stored here but can be inferred or added if needed
+      })
+
+      if (error) throw error
+
+      await loadSubscriptions() // Reload to get updated data including potentially new IDs
+      toast({ title: "Subscription Added", description: `${subData.serviceName} has been added.` })
+      setShowAddSubscription(false)
+      setNewSubscription({
+        serviceName: "",
+        walletAddress: "",
+        amount: "",
+        token: "USDT",
+        frequency: "monthly",
+        category: "other",
+        maxAmount: "",
+      })
+    } catch (err: any) {
+      console.error("[v0] Error adding subscription:", err)
+      toast({ title: "Error", description: err.message, variant: "destructive" })
+    }
+  }
+
+  // Batch payment functions
   const addRecipient = () => {
     setRecipients([
       ...recipients,
-      {
-        id: Date.now().toString(),
-        address: "",
-        amount: "",
-        vendorName: "",
-        vendorId: "",
-        token: defaultToken,
-        destinationChainId: selectedNetwork, // Use selected network
-      },
+      { id: Date.now().toString(), address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" },
     ])
   }
 
@@ -471,1288 +698,902 @@ export default function BatchPaymentPage() {
   }
 
   const updateRecipient = (id: string, field: keyof PaymentRecipient, value: any) => {
-    setRecipients(
-      recipients.map((r) => {
-        if (r.id === id) {
-          if (field === "vendorId") {
-            const vendor = vendors.find((v) => v.id === value)
-            return {
-              ...r,
-              vendorId: value,
-              vendorName: vendor?.name || "",
-              address: vendor?.wallet_address || r.address,
-            }
-          }
-          if (field === "token") {
-            setSelectedToken(value as any) // Update selectedToken when token changes
-            if (value !== "CUSTOM") {
-              return { ...r, token: value as any, customTokenAddress: "" }
-            }
-          }
-          return { ...r, [field]: value }
-        }
-        return r
-      }),
-    )
+    setRecipients(recipients.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
   }
 
   const getTotalAmounts = () => {
-    const totals = {
-      USDT: 0,
-      USDC: 0,
-      DAI: 0,
-      CUSTOM: 0,
-    }
-
-    recipients.forEach((r) => {
-      const amount = Number.parseFloat(r.amount) || 0
-      if (r.token === "CUSTOM") totals.CUSTOM += amount
-      else if (r.token in totals) totals[r.token] += amount
-    })
-
-    return totals
-  }
-
-  const fetchBill = async () => {
-    if (!billUrl) return
-    if (!billUrl.startsWith("http://") && !billUrl.startsWith("https://")) {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid URL starting with http:// or https://",
-        variant: "destructive",
-      })
-      return
-    }
-    setIsLoadingBill(true)
-    try {
-      // Mock HTTP fetch - in production this would be: await fetch(billUrl).then(res => res.json())
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      let parsedAmount = "150.00"
-      let parsedTo = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F" // Valid dummy address
-      let parsedToken = "USDC"
-
-      try {
-        const urlObj = new URL(billUrl)
-        const params = new URLSearchParams(urlObj.search)
-        if (params.get("amount")) parsedAmount = params.get("amount")!
-        if (params.get("to")) parsedTo = params.get("to")!
-        if (params.get("token")) parsedToken = params.get("token")!
-      } catch (e) {
-        // Ignore parsing errors, use defaults
-      }
-
-      setBillData({
-        to: parsedTo,
-        amount: parsedAmount,
-        token: parsedToken,
-        vendorName: "Cloud Host Provider LLC",
-        dueDate: new Date(Date.now() + 86400000 * 7).toLocaleDateString(),
-      })
-      toast({
-        title: "Bill Loaded",
-        description: "Payment details parsed successfully.",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch bill details.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoadingBill(false)
-    }
-  }
-
-  const handleBillPayment = async () => {
-    if (!billData || !isConnected || !currentWallet) return
-    setIsProcessing(true)
-    try {
-      const supabase = getSupabase()
-
-      // 1. Sign Authorization (EIP-3009)
-      toast({
-        title: "Signing Authorization",
-        description: `Authorizing payment of ${billData.amount} ${billData.token} to ${billData.vendorName}`,
-      })
-
-      const tokenAddress = getTokenAddress(selectedNetwork, billData.token as any) || ""
-      const auth = await signERC3009Authorization(
-        tokenAddress,
-        currentWallet,
-        billData.to,
-        billData.amount,
-        selectedNetwork,
-      )
-
-      // 2. Submit Signature (HTTP POST)
-      // In a real x402 flow, we would POST this 'auth' object to the Biller's API
-      // For this demo, we simulate the submission or execute it on-chain if we want to close the loop
-
-      // console.log("[v0] Submitting x402 Signature:", auth)
-
-      // Verify if we should execute on-chain for demo purposes or just "Send" the sig
-      // The prompt says "HTTP + Signature Authorization". Usually this means the CLIENT just sends the sig.
-      // We will simulate the HTTP POST success.
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Optional: Record in Supabase as "Authorized"
-      if (supabase) {
-        await supabase.from("payments").insert({
-          from_address: currentWallet,
-          to_address: billData.to,
-          amount: billData.amount,
-          token_symbol: billData.token,
-          status: "authorized_offchain", // Special status
-          tx_hash: "offchain_sig_" + auth.nonce, // Mock hash
-        })
-      }
-
-      toast({
-        title: "Payment Authorized",
-        description: "Signature sent to biller successfully. No gas paid.",
-      })
-
-      setBillData(null)
-      setBillUrl("")
-    } catch (error: any) {
-      toast({
-        title: "Payment Failed",
-        description: error.message,
-        variant: "destructive",
-      })
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const validateRecipientSecurity = useCallback(
-    (
-      recipient: PaymentRecipient,
-    ): {
-      valid: boolean
-      errors: string[]
-      warnings: string[]
-      checksummedAddress?: string
-    } => {
-      const errors: string[] = []
-      const warnings: string[] = []
-
-      // 1. Validate address with checksum
-      if (recipient.address) {
-        const addressResult = validateAndChecksumAddress(recipient.address)
-        if (!addressResult.valid) {
-          errors.push(addressResult.error || "Invalid address")
-        } else if (addressResult.checksummed !== recipient.address) {
-          warnings.push(`Address will be checksummed: ${addressResult.checksummed}`)
+    return recipients.reduce(
+      (acc, r) => {
+        const amount = Number.parseFloat(r.amount) || 0
+        // Ensure token exists in accumulator before adding
+        if (acc[r.token] !== undefined) {
+          acc[r.token] = (acc[r.token] || 0) + amount
         }
-      }
-
-      // 2. Validate amount
-      if (recipient.amount) {
-        const amountResult = validateAmount(recipient.amount, {
-          minAmount: "0.000001",
-          maxAmount: String(SECURITY_CONFIG.MAX_SINGLE_PAYMENT_USD),
-          maxDecimals: 18,
-        })
-        if (!amountResult.valid) {
-          errors.push(amountResult.error || "Invalid amount")
-        }
-      }
-
-      // 3. Sanitize vendor name
-      if (recipient.vendorName) {
-        const nameResult = sanitizeTextInput(recipient.vendorName)
-        if (nameResult.warnings.length > 0) {
-          warnings.push(...nameResult.warnings)
-        }
-      }
-
-      return {
-        valid: errors.length === 0,
-        errors,
-        warnings,
-        checksummedAddress: validateAndChecksumAddress(recipient.address).checksummed || undefined,
-      }
-    },
-    [],
-  )
+        return acc
+      },
+      { USDT: 0, USDC: 0, DAI: 0 } as Record<string, number>,
+    )
+  }
 
   const saveDraft = () => {
-    const draft = {
-      recipients,
-      selectedNetwork,
-      timestamp: new Date().toISOString(),
-    }
-    localStorage.setItem("batch-payment-draft", JSON.stringify(draft))
-    setHasDraft(true)
-    toast({
-      title: "Draft Saved",
-      description: "Your batch payment has been saved. You can continue later.",
-    })
+    localStorage.setItem("batchPaymentDraft", JSON.stringify(recipients))
+    toast({ title: "Draft Saved", description: "Your payment draft has been saved locally." })
   }
 
-  const loadDraft = () => {
-    const savedDraft = localStorage.getItem("batch-payment-draft")
-    if (savedDraft) {
-      try {
-        const draft = JSON.parse(savedDraft)
-        setRecipients(draft.recipients)
-        if (draft.selectedNetwork) {
-          setSelectedNetwork(draft.selectedNetwork)
-        }
-        toast({
-          title: "Draft Loaded",
-          description: "Your saved batch payment has been restored.",
-        })
-      } catch (e) {
-        toast({
-          title: "Error",
-          description: "Failed to load draft.",
-          variant: "destructive",
-        })
-      }
-    }
-  }
-
-  const clearDraft = () => {
-    localStorage.removeItem("batch-payment-draft")
-    setHasDraft(false)
-  }
-
+  // Process batch payment
   const processBatchPayment = async () => {
     console.log("[v0] processBatchPayment called")
-    console.log("[v0] isDemoMode:", isDemoMode)
-    console.log("[v0] isConnected:", isConnected)
     console.log("[v0] currentWallet:", currentWallet)
+    console.log("[v0] isDemoMode:", isDemoMode)
     console.log("[v0] recipients:", recipients)
 
-    if (isDemoMode) {
-      setIsProcessing(true)
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+    const validRecipients = recipients.filter((r) => r.address && Number.parseFloat(r.amount) > 0)
+    if (validRecipients.length === 0) {
       toast({
-        title: "Demo Payment Successful",
-        description: "This is a simulation. No real funds were moved.",
+        title: "No Valid Recipients",
+        description: "Please add at least one recipient with a valid address and amount.",
+        variant: "destructive",
       })
-      setIsProcessing(false)
-      clearDraft()
       return
     }
 
-    if (!isConnected || !currentWallet) {
-      console.log("[v0] Wallet not connected, showing toast")
+    if (isDemoMode) {
       toast({
-        title: "Wallet not connected",
-        description: "Please connect your wallet first",
+        title: "Demo Mode",
+        description: `Simulating batch payment of ${validRecipients.length} transactions. In production, this would execute real payments.`,
+      })
+      return
+    }
+
+    if (!currentWallet) {
+      toast({
+        title: "Wallet Required",
+        description: "Please connect your wallet to execute payments.",
         variant: "destructive",
       })
       return
     }
 
     setIsProcessing(true)
-    console.log("[v0] Starting batch payment processing...")
+    let successCount = 0
+    let failCount = 0
 
-    try {
-      const rateLimitResult = checkRateLimit({
-        ...RATE_LIMITS.BATCH_PAYMENT,
-        identifier: currentWallet,
-      })
+    for (const recipient of validRecipients) {
+      try {
+        console.log("[v0] Processing payment to:", recipient.address, recipient.amount, recipient.token)
+        // Use the actual sendToken function from useWeb3
+        await sendToken(recipient.address, recipient.amount, recipient.token)
+        successCount++
 
-      if (!rateLimitResult.allowed) {
-        toast({
-          title: "Rate Limit Exceeded",
-          description: rateLimitResult.error || "Please wait before submitting another batch.",
-          variant: "destructive",
-        })
-        const alertLog = createAuditLog({
-          action: "RATE_LIMIT_EXCEEDED" as AuditAction,
-          actor: currentWallet,
-          details: {
-            action_type: "BATCH_PAYMENT",
-            reset_at: rateLimitResult.resetAt,
-          },
-        })
-        console.warn("[Security] Rate limit exceeded:", alertLog)
-        setIsProcessing(false) // Ensure processing is reset on rate limit
-        return
-      }
-
-      const securityIssues: string[] = []
-      const validatedRecipients: PaymentRecipient[] = []
-
-      for (const recipient of recipients) {
-        const validation = validateRecipientSecurity(recipient)
-
-        if (!validation.valid) {
-          securityIssues.push(`${recipient.vendorName || recipient.address}: ${validation.errors.join(", ")}`)
-        } else {
-          // Use checksummed address
-          validatedRecipients.push({
-            ...recipient,
-            address: validation.checksummedAddress || recipient.address,
-          })
-        }
-
-        if (validation.warnings.length > 0) {
-          setSecurityWarnings((prev) => [...prev, ...validation.warnings])
-        }
-      }
-
-      if (securityIssues.length > 0) {
-        toast({
-          title: "Security Validation Failed",
-          description: securityIssues.slice(0, 3).join("; ") + (securityIssues.length > 3 ? "..." : ""),
-          variant: "destructive",
-        })
-        setIsProcessing(false) // Ensure processing is reset on validation failure
-        return
-      }
-
-      const totals = getTotalAmounts()
-      const totalBatchAmount = totals.USDT + totals.USDC + totals.DAI
-
-      if (totalBatchAmount > SECURITY_CONFIG.MAX_BATCH_TOTAL_USD) {
-        toast({
-          title: "Batch Amount Exceeds Limit",
-          description: `Maximum batch total is $${SECURITY_CONFIG.MAX_BATCH_TOTAL_USD.toLocaleString()}`,
-          variant: "destructive",
-        })
-        setIsProcessing(false)
-        return
-      }
-
-      if (recipients.length > SECURITY_CONFIG.MAX_BATCH_RECIPIENTS) {
-        toast({
-          title: "Too Many Recipients",
-          description: `Maximum ${SECURITY_CONFIG.MAX_BATCH_RECIPIENTS} recipients per batch`,
-          variant: "destructive",
-        })
-        setIsProcessing(false)
-        return
-      }
-
-      if (activeChain !== "EVM") {
-        toast({
-          title: "Not Supported",
-          description: "Batch payments are currently only supported for Ethereum/EVM networks.",
-          variant: "destructive",
-        })
-        setIsProcessing(false)
-        return
-      }
-
-      if (activeChain === "EVM" && chainId !== selectedNetwork) {
-        try {
-          toast({
-            title: "Switching Network",
-            description: "Please confirm the network switch in your wallet.",
-          })
-          await switchNetwork(selectedNetwork)
-          // Wait a moment for the chainId to update in context/provider
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        } catch (error: any) {
-          toast({
-            title: "Network Switch Failed",
-            description: "Could not switch to the selected network. Please switch manually.",
-            variant: "destructive",
-          })
-          setIsProcessing(false) // Ensure processing is reset on network switch failure
-          return
-        }
-      }
-
-      const invalidRecipients = validatedRecipients.filter((r) => {
-        if (!r.address || !VALIDATORS[activeChain as keyof typeof VALIDATORS](r.address)) return true
-        if (r.token === "CUSTOM" && !r.customTokenAddress) return true
-        // Basic check for destination chain ID if it's a cross-chain operation
-        if (r.destinationChainId !== undefined && r.destinationChainId !== selectedNetwork && activeChain === "EVM") {
-          // Further validation would be needed here, e.g., checking if the token supports cross-chain on that destination
-        }
-        return false
-      })
-
-      if (invalidRecipients.length > 0) {
-        toast({
-          title: "Invalid Recipients",
-          description: "Please check addresses, token selections, and chain IDs.",
-          variant: "destructive",
-        })
-        setIsProcessing(false)
-        return
-      }
-
-      // Check balances
-      if (totals.USDT > Number(usdtBalance)) {
-        toast({
-          title: "Insufficient USDT",
-          description: `Need ${totals.USDT}, have ${usdtBalance}`,
-          variant: "destructive",
-        })
-        setIsProcessing(false)
-        return
-      }
-      if (totals.USDC > Number(usdcBalance)) {
-        toast({
-          title: "Insufficient USDC",
-          description: `Need ${totals.USDC}, have ${usdcBalance}`,
-          variant: "destructive",
-        })
-        setIsProcessing(false)
-        return
-      }
-      if (totals.DAI > Number(daiBalance)) {
-        toast({
-          title: "Insufficient DAI",
-          description: `Need ${totals.DAI}, have ${daiBalance}`,
-          variant: "destructive",
-        })
-        setIsProcessing(false)
-        return
-      }
-
-      const supabase = getSupabase()
-
-      if (!supabase) {
-        toast({
-          title: "Configuration Error",
-          description: "Supabase is not configured correctly. Please check environment variables.",
-          variant: "destructive",
-        })
-        setIsProcessing(false)
-        return
-      }
-
-      const batchNonce = generateSecureNonce()
-      const batchTimestamp = Date.now()
-
-      const { data: batchData, error: batchError } = await supabase
-        .from("batch_payments")
-        .insert({
-          wallet_address: currentWallet,
-          total_recipients: validatedRecipients.length,
-          total_amount_usd: totalBatchAmount,
-          status: "processing",
-          batch_name: `Batch ${new Date().toLocaleDateString()}`,
-        })
-        .select()
-        .single()
-
-      if (batchError) throw batchError
-
-      const batchAuditLog = createAuditLog({
-        action: "BATCH_CREATED" as AuditAction,
-        actor: currentWallet,
-        target: batchData.id,
-        details: {
-          total_recipients: validatedRecipients.length,
-          total_amount_usd: totalBatchAmount,
-          nonce: batchNonce,
-        },
-      })
-      console.log("[Audit]", batchAuditLog)
-
-      for (const recipient of validatedRecipients) {
-        if (!recipient.address || !Number(recipient.amount)) continue
-
-        try {
-          const txNonce = generateSecureNonce()
-          const tokenAddress = getTokenAddress(selectedNetwork, recipient.token) || ""
-
-          const integrityHash = createTransactionIntegrityHash({
-            from: currentWallet,
-            to: recipient.address,
+        // Save to database
+        const supabase = getSupabase()
+        if (supabase) {
+          await supabase.from("payments").insert({
+            from_address: currentWallet,
+            to_address: recipient.address,
             amount: recipient.amount,
-            tokenAddress,
-            chainId: selectedNetwork,
-            timestamp: batchTimestamp,
-            nonce: txNonce,
+            token: recipient.token,
+            vendor_id: recipient.vendorId || null,
+            status: "completed",
           })
-
-          // Store hash for verification
-          setIntegrityHashes((prev) => new Map(prev).set(recipient.id, integrityHash))
-
-          let txHash = ""
-          const isCrossChain =
-            recipient.destinationChainId && recipient.destinationChainId !== selectedNetwork && activeChain === "EVM"
-
-          if (isCrossChain) {
-            if (recipient.token !== "USDC") {
-              throw new Error("Cross-chain transfers are currently only supported for USDC via CCTP")
-            }
-
-            const cctpTokenAddress = getTokenAddress(selectedNetwork, "USDC")
-            if (!cctpTokenAddress) throw new Error("USDC address not found on source chain")
-
-            const messengerAddress =
-              CCTP_TOKEN_MESSENGER_ADDRESSES[selectedNetwork as keyof typeof CCTP_TOKEN_MESSENGER_ADDRESSES]
-            if (!messengerAddress) throw new Error("CCTP TokenMessenger not found on source chain")
-
-            const destinationDomain = CCTP_DOMAINS[recipient.destinationChainId as keyof typeof CCTP_DOMAINS]
-            if (destinationDomain === undefined) throw new Error("Destination chain not supported by CCTP")
-
-            // We need a signer, executeCCTPTransfer uses browser provider internally if we updated it,
-            // or we pass the signer. Let's look at executeCCTPTransfer signature in lib/web3.ts
-            // It expects `signer: ethers.Signer`.
-            // We need to get the signer here.
-            const { ethers } = await import("ethers")
-            const provider = new ethers.BrowserProvider(window.ethereum)
-            const signer = await provider.getSigner()
-
-            txHash = await executeCCTPTransfer(
-              cctpTokenAddress,
-              messengerAddress,
-              recipient.amount,
-              destinationDomain,
-              recipient.address,
-              signer,
-            )
-          } else {
-            // Existing Intrachain Logic
-            let transferTokenAddress = ""
-            if (recipient.token === "CUSTOM") {
-              transferTokenAddress = recipient.customTokenAddress || ""
-            } else {
-              const addr = getTokenAddress(selectedNetwork, recipient.token)
-              if (!addr) throw new Error(`Token address not found for ${recipient.token}`)
-              transferTokenAddress = addr
-            }
-
-            if (recipient.token === "USDC" && activeChain === "EVM") {
-              const auth = await signERC3009Authorization(
-                transferTokenAddress,
-                wallets.EVM!,
-                recipient.address,
-                recipient.amount,
-                selectedNetwork,
-              )
-
-              // For Standard Batch, we assume immediate execution (Self-Relay or Direct Execution)
-              // If we want "Gasless" strictly, we'd send this to a relayer.
-              // But to ensure "Real Usage" where funds move, we execute it.
-              // The benefit here is using the modern standard.
-              txHash = await executeERC3009Transfer(
-                transferTokenAddress,
-                wallets.EVM!,
-                recipient.address,
-                recipient.amount,
-                auth,
-              )
-            } else {
-              txHash = await sendToken(transferTokenAddress, recipient.address, recipient.amount)
-            }
-          }
-
-          const { data: paymentData, error: paymentError } = await supabase
-            .from("payments")
-            .insert({
-              tx_hash: txHash,
-              from_address: currentWallet,
-              to_address: recipient.address,
-              vendor_id: recipient.vendorId || null,
-              token_symbol: recipient.token,
-              token_address: tokenAddress,
-              amount: recipient.amount,
-              amount_usd: Number.parseFloat(recipient.amount),
-              status: "completed",
-              notes: `Integrity: ${integrityHash.substring(0, 16)}...`,
-            })
-            .select()
-            .single()
-
-          if (paymentError) throw paymentError
-
-          try {
-            await recordFee({
-              paymentId: paymentData.id,
-              batchId: batchData.id,
-              amount: Number(recipient.amount),
-              fromAddress: currentWallet,
-              tokenSymbol: recipient.token,
-              chainId: selectedNetwork,
-              tier: "standard", // TODO: Detect user tier
-              collectionMethod: "deferred",
-            })
-          } catch (feeError) {
-            console.warn("[v0] Fee recording failed:", feeError)
-            // Don't fail the payment if fee recording fails
-          }
-
-          const paymentAuditLog = createAuditLog({
-            action: "PAYMENT_COMPLETED" as AuditAction,
-            actor: currentWallet,
-            target: paymentData.id,
-            details: {
-              tx_hash: txHash,
-              to_address: recipient.address,
-              amount: recipient.amount,
-              token: recipient.token,
-              integrity_hash: integrityHash,
-              is_cross_chain: isCrossChain,
-            },
-          })
-          console.log("[Audit]", paymentAuditLog)
-
-          await supabase.from("batch_payment_items").insert({
-            batch_id: batchData.id,
-            payment_id: paymentData.id,
-          })
-        } catch (error: any) {
-          console.error("[v0] Payment failed for", recipient.address, error)
-
-          const failedAuditLog = createAuditLog({
-            action: "PAYMENT_FAILED" as AuditAction,
-            actor: currentWallet,
-            details: {
-              to_address: recipient.address,
-              amount: recipient.amount,
-              token: recipient.token,
-              error: error.message,
-            },
-          })
-          console.error("[Audit]", failedAuditLog)
-
-          throw error
         }
+      } catch (err: any) {
+        console.error("[v0] Payment failed:", err)
+        failCount++
       }
+    }
 
-      await supabase
-        .from("batch_payments")
-        .update({ status: "completed", completed_at: new Date().toISOString() })
-        .eq("id", batchData.id)
+    setIsProcessing(false)
 
-      const completionLog = createAuditLog({
-        action: "BATCH_COMPLETED" as AuditAction,
-        actor: currentWallet,
-        target: batchData.id,
-        details: {
-          total_recipients: validatedRecipients.length,
-          total_amount_usd: totalBatchAmount,
-        },
-      })
-      console.log("[Audit]", completionLog)
-
+    if (successCount > 0) {
       toast({
-        title: "Batch payment successful",
-        description: `Successfully sent to ${validatedRecipients.length} recipients`,
+        title: "Payments Complete",
+        description: `${successCount} payment(s) succeeded${failCount > 0 ? `, ${failCount} failed` : ""}.`,
       })
-
-      setRecipients([
-        {
-          id: "1",
-          address: "",
-          amount: "",
-          vendorName: "",
-          vendorId: "",
-          token: "USDT",
-          destinationChainId: selectedNetwork,
-        },
-      ])
-
-      // Clear draft after successful payment
-      clearDraft()
-
-      setTimeout(() => router.push("/analytics"), 2000)
-    } catch (error: any) {
-      console.error("[v0] Batch payment failed:", error)
+      // Clear recipients after successful batch payment
+      setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
+      // Optionally clear draft here if desired
+      // localStorage.removeItem("batchPaymentDraft");
+    } else {
       toast({
-        title: "Payment failed",
-        description: error.message || "Failed to process batch payment",
+        title: "All Payments Failed",
+        description: "Please check your wallet balance and try again.",
         variant: "destructive",
       })
-    } finally {
-      setIsProcessing(false) // Ensure processing state is reset
     }
   }
 
-  const stats = getSubscriptionStats()
+  const toggleAutoPaymentStatus = (id: string) => {
+    setAutoPayments((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: p.status === "active" ? "paused" : "active" } : p)),
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8 px-4 space-y-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">Payments</h1>
-            <p className="text-muted-foreground mt-1">Manage your payments and subscriptions</p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Mode Toggle */}
-            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
-              <Button
-                variant={mode === "personal" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setMode("personal")}
-                className="gap-2"
-              >
-                <CreditCard className="h-4 w-4" />
-                Personal
-              </Button>
-              <Button
-                variant={mode === "enterprise" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setMode("enterprise")}
-                className="gap-2"
-              >
-                <Building2 className="h-4 w-4" />
-                Enterprise
-              </Button>
-            </div>
-
-            {activeChain === "EVM" && mode === "enterprise" && (
-              <Select value={selectedNetwork.toString()} onValueChange={(val) => setSelectedNetwork(Number(val))}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Network" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={CHAIN_IDS.MAINNET.toString()}>Ethereum</SelectItem>
-                  <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
-                  <SelectItem value={CHAIN_IDS.SEPOLIA.toString()}>Sepolia</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+    <main className="container mx-auto py-6 px-4 max-w-7xl">
+      {/* Mode Toggle */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Payments</h1>
+          <p className="text-muted-foreground text-sm">Manage subscriptions and batch payments</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild className="bg-transparent">
+            <a href="/vendors">
+              <Users className="h-4 w-4 mr-2" />
+              Contacts
+            </a>
+          </Button>
+          <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+            <Button variant={mode === "personal" ? "default" : "ghost"} size="sm" onClick={() => setMode("personal")}>
+              <CreditCard className="h-4 w-4 mr-2" />
+              Personal
+            </Button>
+            <Button variant={mode === "business" ? "default" : "ghost"} size="sm" onClick={() => setMode("business")}>
+              <Building2 className="h-4 w-4 mr-2" />
+              Business
+            </Button>
           </div>
         </div>
+      </div>
 
-        {mode === "personal" && (
-          <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <div className="text-sm text-muted-foreground">Active Subscriptions</div>
-                  <div className="text-2xl font-bold text-foreground">{stats.activeCount}</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <div className="text-sm text-muted-foreground">Paused</div>
-                  <div className="text-2xl font-bold text-amber-500">{stats.pausedCount}</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <div className="text-sm text-muted-foreground">Monthly Total</div>
-                  <div className="text-2xl font-bold text-foreground">${stats.monthlyTotal.toFixed(2)}</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <div className="text-sm text-muted-foreground">Next Payment</div>
-                  <div className="text-lg font-bold text-foreground">
-                    {stats.nextPayment ? new Date(stats.nextPayment.nextPayment).toLocaleDateString() : "N/A"}
+      <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Tag Wallet Address
+            </DialogTitle>
+            <DialogDescription>
+              Save this wallet with business metadata for easier identification in future payments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Wallet Address</Label>
+              <Input
+                placeholder="0x..."
+                className="font-mono"
+                value={tagFormData.wallet_address}
+                onChange={(e) => setTagFormData({ ...tagFormData, wallet_address: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Company / Entity Name</Label>
+              <Input
+                placeholder="e.g. Acme Corp"
+                value={tagFormData.name}
+                onChange={(e) => setTagFormData({ ...tagFormData, name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={tagFormData.category}
+                  onValueChange={(v) => setTagFormData({ ...tagFormData, category: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Technology">Technology</SelectItem>
+                    <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="Software">Software</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                    <SelectItem value="Legal">Legal</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Internal">Internal</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={tagFormData.tier} onValueChange={(v) => setTagFormData({ ...tagFormData, tier: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="vendor">Vendor</SelectItem>
+                    <SelectItem value="partner">Partner</SelectItem>
+                    <SelectItem value="subsidiary">Subsidiary</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Chain</Label>
+              <Select value={tagFormData.chain} onValueChange={(v) => setTagFormData({ ...tagFormData, chain: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ethereum">Ethereum</SelectItem>
+                  <SelectItem value="Polygon">Polygon</SelectItem>
+                  <SelectItem value="Arbitrum">Arbitrum</SelectItem>
+                  <SelectItem value="Base">Base</SelectItem>
+                  <SelectItem value="Optimism">Optimism</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes (Optional)</Label>
+              <Textarea
+                placeholder="Additional details..."
+                value={tagFormData.notes}
+                onChange={(e) => setTagFormData({ ...tagFormData, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTagDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveWalletTag}>
+              <Bookmark className="h-4 w-4 mr-2" />
+              Save Tag
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {mode === "personal" ? (
+        /* Personal Mode - Subscription Management */
+        <div className="space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-card">
+              <CardContent className="p-4">
+                <div className="text-sm text-muted-foreground">Active</div>
+                <div className="text-2xl font-bold text-emerald-500">{stats.active}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card">
+              <CardContent className="p-4">
+                <div className="text-sm text-muted-foreground">Paused</div>
+                <div className="text-2xl font-bold text-amber-500">{stats.paused}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card">
+              <CardContent className="p-4">
+                <div className="text-sm text-muted-foreground">Monthly Total</div>
+                <div className="text-2xl font-bold">${stats.monthlyTotal.toFixed(2)}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card">
+              <CardContent className="p-4">
+                <div className="text-sm text-muted-foreground">Next Payment</div>
+                <div className="text-lg font-bold">
+                  {stats.nextPayment ? stats.nextPayment.nextPayment.toLocaleDateString() : "N/A"}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Subscriptions List */}
+          <Card className="bg-card">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>My Subscriptions</CardTitle>
+                <CardDescription>Manage your recurring payments</CardDescription>
+              </div>
+              <Dialog open={showAddSubscription} onOpenChange={setShowAddSubscription}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Subscription
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Subscription</DialogTitle>
+                    <DialogDescription>Set up a new recurring payment.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Service Name</Label>
+                      <Input
+                        placeholder="e.g. Netflix, Spotify"
+                        value={newSubscription.serviceName}
+                        onChange={(e) => setNewSubscription({ ...newSubscription, serviceName: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Wallet Address</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="0x..."
+                          className="font-mono flex-1"
+                          value={newSubscription.walletAddress}
+                          onChange={(e) => setNewSubscription({ ...newSubscription, walletAddress: e.target.value })}
+                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                              <Users className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-64">
+                            {/* Displaying only a few vendors for brevity */}
+                            {displayVendors.slice(0, 5).map((v) => (
+                              <DropdownMenuItem
+                                key={v.id}
+                                onClick={() =>
+                                  setNewSubscription({ ...newSubscription, walletAddress: v.wallet_address })
+                                }
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{v.name}</span>
+                                  <span className="text-xs text-muted-foreground font-mono">
+                                    {v.wallet_address.slice(0, 10)}...
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Amount</Label>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          value={newSubscription.amount}
+                          onChange={(e) => setNewSubscription({ ...newSubscription, amount: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Token</Label>
+                        <Select
+                          value={newSubscription.token}
+                          onValueChange={(v: any) => setNewSubscription({ ...newSubscription, token: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="USDT">USDT</SelectItem>
+                            <SelectItem value="USDC">USDC</SelectItem>
+                            <SelectItem value="DAI">DAI</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Frequency</Label>
+                        <Select
+                          value={newSubscription.frequency}
+                          onValueChange={(v: any) => setNewSubscription({ ...newSubscription, frequency: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Category</Label>
+                        <Select
+                          value={newSubscription.category}
+                          onValueChange={(v: any) => setNewSubscription({ ...newSubscription, category: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="streaming">Streaming</SelectItem>
+                            <SelectItem value="saas">SaaS</SelectItem>
+                            <SelectItem value="membership">Membership</SelectItem>
+                            <SelectItem value="utility">Utility</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Max Amount (Protection)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Optional - max allowed per transaction"
+                        value={newSubscription.maxAmount}
+                        onChange={(e) => setNewSubscription({ ...newSubscription, maxAmount: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Set a maximum amount to protect against unexpected charges.
+                      </p>
+                    </div>
                   </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowAddSubscription(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={addSubscription}>Add Subscription</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {displaySubscriptions
+                  .filter((s) => s.status !== "cancelled")
+                  .map((sub) => (
+                    <div
+                      key={sub.id}
+                      className={`flex items-center justify-between p-4 rounded-lg border ${
+                        sub.status === "paused"
+                          ? "bg-amber-500/5 border-amber-500/20"
+                          : sub.status === "cancelled"
+                            ? "bg-red-500/5 border-red-500/20 opacity-50"
+                            : "bg-muted/30 border-border"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            sub.category === "streaming"
+                              ? "bg-purple-500/10"
+                              : sub.category === "saas"
+                                ? "bg-blue-500/10"
+                                : sub.category === "membership"
+                                  ? "bg-emerald-500/10"
+                                  : "bg-muted"
+                          }`}
+                        >
+                          {sub.category === "streaming" ? (
+                            <Play className="h-5 w-5 text-purple-500" />
+                          ) : sub.category === "saas" ? (
+                            <Zap className="h-5 w-5 text-blue-500" />
+                          ) : (
+                            <CreditCard className="h-5 w-5 text-emerald-500" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium flex items-center gap-2">
+                            {sub.serviceName}
+                            <Badge
+                              variant={
+                                sub.status === "active"
+                                  ? "default"
+                                  : sub.status === "paused"
+                                    ? "secondary"
+                                    : "destructive"
+                              }
+                              className="text-xs"
+                            >
+                              {sub.status}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            ${sub.amount} {sub.token} / {sub.frequency}
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            {sub.walletAddress.slice(0, 10)}...{sub.walletAddress.slice(-8)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right text-sm">
+                          <div className="text-muted-foreground">Next</div>
+                          <div>{sub.nextPayment.toLocaleDateString()}</div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => executeSubscriptionPayment(sub)}
+                            disabled={sub.status !== "active" || isProcessing}
+                            title="Pay Now"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleSubscriptionStatus(sub.id)}
+                            disabled={sub.status === "cancelled"}
+                            title={sub.status === "active" ? "Pause" : "Resume"}
+                          >
+                            {sub.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => cancelSubscription(sub.id)}
+                            disabled={sub.status === "cancelled"}
+                            title="Cancel"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                {displaySubscriptions.filter((s) => s.status !== "cancelled").length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p>No active subscriptions</p>
+                    <p className="text-sm">Add a subscription to get started</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Protection Alert */}
+          <Alert className="bg-emerald-500/10 border-emerald-500/20">
+            <Shield className="h-4 w-4 text-emerald-500" />
+            <AlertTitle className="text-emerald-500">Payment Protection Active</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              All subscriptions require your approval before payment. Set maximum amounts to prevent unauthorized
+              charges.
+            </AlertDescription>
+          </Alert>
+        </div>
+      ) : (
+        /* Business Mode - Batch Payments */
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-muted/50">
+            <TabsTrigger value="batch">Batch Payment</TabsTrigger>
+            <TabsTrigger value="auto">Auto-Payments</TabsTrigger>
+            <TabsTrigger value="x402">x402 Bill Pay</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="batch" className="space-y-6">
+            <div className="grid lg:grid-cols-12 gap-6">
+              {/* Recipients Card */}
+              <Card className="lg:col-span-8 bg-card">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Recipients</CardTitle>
+                    <CardDescription>Add payment recipients from your contacts or enter new addresses</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openTagDialog()}>
+                      <Tag className="h-4 w-4 mr-2" />
+                      New Tag
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <FileUp className="h-4 w-4 mr-2" />
+                      Import CSV
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-lg border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[200px]">Vendor / Contact</TableHead>
+                          <TableHead className="w-[280px]">Address</TableHead>
+                          <TableHead className="w-[100px]">Token</TableHead>
+                          <TableHead className="w-[120px]">Amount</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {recipients.map((recipient) => (
+                          <TableRow key={recipient.id}>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" className="w-full justify-between bg-transparent">
+                                    {recipient.vendorName || "Select contact..."}
+                                    <ChevronDown className="h-4 w-4 ml-2" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[280px]" align="start">
+                                  <div className="p-2">
+                                    <Input
+                                      placeholder="Search contacts..."
+                                      value={vendorSearchQuery}
+                                      onChange={(e) => setVendorSearchQuery(e.target.value)}
+                                      className="mb-2"
+                                    />
+                                  </div>
+                                  <div className="max-h-[200px] overflow-y-auto">
+                                    {filteredVendors.map((vendor) => (
+                                      <DropdownMenuItem
+                                        key={vendor.id}
+                                        onClick={() => selectVendorForRecipient(recipient.id, vendor.id)}
+                                      >
+                                        <div className="flex items-center gap-2 w-full">
+                                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                                            {vendor.name.charAt(0)}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="font-medium truncate">{vendor.name}</div>
+                                            <div className="text-xs text-muted-foreground font-mono truncate">
+                                              {vendor.wallet_address.slice(0, 10)}...
+                                            </div>
+                                          </div>
+                                          <Badge variant="outline" className="text-xs shrink-0">
+                                            {vendor.type || vendor.category || "Vendor"}
+                                          </Badge>
+                                        </div>
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </div>
+                                  <div className="border-t p-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full justify-start"
+                                      onClick={() => openTagDialog(recipient.id)}
+                                    >
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Add new contact
+                                    </Button>
+                                  </div>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Input
+                                  placeholder="0x..."
+                                  value={recipient.address}
+                                  onChange={(e) => updateRecipient(recipient.id, "address", e.target.value)}
+                                  className="font-mono"
+                                />
+                                {recipient.address && !recipient.vendorId && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openTagDialog(recipient.id, recipient.address)}
+                                    title="Tag this address"
+                                  >
+                                    <Tag className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={recipient.token}
+                                onValueChange={(v) => updateRecipient(recipient.id, "token", v)}
+                              >
+                                <SelectTrigger className="w-[90px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="USDT">USDT</SelectItem>
+                                  <SelectItem value="USDC">USDC</SelectItem>
+                                  <SelectItem value="DAI">DAI</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                placeholder="0.00"
+                                value={recipient.amount}
+                                onChange={(e) => updateRecipient(recipient.id, "amount", e.target.value)}
+                                className="font-mono"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeRecipient(recipient.id)}
+                                disabled={recipients.length === 1}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <Button onClick={addRecipient} variant="outline" className="w-full mt-4 bg-transparent">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Recipient
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Summary Card */}
+              <Card className="lg:col-span-4 h-fit sticky top-24 bg-card">
+                <CardHeader>
+                  <CardTitle>Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Recipients</span>
+                    <span className="font-bold">{recipients.filter((r) => r.address).length}</span>
+                  </div>
+                  {(() => {
+                    const totals = getTotalAmounts()
+                    const grandTotal = totals.USDT + totals.USDC + totals.DAI
+                    return grandTotal > 0 ? (
+                      <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                        <div className="text-xs text-muted-foreground mb-1">Total</div>
+                        <div className="text-2xl font-bold text-primary font-mono">${grandTotal.toFixed(2)}</div>
+                      </div>
+                    ) : null
+                  })()}
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={saveDraft} className="flex-1 bg-transparent">
+                      <Save className="mr-2 h-4 w-4" />
+                      Save
+                    </Button>
+                  </div>
+
+                  <Button className="w-full" size="lg" onClick={processBatchPayment} disabled={isProcessing}>
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Payment
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
 
-            {/* Security Alert */}
-            <Alert className="bg-emerald-500/10 border-emerald-500/20">
-              <Shield className="h-4 w-4 text-emerald-500" />
-              <AlertTitle className="text-emerald-500">Payment Protection Enabled</AlertTitle>
+          <TabsContent value="auto" className="space-y-6">
+            <Alert className="bg-blue-500/10 border-blue-500/20">
+              <Clock className="h-4 w-4 text-blue-500" />
+              <AlertTitle className="text-blue-500">Automated Payments</AlertTitle>
               <AlertDescription className="text-muted-foreground">
-                All subscriptions require your approval. You can pause or cancel any payment at any time. Unauthorized
-                transactions are automatically blocked.
+                Set up recurring payments to vendors. All auto-payments can be paused at any time.
               </AlertDescription>
             </Alert>
 
-            {/* Subscriptions List */}
-            <Card className="bg-card border-border">
+            <Card className="bg-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>My Subscriptions</CardTitle>
-                  <CardDescription>Manage your recurring payments and subscriptions</CardDescription>
+                  <CardTitle>Scheduled Auto-Payments</CardTitle>
+                  <CardDescription>Manage recurring vendor payments</CardDescription>
                 </div>
-                <Button onClick={() => setShowAddSubscription(true)} size="sm">
+                <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Subscription
+                  Add Auto-Payment
                 </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {subscriptions
-                    .filter((s) => s.status !== "cancelled")
-                    .map((sub) => (
-                      <div
-                        key={sub.id}
-                        className={`flex items-center justify-between p-4 rounded-lg border ${
-                          sub.status === "paused" ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/30 border-border"
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold ${
-                              sub.category === "streaming"
-                                ? "bg-purple-500/20 text-purple-500"
-                                : sub.category === "saas"
-                                  ? "bg-blue-500/20 text-blue-500"
-                                  : sub.category === "membership"
-                                    ? "bg-emerald-500/20 text-emerald-500"
-                                    : sub.category === "utility"
-                                      ? "bg-orange-500/20 text-orange-500"
-                                      : "bg-zinc-500/20 text-zinc-500"
-                            }`}
-                          >
-                            {sub.serviceName.charAt(0)}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-foreground">{sub.serviceName}</span>
-                              {sub.status === "paused" && (
-                                <Badge variant="outline" className="text-amber-500 border-amber-500/30">
-                                  Paused
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              ${sub.amount} {sub.token} / {sub.frequency}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Next: {new Date(sub.nextPayment).toLocaleDateString()} · Total paid: ${sub.totalPaid}
-                            </div>
-                          </div>
+                  {displayAutoPayments.map((payment) => (
+                    <div
+                      key={payment.id}
+                      className={`flex items-center justify-between p-4 rounded-lg border ${
+                        payment.status === "paused" ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/30 border-border"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Building2 className="h-5 w-5 text-primary" />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => toggleSubscriptionStatus(sub.id)}
-                            title={sub.status === "active" ? "Pause" : "Resume"}
-                          >
-                            {sub.status === "active" ? (
-                              <Pause className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Play className="h-4 w-4 text-emerald-500" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => cancelSubscription(sub.id)}
-                            title="Cancel subscription"
-                            className="hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Settings className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Upcoming Payments */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Upcoming Payments
-                </CardTitle>
-                <CardDescription>Payments scheduled for the next 30 days</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {subscriptions
-                    .filter((s) => s.status === "active")
-                    .sort((a, b) => new Date(a.nextPayment).getTime() - new Date(b.nextPayment).getTime())
-                    .slice(0, 5)
-                    .map((sub) => {
-                      const daysUntil = Math.ceil((new Date(sub.nextPayment).getTime() - Date.now()) / 86400000)
-                      return (
-                        <div
-                          key={sub.id}
-                          className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-2 h-2 rounded-full ${daysUntil <= 3 ? "bg-amber-500" : "bg-emerald-500"}`}
-                            />
-                            <span className="text-foreground">{sub.serviceName}</span>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-muted-foreground text-sm">
-                              {daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
-                            </span>
-                            <span className="font-mono font-medium">${sub.amount}</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {mode === "enterprise" && (
-          <Tabs defaultValue="batch" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 lg:w-[500px] mb-6">
-              <TabsTrigger value="batch">Batch Payment</TabsTrigger>
-              <TabsTrigger value="auto">Auto-Payments</TabsTrigger>
-              <TabsTrigger value="x402">x402 Bill Pay</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="batch" className="space-y-6">
-              <Alert className="bg-emerald-500/10 border-emerald-500/20 text-emerald-500">
-                <Info className="h-4 w-4" />
-                <AlertTitle>x402 Batch Ready</AlertTitle>
-                <AlertDescription>
-                  Gasless payments (EIP-3009) are automatically enabled for USDC transactions.
-                </AlertDescription>
-              </Alert>
-
-              {hasDraft && (
-                <Alert className="bg-yellow-500/10 border-yellow-500/20">
-                  <FolderOpen className="h-4 w-4 text-yellow-500" />
-                  <AlertTitle className="text-yellow-500">Saved Draft Available</AlertTitle>
-                  <AlertDescription className="flex items-center justify-between">
-                    <span className="text-muted-foreground">You have a saved batch payment draft.</span>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={loadDraft}>
-                        Load Draft
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={clearDraft}>
-                        Discard
-                      </Button>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="grid gap-6 lg:grid-cols-12">
-                <div className="lg:col-span-8 space-y-6">
-                  <Card className="bg-card border-border">
-                    <CardHeader>
-                      <CardTitle>Recipients</CardTitle>
-                      <CardDescription>Add wallet addresses and amounts for batch payment</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex gap-4 text-sm mb-4 bg-muted/30 p-3 rounded-md overflow-x-auto">
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground">USDT</span>
-                          <span className="font-mono font-bold">
-                            {isDemoMode ? "10,000.00" : Number(usdtBalance).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="w-px bg-border mx-2" />
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground">USDC</span>
-                          <span className="font-mono font-bold">
-                            {isDemoMode ? "15,500.00" : Number(usdcBalance).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="w-px bg-border mx-2" />
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground">DAI</span>
-                          <span className="font-mono font-bold">
-                            {isDemoMode ? "5,000.00" : Number(daiBalance).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg border border-border overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-secondary/50">
-                              <TableHead className="min-w-[150px]">Wallet Tag</TableHead>
-                              <TableHead className="min-w-[200px]">Address</TableHead>
-                              <TableHead className="min-w-[100px]">Token</TableHead>
-                              <TableHead className="w-[100px]">Chain</TableHead>
-                              <TableHead className="min-w-[120px]">Amount</TableHead>
-                              <TableHead className="w-[80px]">Auto</TableHead>
-                              <TableHead className="w-[50px]" />
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {recipients.map((recipient) => (
-                              <TableRow key={recipient.id}>
-                                <TableCell>
-                                  <Select
-                                    value={recipient.vendorId}
-                                    onValueChange={(v) => updateRecipient(recipient.id, "vendorId", v)}
-                                  >
-                                    <SelectTrigger className="bg-background">
-                                      <SelectValue placeholder="Select" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {vendors.map((vendor) => (
-                                        <SelectItem key={vendor.id} value={vendor.id}>
-                                          {vendor.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell>
-                                  <Input
-                                    placeholder="0x..."
-                                    value={recipient.address}
-                                    onChange={(e) => updateRecipient(recipient.id, "address", e.target.value)}
-                                    className="font-mono"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Select
-                                    value={recipient.token}
-                                    onValueChange={(v) => updateRecipient(recipient.id, "token", v)}
-                                  >
-                                    <SelectTrigger className="w-[90px]">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="USDT">USDT</SelectItem>
-                                      <SelectItem value="USDC">USDC</SelectItem>
-                                      <SelectItem value="DAI">DAI</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell>
-                                  <Select
-                                    value={recipient.destinationChainId?.toString() || selectedNetwork.toString()}
-                                    onValueChange={(val) =>
-                                      updateRecipient(recipient.id, "destinationChainId", Number(val))
-                                    }
-                                  >
-                                    <SelectTrigger className="w-[100px]">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value={CHAIN_IDS.MAINNET.toString()}>ETH</SelectItem>
-                                      <SelectItem value={CHAIN_IDS.BASE.toString()}>Base</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell>
-                                  <Input
-                                    type="number"
-                                    placeholder="0.00"
-                                    value={recipient.amount}
-                                    onChange={(e) => updateRecipient(recipient.id, "amount", e.target.value)}
-                                    className="font-mono"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Switch
-                                    checked={recipient.isAutoPayment || false}
-                                    onCheckedChange={(checked) =>
-                                      updateRecipient(recipient.id, "isAutoPayment", checked)
-                                    }
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeRecipient(recipient.id)}
-                                    disabled={recipients.length === 1}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-
-                      <Button onClick={addRecipient} variant="outline" className="w-full bg-transparent">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Recipient
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card className="lg:col-span-4 h-fit sticky top-24 bg-card border-border">
-                  <CardHeader>
-                    <CardTitle>Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Recipients</span>
-                      <span className="font-bold">{recipients.filter((r) => r.address).length}</span>
-                    </div>
-                    {(() => {
-                      const totals = getTotalAmounts()
-                      const grandTotal = totals.USDT + totals.USDC + totals.DAI
-                      return grandTotal > 0 ? (
-                        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-                          <div className="text-xs text-muted-foreground mb-1">Total</div>
-                          <div className="text-2xl font-bold text-primary font-mono">${grandTotal.toFixed(2)}</div>
-                        </div>
-                      ) : null
-                    })()}
-
-                    {feePreview && <FeePreview data={feePreview} />}
-
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={saveDraft} className="flex-1 bg-transparent">
-                        <Save className="mr-2 h-4 w-4" />
-                        Save
-                      </Button>
-                    </div>
-
-                    <Button className="w-full" size="lg" onClick={processBatchPayment} disabled={isProcessing}>
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Send Payment
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="auto" className="space-y-6">
-              <Alert className="bg-blue-500/10 border-blue-500/20">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <AlertTitle className="text-blue-500">Automated Payments</AlertTitle>
-                <AlertDescription className="text-muted-foreground">
-                  Set up recurring payments to vendors. All auto-payments require initial approval and can be paused at
-                  any time.
-                </AlertDescription>
-              </Alert>
-
-              <Card className="bg-card border-border">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Scheduled Auto-Payments</CardTitle>
-                    <CardDescription>Manage recurring vendor payments</CardDescription>
-                  </div>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Auto-Payment
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {autoPayments.map((payment) => (
-                      <div
-                        key={payment.id}
-                        className={`flex items-center justify-between p-4 rounded-lg border ${
-                          payment.status === "paused"
-                            ? "bg-amber-500/5 border-amber-500/20"
-                            : "bg-muted/30 border-border"
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Building2 className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{payment.vendorName}</span>
-                              {payment.status === "paused" && (
-                                <Badge variant="outline" className="text-amber-500 border-amber-500/30">
-                                  Paused
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              ${payment.amount} {payment.token} / {payment.frequency}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Next: {new Date(payment.nextPayment).toLocaleDateString()} · Max: ${payment.maxAmount}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => toggleAutoPaymentStatus(payment.id)}>
-                            {payment.status === "active" ? (
-                              <Pause className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Play className="h-4 w-4 text-emerald-500" />
-                            )}
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Settings className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="x402" className="space-y-6">
-              <Card className="border-blue-500/20 bg-blue-950/5">
-                <CardHeader className="text-center pb-8 border-b border-border/50">
-                  <div className="flex justify-center mb-4">
-                    <div className="p-4 bg-blue-500/10 rounded-full">
-                      <Receipt className="w-10 h-10 text-blue-500" />
-                    </div>
-                  </div>
-                  <CardTitle className="text-2xl">x402 Bill Payment</CardTitle>
-                  <CardDescription className="text-base max-w-md mx-auto mt-2">
-                    Paste your payment request URL to authorize gasless payments.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-8 p-8">
-                  <div className="space-y-4">
-                    <Label className="text-lg font-medium">Bill URL / Payment Request</Label>
-                    <div className="flex gap-3">
-                      <div className="relative flex-1">
-                        <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <Input
-                          placeholder="Paste your x402 bill link here..."
-                          className="pl-12 h-14 text-lg"
-                          value={billUrl}
-                          onChange={(e) => setBillUrl(e.target.value)}
-                        />
-                      </div>
-                      <Button onClick={fetchBill} disabled={isLoadingBill || !billUrl} className="h-14 px-8">
-                        {isLoadingBill ? <Loader2 className="w-5 h-5 animate-spin" /> : "Load Bill"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {billData && (
-                    <div className="rounded-lg border bg-card p-6 space-y-4">
-                      <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-semibold text-lg">{billData.vendorName}</h3>
-                          <p className="text-sm text-muted-foreground">Due: {billData.dueDate}</p>
+                          <div className="font-medium flex items-center gap-2">
+                            {payment.vendorName}
+                            <Badge variant={payment.status === "active" ? "default" : "secondary"}>
+                              {payment.status}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            ${payment.amount} {payment.token} / {payment.frequency}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Next: {payment.nextPayment.toLocaleDateString()}
+                          </div>
                         </div>
-                        <Badge variant="outline" className="text-lg py-1 px-3">
-                          {billData.amount} {billData.token}
-                        </Badge>
                       </div>
-                      <div className="p-3 bg-muted/50 rounded-md text-sm font-mono break-all">
-                        <span className="text-muted-foreground">To: </span>
-                        {billData.to}
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => toggleAutoPaymentStatus(payment.id)}>
+                          {payment.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" variant="ghost">
+                          <Settings className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button className="w-full" onClick={handleBillPayment} disabled={isProcessing}>
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Authorizing...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-4 w-4" />
-                            Sign & Pay (Gasless)
-                          </>
-                        )}
-                      </Button>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
-    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="x402" className="space-y-6">
+            <Alert className="bg-purple-500/10 border-purple-500/20">
+              <LinkIcon className="h-4 w-4 text-purple-500" />
+              <AlertTitle className="text-purple-500">x402 Protocol</AlertTitle>
+              <AlertDescription className="text-muted-foreground">
+                Pay bills via payment links. Scan QR codes or paste x402 links to pay instantly.
+              </AlertDescription>
+            </Alert>
+
+            <Card className="bg-card">
+              <CardHeader>
+                <CardTitle>Pay via Link</CardTitle>
+                <CardDescription>Enter an x402 payment link or scan QR code</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Payment Link</Label>
+                  <Input placeholder="x402://pay?..." className="font-mono" />
+                </div>
+                <Button className="w-full">
+                  <Send className="h-4 w-4 mr-2" />
+                  Process Payment
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+    </main>
   )
+}
+
+// Type definitions
+interface Subscription {
+  id: string
+  serviceName: string
+  amount: string
+  token: "USDT" | "USDC" | "DAI"
+  frequency: "weekly" | "monthly" | "yearly"
+  nextPayment: Date
+  status: "active" | "paused" | "cancelled"
+  walletAddress: string
+  totalPaid: string
+  startDate: Date
+  category: "streaming" | "saas" | "membership" | "utility" | "other"
+  chainId?: number
+  maxAmount?: string
+}
+
+interface AutoPayment {
+  id: string
+  vendorId: string
+  vendorName: string
+  walletAddress: string
+  amount: string
+  token: "USDT" | "USDC" | "DAI"
+  frequency: "weekly" | "monthly" | "yearly"
+  status: "active" | "paused"
+  maxAmount?: string
+  nextPayment: Date
+  lastPayment?: Date
+}
+
+interface PaymentRecipient {
+  id: string
+  address: string
+  amount: string
+  vendorName: string
+  vendorId: string
+  token: "USDT" | "USDC" | "DAI" | "CUSTOM"
+  customTokenAddress?: string
+  destinationChainId?: number
+  isAutoPayment?: boolean
+}
+
+interface Vendor {
+  id: string
+  name: string
+  wallet_address: string
+  category?: string
+  email?: string
+  type?: string
+  chain?: string
 }

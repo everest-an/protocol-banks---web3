@@ -46,6 +46,8 @@ interface NetworkGraphProps {
 }
 
 export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: NetworkGraphProps) {
+  console.log("[v0] NetworkGraph received vendors:", vendors?.length || 0)
+
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
@@ -71,7 +73,12 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
   const GRAPH_HEIGHT = 800
 
   const { initialNodes, edges } = useMemo(() => {
-    if (!vendors.length) return { initialNodes: [], edges: [] }
+    console.log("[v0] Calculating nodes, vendors:", vendors?.length || 0)
+
+    if (!vendors.length) {
+      console.log("[v0] No vendors, returning empty nodes")
+      return { initialNodes: [], edges: [] }
+    }
 
     const centerX = GRAPH_WIDTH / 2
     const centerY = GRAPH_HEIGHT / 2
@@ -180,6 +187,8 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
         isPending: i % 5 === 0,
       })
     })
+
+    console.log("[v0] Calculated nodes:", processedNodes.length, "edges:", processedEdges.length)
 
     return { initialNodes: processedNodes, edges: processedEdges }
   }, [vendors, userAddress, filter])

@@ -13,6 +13,7 @@ import {
   Loader2,
   ArrowLeftRight,
   CreditCard,
+  Users,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -43,6 +44,7 @@ export function Header() {
     { href: "/receive", label: "Receive", icon: QrCode },
     { href: "/swap", label: "Swap", icon: ArrowLeftRight },
     { href: "/card", label: "Card", icon: CreditCard },
+    { href: "/vendors", label: "Contacts", icon: Users }, // Add Contacts to navigation
     { href: "/history", label: "History", icon: History },
   ]
 

@@ -436,6 +436,32 @@ export function addressToBytes32(address: string): string {
   return ethers.zeroPadValue(address, 32)
 }
 
+export function validateAndChecksumAddress(address: string): {
+  isValid: boolean
+  checksumAddress: string | null
+  error?: string
+} {
+  if (!address) {
+    return { isValid: false, checksumAddress: null, error: "Address is required" }
+  }
+
+  // Remove whitespace
+  const trimmed = address.trim()
+
+  // Check if it's a valid Ethereum address
+  if (!ethers.isAddress(trimmed)) {
+    return { isValid: false, checksumAddress: null, error: "Invalid Ethereum address format" }
+  }
+
+  try {
+    // Get checksummed address
+    const checksumAddress = ethers.getAddress(trimmed)
+    return { isValid: true, checksumAddress }
+  } catch (error: any) {
+    return { isValid: false, checksumAddress: null, error: error.message || "Failed to validate address" }
+  }
+}
+
 export async function executeCCTPTransfer(
   tokenAddress: string,
   messengerAddress: string,
