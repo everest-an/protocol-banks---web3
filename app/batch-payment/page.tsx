@@ -46,12 +46,12 @@ import {
   ChevronDown,
   Bookmark,
   Users,
+  Download,
 } from "lucide-react"
 import { createClient as getSupabase } from "@/lib/supabase-client"
 import { validateAndChecksumAddress } from "@/lib/web3"
 
 export default function BatchPaymentPage() {
-  // ... existing state declarations ...
   const { wallets, sendToken, signERC3009Authorization, isConnected } = useWeb3()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
@@ -388,6 +388,104 @@ export default function BatchPaymentPage() {
     })
     setTagDialogOpen(true)
   }
+
+  const handleImportCSV = useCallback(() => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".csv,.xlsx,.xls"
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      try {
+        const text = await file.text()
+        const lines = text.split("\n")
+        const headers = lines[0].split(",").map((h) => h.trim())
+
+        // Validate headers
+        const requiredHeaders = ["address", "amount", "token"]
+        const hasRequiredHeaders = requiredHeaders.every((h) => headers.includes(h))
+
+        if (!hasRequiredHeaders) {
+          toast({
+            title: "Invalid CSV",
+            description: `CSV must contain columns: ${requiredHeaders.join(", ")}`,
+            variant: "destructive",
+          })
+          return
+        }
+
+        const newRecipients: PaymentRecipient[] = []
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim()
+          if (!line) continue
+
+          const values = line.split(",").map((v) => v.trim())
+          const row: any = {}
+          headers.forEach((header, index) => {
+            row[header] = values[index] || ""
+          })
+
+          if (row.address && row.amount) {
+            newRecipients.push({
+              id: Date.now().toString() + i,
+              address: row.address,
+              amount: row.amount,
+              vendorName: row.vendorName || row.name || "",
+              vendorId: row.vendorId || "",
+              token: row.token || "USDT",
+            })
+          }
+        }
+
+        if (newRecipients.length > 0) {
+          setRecipients(newRecipients)
+          toast({
+            title: "Success",
+            description: `Imported ${newRecipients.length} recipients from CSV`,
+          })
+        } else {
+          toast({
+            title: "No data",
+            description: "No valid recipients found in CSV file",
+            variant: "destructive",
+          })
+        }
+      } catch (err: any) {
+        console.error("[v0] Error importing CSV:", err)
+        toast({
+          title: "Import failed",
+          description: err.message || "Failed to parse CSV file",
+          variant: "destructive",
+        })
+      }
+    }
+    input.click()
+  }, [toast])
+
+  const handleExportCSV = useCallback(() => {
+    // Create CSV content
+    const headers = ["address", "amount", "token", "vendorName", "vendorId"]
+    const rows = recipients.map((r) => [r.address, r.amount, r.token, r.vendorName || "", r.vendorId || ""].join(","))
+
+    const csv = [headers.join(","), ...rows].join("\n")
+
+    // Download file
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", `batch-payment-${new Date().toISOString().split("T")[0]}.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast({
+      title: "Exported",
+      description: `Exported ${recipients.length} recipients to CSV`,
+    })
+  }, [recipients, toast])
 
   const saveWalletTag = async () => {
     if (!tagFormData.name || !tagFormData.wallet_address) {
@@ -1262,9 +1360,13 @@ export default function BatchPaymentPage() {
                       <Tag className="h-4 w-4 mr-2" />
                       New Tag
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleImportCSV}>
                       <FileUp className="h-4 w-4 mr-2" />
                       Import CSV
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export CSV
                     </Button>
                   </div>
                 </CardHeader>

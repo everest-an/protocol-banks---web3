@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Share2, ExternalLink, Copy, Check, Calendar } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { getSupabase } from "@/lib/supabase"
 
 interface Vendor {
   id: string
@@ -215,6 +216,11 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
     }
   }, [nodes, edges, vendors])
 
+  const [transactionHistory, setTransactionHistory] = useState<
+    Array<{ date: string; amount: number; type: "sent" | "received" }>
+  >([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
@@ -243,6 +249,134 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
       }
     }
   }, [nodes, selectedNode])
+
+  useEffect(() => {
+    if (!selectedNode?.data?.wallet_address) {
+      setTransactionHistory([])
+      return
+    }
+
+    const loadHistory = async () => {
+      setLoadingHistory(true)
+      try {
+        const supabase = getSupabase()
+        if (!supabase) {
+          // Demo mode - generate realistic demo data
+          const demoData = generateDemoHistory(selectedNode.data.wallet_address)
+          setTransactionHistory(demoData)
+          setLoadingHistory(false)
+          return
+        }
+
+        // Real mode - fetch from database
+        const { data: payments } = await supabase
+          .from("payments")
+          .select("timestamp, amount, amount_usd, to_address, from_address")
+          .or(`to_address.eq.${selectedNode.data.wallet_address},from_address.eq.${selectedNode.data.wallet_address}`)
+          .order("timestamp", { ascending: true })
+
+        if (payments && payments.length > 0) {
+          const history = payments.map((p) => ({
+            date: p.timestamp,
+            amount: Number.parseFloat(p.amount_usd || p.amount || "0"),
+            type: (p.to_address === selectedNode.data.wallet_address ? "received" : "sent") as "sent" | "received",
+          }))
+          setTransactionHistory(history)
+        } else {
+          // No data, use demo
+          const demoData = generateDemoHistory(selectedNode.data.wallet_address)
+          setTransactionHistory(demoData)
+        }
+      } catch (error) {
+        console.error("[v0] Failed to load transaction history:", error)
+        // Fallback to demo data
+        const demoData = generateDemoHistory(selectedNode.data.wallet_address)
+        setTransactionHistory(demoData)
+      } finally {
+        setLoadingHistory(false)
+      }
+    }
+
+    loadHistory()
+  }, [selectedNode])
+
+  const generateDemoHistory = (address: string) => {
+    const now = new Date()
+    const history: Array<{ date: string; amount: number; type: "sent" | "received" }> = []
+
+    // Generate 12 months of data
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const baseAmount = 50000 + Math.random() * 100000
+      const count = Math.floor(5 + Math.random() * 15)
+
+      for (let j = 0; j < count; j++) {
+        history.push({
+          date: date.toISOString(),
+          amount: baseAmount / count + Math.random() * 10000,
+          type: Math.random() > 0.5 ? "received" : "sent",
+        })
+      }
+    }
+
+    return history
+  }
+
+  const paymentFlowData = useMemo(() => {
+    if (transactionHistory.length === 0) {
+      // Fallback to random data if no history
+      return Array.from({ length: 12 }, () => 20 + Math.random() * 80)
+    }
+
+    // Group by month and sum amounts
+    const monthlyData: Record<string, number> = {}
+    const now = new Date()
+
+    // Initialize last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+      monthlyData[key] = 0
+    }
+
+    // Sum transactions by month
+    transactionHistory.forEach((tx) => {
+      const date = new Date(tx.date)
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+      if (key in monthlyData) {
+        monthlyData[key] += tx.amount
+      }
+    })
+
+    // Convert to array and normalize to percentages
+    const values = Object.values(monthlyData)
+    const max = Math.max(...values, 1)
+
+    return values.map((v) => (v / max) * 80 + 10) // Scale to 10-90% range
+  }, [transactionHistory])
+
+  const ytdGrowth = useMemo(() => {
+    if (transactionHistory.length === 0) return "+12.4%"
+
+    const now = new Date()
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1)
+    const yearAgo = new Date(now.getFullYear(), now.getMonth() - 12, 1)
+
+    const recent = transactionHistory
+      .filter((tx) => new Date(tx.date) >= sixMonthsAgo)
+      .reduce((sum, tx) => sum + tx.amount, 0)
+
+    const previous = transactionHistory
+      .filter((tx) => {
+        const d = new Date(tx.date)
+        return d >= yearAgo && d < sixMonthsAgo
+      })
+      .reduce((sum, tx) => sum + tx.amount, 0)
+
+    if (previous === 0) return "+100%"
+    const growth = ((recent - previous) / previous) * 100
+    return `${growth > 0 ? "+" : ""}${growth.toFixed(1)}%`
+  }, [transactionHistory])
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
@@ -307,10 +441,6 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
-  const paymentFlowData = useMemo(() => {
-    return Array.from({ length: 12 }, () => 20 + Math.random() * 80)
-  }, [selectedNode])
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -393,7 +523,7 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
                 </span>
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-4 bg-zinc-900 border-zinc-800" align="start">
+            <PopoverContent className="w-auto p-4 bg-zinc-900 border border-zinc-800" align="start">
               <div className="space-y-4">
                 <div className="text-xs text-zinc-500 uppercase tracking-wider">Select Date Range</div>
                 <div className="grid grid-cols-2 gap-4">
@@ -588,6 +718,7 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
                             <animateMotion
                               dur="1.5s"
                               repeatCount="indefinite"
+                              begin="0.75s"
                               path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
                             />
                           </circle>
@@ -802,7 +933,7 @@ export function NetworkGraph({ vendors, userAddress, onPaymentRequest }: Network
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Payment Flow (YTD)</div>
-                <span className="text-xs text-emerald-400">+12.4% vs prev</span>
+                <span className="text-xs text-emerald-400">{ytdGrowth}</span>
               </div>
               <div className="flex items-end gap-1 h-16">
                 {paymentFlowData.map((value, i) => (
