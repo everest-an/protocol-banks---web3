@@ -479,13 +479,80 @@ export default function HomePage() {
         ) : (
           <div className="grid gap-4">
             {filteredVendors.map((vendor) => (
-              <Card key={vendor.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <h3 className="font-semibold">{vendor.name}</h3>
-                    <p className="text-xs text-muted-foreground">{vendor.wallet_address}</p>
+              <Card key={vendor.id} className="hover:border-primary/50 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-lg">{vendor.company_name || vendor.name}</h3>
+                        <Badge
+                          variant={
+                            vendor.tier === "subsidiary"
+                              ? "default"
+                              : vendor.tier === "partner"
+                                ? "secondary"
+                                : "outline"
+                          }
+                          className={
+                            vendor.tier === "subsidiary"
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              : vendor.tier === "partner"
+                                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                : ""
+                          }
+                        >
+                          {vendor.tier}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-mono">{vendor.wallet_address}</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="shrink-0 bg-transparent">
+                      Initiate Transfer
+                    </Button>
                   </div>
-                  <Badge>{vendor.tier}</Badge>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-3 border-t border-b border-border">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Volume</p>
+                      <p className="text-lg font-semibold">${(vendor.monthly_volume || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Transactions</p>
+                      <p className="text-lg font-semibold">{vendor.transaction_count || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Chain</p>
+                      <p className="text-lg font-semibold">{vendor.chain || "Ethereum"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Category</p>
+                      <p className="text-lg font-semibold capitalize">{vendor.category || "General"}</p>
+                    </div>
+                  </div>
+
+                  {/* Contact & details row */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="truncate">{(vendor as any).email || vendor.contact_email || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Contract</p>
+                      <p>{(vendor as any).notes || "Standard Agreement"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Added</p>
+                      <p>{new Date(vendor.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Status</p>
+                      <p className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Active Contract
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
