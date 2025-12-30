@@ -11,20 +11,8 @@ import { useWeb3 } from "@/contexts/web3-context"
 import { getSupabase } from "@/lib/supabase"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
-
-interface Transaction {
-  id: string
-  tx_hash: string
-  from_address: string
-  to_address: string
-  amount: string
-  amount_usd: number
-  token_symbol: string
-  status: string
-  timestamp: string
-  notes?: string
-  type: "sent" | "received"
-}
+import type { Transaction } from "@/types"
+import { aggregateTransactionsByMonth, calculateYTDGrowth } from "@/lib/services/history-service"
 
 export default function HistoryPage() {
   const { isConnected, wallet, chainId } = useWeb3()
@@ -119,6 +107,14 @@ export default function HistoryPage() {
       "42161": "https://arbiscan.io/tx/",
     }
     return `${explorers[chainId || "1"] || explorers["1"]}${txHash}`
+  }
+
+  const getMonthlyStats = () => {
+    return aggregateTransactionsByMonth(filteredTransactions)
+  }
+
+  const getGrowthRate = () => {
+    return calculateYTDGrowth(filteredTransactions)
   }
 
   return (
@@ -219,7 +215,9 @@ export default function HistoryPage() {
                           {tx.type === "sent" ? "-" : "+"}
                           {tx.amount} {tx.token_symbol}
                         </div>
-                        <div className="text-xs text-muted-foreground">${tx.amount_usd?.toFixed(2) || tx.amount}</div>
+                        <div className="text-xs text-muted-foreground">
+                          ${((tx.amount_usd ?? Number.parseFloat(tx.amount)) || 0).toFixed(2)}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge

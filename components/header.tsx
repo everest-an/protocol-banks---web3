@@ -28,6 +28,7 @@ export function Header() {
 
   const navItems = [
     { href: "/", label: "Account", icon: Wallet },
+    { href: "/subscriptions", label: "Subscriptions", icon: Send },
     { href: "/batch-payment", label: "Pay", icon: Send },
     { href: "/receive", label: "Receive", icon: QrCode },
     { href: "/swap", label: "Swap", icon: ArrowLeftRight },

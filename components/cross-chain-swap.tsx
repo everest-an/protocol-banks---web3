@@ -265,8 +265,8 @@ export function CrossChainSwap({
                   <Image
                     src={chain.logo || "/placeholder.svg"}
                     alt={chain.name}
-                    width={20}
-                    height={20}
+                    width={32}
+                    height={32}
                     className="rounded-full"
                   />
                   <span>{chain.name}</span>
@@ -286,8 +286,8 @@ export function CrossChainSwap({
                   <Image
                     src={chain.logo || "/placeholder.svg"}
                     alt={chain.name}
-                    width={20}
-                    height={20}
+                    width={28}
+                    height={28}
                     className="rounded-full"
                   />
                   <span>{chain.name}</span>
@@ -303,8 +303,8 @@ export function CrossChainSwap({
                   <Image
                     src={chain.logo || "/placeholder.svg"}
                     alt={chain.name}
-                    width={20}
-                    height={20}
+                    width={28}
+                    height={28}
                     className="rounded-full"
                   />
                   <span>{chain.name}</span>
@@ -323,10 +323,10 @@ export function CrossChainSwap({
       {token ? (
         <>
           <Image
-            src={token.logo || `/placeholder.svg?height=24&width=24&query=${token.symbol}`}
+            src={token.logo || `/placeholder.svg?height=32&width=32&query=${token.symbol}`}
             alt={token.symbol}
-            width={24}
-            height={24}
+            width={32}
+            height={32}
             className="rounded-full"
           />
           <span className="font-medium">{token.symbol}</span>
@@ -345,45 +345,48 @@ export function CrossChainSwap({
     toToken,
   }: { route: RangoRoute; fromToken: TokenInfo | null; toToken: TokenInfo | null }) => {
     return (
-      <div className="flex items-center justify-between py-3">
+      <div className="flex items-center justify-between py-4">
         {/* From Token */}
         <div className="flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
             {fromToken?.logo ? (
               <Image
                 src={fromToken.logo || "/placeholder.svg"}
                 alt={fromToken.symbol}
-                width={24}
-                height={24}
+                width={48}
+                height={48}
                 className="rounded-full"
               />
             ) : (
-              <span className="text-xs font-bold">{fromToken?.symbol?.charAt(0)}</span>
+              <span className="text-lg font-bold">{fromToken?.symbol?.charAt(0)}</span>
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground mt-1">{fromToken?.symbol}</span>
+          <span className="text-xs text-muted-foreground mt-1 font-medium">{fromToken?.symbol}</span>
         </div>
 
         {/* Route Path with Bridges */}
-        <div className="flex-1 mx-3 relative">
-          <div className="absolute top-1/2 left-0 right-0 h-px bg-border -translate-y-1/2" />
-          <div className="flex justify-center gap-2 relative">
+        <div className="flex-1 mx-4 relative">
+          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2" />
+          <div className="flex justify-center gap-3 relative">
             {route.swaps.map((swap, i) => (
-              <div key={i} className="flex flex-col items-center bg-background px-2">
-                <div className="w-7 h-7 rounded-lg bg-muted border border-border flex items-center justify-center">
+              <div key={i} className="flex flex-col items-center bg-background px-3">
+                <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center">
                   {swap.swapperLogo ? (
                     <Image
                       src={swap.swapperLogo || "/placeholder.svg"}
                       alt={swap.swapperId}
-                      width={18}
-                      height={18}
+                      width={32}
+                      height={32}
                       className="rounded"
                     />
                   ) : (
-                    <span className="text-[8px] font-medium">{swap.swapperId.slice(0, 2)}</span>
+                    <span className="text-xs font-medium">{swap.swapperId.slice(0, 2)}</span>
                   )}
                 </div>
-                <span className="text-[9px] text-muted-foreground mt-0.5 max-w-[50px] truncate">{swap.swapperId}</span>
+                <span className="text-xs text-muted-foreground mt-1 max-w-[80px] truncate font-medium">
+                  {swap.swapperId}
+                </span>
+                <span className="text-[10px] text-muted-foreground/60">{swap.swapperType || "Bridge"}</span>
               </div>
             ))}
           </div>
@@ -391,20 +394,20 @@ export function CrossChainSwap({
 
         {/* To Token */}
         <div className="flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
             {toToken?.logo ? (
               <Image
                 src={toToken.logo || "/placeholder.svg"}
                 alt={toToken.symbol}
-                width={24}
-                height={24}
+                width={48}
+                height={48}
                 className="rounded-full"
               />
             ) : (
-              <span className="text-xs font-bold">{toToken?.symbol?.charAt(0)}</span>
+              <span className="text-lg font-bold">{toToken?.symbol?.charAt(0)}</span>
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground mt-1">{toToken?.symbol}</span>
+          <span className="text-xs text-muted-foreground mt-1 font-medium">{toToken?.symbol}</span>
         </div>
       </div>
     )
@@ -419,34 +422,31 @@ export function CrossChainSwap({
       <button
         key={route.requestId}
         onClick={() => setSelectedRoute(route)}
-        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+        className={`w-full p-5 rounded-xl border-2 text-left transition-all ${
           isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/50"
         }`}
       >
-        {/* Top Row: Fee, Time, Steps, Tags */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Fuel className="h-3 w-3" />${route.totalFeeUsd.toFixed(2)}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Fuel className="h-4 w-4" />${route.totalFeeUsd.toFixed(2)}
             </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4" />
               {formatTime(route.estimatedTimeInSeconds)}
             </span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1.5">
               <span className="text-muted-foreground/60">≡</span>
-              {route.swaps.length}
+              {route.swaps.length} {route.swaps.length === 1 ? "step" : "steps"}
             </span>
           </div>
-          <div className="flex gap-1">
-            {isBest && (
-              <Badge className="bg-cyan-500/10 text-cyan-500 border-0 text-[10px] px-1.5 py-0">Recommended</Badge>
-            )}
+          <div className="flex gap-1.5">
+            {isBest && <Badge className="bg-cyan-500/10 text-cyan-500 border-0 text-xs px-2 py-0.5">Recommended</Badge>}
             {isLowestFee && (
-              <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[10px] px-1.5 py-0">Lowest Fee</Badge>
+              <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-xs px-2 py-0.5">Lowest Fee</Badge>
             )}
             {isFastest && (
-              <Badge className="bg-orange-500/10 text-orange-500 border-0 text-[10px] px-1.5 py-0">Fastest</Badge>
+              <Badge className="bg-orange-500/10 text-orange-500 border-0 text-xs px-2 py-0.5">Fastest</Badge>
             )}
           </div>
         </div>
@@ -454,16 +454,28 @@ export function CrossChainSwap({
         {/* Visual Route Path */}
         <RoutePathDiagram route={route} fromToken={fromToken} toToken={toToken} />
 
-        {/* Output Amount */}
-        <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-border/50">
-          <span className="text-lg font-semibold">{Number.parseFloat(route.outputAmount).toFixed(4)}</span>
-          <span className="text-sm text-muted-foreground">{toToken?.symbol}</span>
-          <span className="text-xs text-muted-foreground">~${route.outputAmountUsd.toFixed(2)}</span>
-          {route.priceImpact > 0.5 && (
-            <Badge variant="outline" className="text-amber-500 border-amber-500/30 text-[10px]">
-              -{route.priceImpact.toFixed(2)}%
-            </Badge>
+        <div className="mt-3 pt-3 border-t border-border/50 space-y-1.5 text-xs">
+          <div className="flex justify-between text-muted-foreground">
+            <span>Route Type:</span>
+            <span className="font-medium text-foreground">
+              {route.swaps.length === 1 ? "Direct Swap" : "Multi-hop Bridge"}
+            </span>
+          </div>
+          {route.priceImpact > 0 && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>Price Impact:</span>
+              <span className={route.priceImpact > 1 ? "text-amber-500 font-medium" : "text-foreground"}>
+                {route.priceImpact.toFixed(3)}%
+              </span>
+            </div>
           )}
+        </div>
+
+        {/* Output Amount */}
+        <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-border/50">
+          <span className="text-xl font-semibold">{Number.parseFloat(route.outputAmount).toFixed(4)}</span>
+          <span className="text-sm text-muted-foreground font-medium">{toToken?.symbol}</span>
+          <span className="text-xs text-muted-foreground">~${route.outputAmountUsd.toFixed(2)}</span>
         </div>
       </button>
     )
@@ -512,8 +524,13 @@ export function CrossChainSwap({
 
           {/* Swap Button */}
           <div className="flex justify-center">
-            <Button variant="outline" size="icon" onClick={handleSwapChains} className="rounded-full bg-transparent">
-              <ArrowDownUp className="h-4 w-4" />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleSwapChains}
+              className="rounded-full h-12 w-12 bg-transparent"
+            >
+              <ArrowDownUp className="h-5 w-5" />
             </Button>
           </div>
 
@@ -656,9 +673,9 @@ export function CrossChainSwap({
               variant="outline"
               size="icon"
               onClick={handleSwapChains}
-              className="rounded-full h-10 w-10 bg-background border-2"
+              className="rounded-full h-12 w-12 bg-background border-2"
             >
-              <ArrowDownUp className="h-4 w-4" />
+              <ArrowDownUp className="h-5 w-5" />
             </Button>
           </div>
 
@@ -737,7 +754,7 @@ export function CrossChainSwap({
       </Card>
 
       {/* Right: Routes List */}
-      <Card>
+      <Card className="flex flex-col">
         <CardHeader>
           <CardTitle className="text-lg">Available Routes</CardTitle>
           <CardDescription>
@@ -746,7 +763,7 @@ export function CrossChainSwap({
               : "Enter an amount to see available routes"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 pb-6">
           {isLoadingRoutes ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -754,8 +771,8 @@ export function CrossChainSwap({
               ))}
             </div>
           ) : routes.length > 0 ? (
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-3">
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="space-y-3 pb-4">
                 {routes.map((route) => renderRouteCard(route, selectedRoute?.requestId === route.requestId))}
               </div>
             </ScrollArea>
@@ -811,10 +828,10 @@ export function CrossChainSwap({
                   className="w-full p-3 rounded-lg hover:bg-muted flex items-center gap-3 transition-colors"
                 >
                   <Image
-                    src={token.logo || `/placeholder.svg?height=32&width=32&query=${token.symbol}`}
+                    src={token.logo || `/placeholder.svg?height=40&width=40&query=${token.symbol}`}
                     alt={token.symbol}
-                    width={32}
-                    height={32}
+                    width={40}
+                    height={40}
                     className="rounded-full"
                   />
                   <div className="text-left">
