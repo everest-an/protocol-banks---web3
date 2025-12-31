@@ -8,14 +8,16 @@ interface DemoContextType {
   toggleDemoMode: () => void
   demoModeBlocked: boolean
   demoBlockReason: string | null
+  setWalletConnected: (connected: boolean) => void
 }
 
 const DemoContext = createContext<DemoContextType | undefined>(undefined)
 
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [isDemoMode, setIsDemoMode] = useState(true)
   const [demoModeBlocked, setDemoModeBlocked] = useState(false)
   const [demoBlockReason, setDemoBlockReason] = useState<string | null>(null)
+  const [walletConnected, setWalletConnectedState] = useState(false)
 
   useEffect(() => {
     const allowDemoMode = process.env.NEXT_PUBLIC_ALLOW_DEMO_MODE === "true"
@@ -26,10 +28,22 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const setWalletConnected = (connected: boolean) => {
+    setWalletConnectedState(connected)
+    if (connected) {
+      setIsDemoMode(false)
+    }
+  }
+
   const toggleDemoMode = () => {
+    if (walletConnected && !isDemoMode) {
+      console.warn("[v0] Cannot enable demo mode when wallet is connected")
+      return
+    }
+
     const result = secureDemoModeToggle(
       isDemoMode,
-      "client", // In real implementation, get from request
+      "client",
       typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
     )
 
@@ -52,6 +66,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         toggleDemoMode,
         demoModeBlocked,
         demoBlockReason,
+        setWalletConnected,
       }}
     >
       {children}

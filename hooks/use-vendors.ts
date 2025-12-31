@@ -270,6 +270,8 @@ const DEMO_VENDORS: Vendor[] = [
   }),
 ]
 
+const EMPTY_VENDORS: Vendor[] = []
+
 interface UseVendorsOptions {
   isDemoMode?: boolean
   walletAddress?: string
@@ -287,14 +289,20 @@ export function useVendors(options: UseVendorsOptions = {}) {
     setError(null)
 
     try {
-      if (isDemoMode || !walletAddress) {
+      if (isDemoMode) {
         console.log("[v0] useVendors: Using demo data, count:", DEMO_VENDORS.length)
         setVendors(DEMO_VENDORS)
         setLoading(false)
         return
       }
 
-      // Load from Supabase
+      if (!walletAddress) {
+        console.log("[v0] useVendors: No wallet connected, showing empty state")
+        setVendors(EMPTY_VENDORS)
+        setLoading(false)
+        return
+      }
+
       const supabase = createClient()
       const { data, error: dbError } = await supabase
         .from("vendors")
@@ -305,12 +313,11 @@ export function useVendors(options: UseVendorsOptions = {}) {
       if (dbError) throw dbError
 
       console.log("[v0] useVendors: Loaded from DB, count:", data?.length || 0)
-      setVendors(data || [])
+      setVendors(data || EMPTY_VENDORS)
     } catch (err) {
       console.error("[v0] useVendors: Error loading vendors:", err)
       setError(err instanceof Error ? err.message : "Failed to load vendors")
-      // Fallback to demo data on error
-      setVendors(DEMO_VENDORS)
+      setVendors(EMPTY_VENDORS)
     } finally {
       setLoading(false)
     }

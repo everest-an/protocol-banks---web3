@@ -119,9 +119,16 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
     setError(null)
 
     try {
-      if (isDemoMode || !walletAddress) {
+      if (isDemoMode) {
         console.log("[v0] useSubscriptions: Using demo data, count:", DEMO_SUBSCRIPTIONS.length)
         setSubscriptions(DEMO_SUBSCRIPTIONS)
+        setLoading(false)
+        return
+      }
+
+      if (!walletAddress) {
+        console.log("[v0] useSubscriptions: No wallet, returning empty")
+        setSubscriptions([])
         setLoading(false)
         return
       }
@@ -140,7 +147,7 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
     } catch (err) {
       console.error("[v0] useSubscriptions: Error:", err)
       setError(err instanceof Error ? err.message : "Failed to load subscriptions")
-      setSubscriptions(DEMO_SUBSCRIPTIONS)
+      setSubscriptions([])
     } finally {
       setLoading(false)
     }

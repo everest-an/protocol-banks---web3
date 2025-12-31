@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
@@ -44,9 +44,13 @@ const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal
 
 export default function HomePage() {
   const { isConnected, connectWallet, wallet } = useWeb3()
-  const { isDemoMode } = useDemo()
+  const { isDemoMode, setWalletConnected } = useDemo()
   const { toast } = useToast()
   const router = useRouter()
+
+  useEffect(() => {
+    setWalletConnected(isConnected)
+  }, [isConnected, setWalletConnected])
 
   const { vendors, loading, addVendor, updateVendor, deleteVendor } = useVendors({ isDemoMode, walletAddress: wallet })
   const { balance, loading: balanceLoading } = useBalance({ isDemoMode, walletAddress: wallet })
@@ -473,6 +477,7 @@ export default function HomePage() {
             <NetworkGraph
               vendors={filteredVendors}
               userAddress={wallet}
+              isDemoMode={isDemoMode}
               onPaymentRequest={(vendor) => {
                 console.log("[v0] Payment requested for vendor:", vendor)
               }}
@@ -480,84 +485,102 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {filteredVendors.map((vendor) => (
-              <Card key={vendor.id} className="hover:border-primary/50 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-lg">{vendor.company_name || vendor.name}</h3>
-                        <Badge
-                          variant={
-                            vendor.tier === "subsidiary"
-                              ? "default"
-                              : vendor.tier === "partner"
-                                ? "secondary"
-                                : "outline"
-                          }
-                          className={
-                            vendor.tier === "subsidiary"
-                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                              : vendor.tier === "partner"
-                                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                                : ""
-                          }
-                        >
-                          {vendor.tier}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground font-mono">{vendor.wallet_address}</p>
-                    </div>
-                    <Button size="sm" variant="outline" className="shrink-0 bg-transparent">
-                      Initiate Transfer
-                    </Button>
+            {!isDemoMode && filteredVendors.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <Search className="w-8 h-8 text-muted-foreground" />
                   </div>
-
-                  {/* Stats row */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-3 border-t border-b border-border">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Volume</p>
-                      <p className="text-lg font-semibold">${(vendor.monthly_volume || 0).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Transactions</p>
-                      <p className="text-lg font-semibold">{vendor.transaction_count || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Chain</p>
-                      <p className="text-lg font-semibold">{vendor.chain || "Ethereum"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Category</p>
-                      <p className="text-lg font-semibold capitalize">{vendor.category || "General"}</p>
-                    </div>
-                  </div>
-
-                  {/* Contact & details row */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="truncate">{(vendor as any).email || vendor.contact_email || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Contract</p>
-                      <p>{(vendor as any).notes || "Standard Agreement"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Added</p>
-                      <p>{new Date(vendor.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Status</p>
-                      <p className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        Active Contract
-                      </p>
-                    </div>
-                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No Contacts Yet</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm">
+                    Add your first vendor, partner, or subsidiary to start managing your payment network.
+                  </p>
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Contact
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              filteredVendors.map((vendor) => (
+                <Card key={vendor.id} className="hover:border-primary/50 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-lg">{vendor.company_name || vendor.name}</h3>
+                          <Badge
+                            variant={
+                              vendor.tier === "subsidiary"
+                                ? "default"
+                                : vendor.tier === "partner"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                            className={
+                              vendor.tier === "subsidiary"
+                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                : vendor.tier === "partner"
+                                  ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                  : ""
+                            }
+                          >
+                            {vendor.tier}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-mono">{vendor.wallet_address}</p>
+                      </div>
+                      <Button size="sm" variant="outline" className="shrink-0 bg-transparent">
+                        Initiate Transfer
+                      </Button>
+                    </div>
+
+                    {/* Stats row */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-3 border-t border-b border-border">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Volume</p>
+                        <p className="text-lg font-semibold">${(vendor.monthly_volume || 0).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Transactions</p>
+                        <p className="text-lg font-semibold">{vendor.transaction_count || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Chain</p>
+                        <p className="text-lg font-semibold">{vendor.chain || "Ethereum"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Category</p>
+                        <p className="text-lg font-semibold capitalize">{vendor.category || "General"}</p>
+                      </div>
+                    </div>
+
+                    {/* Contact & details row */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="truncate">{(vendor as any).email || vendor.contact_email || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Contract</p>
+                        <p>{(vendor as any).notes || "Standard Agreement"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Added</p>
+                        <p>{new Date(vendor.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <p className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          Active Contract
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         )}
       </main>

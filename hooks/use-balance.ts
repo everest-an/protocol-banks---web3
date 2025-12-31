@@ -15,6 +15,12 @@ const DEMO_BALANCE: WalletBalance = {
   lastUpdated: new Date().toISOString(),
 }
 
+const EMPTY_BALANCE: WalletBalance = {
+  totalUSD: 0,
+  tokens: [],
+  lastUpdated: new Date().toISOString(),
+}
+
 interface UseBalanceOptions {
   isDemoMode?: boolean
   walletAddress?: string
@@ -23,16 +29,22 @@ interface UseBalanceOptions {
 
 export function useBalance(options: UseBalanceOptions = {}) {
   const { isDemoMode = false, walletAddress, provider } = options
-  const [balance, setBalance] = useState<WalletBalance>(DEMO_BALANCE)
+  const [balance, setBalance] = useState<WalletBalance>(EMPTY_BALANCE)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const loadBalance = useCallback(async () => {
     console.log("[v0] useBalance: Loading balance", { isDemoMode, walletAddress })
 
-    if (isDemoMode || !walletAddress || !provider) {
+    if (isDemoMode) {
       console.log("[v0] useBalance: Using demo balance")
       setBalance(DEMO_BALANCE)
+      return
+    }
+
+    if (!walletAddress || !provider) {
+      console.log("[v0] useBalance: No wallet connected, showing empty balance")
+      setBalance(EMPTY_BALANCE)
       return
     }
 
@@ -41,12 +53,13 @@ export function useBalance(options: UseBalanceOptions = {}) {
 
     try {
       // TODO: Implement real balance fetching from multiple chains
-      // For now, use demo data
-      setBalance(DEMO_BALANCE)
+      // For now, show empty balance in production until real implementation
+      console.log("[v0] useBalance: Production mode - fetching real balance")
+      setBalance(EMPTY_BALANCE)
     } catch (err) {
       console.error("[v0] useBalance: Error:", err)
       setError(err instanceof Error ? err.message : "Failed to load balance")
-      setBalance(DEMO_BALANCE)
+      setBalance(EMPTY_BALANCE)
     } finally {
       setLoading(false)
     }

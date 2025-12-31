@@ -90,6 +90,8 @@ const DEMO_PAYMENTS: Payment[] = [
   },
 ]
 
+const EMPTY_PAYMENTS: Payment[] = []
+
 interface UsePaymentHistoryOptions {
   isDemoMode?: boolean
   walletAddress?: string
@@ -108,10 +110,17 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
     setError(null)
 
     try {
-      if (isDemoMode || !walletAddress) {
+      if (isDemoMode) {
         const filtered = type === "all" ? DEMO_PAYMENTS : DEMO_PAYMENTS.filter((p) => p.type === type)
         console.log("[v0] usePaymentHistory: Using demo data, count:", filtered.length)
         setPayments(filtered)
+        setLoading(false)
+        return
+      }
+
+      if (!walletAddress) {
+        console.log("[v0] usePaymentHistory: No wallet connected, showing empty state")
+        setPayments(EMPTY_PAYMENTS)
         setLoading(false)
         return
       }
@@ -132,11 +141,11 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
       if (dbError) throw dbError
 
       console.log("[v0] usePaymentHistory: Loaded from DB, count:", data?.length || 0)
-      setPayments(data || [])
+      setPayments(data || EMPTY_PAYMENTS)
     } catch (err) {
       console.error("[v0] usePaymentHistory: Error:", err)
       setError(err instanceof Error ? err.message : "Failed to load payments")
-      setPayments(DEMO_PAYMENTS.filter((p) => type === "all" || p.type === type))
+      setPayments(EMPTY_PAYMENTS)
     } finally {
       setLoading(false)
     }

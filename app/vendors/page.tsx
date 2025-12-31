@@ -154,7 +154,7 @@ export default function VendorsPage() {
     tier: "vendor",
   })
 
-  const displayVendors = !isConnected || isDemoMode ? demoVendors : vendors
+  const displayVendors = isDemoMode ? demoVendors : vendors
 
   const filteredVendors = useMemo(() => {
     return displayVendors.filter((v) => {

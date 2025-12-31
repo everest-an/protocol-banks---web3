@@ -30,6 +30,7 @@ interface NetworkGraphProps {
   filter?: string
   timeRange?: string
   userAddress?: string
+  isDemoMode?: boolean
 }
 
 const getFixedOffset = (index: number, seed: number) => {
@@ -45,6 +46,7 @@ export function NetworkGraph({
   filter,
   timeRange,
   userAddress,
+  isDemoMode = false,
 }: NetworkGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
@@ -65,12 +67,30 @@ export function NetworkGraph({
 
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
 
+  const initialSetupDone = useRef(false)
+
   const supabase = useMemo(() => {
     return createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   }, [])
 
   const { nodes, edges } = useMemo(() => {
-    if (!vendors.length) return { nodes: [], edges: [] }
+    if (!vendors.length) {
+      const width = dimensions.width || 1200
+      const height = dimensions.height || 800
+      const centerX = width * 0.45
+      const centerY = height / 2
+
+      const rootNode: Node = {
+        id: "root",
+        x: centerX,
+        y: centerY,
+        r: 40,
+        data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
+        type: "root",
+        color: "#ffffff",
+      }
+      return { nodes: [rootNode], edges: [] }
+    }
 
     const width = dimensions.width || 1200
     const height = dimensions.height || 800
@@ -179,6 +199,33 @@ export function NetworkGraph({
     window.addEventListener("resize", updateDimensions)
     return () => window.removeEventListener("resize", updateDimensions)
   }, [])
+
+  useEffect(() => {
+    if (initialSetupDone.current) return
+    if (nodes.length === 0) return
+    if (dimensions.width === 0 || dimensions.height === 0) return
+
+    // Find root node
+    const rootNode = nodes.find((n) => n.id === "root")
+    if (rootNode) {
+      // Auto-select root node to show details panel
+      setSelectedNode(rootNode)
+      if (rootNode.data && onSelectVendor) {
+        onSelectVendor(rootNode.data)
+      }
+
+      // Center the graph on root node
+      const centerX = dimensions.width * 0.35 // Offset left to account for right panel
+      const centerY = dimensions.height / 2
+      setTransform({
+        x: centerX - rootNode.x,
+        y: centerY - rootNode.y,
+        k: 1.0,
+      })
+
+      initialSetupDone.current = true
+    }
+  }, [nodes, dimensions, onSelectVendor])
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
@@ -363,8 +410,10 @@ export function NetworkGraph({
     loadPositions()
   }, [userAddress, supabase])
 
+  const showEmptyState = !isDemoMode && vendors.length === 0
+
   return (
-    <div ref={containerRef} className="relative w-full h-full min-h-[800px] bg-black overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-full min-h-[800px] bg-[#0a0a0a] rounded-lg overflow-hidden">
       <div className="absolute top-6 left-6 z-20 space-y-2">
         <h3 className="text-2xl font-light tracking-tight text-white">Global Payment Mesh</h3>
         <div className="flex gap-4 text-xs text-zinc-500 font-mono pt-2">
@@ -420,132 +469,169 @@ export function NetworkGraph({
         </div>
       </div>
 
-      <svg
-        ref={svgRef}
-        width="100%"
-        height="100%"
-        className={`${isDragging ? "cursor-grabbing" : draggingNode ? "cursor-grabbing" : "cursor-grab"}`}
-        onMouseDown={(e) => handleMouseDown(e.nativeEvent)}
-        onMouseMove={(e) => handleMouseMove(e.nativeEvent)}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-      >
-        <defs>
-          <radialGradient id="node-glow">
-            <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#fff" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="green-glow">
-            <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="blue-glow">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
-          {/* Edges */}
-          {edges.map((edge, index) => {
-            const sourceNode = nodes.find((n) => n.id === edge.source.id) || edge.source
-            const targetNode = nodes.find((n) => n.id === edge.target.id) || edge.target
-
-            const isHovered = hoveredNode && (hoveredNode.id === edge.source.id || hoveredNode.id === edge.target.id)
-            const isSelected =
-              selectedNode && (selectedNode.id === edge.source.id || selectedNode.id === edge.target.id)
-            const active = isHovered || isSelected
-
-            return (
-              <g key={`edge-${index}`} className="pointer-events-none">
-                <line
-                  x1={sourceNode.x}
-                  y1={sourceNode.y}
-                  x2={targetNode.x}
-                  y2={targetNode.y}
-                  stroke={active ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.15)"}
-                  strokeWidth={active ? 1.5 : 0.5}
-                  className="transition-all duration-300"
+      {showEmptyState ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-zinc-800 flex items-center justify-center">
+              <svg className="w-12 h-12 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
                 />
-                <circle r="1.5" fill={active ? "#fff" : "rgba(255,255,255,0.5)"}>
-                  <animateMotion
-                    dur={`${2 + (index % 5)}s`}
-                    repeatCount="indefinite"
-                    path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">No Contacts Yet</h3>
+            <p className="text-zinc-400 mb-6 max-w-sm">
+              Add your first vendor, partner, or subsidiary to start visualizing your payment network.
+            </p>
+            <button
+              onClick={() => {
+                /* TODO: Open add contact modal */
+              }}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors"
+            >
+              + Add First Contact
+            </button>
+          </div>
+        </div>
+      ) : (
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="100%"
+          className={`${isDragging ? "cursor-grabbing" : draggingNode ? "cursor-grabbing" : "cursor-grab"}`}
+          onMouseDown={(e) => handleMouseDown(e.nativeEvent)}
+          onMouseMove={(e) => handleMouseMove(e.nativeEvent)}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          <defs>
+            <radialGradient id="node-glow">
+              <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+            </radialGradient>
+            <radialGradient id="green-glow">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+            </radialGradient>
+            <radialGradient id="blue-glow">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
+            {/* Edges */}
+            {edges.map((edge, index) => {
+              const sourceNode = nodes.find((n) => n.id === edge.source.id) || edge.source
+              const targetNode = nodes.find((n) => n.id === edge.target.id) || edge.target
+
+              const isHovered = hoveredNode && (hoveredNode.id === edge.source.id || hoveredNode.id === edge.target.id)
+              const isSelected =
+                selectedNode && (selectedNode.id === edge.source.id || selectedNode.id === edge.target.id)
+              const active = isHovered || isSelected
+
+              return (
+                <g key={`edge-${index}`} className="pointer-events-none">
+                  <line
+                    x1={sourceNode.x}
+                    y1={sourceNode.y}
+                    x2={targetNode.x}
+                    y2={targetNode.y}
+                    stroke={active ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.15)"}
+                    strokeWidth={active ? 1.5 : 0.5}
+                    className="transition-all duration-300"
                   />
-                </circle>
-                {edge.weight > 1 && (
-                  <circle r="1" fill="rgba(255,255,255,0.4)">
+                  <circle r="1.5" fill={active ? "#fff" : "rgba(255,255,255,0.5)"}>
                     <animateMotion
-                      dur={`${3 + (index % 5)}s`}
-                      begin="1s"
+                      dur={`${2 + (index % 5)}s`}
                       repeatCount="indefinite"
                       path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
                     />
                   </circle>
-                )}
-              </g>
-            )
-          })}
+                  {edge.weight > 1 && (
+                    <circle r="1" fill="rgba(255,255,255,0.4)">
+                      <animateMotion
+                        dur={`${3 + (index % 5)}s`}
+                        begin="1s"
+                        repeatCount="indefinite"
+                        path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
+                      />
+                    </circle>
+                  )}
+                </g>
+              )
+            })}
 
-          {/* Nodes */}
-          {nodes.map((node) => {
-            const isSelected = selectedNode?.id === node.id
-            const isHovered = hoveredNode?.id === node.id
-            const isBeingDragged = draggingNode === node.id
+            {/* Nodes */}
+            {nodes.map((node) => {
+              const isSelected = selectedNode?.id === node.id
+              const isHovered = hoveredNode?.id === node.id
+              const isBeingDragged = draggingNode === node.id
 
-            return (
-              <g
-                key={node.id}
-                transform={`translate(${node.x}, ${node.y})`}
-                onClick={() => handleNodeClick(node)}
-                onMouseEnter={() => setHoveredNode(node)}
-                onMouseLeave={() => setHoveredNode(null)}
-                onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                className={node.id === "root" ? "cursor-pointer" : "cursor-move"}
-              >
-                {node.type === "subsidiary" && (
-                  <circle cx={0} cy={0} r={node.r * 2.5} fill="url(#green-glow)" opacity="0.5" />
-                )}
+              return (
+                <g
+                  key={node.id}
+                  transform={`translate(${node.x}, ${node.y})`}
+                  onClick={() => handleNodeClick(node)}
+                  onMouseEnter={() => setHoveredNode(node)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  className={node.id === "root" ? "cursor-pointer" : "cursor-move"}
+                >
+                  {node.type === "subsidiary" && (
+                    <circle cx={0} cy={0} r={node.r * 2.5} fill="url(#green-glow)" opacity="0.5" />
+                  )}
 
-                {(isSelected || isHovered) && (
-                  <circle cx={0} cy={0} r={node.r * 2} fill="url(#node-glow)" opacity="0.4" />
-                )}
+                  {(isSelected || isHovered) && (
+                    <circle cx={0} cy={0} r={node.r * 2} fill="url(#node-glow)" opacity="0.4" />
+                  )}
 
-                <circle
-                  cx={0}
-                  cy={0}
-                  r={node.r}
-                  fill="#0a0a0a"
-                  stroke={node.color}
-                  strokeWidth={isSelected ? 3 : node.type === "vendor" ? 1 : 2}
-                  className="transition-all duration-300"
-                />
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={node.r}
+                    fill="#0a0a0a"
+                    stroke={node.color}
+                    strokeWidth={isSelected ? 3 : node.type === "vendor" ? 1 : 2}
+                    className="transition-all duration-300"
+                  />
 
-                {node.type === "subsidiary" && (
-                  <circle cx={0} cy={0} r={node.r - 4} fill="none" stroke={node.color} strokeWidth={1} opacity={0.5} />
-                )}
+                  {node.type === "subsidiary" && (
+                    <circle
+                      cx={0}
+                      cy={0}
+                      r={node.r - 4}
+                      fill="none"
+                      stroke={node.color}
+                      strokeWidth={1}
+                      opacity={0.5}
+                    />
+                  )}
 
-                {(node.r > 8 || isSelected || isHovered) && (
-                  <text
-                    x={0}
-                    y={node.r + 14}
-                    textAnchor="middle"
-                    fill={isSelected || isHovered ? "#fff" : "#71717a"}
-                    className="text-[10px] font-mono tracking-wider font-medium pointer-events-none select-none uppercase"
-                  >
-                    {node.data?.company_name || node.data?.name || "Unknown"}
-                  </text>
-                )}
+                  {(node.r > 8 || isSelected || isHovered) && (
+                    <text
+                      x={0}
+                      y={node.r + 14}
+                      textAnchor="middle"
+                      fill={isSelected || isHovered ? "#fff" : "#71717a"}
+                      className="text-[10px] font-mono tracking-wider font-medium pointer-events-none select-none uppercase"
+                    >
+                      {node.data?.company_name || node.data?.name || "Unknown"}
+                    </text>
+                  )}
 
-                {isBeingDragged && (
-                  <circle r={node.r * transform.k + 4} fill="none" stroke="#ffffff" strokeWidth={2} opacity={0.8} />
-                )}
-              </g>
-            )
-          })}
-        </g>
-      </svg>
+                  {isBeingDragged && (
+                    <circle r={node.r * transform.k + 4} fill="none" stroke="#ffffff" strokeWidth={2} opacity={0.8} />
+                  )}
+                </g>
+              )
+            })}
+          </g>
+        </svg>
+      )}
 
       <div className="absolute bottom-4 left-4 flex flex-col gap-2">
         <button

@@ -183,8 +183,8 @@ export default function BatchPaymentPage() {
   ]
 
   // Use demo or real data
-  const displayVendors = isDemoMode || !currentWallet ? demoVendors : vendors
-  const displayAutoPayments = isDemoMode || !currentWallet ? demoAutoPayments : autoPayments
+  const displayVendors = isDemoMode ? demoVendors : vendors
+  const displayAutoPayments = isDemoMode ? demoAutoPayments : autoPayments
 
   // Filter vendors by search query
   const filteredVendors = displayVendors.filter(
@@ -196,7 +196,11 @@ export default function BatchPaymentPage() {
 
   // Load vendors from database
   const loadVendors = useCallback(async () => {
-    if (!currentWallet || isDemoMode) return
+    if (isDemoMode) return
+    if (!currentWallet) {
+      setVendors([])
+      return
+    }
 
     try {
       if (!supabase) return
