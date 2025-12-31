@@ -20,8 +20,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [walletConnected, setWalletConnectedState] = useState(false)
 
   useEffect(() => {
-    const allowDemoMode = process.env.NEXT_PUBLIC_ALLOW_DEMO_MODE === "true"
-    if (!allowDemoMode) {
+    const allowDemoMode = process.env.NEXT_PUBLIC_ALLOW_DEMO_MODE
+    // Only completely disable demo mode if explicitly set to "false"
+    if (allowDemoMode === "false") {
       setDemoModeBlocked(true)
       setDemoBlockReason("Demo mode is disabled in production")
       setIsDemoMode(false)
@@ -31,7 +32,11 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const setWalletConnected = (connected: boolean) => {
     setWalletConnectedState(connected)
     if (connected) {
+      // Wallet connected, switch to real mode
       setIsDemoMode(false)
+    } else if (!demoModeBlocked) {
+      // Wallet disconnected and demo is not blocked, return to demo mode
+      setIsDemoMode(true)
     }
   }
 
