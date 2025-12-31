@@ -469,13 +469,15 @@ export default function HomePage() {
       {/* Main content */}
       <main className="flex-1 container mx-auto py-6 px-4">
         {viewMode === "graph" ? (
-          <NetworkGraph
-            vendors={filteredVendors}
-            userAddress={wallet}
-            onPaymentRequest={(vendor) => {
-              console.log("[v0] Payment requested for vendor:", vendor)
-            }}
-          />
+          <div className="h-[800px]">
+            <NetworkGraph
+              vendors={filteredVendors}
+              userAddress={wallet}
+              onPaymentRequest={(vendor) => {
+                console.log("[v0] Payment requested for vendor:", vendor)
+              }}
+            />
+          </div>
         ) : (
           <div className="grid gap-4">
             {filteredVendors.map((vendor) => (
