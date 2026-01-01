@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, LayoutGrid, ListIcon, Calendar, Filter, Plus, Wallet, ArrowUpRight } from "lucide-react"
+import { Search, LayoutGrid, ListIcon, Calendar, Filter, Plus, ArrowUpRight, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { NetworkGraph } from "@/components/network-graph"
 import { Label } from "@/components/ui/label"
@@ -39,11 +39,13 @@ import type { Vendor, VendorInput } from "@/types"
 import { useVendors } from "@/hooks/use-vendors"
 import { useBalance } from "@/hooks/use-balance"
 import { calculateNetworkStats } from "@/lib/services/vendor-service"
+import { ChainDistributionCard, ChainDistributionInline } from "@/components/chain-distribution"
+import { cn } from "@/lib/utils"
 
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
 
 export default function HomePage() {
-  const { isConnected, connectWallet, wallet } = useWeb3()
+  const { isConnected, wallets } = useWeb3()
   const { isDemoMode, setWalletConnected } = useDemo()
   const { toast } = useToast()
   const router = useRouter()
@@ -52,8 +54,9 @@ export default function HomePage() {
     setWalletConnected(isConnected)
   }, [isConnected, setWalletConnected])
 
-  const { vendors, loading, addVendor, updateVendor, deleteVendor } = useVendors({ isDemoMode, walletAddress: wallet })
-  const { balance, loading: balanceLoading } = useBalance({ isDemoMode, walletAddress: wallet })
+  const walletAddress = wallets?.EVM || undefined
+  const { vendors, loading, addVendor, updateVendor, deleteVendor } = useVendors({ isDemoMode, walletAddress })
+  const { balance, loading: balanceLoading, refresh: refreshBalance } = useBalance({ isDemoMode, walletAddress })
 
   const [tierFilter, setTierFilter] = useState<"all" | "subsidiary" | "partner" | "vendor">("all")
   const [viewMode, setViewMode] = useState<"graph" | "list">("graph")
@@ -98,14 +101,39 @@ export default function HomePage() {
     })
   }, [vendors, searchQuery, tierFilter])
 
-  const stats = useMemo(() => calculateNetworkStats(vendors), [vendors])
+  const networkStats = useMemo(() => calculateNetworkStats(vendors), [vendors])
 
-  const handlePaymentRequest = (vendor: Vendor) => {
-    const url = `/batch-payment?recipient=${vendor.wallet_address}&name=${encodeURIComponent(vendor.name)}`
-    router.push(url)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      if (editMode && editingVendor) {
+        await updateVendor(editingVendor.id, formData)
+        toast({ title: "Success", description: "Entity updated successfully" })
+      } else {
+        await addVendor(formData)
+        toast({ title: "Success", description: "Entity added successfully" })
+      }
+      setDialogOpen(false)
+      resetForm()
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to save entity", variant: "destructive" })
+    }
   }
 
-  const handleEditVendor = (vendor: Vendor) => {
+  const handleDelete = async () => {
+    if (!vendorToDelete) return
+    try {
+      await deleteVendor(vendorToDelete.id)
+      toast({ title: "Success", description: "Entity deleted successfully" })
+      setDeleteDialogOpen(false)
+      setVendorToDelete(null)
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to delete entity", variant: "destructive" })
+    }
+  }
+
+  const openEditDialog = (vendor: Vendor) => {
+    setEditMode(true)
     setEditingVendor(vendor)
     setFormData({
       name: vendor.name,
@@ -113,128 +141,66 @@ export default function HomePage() {
       email: vendor.email || "",
       notes: vendor.notes || "",
       category: vendor.category || "",
-      tier: vendor.tier || "vendor",
+      tier: vendor.tier,
       chain: vendor.chain || "ethereum",
     })
-    setEditMode(true)
     setDialogOpen(true)
   }
 
-  const handleDeleteVendor = (vendor: Vendor) => {
-    setVendorToDelete(vendor)
-    setDeleteDialogOpen(true)
-  }
-
-  const confirmDeleteVendor = async () => {
-    if (!vendorToDelete) return
-
-    try {
-      await deleteVendor(vendorToDelete.id)
-      toast({ title: "Success", description: "Wallet tag deleted successfully" })
-      setDeleteDialogOpen(false)
-      setVendorToDelete(null)
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" })
-    }
-  }
-
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!wallet && !isDemoMode) {
-      toast({
-        title: "Wallet Required",
-        description: "Please connect your wallet to add contacts",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      if (editMode && editingVendor) {
-        await updateVendor(editingVendor.id, formData)
-        toast({ title: "Success", description: "Wallet tag updated successfully" })
-      } else {
-        await addVendor(formData)
-        toast({ title: "Success", description: "Wallet tag added successfully" })
-      }
-
-      setDialogOpen(false)
-      setEditMode(false)
-      setEditingVendor(null)
-      setFormData({
-        name: "",
-        wallet_address: "",
-        email: "",
-        notes: "",
-        category: "",
-        tier: "vendor",
-        chain: "ethereum",
-      })
-    } catch (err: any) {
-      console.error("Failed to save vendor:", err)
-      toast({ title: "Error", description: err.message, variant: "destructive" })
-    }
-  }
-
-  const handleDialogOpenChange = (open: boolean) => {
-    setDialogOpen(open)
-    if (!open) {
-      setEditMode(false)
-      setEditingVendor(null)
-      setFormData({
-        name: "",
-        wallet_address: "",
-        email: "",
-        notes: "",
-        category: "",
-        tier: "vendor",
-        chain: "ethereum",
-      })
-    }
+  const resetForm = () => {
+    setEditMode(false)
+    setEditingVendor(null)
+    setFormData({
+      name: "",
+      wallet_address: "",
+      email: "",
+      notes: "",
+      category: "",
+      tier: "vendor",
+      chain: "ethereum",
+    })
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      {/* Balance Bar */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto py-3 px-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4 sm:gap-6">
-              <div>
-                <div className="text-xs text-muted-foreground">Balance</div>
-                <div className="text-xl sm:text-2xl font-bold font-mono">${displayBalance}</div>
+            <div className="flex flex-col gap-1">
+              {/* Main balance display */}
+              <div className="flex items-center gap-3">
+                <div>
+                  <div className="text-xs text-muted-foreground">Total Balance</div>
+                  <div className="text-2xl sm:text-3xl font-bold font-mono tracking-tight">${displayBalance}</div>
+                </div>
+                {/* Refresh button */}
+                <button
+                  onClick={refreshBalance}
+                  disabled={balanceLoading}
+                  className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50"
+                  title="Refresh balance"
+                >
+                  <RefreshCw className={cn("h-4 w-4 text-muted-foreground", balanceLoading && "animate-spin")} />
+                </button>
               </div>
-              <div className="hidden sm:flex items-center gap-3 pl-4 border-l border-border text-xs">
-                <span className="text-muted-foreground">
-                  <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-0 mr-1">
-                    USDC
-                  </Badge>
-                  {balance?.usdc?.toLocaleString()}
-                </span>
-                <span className="text-muted-foreground">
-                  <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-0 mr-1">
-                    USDT
-                  </Badge>
-                  {balance?.usdt?.toLocaleString()}
-                </span>
-                <span className="text-muted-foreground">
-                  <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-0 mr-1">
-                    DAI
-                  </Badge>
-                  {balance?.dai?.toLocaleString()}
-                </span>
-              </div>
+
+              {/* Chain distribution - inline preview */}
+              {balance?.chainDistribution && balance.chainDistribution.length > 0 && (
+                <ChainDistributionInline distributions={balance.chainDistribution} />
+              )}
             </div>
 
-            <div className="flex gap-2">
-              {!isConnected ? (
-                <Button onClick={connectWallet} size="sm">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Connect
-                </Button>
-              ) : (
-                <>
+            {/* Right side - Chain distribution card (desktop) + Actions */}
+            <div className="flex items-center gap-4">
+              {/* Expandable chain distribution (desktop only) */}
+              <div className="hidden lg:block">
+                {balance?.chainDistribution && (
+                  <ChainDistributionCard distributions={balance.chainDistribution} className="min-w-[300px]" />
+                )}
+              </div>
+
+              {isConnected && (
+                <div className="flex gap-2">
                   <Button variant="default" size="sm">
                     <Plus className="mr-1 h-4 w-4" />
                     Add
@@ -243,7 +209,7 @@ export default function HomePage() {
                     <ArrowUpRight className="mr-1 h-4 w-4" />
                     Withdraw
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -331,7 +297,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+              <Dialog open={dialogOpen} onOpenChange={() => setDialogOpen(!dialogOpen)}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="hidden sm:flex gap-2">
                     <Plus className="w-4 h-4" /> Add Tag
@@ -346,7 +312,7 @@ export default function HomePage() {
                         : "Tag a wallet address with business metadata for easier identification."}
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleAddSubmit} className="space-y-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid gap-2">
                       <Label htmlFor="address">Wallet Address</Label>
                       <Input
@@ -476,7 +442,7 @@ export default function HomePage() {
           <div className="h-[800px]">
             <NetworkGraph
               vendors={filteredVendors}
-              userAddress={wallet}
+              userAddress={walletAddress}
               isDemoMode={isDemoMode}
               onPaymentRequest={(vendor) => {
                 console.log("[v0] Payment requested for vendor:", vendor)
@@ -596,7 +562,7 @@ export default function HomePage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteVendor}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

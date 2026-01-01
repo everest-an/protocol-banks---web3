@@ -2,7 +2,8 @@
 
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
-import { useAppKit, useAppKitAccount } from "@reown/appkit/react"
+import { useAppKit, useAppKitAccount, useDisconnect } from "@reown/appkit/react"
+import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -15,30 +16,16 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  User,
-  Wallet,
-  LogOut,
-  Copy,
-  Check,
-  ChevronDown,
-  Mail,
-  Shield,
-  ArrowRight,
-  HelpCircle,
-  Sparkles,
-  Plus,
-  ArrowUpRight,
-  CreditCard,
-} from "lucide-react"
+import { User, Wallet, LogOut, Copy, Check, ChevronDown, Sparkles, Plus, ArrowUpRight, CreditCard } from "lucide-react"
 import { useState, useEffect } from "react"
-import { isMobileDevice, getMetaMaskDeepLink } from "@/lib/web3"
+import { isMobileDevice } from "@/lib/web3"
+import { AuthGateway } from "@/components/auth"
 
 export function UnifiedWalletButton() {
   const {
     isConnected: isWeb3Connected,
     connectWallet,
-    disconnect: web3Disconnect,
+    disconnectWallet,
     activeChain,
     wallets,
     isConnecting,
@@ -49,25 +36,30 @@ export function UnifiedWalletButton() {
   const { userType, setUserType, isWeb2User, getLabel } = useUserType()
   const { open: openAppKit } = useAppKit()
   const { address: reownAddress, isConnected: isReownConnected } = useAppKitAccount()
+  const { disconnect: reownDisconnect } = useDisconnect()
+  const { authenticated: isPrivyAuthenticated, logout: privyLogout, user: privyUser } = usePrivy()
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showAuthGateway, setShowAuthGateway] = useState(false)
   const [showOffRampModal, setShowOffRampModal] = useState(false)
 
   useEffect(() => {
     setIsMobile(isMobileDevice())
   }, [])
 
-  const isConnected = isWeb3Connected || isReownConnected
-  const activeAddress = reownAddress || wallets[activeChain]
+  const isConnected = isWeb3Connected || isReownConnected || isPrivyAuthenticated
+  const privyWalletAddress = privyUser?.wallet?.address
+  const activeAddress = reownAddress || wallets[activeChain] || privyWalletAddress
 
   useEffect(() => {
-    if (isReownConnected && !isWeb3Connected) {
+    if (isPrivyAuthenticated && !isReownConnected && !isWeb3Connected) {
+      setUserType("web2")
+    } else if (isReownConnected && !isWeb3Connected) {
       setUserType("web2")
     } else if (isWeb3Connected && !isReownConnected) {
       setUserType("web3")
     }
-  }, [isReownConnected, isWeb3Connected, setUserType])
+  }, [isReownConnected, isWeb3Connected, isPrivyAuthenticated, setUserType])
 
   const formatAddress = (address: string) => {
     if (!address) return ""
@@ -82,42 +74,49 @@ export function UnifiedWalletButton() {
     }
   }
 
-  const handleMobileConnect = () => {
-    const deepLink = getMetaMaskDeepLink()
-    window.location.href = deepLink
-  }
-
-  const handleWeb2Login = () => {
-    setShowLoginModal(false)
-    setUserType("web2")
-    openAppKit({ view: "Connect" })
-  }
-
-  const handleWeb3Connect = async (chain: "EVM" | "SOLANA" | "BITCOIN") => {
-    setShowLoginModal(false)
-    setUserType("web3")
-
-    try {
-      if (chain === "EVM") {
-        if (isMobile) {
-          handleMobileConnect()
-        } else {
-          await connectWallet()
-        }
-      }
-    } catch (error) {
-      console.error("Connection error:", error)
-    }
-  }
-
   const totalBalance = Number.parseFloat(usdtBalance) + Number.parseFloat(usdcBalance)
   const hasZeroBalance = totalBalance === 0
+
+  const handleDisconnect = async () => {
+    console.log(
+      "[v0] Disconnect clicked, isReownConnected:",
+      isReownConnected,
+      "isWeb3Connected:",
+      isWeb3Connected,
+      "isPrivyAuthenticated:",
+      isPrivyAuthenticated,
+    )
+
+    if (isPrivyAuthenticated) {
+      try {
+        await privyLogout()
+        console.log("[v0] Privy logged out")
+      } catch (error) {
+        console.error("[v0] Failed to logout Privy:", error)
+      }
+    }
+
+    if (isReownConnected) {
+      try {
+        await reownDisconnect()
+        console.log("[v0] Reown disconnected")
+      } catch (error) {
+        console.error("[v0] Failed to disconnect Reown:", error)
+      }
+    }
+
+    disconnectWallet()
+    console.log("[v0] Web3 disconnected")
+  }
 
   if (!isConnected) {
     return (
       <>
         <Button
-          onClick={() => setShowLoginModal(true)}
+          onClick={() => {
+            console.log("[v0] Sign In button clicked, setting showAuthGateway to true")
+            setShowAuthGateway(true)
+          }}
           disabled={isConnecting}
           size="sm"
           className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm px-3 sm:px-4"
@@ -127,91 +126,19 @@ export function UnifiedWalletButton() {
           <span className="xs:hidden">{isConnecting ? "..." : "Sign In"}</span>
         </Button>
 
-        <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="text-xl">Welcome to Protocol Banks</DialogTitle>
-              <DialogDescription>Choose how you would like to access your account</DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-6 py-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <HelpCircle className="h-4 w-4" />
-                  <span>New to digital currency? Start here</span>
-                </div>
-
-                <Button
-                  variant="default"
-                  className="w-full justify-start h-16 bg-primary hover:bg-primary/90"
-                  onClick={handleWeb2Login}
-                >
-                  <div className="bg-white/20 p-2 rounded-full mr-4">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="font-semibold">Email or Social Login</span>
-                    <span className="text-xs opacity-80">Google, Apple, Email - No crypto experience needed</span>
-                  </div>
-                  <ArrowRight className="ml-auto h-5 w-5" />
-                </Button>
-
-                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-                  <div className="flex items-start gap-2">
-                    <Shield className="h-4 w-4 mt-0.5 text-green-500" />
-                    <div>
-                      <p className="font-medium text-foreground">Perfect for beginners</p>
-                      <p>
-                        Use your existing accounts. We handle the blockchain complexity so you can focus on your
-                        business.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or for Web3 users</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Sparkles className="h-4 w-4" />
-                  <span>Already have a crypto wallet?</span>
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-14 bg-transparent"
-                  onClick={() => handleWeb3Connect("EVM")}
-                >
-                  <div className="bg-orange-500/10 p-2 rounded-full mr-4">
-                    <Wallet className="h-5 w-5 text-orange-500" />
-                  </div>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="font-semibold">Connect Wallet</span>
-                    <span className="text-xs text-muted-foreground">MetaMask, WalletConnect, Coinbase</span>
-                  </div>
-                </Button>
-
-                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-                  <div className="flex items-start gap-2">
-                    <Shield className="h-4 w-4 mt-0.5 text-blue-500" />
-                    <div>
-                      <p className="font-medium text-foreground">Full control</p>
-                      <p>Non-custodial access. You maintain complete control of your assets at all times.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {showAuthGateway && (
+          <AuthGateway
+            isOpen={showAuthGateway}
+            onClose={() => {
+              console.log("[v0] AuthGateway onClose called")
+              setShowAuthGateway(false)
+            }}
+            onSuccess={() => {
+              console.log("[v0] AuthGateway onSuccess called")
+              setShowAuthGateway(false)
+            }}
+          />
+        )}
       </>
     )
   }
@@ -277,9 +204,7 @@ export function UnifiedWalletButton() {
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={() => {
-                web3Disconnect()
-              }}
+              onClick={handleDisconnect}
               className="cursor-pointer text-destructive focus:text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
@@ -361,10 +286,7 @@ export function UnifiedWalletButton() {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem
-          onClick={() => web3Disconnect()}
-          className="cursor-pointer text-destructive focus:text-destructive"
-        >
+        <DropdownMenuItem onClick={handleDisconnect} className="cursor-pointer text-destructive focus:text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Disconnect</span>
         </DropdownMenuItem>

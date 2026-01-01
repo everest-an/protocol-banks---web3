@@ -6,6 +6,7 @@ import { Web3Provider } from "@/contexts/web3-context"
 import { ReownProvider } from "@/contexts/reown-provider"
 import { DemoProvider } from "@/contexts/demo-context"
 import { UserTypeProvider } from "@/contexts/user-type-context"
+import { PrivyProvider } from "@/contexts/privy-provider"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
@@ -76,20 +77,22 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
       >
         <UserTypeProvider>
-          <ReownProvider>
-            <Web3Provider>
-              <DemoProvider>
-                <div className="relative min-h-screen flex flex-col pb-safe">
-                  <Header />
-                  <main className="flex-1">{children}</main>
-                  <Footer />
-                </div>
-                <Toaster />
-                <RecaptchaScript />
-                <WelcomeGuide />
-              </DemoProvider>
-            </Web3Provider>
-          </ReownProvider>
+          <PrivyProvider>
+            <ReownProvider>
+              <Web3Provider>
+                <DemoProvider>
+                  <div className="relative min-h-screen flex flex-col pb-safe">
+                    <Header />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                  <Toaster />
+                  <RecaptchaScript />
+                  <WelcomeGuide />
+                </DemoProvider>
+              </Web3Provider>
+            </ReownProvider>
+          </PrivyProvider>
         </UserTypeProvider>
       </body>
     </html>
