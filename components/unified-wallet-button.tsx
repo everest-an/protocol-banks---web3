@@ -3,7 +3,7 @@
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
 import { useAppKit, useAppKitAccount, useDisconnect } from "@reown/appkit/react"
-import { usePrivy } from "@privy-io/react-auth"
+import { useAuth } from "@/contexts/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -37,7 +37,7 @@ export function UnifiedWalletButton() {
   const { open: openAppKit } = useAppKit()
   const { address: reownAddress, isConnected: isReownConnected } = useAppKitAccount()
   const { disconnect: reownDisconnect } = useDisconnect()
-  const { authenticated: isPrivyAuthenticated, logout: privyLogout, user: privyUser } = usePrivy()
+  const { isAuthenticated, user, logout: authLogout, hasWallet } = useAuth()
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showAuthGateway, setShowAuthGateway] = useState(false)
@@ -47,19 +47,19 @@ export function UnifiedWalletButton() {
     setIsMobile(isMobileDevice())
   }, [])
 
-  const isConnected = isWeb3Connected || isReownConnected || isPrivyAuthenticated
-  const privyWalletAddress = privyUser?.wallet?.address
-  const activeAddress = reownAddress || wallets[activeChain] || privyWalletAddress
+  const isConnected = isWeb3Connected || isReownConnected || isAuthenticated
+  const authWalletAddress = user?.walletAddress
+  const activeAddress = reownAddress || wallets[activeChain] || authWalletAddress
 
   useEffect(() => {
-    if (isPrivyAuthenticated && !isReownConnected && !isWeb3Connected) {
+    if (isAuthenticated && !isReownConnected && !isWeb3Connected) {
       setUserType("web2")
     } else if (isReownConnected && !isWeb3Connected) {
       setUserType("web2")
     } else if (isWeb3Connected && !isReownConnected) {
       setUserType("web3")
     }
-  }, [isReownConnected, isWeb3Connected, isPrivyAuthenticated, setUserType])
+  }, [isReownConnected, isWeb3Connected, isAuthenticated, setUserType])
 
   const formatAddress = (address: string) => {
     if (!address) return ""
@@ -83,16 +83,16 @@ export function UnifiedWalletButton() {
       isReownConnected,
       "isWeb3Connected:",
       isWeb3Connected,
-      "isPrivyAuthenticated:",
-      isPrivyAuthenticated,
+      "isAuthenticated:",
+      isAuthenticated,
     )
 
-    if (isPrivyAuthenticated) {
+    if (isAuthenticated) {
       try {
-        await privyLogout()
-        console.log("[v0] Privy logged out")
+        await authLogout()
+        console.log("[v0] Auth logged out")
       } catch (error) {
-        console.error("[v0] Failed to logout Privy:", error)
+        console.error("[v0] Failed to logout:", error)
       }
     }
 
@@ -162,6 +162,7 @@ export function UnifiedWalletButton() {
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium">My Account</p>
+                {user?.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
                 <p className="text-xs text-muted-foreground truncate">{activeAddress}</p>
               </div>
             </DropdownMenuLabel>
@@ -213,7 +214,6 @@ export function UnifiedWalletButton() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Off-Ramp Modal */}
         <Dialog open={showOffRampModal} onOpenChange={setShowOffRampModal}>
           <DialogContent>
             <DialogHeader>

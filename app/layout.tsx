@@ -6,7 +6,7 @@ import { Web3Provider } from "@/contexts/web3-context"
 import { ReownProvider } from "@/contexts/reown-provider"
 import { DemoProvider } from "@/contexts/demo-context"
 import { UserTypeProvider } from "@/contexts/user-type-context"
-import { PrivyProvider } from "@/contexts/privy-provider"
+import { AuthProvider } from "@/contexts/auth-provider"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
@@ -77,7 +77,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
       >
         <UserTypeProvider>
-          <PrivyProvider>
+          <AuthProvider>
             <ReownProvider>
               <Web3Provider>
                 <DemoProvider>
@@ -92,7 +92,7 @@ export default function RootLayout({
                 </DemoProvider>
               </Web3Provider>
             </ReownProvider>
-          </PrivyProvider>
+          </AuthProvider>
         </UserTypeProvider>
       </body>
     </html>

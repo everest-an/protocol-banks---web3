@@ -19,7 +19,6 @@ export function AuthModal({ isOpen, onClose, children, glowColor = "cyan" }: Aut
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop - covers below header */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -28,17 +27,22 @@ export function AuthModal({ isOpen, onClose, children, glowColor = "cyan" }: Aut
             className="fixed left-0 right-0 bottom-0 top-14 sm:top-16 bg-black/50 backdrop-blur-sm z-[90]"
           />
 
-          {/* Modal - centered in viewport */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={cn(
+              // Fixed positioning with proper centering
               "fixed z-[100]",
+              // Horizontal centering
               "left-1/2 -translate-x-1/2",
-              "top-[30%] sm:top-[35%]",
+              // Vertical positioning: center in available space (below header)
+              // calc((100vh - 56px header - modal height ~400px) / 2 + 56px header) ≈ top 30%
+              "top-[30%] sm:top-[45%]",
+              // Width
               "w-[calc(100%-32px)] max-w-[380px] sm:w-[380px]",
+              // Styling
               "bg-gray-900/95 backdrop-blur-xl",
               "border border-white/10 rounded-2xl",
               "shadow-2xl shadow-black/50",

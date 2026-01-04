@@ -4,25 +4,22 @@ export interface TokenBalance {
   balance: string
   balanceUSD: number
   price: number
+  contractAddress?: string
 }
 
 export interface ChainDistribution {
-  chainKey: string
-  chainName: string
-  chainIcon: string
-  balanceUSD: number
+  chain: string
+  chainId: number
+  totalUSD: number
   percentage: number
-  tokens: {
-    symbol: string
-    balance: string
-    balanceUSD: number
-    price: number
-  }[]
+  tokenCount: number
+  icon?: string
 }
 
 export interface WalletBalance {
   totalUSD: number
   tokens: TokenBalance[]
-  chainDistribution?: ChainDistribution[]
+  chainDistribution: ChainDistribution[]
   lastUpdated: string
+  isLoading?: boolean
 }
