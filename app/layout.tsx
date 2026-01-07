@@ -13,6 +13,7 @@ import { MobileNav } from "@/components/mobile-nav"
 import { Toaster } from "@/components/ui/toaster"
 import { RecaptchaScript } from "@/components/recaptcha-script"
 import { WelcomeGuide } from "@/components/welcome-guide"
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 
 export const dynamic = "force-dynamic"
 
@@ -93,6 +94,7 @@ export default function RootLayout({
                   <Toaster />
                   <RecaptchaScript />
                   <WelcomeGuide />
+                  <PWAInstallPrompt />
                 </DemoProvider>
               </Web3Provider>
             </ReownProvider>

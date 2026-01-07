@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { User, Building2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useSonicBranding } from "@/lib/sonic-branding"
 
 export type AuthMode = "personal" | "business"
 
@@ -12,6 +13,26 @@ interface AuthModeSwitcherProps {
 }
 
 export function AuthModeSwitcher({ mode, onModeChange }: AuthModeSwitcherProps) {
+  const { play } = useSonicBranding()
+
+  const handleModeChange = (newMode: AuthMode) => {
+    if (newMode === mode) return
+
+    if (newMode === "personal") {
+      play("personal-switch")
+    } else {
+      play("business-switch")
+    }
+
+    onModeChange(newMode)
+  }
+
+  const handleHover = () => {
+    if (mode === "personal") {
+      play("personal-hover")
+    }
+  }
+
   return (
     <div className="flex justify-center mb-6">
       <div className="relative bg-white/5 rounded-full p-1 flex">
@@ -28,7 +49,8 @@ export function AuthModeSwitcher({ mode, onModeChange }: AuthModeSwitcherProps) 
         />
 
         <button
-          onClick={() => onModeChange("personal")}
+          onClick={() => handleModeChange("personal")}
+          onMouseEnter={handleHover}
           className={cn(
             "relative z-10 px-5 py-2 rounded-full text-sm font-medium transition-colors",
             mode === "personal" ? "text-cyan-300" : "text-white/50 hover:text-white/70",
@@ -41,7 +63,8 @@ export function AuthModeSwitcher({ mode, onModeChange }: AuthModeSwitcherProps) 
         </button>
 
         <button
-          onClick={() => onModeChange("business")}
+          onClick={() => handleModeChange("business")}
+          onMouseEnter={handleHover}
           className={cn(
             "relative z-10 px-5 py-2 rounded-full text-sm font-medium transition-colors",
             mode === "business" ? "text-amber-300" : "text-white/50 hover:text-white/70",
