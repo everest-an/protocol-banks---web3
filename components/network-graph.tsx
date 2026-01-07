@@ -6,6 +6,8 @@ import type { Vendor } from "@/types/vendor"
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { ExternalLink, ZoomIn, ZoomOut, RotateCcw, Search } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 
 interface Node {
   id: string
@@ -344,6 +346,9 @@ export function NetworkGraph({
     if (node.data) {
       onSelectVendor?.(node.data)
       setSelectedNode(node)
+      if (isMobile) {
+        setMobileDrawerOpen(true)
+      }
     }
   }
 
@@ -412,18 +417,134 @@ export function NetworkGraph({
 
   const showEmptyState = !isDemoMode && vendors.length === 0
 
+  const isMobile = useMediaQuery("(max-width: 768px)")
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+
+  const DetailPanelContent = () => {
+    if (!selectedNode || !selectedNode.data) {
+      return (
+        <div className="flex flex-col items-center justify-center h-48 text-center p-6 text-zinc-500">
+          <p className="text-sm">Select an entity to view details</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex flex-col h-full animate-in slide-in-from-right duration-300">
+        <div className="p-4 md:p-6 border-b border-zinc-800">
+          <div className="flex items-center justify-between mb-4">
+            <span
+              className={`font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded border ${
+                selectedNode.type === "subsidiary"
+                  ? "text-emerald-500 border-emerald-500/30"
+                  : selectedNode.type === "partner"
+                    ? "text-blue-500 border-blue-500/30"
+                    : selectedNode.type === "root"
+                      ? "text-white border-white/30"
+                      : "text-zinc-500 border-zinc-700"
+              }`}
+            >
+              {selectedNode.type.toUpperCase()}
+            </span>
+            <button
+              className="p-2 hover:bg-zinc-800 rounded transition-colors"
+              onClick={() => window.open(`/vendors/${selectedNode.id}`, "_blank")}
+            >
+              <ExternalLink className="w-4 h-4 text-zinc-400" />
+            </button>
+          </div>
+
+          <h2 className="text-lg md:text-xl font-light text-white mb-2">
+            {selectedNode.data?.company_name || selectedNode.data?.name || "Unknown"}
+          </h2>
+          <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 bg-zinc-900 rounded px-2 py-1 w-fit">
+            <span className="truncate max-w-[180px]">{selectedNode.data?.wallet_address}</span>
+          </div>
+        </div>
+
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto flex-1">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Total Volume</p>
+              <p className="text-lg md:text-xl font-light text-white">
+                $
+                {(selectedNode.data.monthly_volume || selectedNode.data.totalReceived || 0).toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Tx Count</p>
+              <p className="text-lg md:text-xl font-light text-white">
+                {selectedNode.data.transaction_count || selectedNode.data.transactionCount || 0}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-end">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Payment Flow (YTD)</p>
+              <p className="text-xs text-emerald-500">+12.4% vs prev</p>
+            </div>
+            <div className="h-12 md:h-16 flex items-end gap-0.5">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 bg-zinc-700 hover:bg-zinc-500 transition-all rounded-t-sm"
+                  style={{ height: `${20 + ((i * 17) % 80)}%` }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono border-b border-zinc-800 pb-2">
+              Entity Details
+            </p>
+            <div className="grid grid-cols-[80px_1fr] gap-y-2 md:gap-y-3 text-sm">
+              <span className="text-zinc-500">Category</span>
+              <span className="text-white">{selectedNode.data.category || "General"}</span>
+              <span className="text-zinc-500">Email</span>
+              <span className="text-zinc-300 truncate">{selectedNode.data.email || "N/A"}</span>
+              <span className="text-zinc-500">Contract</span>
+              <span className="text-zinc-300">{selectedNode.data.notes || "Standard Agreement"}</span>
+              <span className="text-zinc-500">Status</span>
+              <span className="flex items-center gap-2 text-emerald-500">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Active Contract
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 md:p-6 pt-2 border-t border-zinc-800 pb-safe">
+          <button
+            onClick={handleInitiateTransfer}
+            className="w-full py-3 bg-white text-black font-medium rounded hover:bg-zinc-200 transition-colors"
+          >
+            INITIATE TRANSFER
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div ref={containerRef} className="relative w-full h-full min-h-[800px] bg-[#0a0a0a] rounded-lg overflow-hidden">
-      <div className="absolute top-6 left-6 z-20 space-y-2">
-        <h3 className="text-2xl font-light tracking-tight text-white">Global Payment Mesh</h3>
-        <div className="flex gap-4 text-xs text-zinc-500 font-mono pt-2">
+    <div
+      ref={containerRef}
+      className="relative w-full h-full min-h-[400px] md:min-h-[800px] bg-[#0a0a0a] rounded-lg overflow-hidden"
+    >
+      <div className="absolute top-3 md:top-6 left-3 md:left-6 z-20 space-y-1 md:space-y-2">
+        <h3 className="text-lg md:text-2xl font-light tracking-tight text-white">Global Payment Mesh</h3>
+        <div className="flex gap-4 text-xs text-zinc-500 font-mono pt-1 md:pt-2">
           <div>
             NODES: <span className="text-zinc-300">{nodes.length}</span>
           </div>
         </div>
       </div>
 
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20">
+      <div className="absolute top-3 md:top-6 left-1/2 -translate-x-1/2 z-20 hidden md:block">
+        {/* ... existing search code ... */}
         <div className="relative">
           <div className="flex items-center bg-zinc-900/90 backdrop-blur-sm border border-zinc-700 rounded-lg px-3 py-2 w-64">
             <Search className="w-4 h-4 text-zinc-500 mr-2" />
@@ -470,10 +591,16 @@ export function NetworkGraph({
       </div>
 
       {showEmptyState ? (
+        // ... existing empty state code ...
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-zinc-800 flex items-center justify-center">
-              <svg className="w-12 h-12 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center px-4">
+            <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-6 rounded-full bg-zinc-800 flex items-center justify-center">
+              <svg
+                className="w-10 h-10 md:w-12 md:h-12 text-zinc-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -482,15 +609,15 @@ export function NetworkGraph({
                 />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No Contacts Yet</h3>
-            <p className="text-zinc-400 mb-6 max-w-sm">
+            <h3 className="text-lg md:text-xl font-semibold text-white mb-2">No Contacts Yet</h3>
+            <p className="text-zinc-400 mb-6 max-w-sm text-sm md:text-base">
               Add your first vendor, partner, or subsidiary to start visualizing your payment network.
             </p>
             <button
               onClick={() => {
                 /* TODO: Open add contact modal */
               }}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors"
+              className="px-5 py-2.5 md:px-6 md:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors text-sm md:text-base"
             >
               + Add First Contact
             </button>
@@ -508,6 +635,7 @@ export function NetworkGraph({
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
         >
+          {/* ... existing SVG content (defs, edges, nodes) ... */}
           <defs>
             <radialGradient id="node-glow">
               <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
@@ -633,131 +761,44 @@ export function NetworkGraph({
         </svg>
       )}
 
-      <div className="absolute bottom-4 left-4 flex flex-col gap-2">
+      <div className="absolute bottom-20 md:bottom-4 left-3 md:left-4 flex flex-col gap-1.5 md:gap-2">
         <button
           onClick={() => setTransform((prev) => ({ ...prev, k: Math.min(prev.k + 0.2, 4) }))}
-          className="p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="p-1.5 md:p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
           title="Zoom In"
         >
-          <ZoomIn className="w-4 h-4 text-zinc-400" />
+          <ZoomIn className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400" />
         </button>
         <button
           onClick={() => setTransform((prev) => ({ ...prev, k: Math.max(prev.k - 0.2, 0.5) }))}
-          className="p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="p-1.5 md:p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
           title="Zoom Out"
         >
-          <ZoomOut className="w-4 h-4 text-zinc-400" />
+          <ZoomOut className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400" />
         </button>
         <button
           onClick={handleResetLayout}
-          className="p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="p-1.5 md:p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
           title="Reset Layout"
         >
-          <RotateCcw className="w-4 h-4 text-zinc-400" />
+          <RotateCcw className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400" />
         </button>
       </div>
 
-      <div className="absolute top-6 right-6 bottom-6 z-20 w-80 bg-zinc-900/90 backdrop-blur-sm rounded-lg border border-zinc-800 overflow-auto">
-        {selectedNode && selectedNode.data ? (
-          <div className="flex flex-col h-full animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-zinc-800">
-              <div className="flex items-center justify-between mb-4">
-                <span
-                  className={`font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded border ${
-                    selectedNode.type === "subsidiary"
-                      ? "text-emerald-500 border-emerald-500/30"
-                      : selectedNode.type === "partner"
-                        ? "text-blue-500 border-blue-500/30"
-                        : "text-zinc-500 border-zinc-700"
-                  }`}
-                >
-                  {selectedNode.type.toUpperCase()}
-                </span>
-                <button
-                  className="p-2 hover:bg-zinc-800 rounded transition-colors"
-                  onClick={() => window.open(`/vendors/${selectedNode.id}`, "_blank")}
-                >
-                  <ExternalLink className="w-4 h-4 text-zinc-400" />
-                </button>
-              </div>
-
-              <h2 className="text-xl font-light text-white mb-2">
-                {selectedNode.data?.company_name || selectedNode.data?.name || "Unknown"}
-              </h2>
-              <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 bg-zinc-900 rounded px-2 py-1 w-fit">
-                <span className="truncate max-w-[180px]">{selectedNode.data?.wallet_address}</span>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Total Volume</p>
-                  <p className="text-xl font-light text-white">
-                    $
-                    {(selectedNode.data.monthly_volume || selectedNode.data.totalReceived || 0).toLocaleString(
-                      undefined,
-                      { maximumFractionDigits: 0 },
-                    )}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Tx Count</p>
-                  <p className="text-xl font-light text-white">
-                    {selectedNode.data.transaction_count || selectedNode.data.transactionCount || 0}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Payment Flow (YTD)</p>
-                  <p className="text-xs text-emerald-500">+12.4% vs prev</p>
-                </div>
-                <div className="h-16 flex items-end gap-0.5">
-                  {Array.from({ length: 20 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-zinc-700 hover:bg-zinc-500 transition-all rounded-t-sm"
-                      style={{ height: `${20 + ((i * 17) % 80)}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono border-b border-zinc-800 pb-2">
-                  Entity Details
-                </p>
-                <div className="grid grid-cols-[80px_1fr] gap-y-3 text-sm">
-                  <span className="text-zinc-500">Category</span>
-                  <span className="text-white">{selectedNode.data.category || "General"}</span>
-                  <span className="text-zinc-500">Email</span>
-                  <span className="text-zinc-300 truncate">{selectedNode.data.email || "N/A"}</span>
-                  <span className="text-zinc-500">Contract</span>
-                  <span className="text-zinc-300">{selectedNode.data.notes || "Standard Agreement"}</span>
-                  <span className="text-zinc-500">Status</span>
-                  <span className="flex items-center gap-2 text-emerald-500">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Active Contract
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleInitiateTransfer}
-                className="w-full py-3 bg-white text-black font-medium rounded hover:bg-zinc-200 transition-colors"
-              >
-                INITIATE TRANSFER
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-48 text-center p-6 text-zinc-500">
-            <p className="text-sm">Select an entity to view details</p>
-          </div>
-        )}
-      </div>
+      {isMobile ? (
+        <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
+          <DrawerContent className="max-h-[80vh] bg-zinc-900 border-zinc-800">
+            <DrawerHeader className="sr-only">
+              <DrawerTitle>Entity Details</DrawerTitle>
+            </DrawerHeader>
+            <DetailPanelContent />
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <div className="absolute top-6 right-6 bottom-6 z-20 w-80 bg-zinc-900/90 backdrop-blur-sm rounded-lg border border-zinc-800 overflow-hidden">
+          <DetailPanelContent />
+        </div>
+      )}
     </div>
   )
 }

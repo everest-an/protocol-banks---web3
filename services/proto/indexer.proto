@@ -36,7 +36,7 @@ enum EventType {
 
 // 订阅请求
 message SubscribeRequest {
-  repeated string addresses = 1;    // 要监听的地址
+  repeated string addresses = 1;    // 要监听��地址
   repeated uint64 chain_ids = 2;    // 链ID列表
   repeated EventType event_types = 3; // 事件类型过滤
   bool include_pending = 4;         // 是否包含待确认交易

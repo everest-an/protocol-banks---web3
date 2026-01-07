@@ -177,6 +177,23 @@
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
   }
+  /* Add more safe area utilities for mobile */
+  .pb-safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-safe {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Add mobile bottom nav spacing */
+@media (max-width: 768px) {
+  .has-mobile-nav {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @media (max-width: 640px) {
@@ -235,5 +252,16 @@ body {
   }
   .xs\:hidden {
     display: none;
+  }
+}
+
+/* Ensure drawer content doesn't overlap bottom nav */
+[vaul-drawer] [vaul-drawer-content] {
+  max-height: calc(85vh - env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 768px) {
+  [vaul-drawer] [vaul-drawer-content] {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
