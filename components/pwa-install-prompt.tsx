@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Share, Plus, X } from "lucide-react"
+import { Share, Plus, X, AlertCircle } from "lucide-react"
+import Image from "next/image"
 
 // iOS detection
 function isIOS(): boolean {
@@ -24,13 +25,33 @@ function isSafari(): boolean {
   return /safari/.test(userAgent) && !/chrome|chromium|crios/.test(userAgent)
 }
 
+function isChrome(): boolean {
+  if (typeof window === "undefined") return false
+  const userAgent = window.navigator.userAgent.toLowerCase()
+  return /crios/.test(userAgent) // CriOS = Chrome on iOS
+}
+
+// Check if any iOS browser (Safari, Chrome, Firefox, etc.)
+function isIOSBrowser(): boolean {
+  return isIOS() && !isStandalone()
+}
+
 export function PWAInstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [browserType, setBrowserType] = useState<"safari" | "chrome" | "other">("safari")
 
   useEffect(() => {
-    // Only show on iOS Safari when not already installed
-    const shouldShow = isIOS() && isSafari() && !isStandalone() && !localStorage.getItem("pwa-prompt-dismissed")
+    const shouldShow = isIOSBrowser() && !localStorage.getItem("pwa-prompt-dismissed")
+
+    // Detect browser type
+    if (isSafari()) {
+      setBrowserType("safari")
+    } else if (isChrome()) {
+      setBrowserType("chrome")
+    } else {
+      setBrowserType("other")
+    }
 
     // Delay showing prompt for better UX
     if (shouldShow) {
@@ -49,6 +70,8 @@ export function PWAInstallPrompt() {
 
   if (!showPrompt) return null
 
+  const isChromeUser = browserType === "chrome" || browserType === "other"
+
   return (
     <AnimatePresence>
       {!dismissed && (
@@ -58,7 +81,7 @@ export function PWAInstallPrompt() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
             onClick={handleDismiss}
           />
 
@@ -72,13 +95,13 @@ export function PWAInstallPrompt() {
               damping: 30,
               stiffness: 300,
             }}
-            className="fixed bottom-0 left-0 right-0 z-[9999] px-4 pb-8 pt-2"
+            className="fixed bottom-0 left-0 right-0 z-[9999] px-3 pb-6 pt-2 safe-area-pb"
           >
             {/* Flowing Border Container */}
-            <div className="relative rounded-[32px] p-[2px] overflow-hidden">
+            <div className="relative rounded-[28px] p-[2px] overflow-hidden">
               {/* Animated Liquid Border */}
               <div
-                className="absolute inset-0 rounded-[32px]"
+                className="absolute inset-0 rounded-[28px]"
                 style={{
                   background: `
                     linear-gradient(
@@ -98,7 +121,7 @@ export function PWAInstallPrompt() {
 
               {/* Glow Effect */}
               <div
-                className="absolute inset-0 rounded-[32px] blur-xl opacity-50"
+                className="absolute inset-0 rounded-[28px] blur-xl opacity-40"
                 style={{
                   background: `
                     linear-gradient(
@@ -113,23 +136,22 @@ export function PWAInstallPrompt() {
                 }}
               />
 
-              {/* Glassmorphism Content */}
               <div
-                className="relative rounded-[30px] px-6 py-8"
+                className="relative rounded-[26px] px-5 py-6"
                 style={{
                   background: `
                     linear-gradient(
                       135deg,
-                      rgba(255, 255, 255, 0.1) 0%,
-                      rgba(255, 255, 255, 0.05) 50%,
-                      rgba(0, 212, 255, 0.05) 100%
+                      rgba(15, 15, 20, 0.98) 0%,
+                      rgba(20, 20, 30, 0.95) 50%,
+                      rgba(10, 15, 25, 0.98) 100%
                     )
                   `,
                   backdropFilter: "blur(40px) saturate(180%)",
                   WebkitBackdropFilter: "blur(40px) saturate(180%)",
                   boxShadow: `
-                    inset 0 1px 1px rgba(255, 255, 255, 0.2),
-                    0 20px 60px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.08),
+                    0 20px 60px rgba(0, 0, 0, 0.5),
                     0 0 40px rgba(0, 212, 255, 0.1)
                   `,
                 }}
@@ -137,161 +159,191 @@ export function PWAInstallPrompt() {
                 {/* Close Button */}
                 <button
                   onClick={handleDismiss}
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                   style={{
-                    background: "rgba(255, 255, 255, 0.1)",
-                    backdropFilter: "blur(10px)",
+                    background: "rgba(255, 255, 255, 0.08)",
                   }}
                 >
-                  <X className="w-4 h-4 text-white/70" />
+                  <X className="w-4 h-4 text-white/60" />
                 </button>
 
-                {/* Header with App Icon */}
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-4 mb-5">
                   <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden relative"
                     style={{
-                      background: `
-                        linear-gradient(
-                          135deg,
-                          #00D4FF 0%,
-                          #0066FF 50%,
-                          #00D4FF 100%
-                        )
-                      `,
-                      boxShadow: "0 8px 32px rgba(0, 212, 255, 0.4)",
+                      background: "linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 102, 255, 0.2) 100%)",
+                      border: "1px solid rgba(0, 212, 255, 0.3)",
+                      boxShadow: "0 8px 32px rgba(0, 212, 255, 0.2)",
                     }}
                   >
-                    <span className="text-3xl font-bold text-white">P</span>
+                    <Image src="/logo.png" alt="Protocol Banks" width={36} height={36} className="object-contain" />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Protocol Banks</h3>
-                    <p className="text-sm text-white/60">Add to Home Screen for the best experience</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-bold text-white">Protocol Banks</h3>
+                    <p className="text-sm text-gray-400">Install for the best experience</p>
                   </div>
                 </div>
 
-                {/* Instructions */}
-                <div className="space-y-4">
-                  {/* Step 1 */}
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      {/* Pulsing Share Icon */}
-                      <motion.div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center"
+                {isChromeUser ? (
+                  <div className="space-y-4">
+                    {/* Chrome Warning */}
+                    <div
+                      className="flex items-start gap-3 p-4 rounded-xl"
+                      style={{
+                        background: "rgba(255, 180, 0, 0.1)",
+                        border: "1px solid rgba(255, 180, 0, 0.2)",
+                      }}
+                    >
+                      <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-white font-semibold">Open in Safari to Install</p>
+                        <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                          Chrome on iOS doesn't support app installation. Open this page in Safari to add to Home
+                          Screen.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Copy Link Button */}
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href)
+                      }}
+                      className="w-full py-3.5 rounded-xl text-center text-white font-semibold transition-all active:scale-[0.98]"
+                      style={{
+                        background: "linear-gradient(135deg, #00D4FF 0%, #0066FF 100%)",
+                        boxShadow: "0 4px 20px rgba(0, 212, 255, 0.3)",
+                      }}
+                    >
+                      Copy Link to Open in Safari
+                    </button>
+                  </div>
+                ) : (
+                  /* Safari Instructions */
+                  <div className="space-y-4">
+                    {/* Step 1 */}
+                    <div className="flex items-center gap-4">
+                      <div className="relative shrink-0">
+                        {/* Pulsing Share Icon */}
+                        <motion.div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center"
+                          style={{
+                            background: "rgba(0, 212, 255, 0.15)",
+                            border: "1px solid rgba(0, 212, 255, 0.3)",
+                          }}
+                          animate={{
+                            boxShadow: ["0 0 0 0 rgba(0, 212, 255, 0.4)", "0 0 0 12px rgba(0, 212, 255, 0)"],
+                          }}
+                          transition={{
+                            duration: 1.5,
+                            repeat: Number.POSITIVE_INFINITY,
+                            ease: "easeOut",
+                          }}
+                        >
+                          <Share className="w-5 h-5 text-cyan-400" />
+                        </motion.div>
+
+                        {/* Pulsing Arrow pointing down to Safari toolbar */}
+                        <motion.div
+                          className="absolute -bottom-7 left-1/2 -translate-x-1/2"
+                          animate={{
+                            y: [0, -6, 0],
+                            opacity: [1, 0.5, 1],
+                          }}
+                          transition={{
+                            duration: 1,
+                            repeat: Number.POSITIVE_INFINITY,
+                            ease: "easeInOut",
+                          }}
+                        >
+                          <svg width="20" height="24" viewBox="0 0 20 24" fill="none">
+                            <path
+                              d="M10 0L10 20M10 20L3 13M10 20L17 13"
+                              stroke="url(#arrowGradient)"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <defs>
+                              <linearGradient id="arrowGradient" x1="10" y1="0" x2="10" y2="20">
+                                <stop stopColor="#00D4FF" />
+                                <stop offset="1" stopColor="#FFD700" />
+                              </linearGradient>
+                            </defs>
+                          </svg>
+                        </motion.div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base text-white font-medium">
+                          Tap the <span className="text-cyan-400 font-semibold">Share</span> button
+                        </p>
+                        <p className="text-sm text-gray-500">In Safari's bottom toolbar</p>
+                      </div>
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                         style={{
-                          background: "rgba(255, 255, 255, 0.1)",
-                        }}
-                        animate={{
-                          boxShadow: ["0 0 0 0 rgba(0, 212, 255, 0.4)", "0 0 0 12px rgba(0, 212, 255, 0)"],
-                        }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeOut",
+                          background: "linear-gradient(135deg, #00D4FF 0%, #0066FF 100%)",
                         }}
                       >
-                        <Share className="w-6 h-6 text-cyan-400" />
-                      </motion.div>
+                        <span className="text-white font-bold text-sm">1</span>
+                      </div>
+                    </div>
 
-                      {/* Pulsing Arrow */}
-                      <motion.div
-                        className="absolute -bottom-8 left-1/2 -translate-x-1/2"
-                        animate={{
-                          y: [0, -8, 0],
-                          opacity: [1, 0.5, 1],
-                        }}
-                        transition={{
-                          duration: 1,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
+                    {/* Divider */}
+                    <div
+                      className="h-px mx-4"
+                      style={{
+                        background: `
+                          linear-gradient(
+                            90deg,
+                            transparent 0%,
+                            rgba(255, 255, 255, 0.15) 50%,
+                            transparent 100%
+                          )
+                        `,
+                      }}
+                    />
+
+                    {/* Step 2 */}
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                        style={{
+                          background: "rgba(255, 215, 0, 0.15)",
+                          border: "1px solid rgba(255, 215, 0, 0.3)",
                         }}
                       >
-                        <svg width="24" height="32" viewBox="0 0 24 32" fill="none">
-                          <path
-                            d="M12 0L12 28M12 28L4 20M12 28L20 20"
-                            stroke="url(#arrowGradient)"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <defs>
-                            <linearGradient id="arrowGradient" x1="12" y1="0" x2="12" y2="28">
-                              <stop stopColor="#00D4FF" />
-                              <stop offset="1" stopColor="#FFD700" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                      </motion.div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">
-                        Tap the <span className="text-cyan-400">Share</span> button
-                      </p>
-                      <p className="text-white/50 text-sm">In Safari's bottom toolbar</p>
-                    </div>
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{
-                        background: "linear-gradient(135deg, #00D4FF 0%, #FFD700 100%)",
-                      }}
-                    >
-                      <span className="text-black font-bold text-sm">1</span>
+                        <Plus className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base text-white font-medium">
+                          Tap <span className="text-amber-400 font-semibold">Add to Home Screen</span>
+                        </p>
+                        <p className="text-sm text-gray-500">Scroll down in share menu</p>
+                      </div>
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                        }}
+                      >
+                        <span className="text-black font-bold text-sm">2</span>
+                      </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Divider */}
-                  <div
-                    className="h-px mx-4"
-                    style={{
-                      background: `
-                        linear-gradient(
-                          90deg,
-                          transparent 0%,
-                          rgba(255, 255, 255, 0.2) 50%,
-                          transparent 100%
-                        )
-                      `,
-                    }}
-                  />
-
-                  {/* Step 2 */}
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.1)",
-                      }}
-                    >
-                      <Plus className="w-6 h-6 text-amber-400" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">
-                        Tap <span className="text-amber-400">Add to Home Screen</span>
-                      </p>
-                      <p className="text-white/50 text-sm">Scroll down in the share menu</p>
-                    </div>
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{
-                        background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
-                      }}
-                    >
-                      <span className="text-black font-bold text-sm">2</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Features */}
+                {/* Features - improved contrast */}
                 <div className="mt-6 pt-4 border-t border-white/10">
                   <div className="flex justify-around">
                     {[
-                      { icon: "⚡", label: "Faster" },
-                      { icon: "🔔", label: "Notifications" },
-                      { icon: "📱", label: "Full Screen" },
+                      { icon: "⚡", label: "Faster", desc: "Native speed" },
+                      { icon: "🔔", label: "Alerts", desc: "Get notified" },
+                      { icon: "📱", label: "Full Screen", desc: "No browser UI" },
                     ].map((feature) => (
-                      <div key={feature.label} className="flex flex-col items-center gap-1">
+                      <div key={feature.label} className="flex flex-col items-center gap-1.5">
                         <span className="text-xl">{feature.icon}</span>
-                        <span className="text-xs text-white/50">{feature.label}</span>
+                        <span className="text-xs text-white font-medium">{feature.label}</span>
                       </div>
                     ))}
                   </div>
@@ -312,6 +364,9 @@ export function PWAInstallPrompt() {
               100% {
                 background-position: 0% 50%;
               }
+            }
+            .safe-area-pb {
+              padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
             }
           `}</style>
         </>

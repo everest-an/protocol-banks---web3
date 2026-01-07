@@ -34,6 +34,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 import type { Vendor, VendorInput } from "@/types"
 import { useVendors } from "@/hooks/use-vendors"
@@ -48,6 +58,7 @@ export default function HomePage() {
   const { isDemoMode, setWalletConnected } = useDemo()
   const { toast } = useToast()
   const router = useRouter()
+  const isMobile = useMediaQuery("(max-width: 768px)")
 
   useEffect(() => {
     setWalletConnected(isConnected)
@@ -195,17 +206,86 @@ export default function HomePage() {
     }
   }
 
+  const formContent = (
+    <form onSubmit={handleAddSubmit} className="space-y-4">
+      <div className="grid gap-2">
+        <Label htmlFor="address">Wallet Address</Label>
+        <Input
+          id="address"
+          placeholder="0x..."
+          value={formData.wallet_address}
+          onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
+          required
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="name">Entity / Company Name</Label>
+        <Input
+          id="name"
+          placeholder="e.g. Acme Corp"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-2">
+          <Label htmlFor="category">Category</Label>
+          <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="tier">Tier</Label>
+          <Select value={formData.tier} onValueChange={(val) => setFormData({ ...formData, tier: val as any })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vendor">Vendor</SelectItem>
+              <SelectItem value="partner">Partner</SelectItem>
+              <SelectItem value="subsidiary">Subsidiary</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="notes">Notes</Label>
+        <Textarea
+          id="notes"
+          placeholder="Additional details..."
+          value={formData.notes}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          className="min-h-[80px]"
+        />
+      </div>
+      {!isMobile && (
+        <DialogFooter>
+          <Button type="submit">{editMode ? "Update Tag" : "Save Tag"}</Button>
+        </DialogFooter>
+      )}
+    </form>
+  )
+
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
+    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
+      {/* Balance Header - optimized for mobile */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto py-3 px-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4 sm:gap-6">
-              {/* Main Balance Display - Fiat-first */}
-              <div>
+        <div className="container mx-auto py-3 px-3 sm:px-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 sm:gap-6">
+              <div className="min-w-0">
                 <div className="text-xs text-muted-foreground">Total Balance</div>
-                <div className="text-2xl sm:text-3xl font-bold font-mono tracking-tight">${displayBalance}</div>
-                {/* Chain Distribution - collapsible */}
+                <div className="text-xl sm:text-3xl font-bold font-mono tracking-tight truncate">${displayBalance}</div>
                 {balance?.chainDistribution && balance.chainDistribution.length > 0 && (
                   <BalanceDistribution
                     distribution={balance.chainDistribution}
@@ -218,13 +298,13 @@ export default function HomePage() {
 
             {isConnected && (
               <div className="flex gap-2">
-                <Button variant="default" size="sm">
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add
+                <Button variant="default" size="sm" className="h-8 px-2 sm:px-3">
+                  <Plus className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Add</span>
                 </Button>
-                <Button variant="outline" size="sm" className="bg-transparent">
-                  <ArrowUpRight className="mr-1 h-4 w-4" />
-                  Withdraw
+                <Button variant="outline" size="sm" className="bg-transparent h-8 px-2 sm:px-3">
+                  <ArrowUpRight className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Withdraw</span>
                 </Button>
               </div>
             )}
@@ -232,51 +312,35 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Header with controls */}
+      {/* Header with controls - optimized for mobile */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto py-3 px-3 sm:px-4 flex flex-col gap-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 border-b border-border pb-3">
+          <div className="flex flex-col gap-3 border-b border-border pb-3">
             <div className="flex items-center gap-2 text-sm">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground font-medium">FILTERS:</span>
+              <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground font-medium text-xs sm:text-sm">FILTERS:</span>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                size="sm"
-                variant={tierFilter === "all" ? "default" : "outline"}
-                onClick={() => setTierFilter("all")}
-                className="h-8"
-              >
-                All
-              </Button>
-              <Button
-                size="sm"
-                variant={tierFilter === "vendor" ? "default" : "outline"}
-                onClick={() => setTierFilter("vendor")}
-                className="h-8"
-              >
-                Suppliers
-              </Button>
-              <Button
-                size="sm"
-                variant={tierFilter === "partner" ? "default" : "outline"}
-                onClick={() => setTierFilter("partner")}
-                className="h-8"
-              >
-                Partners
-              </Button>
-              <Button
-                size="sm"
-                variant={tierFilter === "subsidiary" ? "default" : "outline"}
-                onClick={() => setTierFilter("subsidiary")}
-                className="h-8"
-              >
-                Subsidiaries
-              </Button>
+            <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+              {[
+                { key: "all", label: "All" },
+                { key: "vendor", label: "Suppliers" },
+                { key: "partner", label: "Partners" },
+                { key: "subsidiary", label: "Subs" },
+              ].map((f) => (
+                <Button
+                  key={f.key}
+                  size="sm"
+                  variant={tierFilter === f.key ? "default" : "outline"}
+                  onClick={() => setTierFilter(f.key as any)}
+                  className="h-7 px-2 sm:px-3 text-xs sm:text-sm"
+                >
+                  {f.label}
+                </Button>
+              ))}
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pb-2">
+          <div className="hidden sm:flex flex-col sm:flex-row items-start sm:items-center gap-3 pb-2">
             <div className="flex items-center gap-4 flex-1 w-full">
               <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">TIME RANGE</span>
               <div className="flex-1 px-2">
@@ -301,128 +365,80 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Existing controls row */}
+          {/* Title and controls row */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight whitespace-nowrap">Global Payment Mesh</h1>
+              <h1 className="text-base sm:text-xl font-bold tracking-tight whitespace-nowrap">Global Payment Mesh</h1>
               <div className="h-4 w-px bg-border hidden sm:block"></div>
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs">FY: {allowRange ? `${yearRange[0]}-${yearRange[1]}` : yearRange[0]}</span>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                <Calendar className="w-3 h-3" />
+                <span>FY: {allowRange ? `${yearRange[0]}-${yearRange[1]}` : yearRange[0]}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="hidden sm:flex gap-2">
-                    <Plus className="w-4 h-4" /> Add Tag
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{editMode ? "Edit Wallet Tag" : "Add New Wallet Tag"}</DialogTitle>
-                    <DialogDescription>
-                      {editMode
-                        ? "Update the wallet tag information below."
-                        : "Tag a wallet address with business metadata for easier identification."}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleAddSubmit} className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="address">Wallet Address</Label>
-                      <Input
-                        id="address"
-                        placeholder="0x..."
-                        value={formData.wallet_address}
-                        onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Entity / Company Name</Label>
-                      <Input
-                        id="name"
-                        placeholder="e.g. Acme Corp"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="category">Category</Label>
-                        <Select
-                          value={formData.category}
-                          onValueChange={(val) => setFormData({ ...formData, category: val })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((cat) => (
-                              <SelectItem key={cat} value={cat}>
-                                {cat}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="tier">Tier / Attribute</Label>
-                        <Select
-                          value={formData.tier}
-                          onValueChange={(val) => setFormData({ ...formData, tier: val as any })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="vendor">Vendor</SelectItem>
-                            <SelectItem value="partner">Partner</SelectItem>
-                            <SelectItem value="subsidiary">Subsidiary</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="notes">Notes</Label>
-                      <Textarea
-                        id="notes"
-                        placeholder="Additional details..."
-                        value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit">{editMode ? "Update Tag" : "Save Tag"}</Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              {isMobile ? (
+                <Drawer open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+                  <DrawerTrigger asChild>
+                    <Button size="sm" className="h-8 gap-1">
+                      <Plus className="w-4 h-4" />
+                      <span>Add</span>
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent className="max-h-[85vh]">
+                    <DrawerHeader>
+                      <DrawerTitle>{editMode ? "Edit Wallet Tag" : "Add New Wallet Tag"}</DrawerTitle>
+                      <DrawerDescription>
+                        {editMode ? "Update wallet information" : "Tag a wallet with business metadata"}
+                      </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="px-4 overflow-y-auto">{formContent}</div>
+                    <DrawerFooter className="pt-4">
+                      <Button type="submit" onClick={handleAddSubmit} className="w-full">
+                        {editMode ? "Update Tag" : "Save Tag"}
+                      </Button>
+                    </DrawerFooter>
+                  </DrawerContent>
+                </Drawer>
+              ) : (
+                <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      <Plus className="w-4 h-4" /> Add Tag
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{editMode ? "Edit Wallet Tag" : "Add New Wallet Tag"}</DialogTitle>
+                      <DialogDescription>
+                        {editMode
+                          ? "Update the wallet tag information below."
+                          : "Tag a wallet address with business metadata for easier identification."}
+                      </DialogDescription>
+                    </DialogHeader>
+                    {formContent}
+                  </DialogContent>
+                </Dialog>
+              )}
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="flex items-center gap-2 text-sm">
-                  <Filter className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground text-xs">Active Filter:</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {tierFilter === "all"
-                      ? "All Categories"
-                      : tierFilter === "vendor"
-                        ? "Suppliers"
-                        : tierFilter === "partner"
-                          ? "Partners"
-                          : "Subsidiaries"}
-                  </Badge>
-                </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs hidden sm:flex">
+                  {tierFilter === "all"
+                    ? "All"
+                    : tierFilter === "vendor"
+                      ? "Suppliers"
+                      : tierFilter === "partner"
+                        ? "Partners"
+                        : "Subs"}
+                </Badge>
 
                 {/* View mode toggle */}
-                <div className="flex gap-1 border border-border rounded-md p-1">
+                <div className="flex gap-0.5 border border-border rounded-md p-0.5">
                   <Button
                     size="sm"
                     variant={viewMode === "graph" ? "default" : "ghost"}
                     onClick={() => setViewMode("graph")}
-                    className="h-7 px-2"
+                    className="h-7 w-7 p-0"
                   >
                     <LayoutGrid className="w-4 h-4" />
                   </Button>
@@ -430,7 +446,7 @@ export default function HomePage() {
                     size="sm"
                     variant={viewMode === "list" ? "default" : "ghost"}
                     onClick={() => setViewMode("list")}
-                    className="h-7 px-2"
+                    className="h-7 w-7 p-0"
                   >
                     <ListIcon className="w-4 h-4" />
                   </Button>
@@ -439,7 +455,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Existing search row */}
+          {/* Search - full width on mobile */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -452,10 +468,10 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 container mx-auto py-6 px-4">
+      {/* Main content - Fixed height and overflow for mobile */}
+      <main className="flex-1 container mx-auto py-4 sm:py-6 px-3 sm:px-4 pb-20 sm:pb-6">
         {viewMode === "graph" ? (
-          <div className="h-[800px]">
+          <div className="h-[calc(100vh-280px)] sm:h-[600px] md:h-[800px] min-h-[400px]">
             <NetworkGraph
               vendors={filteredVendors}
               userAddress={wallet}
@@ -466,15 +482,15 @@ export default function HomePage() {
             />
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-3 sm:gap-4">
             {!isDemoMode && filteredVendors.length === 0 ? (
               <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
-                    <Search className="w-8 h-8 text-muted-foreground" />
+                <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 text-center">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <Search className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">No Contacts Yet</h3>
-                  <p className="text-muted-foreground mb-6 max-w-sm">
+                  <h3 className="text-base sm:text-lg font-semibold mb-2">No Contacts Yet</h3>
+                  <p className="text-sm text-muted-foreground mb-6 max-w-sm">
                     Add your first vendor, partner, or subsidiary to start managing your payment network.
                   </p>
                   <Button onClick={() => setDialogOpen(true)}>
@@ -485,12 +501,14 @@ export default function HomePage() {
               </Card>
             ) : (
               filteredVendors.map((vendor) => (
-                <Card key={vendor.id} className="hover:border-primary/50 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">{vendor.company_name || vendor.name}</h3>
+                <Card key={vendor.id} className="hover:border-primary/50 transition-colors overflow-hidden">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h3 className="font-semibold text-base sm:text-lg truncate">
+                            {vendor.company_name || vendor.name}
+                          </h3>
                           <Badge
                             variant={
                               vendor.tier === "subsidiary"
@@ -499,46 +517,53 @@ export default function HomePage() {
                                   ? "secondary"
                                   : "outline"
                             }
-                            className={
+                            className={`text-xs shrink-0 ${
                               vendor.tier === "subsidiary"
                                 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                                 : vendor.tier === "partner"
                                   ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
                                   : ""
-                            }
+                            }`}
                           >
                             {vendor.tier}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground font-mono">{vendor.wallet_address}</p>
+                        <p className="text-xs text-muted-foreground font-mono truncate">{vendor.wallet_address}</p>
                       </div>
-                      <Button size="sm" variant="outline" className="shrink-0 bg-transparent">
-                        Initiate Transfer
+                      <Button size="sm" variant="outline" className="shrink-0 bg-transparent h-8 px-2 sm:px-3">
+                        <span className="hidden sm:inline">Initiate Transfer</span>
+                        <ArrowUpRight className="w-4 h-4 sm:hidden" />
                       </Button>
                     </div>
 
-                    {/* Stats row */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-3 border-t border-b border-border">
+                    {/* Stats row - 2 columns on mobile */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 py-3 border-t border-b border-border">
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Volume</p>
-                        <p className="text-lg font-semibold">${(vendor.monthly_volume || 0).toLocaleString()}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Volume</p>
+                        <p className="text-sm sm:text-lg font-semibold">
+                          ${(vendor.monthly_volume || 0).toLocaleString()}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Transactions</p>
-                        <p className="text-lg font-semibold">{vendor.transaction_count || 0}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Txns</p>
+                        <p className="text-sm sm:text-lg font-semibold">{vendor.transaction_count || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Chain</p>
-                        <p className="text-lg font-semibold">{vendor.chain || "Ethereum"}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Chain</p>
+                        <p className="text-sm sm:text-lg font-semibold">{vendor.chain || "ETH"}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Category</p>
-                        <p className="text-lg font-semibold capitalize">{vendor.category || "General"}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">
+                          Category
+                        </p>
+                        <p className="text-sm sm:text-lg font-semibold capitalize truncate">
+                          {vendor.category || "General"}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Contact & details row */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 text-sm">
+                    {/* Contact row - Hidden on mobile, shown on expand */}
+                    <div className="hidden sm:grid grid-cols-4 gap-4 pt-3 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">Email</p>
                         <p className="truncate">{(vendor as any).email || vendor.contact_email || "N/A"}</p>
@@ -555,7 +580,7 @@ export default function HomePage() {
                         <p className="text-xs text-muted-foreground">Status</p>
                         <p className="flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                          Active Contract
+                          Active
                         </p>
                       </div>
                     </div>
@@ -569,16 +594,18 @@ export default function HomePage() {
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Wallet Tag</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the tag for "{vendorToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{vendorToDelete?.name}"? This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteVendor}>Delete</AlertDialogAction>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteVendor} className="w-full sm:w-auto">
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
