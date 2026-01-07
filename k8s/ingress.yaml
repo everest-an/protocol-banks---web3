@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: go-services-ingress
+  namespace: protocolbanks
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1s"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+spec:
+  tls:
+    - hosts:
+        - api.protocolbanks.com
+        - webhook.protocolbanks.com
+      secretName: protocolbanks-tls
+  rules:
+    - host: api.protocolbanks.com
+      http:
+        paths:
+          - path: /payout
+            pathType: Prefix
+            backend:
+              service:
+                name: payout-engine
+                port:
+                  name: http
+          - path: /events
+            pathType: Prefix
+            backend:
+              service:
+                name: event-indexer
+                port:
+                  name: http
+    - host: webhook.protocolbanks.com
+      http:
+        paths:
+          - path: /rain
+            pathType: Prefix
+            backend:
+              service:
+                name: webhook-handler
+                port:
+                  name: http
+          - path: /transak
+            pathType: Prefix
+            backend:
+              service:
+                name: webhook-handler
+                port:
+                  name: http

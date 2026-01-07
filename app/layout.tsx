@@ -9,6 +9,7 @@ import { UserTypeProvider } from "@/contexts/user-type-context"
 import { AuthProvider } from "@/contexts/auth-provider"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { MobileNav } from "@/components/mobile-nav"
 import { Toaster } from "@/components/ui/toaster"
 import { RecaptchaScript } from "@/components/recaptcha-script"
 import { WelcomeGuide } from "@/components/welcome-guide"
@@ -83,8 +84,11 @@ export default function RootLayout({
                 <DemoProvider>
                   <div className="relative min-h-screen flex flex-col pb-safe">
                     <Header />
-                    <main className="flex-1">{children}</main>
-                    <Footer />
+                    <main className="flex-1 pb-16 md:pb-0">{children}</main>
+                    <div className="hidden md:block">
+                      <Footer />
+                    </div>
+                    <MobileNav />
                   </div>
                   <Toaster />
                   <RecaptchaScript />

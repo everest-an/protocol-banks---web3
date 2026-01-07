@@ -151,3 +151,31 @@ export async function refreshSessionIfNeeded(): Promise<void> {
     await createSession(session.userId, session.email, session.walletAddress)
   }
 }
+
+/**
+ * Verify session and return session data or null
+ * Use this in API routes to check authentication
+ */
+export async function verifySession(): Promise<Session | null> {
+  try {
+    const session = await getSession()
+
+    if (!session) {
+      return null
+    }
+
+    // Check if session is expired
+    if (session.expiresAt < new Date()) {
+      await destroySession()
+      return null
+    }
+
+    // Optionally refresh if close to expiry
+    await refreshSessionIfNeeded()
+
+    return session
+  } catch (error) {
+    console.error("[Auth] Session verification failed:", error)
+    return null
+  }
+}

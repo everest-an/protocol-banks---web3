@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
+    "@grpc/grpc-js": "1.14.3",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -76,6 +77,7 @@
     "vaul": "^1.1.2",
     "viem": "^2.21.58",
     "wagmi": "^2.12.34",
+    "xlsx": "0.18.5",
     "zod": "3.25.76"
   },
   "devDependencies": {

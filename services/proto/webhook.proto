@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package webhook;
+
+option go_package = "github.com/protocol-bank/services/proto/webhook";
+
+import "google/protobuf/timestamp.proto";
+
+// Webhook Handler Service - 第三方回调处理
+service WebhookService {
+  // 处理 Rain 卡交易回调
+  rpc HandleRainWebhook(RainWebhookRequest) returns (WebhookResponse);
+  
+  // 处理 Transak 回调
+  rpc HandleTransakWebhook(TransakWebhookRequest) returns (WebhookResponse);
+  
+  // 获取 Webhook 处理状态
+  rpc GetWebhookStatus(WebhookStatusRequest) returns (WebhookStatusResponse);
+  
+  // 重新处理失败的 Webhook
+  rpc RetryWebhook(RetryWebhookRequest) returns (WebhookResponse);
+}
+
+// Rain 卡事件类型
+enum RainEventType {
+  RAIN_EVENT_UNSPECIFIED = 0;
+  RAIN_EVENT_CARD_CREATED = 1;      // 卡片创建
+  RAIN_EVENT_CARD_ACTIVATED = 2;    // 卡片激活
+  RAIN_EVENT_TRANSACTION = 3;       // 交易通知
+  RAIN_EVENT_AUTHORIZATION = 4;     // 授权请求
+  RAIN_EVENT_SETTLEMENT = 5;        // 结算通知
+  RAIN_EVENT_REFUND = 6;            // 退款通知
+  RAIN_EVENT_CARD_FROZEN = 7;       // 卡片冻结
+  RAIN_EVENT_CARD_CLOSED = 8;       // 卡片关闭
+}
+
+// Transak 事件类型
+enum TransakEventType {
+  TRANSAK_EVENT_UNSPECIFIED = 0;
+  TRANSAK_EVENT_ORDER_CREATED = 1;
+  TRANSAK_EVENT_ORDER_PROCESSING = 2;
+  TRANSAK_EVENT_ORDER_COMPLETED = 3;
+  TRANSAK_EVENT_ORDER_FAILED = 4;
+  TRANSAK_EVENT_ORDER_CANCELLED = 5;
+}
+
+// Rain Webhook 请求
+message RainWebhookRequest {
+  // 原始请求头
+  map<string, string> headers = 1;
+  
+  // 原始请求体
+  bytes raw_body = 2;
+  
+  // 解析后的数据
+  RainEventType event_type = 3;
+  string event_id = 4;
+  string card_id = 5;
+  string user_id = 6;
+  
+  // 交易数据 (如果是交易事件)
+  RainTransaction transaction = 7;
+  
+  // 签名验证
+  string signature = 8;
+  int64 timestamp = 9;
+}
+
+// Rain 交易数据
+message RainTransaction {
+  string transaction_id = 1;
+  string merchant_name = 2;
+  string merchant_category = 3;
+  string amount = 4;                // 金额
+  string currency = 5;              // 货币代码
+  string status = 6;
+  google.protobuf.Timestamp created_at = 7;
+  
+  // 结算信息
+  string settlement_amount = 8;
+  string settlement_currency = 9;
+}
+
+// Transak Webhook 请求
+message TransakWebhookRequest {
+  map<string, string> headers = 1;
+  bytes raw_body = 2;
+  
+  TransakEventType event_type = 3;
+  string order_id = 4;
+  string user_id = 5;
+  
+  // 订单数据
+  TransakOrder order = 6;
+  
+  string signature = 7;
+  int64 timestamp = 8;
+}
+
+// Transak 订单数据
+message TransakOrder {
+  string order_id = 1;
+  string fiat_currency = 2;
+  string fiat_amount = 3;
+  string crypto_currency = 4;
+  string crypto_amount = 5;
+  string wallet_address = 6;
+  string network = 7;
+  string status = 8;
+  string tx_hash = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp completed_at = 11;
+}
+
+// Webhook 响应
+message WebhookResponse {
+  bool success = 1;
+  string message = 2;
+  string webhook_id = 3;            // 处理记录ID
+}
+
+// Webhook 状态请求
+message WebhookStatusRequest {
+  string webhook_id = 1;
+}
+
+// Webhook 状态响应
+message WebhookStatusResponse {
+  string webhook_id = 1;
+  string event_type = 2;
+  string status = 3;                // pending, processed, failed
+  string error_message = 4;
+  int32 retry_count = 5;
+  google.protobuf.Timestamp received_at = 6;
+  google.protobuf.Timestamp processed_at = 7;
+}
+
+// 重试 Webhook 请求
+message RetryWebhookRequest {
+  string webhook_id = 1;
+}

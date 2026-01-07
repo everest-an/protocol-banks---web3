@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: go-services-config
+  namespace: protocolbanks
+data:
+  # Supported chains
+  SUPPORTED_CHAINS: "1,137,42161,8453,10,56"
+  
+  # gRPC settings
+  GRPC_MAX_RECV_MSG_SIZE: "16777216"
+  GRPC_MAX_SEND_MSG_SIZE: "16777216"
+  
+  # Rate limiting
+  RATE_LIMIT_REQUESTS_PER_SECOND: "100"
+  RATE_LIMIT_BURST: "200"
+  
+  # Batch processing
+  MAX_BATCH_SIZE: "500"
+  WORKER_POOL_SIZE: "10"
+  
+  # Event indexer
+  BLOCK_CONFIRMATION_DEPTH: "12"
+  POLLING_INTERVAL_MS: "2000"
+  
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"

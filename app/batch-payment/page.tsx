@@ -40,11 +40,18 @@ import {
   ChevronDown,
   Bookmark,
   Download,
+  FileSpreadsheet,
+  AlertCircle,
+  CheckCircle2,
+  Shield,
+  Users,
 } from "lucide-react"
-import { createClient } from "@/lib/supabase-client" // Added for clarity, assuming this is the correct way to import
+import { createClient } from "@/lib/supabase-client"
 import type { Vendor, PaymentRecipient, AutoPayment } from "@/types"
 import { validatePaymentData, processBatchPayment as executeBatchPayment } from "@/lib/services/payment-service"
 import { validateVendorData } from "@/lib/services/vendor-service"
+import { parsePaymentFile, generateSampleCSV, generateSampleExcel, type ParseResult } from "@/lib/excel-parser"
+import { multisigService, type MultisigWallet } from "@/lib/multisig"
 
 export default function BatchPaymentPage() {
   const { wallets, sendToken, signERC3009Authorization, isConnected } = useWeb3()
@@ -68,6 +75,13 @@ export default function BatchPaymentPage() {
   })
   const [editingRecipientId, setEditingRecipientId] = useState<string | null>(null)
   const [vendorSearchQuery, setVendorSearchQuery] = useState("")
+
+  const [importResultOpen, setImportResultOpen] = useState(false)
+  const [importResult, setImportResult] = useState<ParseResult | null>(null)
+
+  const [multisigWallets, setMultisigWallets] = useState<MultisigWallet[]>([])
+  const [selectedMultisig, setSelectedMultisig] = useState<string | null>(null)
+  const [useMultisig, setUseMultisig] = useState(false)
 
   // Auto payment states
   const [autoPayments, setAutoPayments] = useState<AutoPayment[]>([])
@@ -222,6 +236,21 @@ export default function BatchPaymentPage() {
     loadVendors()
   }, [loadVendors])
 
+  const loadMultisigWallets = useCallback(async () => {
+    if (isDemoMode || !currentWallet) return
+
+    try {
+      const wallets = await multisigService.getWallets(currentWallet)
+      setMultisigWallets(wallets)
+    } catch (err) {
+      console.error("[v0] Error loading multisig wallets:", err)
+    }
+  }, [isDemoMode, currentWallet])
+
+  useEffect(() => {
+    loadMultisigWallets()
+  }, [loadMultisigWallets])
+
   const openTagDialog = (recipientId?: string, address?: string) => {
     setEditingRecipientId(recipientId || null)
     setTagFormData({
@@ -235,7 +264,7 @@ export default function BatchPaymentPage() {
     setTagDialogOpen(true)
   }
 
-  const handleImportCSV = useCallback(() => {
+  const handleImportFile = useCallback(() => {
     const input = document.createElement("input")
     input.type = "file"
     input.accept = ".csv,.xlsx,.xls"
@@ -243,71 +272,61 @@ export default function BatchPaymentPage() {
       const file = e.target.files?.[0]
       if (!file) return
 
+      setIsProcessing(true)
       try {
-        const text = await file.text()
-        const lines = text.split("\n")
-        const headers = lines[0].split(",").map((h) => h.trim())
+        const result = await parsePaymentFile(file)
+        setImportResult(result)
+        setImportResultOpen(true)
 
-        // Validate headers
-        const requiredHeaders = ["address", "amount", "token"]
-        const hasRequiredHeaders = requiredHeaders.every((h) => headers.includes(h))
-
-        if (!hasRequiredHeaders) {
-          toast({
-            title: "Invalid CSV",
-            description: `CSV must contain columns: ${requiredHeaders.join(", ")}`,
-            variant: "destructive",
-          })
-          return
-        }
-
-        const newRecipients: PaymentRecipient[] = []
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim()
-          if (!line) continue
-
-          const values = line.split(",").map((v) => v.trim())
-          const row: any = {}
-          headers.forEach((header, index) => {
-            row[header] = values[index] || ""
-          })
-
-          if (row.address && row.amount) {
-            newRecipients.push({
-              id: Date.now().toString() + i,
-              address: row.address,
-              amount: row.amount,
-              vendorName: row.vendorName || row.name || "",
-              vendorId: row.vendorId || "",
-              token: row.token || "USDT",
-            })
-          }
-        }
-
-        if (newRecipients.length > 0) {
+        if (result.success && result.recipients.length > 0) {
+          // Convert to PaymentRecipient format
+          const newRecipients: PaymentRecipient[] = result.recipients.map((r, i) => ({
+            id: Date.now().toString() + i,
+            address: r.address,
+            amount: r.amount,
+            vendorName: r.vendorName || "",
+            vendorId: r.vendorId || "",
+            token: r.token || "USDT",
+          }))
           setRecipients(newRecipients)
-          toast({
-            title: "Success",
-            description: `Imported ${newRecipients.length} recipients from CSV`,
-          })
-        } else {
-          toast({
-            title: "No data",
-            description: "No valid recipients found in CSV file",
-            variant: "destructive",
-          })
         }
       } catch (err: any) {
-        console.error("[v0] Error importing CSV:", err)
         toast({
           title: "Import failed",
-          description: err.message || "Failed to parse CSV file",
+          description: err.message || "Failed to parse file",
           variant: "destructive",
         })
+      } finally {
+        setIsProcessing(false)
       }
     }
     input.click()
   }, [toast])
+
+  const handleDownloadTemplate = useCallback(
+    (format: "csv" | "xlsx") => {
+      if (format === "csv") {
+        const csv = generateSampleCSV()
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+        const link = document.createElement("a")
+        link.href = URL.createObjectURL(blob)
+        link.download = "batch-payment-template.csv"
+        link.click()
+      } else {
+        const blob = generateSampleExcel()
+        const link = document.createElement("a")
+        link.href = URL.createObjectURL(blob)
+        link.download = "batch-payment-template.xlsx"
+        link.click()
+      }
+
+      toast({
+        title: "Template Downloaded",
+        description: `Sample ${format.toUpperCase()} template downloaded`,
+      })
+    },
+    [toast],
+  )
 
   const handleExportCSV = useCallback(() => {
     // Create CSV content
@@ -483,42 +502,75 @@ export default function BatchPaymentPage() {
     toast({ title: "Draft Saved", description: "Your payment draft has been saved locally." })
   }
 
-  // Process batch payment
   const processBatchPayment = async () => {
-    console.log("[v0] Starting batch payment process...")
-    console.log("[v0] Current wallet:", currentWallet)
-    console.log("[v0] Recipients:", recipients.length)
-
     if (!currentWallet) {
-      toast({ title: "Wallet Required", description: "Please connect your wallet first.", variant: "destructive" })
+      toast({
+        title: "Error",
+        description: "Please connect your wallet first",
+        variant: "destructive",
+      })
       return
     }
 
-    // Use validation service
-    try {
-      const validRecipients = recipients.filter((r) => r.address && r.amount)
-      validatePaymentData(validRecipients)
-    } catch (error: any) {
-      toast({ title: "Validation Error", description: error.message, variant: "destructive" })
+    const validRecipients = recipients.filter((r) => r.address && r.amount)
+    if (validRecipients.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please add at least one valid recipient",
+        variant: "destructive",
+      })
       return
     }
 
     setIsProcessing(true)
 
     try {
-      // Use service layer for batch payment execution
-      const result = await executeBatchPayment(recipients, currentWallet, isDemoMode)
+      if (useMultisig && selectedMultisig) {
+        // Create multi-sig transaction proposal instead of direct payment
+        const totalAmount = validRecipients.reduce((sum, r) => sum + Number.parseFloat(r.amount), 0)
 
-      toast({
-        title: "Batch Payment Complete",
-        description: `Successfully paid ${result.successCount} recipients (${result.totalPaid} USDT)`,
-      })
+        await multisigService.createTransaction({
+          multisigId: selectedMultisig,
+          toAddress: validRecipients[0].address, // For batch, use contract address
+          value: totalAmount.toString(),
+          description: `Batch payment to ${validRecipients.length} recipients`,
+          tokenSymbol: validRecipients[0].token,
+          amountUsd: totalAmount,
+          createdBy: currentWallet,
+        })
 
-      // Clear recipients on success
+        toast({
+          title: "Transaction Proposed",
+          description: `Batch payment submitted for multi-sig approval (${multisigWallets.find((w) => w.id === selectedMultisig)?.threshold} signatures required)`,
+        })
+      } else {
+        // Direct payment (existing logic)
+        // Use validation service
+        try {
+          validatePaymentData(validRecipients)
+        } catch (error: any) {
+          toast({ title: "Validation Error", description: error.message, variant: "destructive" })
+          return
+        }
+
+        // Use service layer for batch payment execution
+        const result = await executeBatchPayment(recipients, currentWallet, isDemoMode)
+
+        toast({
+          title: "Batch Payment Complete",
+          description: `Successfully paid ${result.successCount} recipients (${result.totalPaid} USDT)`,
+        })
+      }
+
+      // Reset form
       setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
-    } catch (error: any) {
-      console.error("[v0] Batch payment failed:", error)
-      toast({ title: "Payment Failed", description: error.message, variant: "destructive" })
+    } catch (err: any) {
+      console.error("[v0] Batch payment failed:", err)
+      toast({
+        title: "Payment failed",
+        description: err.message || "Failed to process batch payment",
+        variant: "destructive",
+      })
     } finally {
       setIsProcessing(false)
     }
@@ -551,26 +603,93 @@ export default function BatchPaymentPage() {
         {/* Personal Mode - Subscription Management - REMOVED */}
 
         <TabsContent value="batch" className="space-y-6">
+          {multisigWallets.length > 0 && (
+            <Card className="border-cyan-500/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-cyan-400" />
+                  <CardTitle className="text-base">Multi-sig Protection</CardTitle>
+                </div>
+                <CardDescription>Enable multi-signature approval for this batch payment</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useMultisig}
+                      onChange={(e) => setUseMultisig(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <span className="text-sm">Require multi-sig approval</span>
+                  </label>
+
+                  {useMultisig && (
+                    <Select value={selectedMultisig || ""} onValueChange={setSelectedMultisig}>
+                      <SelectTrigger className="w-[250px]">
+                        <SelectValue placeholder="Select multi-sig wallet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {multisigWallets.map((wallet) => (
+                          <SelectItem key={wallet.id} value={wallet.id}>
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4" />
+                              <span>{wallet.name}</span>
+                              <Badge variant="outline" className="ml-2">
+                                {wallet.threshold}/{wallet.signers?.length || 0}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid lg:grid-cols-12 gap-6">
             {/* Recipients Card */}
             <Card className="lg:col-span-8 bg-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Recipients</CardTitle>
-                  <CardDescription>Add payment recipients from your contacts or enter new addresses</CardDescription>
+                  <CardDescription>Add payment recipients from your contacts or import from file</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => openTagDialog()}>
                     <Tag className="h-4 w-4 mr-2" />
                     New Tag
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleImportCSV}>
-                    <FileUp className="h-4 w-4 mr-2" />
-                    Import CSV
-                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <FileUp className="h-4 w-4 mr-2" />
+                        Import
+                        <ChevronDown className="h-4 w-4 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleImportFile}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Import CSV/Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownloadTemplate("csv")}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download CSV Template
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownloadTemplate("xlsx")}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Excel Template
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                   <Button variant="outline" size="sm" onClick={handleExportCSV}>
                     <Download className="h-4 w-4 mr-2" />
-                    Export CSV
+                    Export
                   </Button>
                 </div>
               </CardHeader>
@@ -753,6 +872,30 @@ export default function BatchPaymentPage() {
                 </Button>
               </CardContent>
             </Card>
+          </div>
+          <div className="flex justify-end gap-4">
+            <Button
+              onClick={processBatchPayment}
+              disabled={isProcessing || recipients.filter((r) => r.address && r.amount).length === 0}
+              className="bg-cyan-500 hover:bg-cyan-600"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : useMultisig ? (
+                <>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Submit for Approval
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Process Batch Payment
+                </>
+              )}
+            </Button>
           </div>
         </TabsContent>
 
@@ -957,6 +1100,72 @@ export default function BatchPaymentPage() {
             <Button onClick={saveWalletTag}>
               <Bookmark className="h-4 w-4 mr-2" />
               Save Tag
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={importResultOpen} onOpenChange={setImportResultOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {importResult?.success ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              )}
+              Import {importResult?.success ? "Successful" : "Failed"}
+            </DialogTitle>
+            <DialogDescription>
+              {importResult?.success
+                ? `Successfully imported ${importResult.recipients.length} recipients`
+                : "Failed to import file"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Detected Fields */}
+            {importResult?.detectedFields && importResult.detectedFields.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Detected Fields</h4>
+                <div className="flex flex-wrap gap-2">
+                  {importResult.detectedFields.map((field, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      {field}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {importResult?.warnings && importResult.warnings.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2 text-yellow-500">Warnings</h4>
+                <ul className="text-sm text-muted-foreground space-y-1 max-h-32 overflow-y-auto">
+                  {importResult.warnings.map((warning, i) => (
+                    <li key={i}>• {warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Errors */}
+            {importResult?.errors && importResult.errors.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2 text-red-500">Errors</h4>
+                <ul className="text-sm text-red-400 space-y-1">
+                  {importResult.errors.map((error, i) => (
+                    <li key={i}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportResultOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
