@@ -4,7 +4,6 @@
 
 Protocol Banks is a comprehensive digital banking platform designed for modern enterprises and individuals to manage crypto payments, cross-chain swaps, batch transactions, and financial analytics across multiple blockchains including Ethereum, Bitcoin, Solana, and ZetaChain.
 
-![Dashboard Preview](/dashboard-preview.png)
 
 ## Key Features
 
