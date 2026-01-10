@@ -1,0 +1,210 @@
+syntax = "proto3";
+
+package payout;
+
+option go_package = "github.com/protocol-bank/services/proto/payout";
+
+import "google/protobuf/timestamp.proto";
+
+// Payout Engine Service - 批量支付引擎
+service PayoutService {
+  // 提交批量支付任务
+  rpc SubmitBatchPayout(BatchPayoutRequest) returns (BatchPayoutResponse);
+  
+  // 查询批量支付状态
+  rpc GetBatchStatus(BatchStatusRequest) returns (BatchStatusResponse);
+  
+  // 流式获取支付进度
+  rpc StreamPayoutProgress(BatchStatusRequest) returns (stream PayoutProgress);
+  
+  // 取消批量支付
+  rpc CancelBatchPayout(CancelBatchRequest) returns (CancelBatchResponse);
+  
+  // 重试失败的支付
+  rpc RetryFailedPayouts(RetryRequest) returns (RetryResponse);
+  
+  // 估算 Gas 费用
+  rpc EstimateGas(EstimateGasRequest) returns (EstimateGasResponse);
+}
+
+// 单笔支付项
+message PayoutItem {
+  string id = 1;                    // 唯一标识
+  string recipient_address = 2;     // 收款地址
+  string amount = 3;                // 金额 (wei/smallest unit)
+  string token_address = 4;         // 代币合约地址 (空字符串=原生代币)
+  string token_symbol = 5;          // 代币符号
+  uint32 token_decimals = 6;        // 代币精度
+  string vendor_name = 7;           // 供应商名称 (可选)
+  string vendor_id = 8;             // 供应商ID (可选)
+  string memo = 9;                  // 备注 (可选)
+}
+
+// 批量支付请求
+message BatchPayoutRequest {
+  string batch_id = 1;              // 批次ID (客户端生成)
+  string user_id = 2;               // 用户ID
+  string from_address = 3;          // 付款地址
+  uint64 chain_id = 4;              // 链ID
+  repeated PayoutItem items = 5;    // 支付项列表
+  
+  // 多签配置 (可选)
+  MultiSigConfig multisig_config = 6;
+  
+  // Gas 配置
+  GasConfig gas_config = 7;
+  
+  // 安全配置
+  SecurityConfig security_config = 8;
+}
+
+// 多签配置
+message MultiSigConfig {
+  bool enabled = 1;                 // 是否启用多签
+  string safe_address = 2;          // Safe 合约地址
+  uint32 threshold = 3;             // 签名阈值
+  repeated string signers = 4;      // 签名者列表
+}
+
+// Gas 配置
+message GasConfig {
+  string max_fee_per_gas = 1;       // 最大 Gas 价格 (可选)
+  string max_priority_fee = 2;      // 最大优先费 (可选)
+  uint64 gas_limit_multiplier = 3;  // Gas 限制乘数 (默认 120 = 1.2x)
+  bool auto_adjust = 4;             // 自动调整 Gas
+}
+
+// 安全配置
+message SecurityConfig {
+  string signed_hash = 1;           // 请求签名哈希
+  int64 timestamp = 2;              // 请求时间戳
+  string nonce = 3;                 // 防重放 nonce
+}
+
+// 批量支付响应
+message BatchPayoutResponse {
+  string batch_id = 1;
+  BatchStatus status = 2;
+  string message = 3;
+  int64 estimated_completion_time = 4;  // 预计完成时间 (Unix timestamp)
+  string estimated_gas_cost = 5;        // 预计 Gas 费用
+}
+
+// 批量状态
+enum BatchStatus {
+  BATCH_STATUS_UNSPECIFIED = 0;
+  BATCH_STATUS_QUEUED = 1;          // 已入队
+  BATCH_STATUS_PROCESSING = 2;      // 处理中
+  BATCH_STATUS_AWAITING_SIGNATURES = 3;  // 等待多签
+  BATCH_STATUS_COMPLETED = 4;       // 已完成
+  BATCH_STATUS_PARTIAL_FAILED = 5;  // 部分失败
+  BATCH_STATUS_FAILED = 6;          // 全部失败
+  BATCH_STATUS_CANCELLED = 7;       // 已取消
+}
+
+// 单笔支付状态
+enum PayoutStatus {
+  PAYOUT_STATUS_UNSPECIFIED = 0;
+  PAYOUT_STATUS_PENDING = 1;        // 待处理
+  PAYOUT_STATUS_SUBMITTED = 2;      // 已提交
+  PAYOUT_STATUS_CONFIRMING = 3;     // 确认中
+  PAYOUT_STATUS_CONFIRMED = 4;      // 已确认
+  PAYOUT_STATUS_FAILED = 5;         // 失败
+  PAYOUT_STATUS_RETRYING = 6;       // 重试中
+}
+
+// 批量状态查询请求
+message BatchStatusRequest {
+  string batch_id = 1;
+  string user_id = 2;
+}
+
+// 批量状态响应
+message BatchStatusResponse {
+  string batch_id = 1;
+  BatchStatus status = 2;
+  int32 total_count = 3;
+  int32 completed_count = 4;
+  int32 failed_count = 5;
+  int32 pending_count = 6;
+  repeated PayoutItemStatus items = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// 单笔支付状态
+message PayoutItemStatus {
+  string id = 1;
+  string recipient_address = 2;
+  string amount = 3;
+  PayoutStatus status = 4;
+  string tx_hash = 5;               // 交易哈希
+  uint64 confirmations = 6;         // 确认数
+  string error_message = 7;         // 错误信息
+  int32 retry_count = 8;            // 重试次数
+}
+
+// 支付进度 (流式)
+message PayoutProgress {
+  string batch_id = 1;
+  string item_id = 2;
+  PayoutStatus status = 3;
+  string tx_hash = 4;
+  uint64 confirmations = 5;
+  string error_message = 6;
+  int32 progress_percent = 7;       // 整体进度百分比
+}
+
+// 取消批量请求
+message CancelBatchRequest {
+  string batch_id = 1;
+  string user_id = 2;
+  string reason = 3;
+}
+
+// 取消批量响应
+message CancelBatchResponse {
+  bool success = 1;
+  string message = 2;
+  int32 cancelled_count = 3;        // 已取消数量
+  int32 already_processed_count = 4; // 已处理无法取消数量
+}
+
+// 重试请求
+message RetryRequest {
+  string batch_id = 1;
+  string user_id = 2;
+  repeated string item_ids = 3;     // 要重试的项目ID (空=全部失败项)
+  GasConfig gas_config = 4;         // 新的 Gas 配置
+}
+
+// 重试响应
+message RetryResponse {
+  bool success = 1;
+  string message = 2;
+  int32 retry_count = 3;
+}
+
+// Gas 估算请求
+message EstimateGasRequest {
+  string from_address = 1;
+  uint64 chain_id = 2;
+  repeated PayoutItem items = 3;
+  bool use_multisig = 4;
+}
+
+// Gas 估算响应
+message EstimateGasResponse {
+  string total_gas_estimate = 1;    // 总 Gas 估算
+  string gas_price = 2;             // 当前 Gas 价格
+  string total_cost_wei = 3;        // 总成本 (wei)
+  string total_cost_usd = 4;        // 总成本 (USD)
+  repeated GasEstimateItem items = 5;
+}
+
+// 单项 Gas 估算
+message GasEstimateItem {
+  string item_id = 1;
+  string gas_estimate = 2;
+  string cost_wei = 3;
+}

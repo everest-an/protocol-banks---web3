@@ -1,0 +1,82 @@
+version: "3.9"
+
+services:
+  # Redis - 用于队列和缓存
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Payout Engine - 批量支付服务
+  payout-engine:
+    build:
+      context: ./payout-engine
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      - ENVIRONMENT=development
+      - GRPC_PORT=50051
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis:6379
+      - ETH_RPC_URL=${ETH_RPC_URL}
+      - POLYGON_RPC_URL=${POLYGON_RPC_URL}
+      - BASE_RPC_URL=${BASE_RPC_URL}
+      - API_SECRET=${API_SECRET}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Event Indexer - 链上事件监听
+  event-indexer:
+    build:
+      context: ./event-indexer
+      dockerfile: Dockerfile
+    ports:
+      - "50052:50052"
+    environment:
+      - ENVIRONMENT=development
+      - GRPC_PORT=50052
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis:6379
+      - ETH_RPC_URL=${ETH_RPC_URL}
+      - ETH_WS_URL=${ETH_WS_URL}
+      - POLYGON_RPC_URL=${POLYGON_RPC_URL}
+      - BASE_RPC_URL=${BASE_RPC_URL}
+      - WATCHED_ADDRESSES=${WATCHED_ADDRESSES}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Webhook Handler - 第三方回调处理
+  webhook-handler:
+    build:
+      context: ./webhook-handler
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=development
+      - HTTP_PORT=8080
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis:6379
+      - RAIN_WEBHOOK_SECRET=${RAIN_WEBHOOK_SECRET}
+      - RAIN_API_KEY=${RAIN_API_KEY}
+      - TRANSAK_WEBHOOK_SECRET=${TRANSAK_WEBHOOK_SECRET}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis_data:

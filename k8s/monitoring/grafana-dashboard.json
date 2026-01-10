@@ -1,0 +1,161 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Protocol Bank Go Services Dashboard",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Service Health",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(service_up)",
+          "legendFormat": "Services Up"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "green", "value": 3 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Payout Transactions / min",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(payout_transaction_total[1m])) by (status) * 60",
+          "legendFormat": "{{ status }}"
+        }
+      ]
+    },
+    {
+      "title": "Payout Queue Depth",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum(payout_queue_depth) by (chain_id, priority)",
+          "legendFormat": "Chain {{ chain_id }} - {{ priority }}"
+        }
+      ]
+    },
+    {
+      "title": "Payout Processing Time (P95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(payout_processing_duration_seconds_bucket[5m])) by (le, chain_id))",
+          "legendFormat": "Chain {{ chain_id }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "title": "Error Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "sum(rate(payout_error_total[5m])) by (error_type) * 100",
+          "legendFormat": "{{ error_type }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "title": "Block Indexer Lag",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "indexer_block_lag",
+          "legendFormat": "Chain {{ chain_id }}"
+        }
+      ]
+    },
+    {
+      "title": "Webhook Processing",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        {
+          "expr": "sum(rate(webhook_received_total[5m])) by (provider, event_type) * 60",
+          "legendFormat": "{{ provider }} - {{ event_type }}"
+        }
+      ]
+    },
+    {
+      "title": "gRPC Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "expr": "sum(rate(grpc_request_total[5m])) by (service, method) * 60",
+          "legendFormat": "{{ service }}/{{ method }}"
+        }
+      ]
+    },
+    {
+      "title": "Database Connections",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 28 },
+      "targets": [
+        {
+          "expr": "db_connections_active",
+          "legendFormat": "{{ service }}"
+        }
+      ]
+    },
+    {
+      "title": "Redis Connections",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 28 },
+      "targets": [
+        {
+          "expr": "redis_connections_active",
+          "legendFormat": "{{ service }}"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["protocol-bank", "go-services"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Protocol Bank - Go Services",
+  "uid": "protocol-bank-go",
+  "version": 1
+}

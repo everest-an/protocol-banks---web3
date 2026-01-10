@@ -1,0 +1,240 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: protocol-bank-alerts
+  namespace: protocol-bank
+  labels:
+    app: protocol-bank
+    prometheus: k8s
+spec:
+  groups:
+    # ============================================================
+    # Payout Engine Alerts
+    # ============================================================
+    - name: payout-engine
+      rules:
+        # 高错误率告警
+        - alert: PayoutHighErrorRate
+          expr: |
+            sum(rate(payout_error_total[5m])) by (chain_id)
+            / sum(rate(payout_transaction_total[5m])) by (chain_id) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            team: payments
+          annotations:
+            summary: "High payout error rate on chain {{ $labels.chain_id }}"
+            description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+        # 队列堆积告警
+        - alert: PayoutQueueBacklog
+          expr: payout_queue_depth > 1000
+          for: 10m
+          labels:
+            severity: warning
+            team: payments
+          annotations:
+            summary: "Payout queue backlog detected"
+            description: "Queue depth is {{ $value }} jobs"
+
+        # 处理速度下降
+        - alert: PayoutSlowProcessing
+          expr: |
+            histogram_quantile(0.95, rate(payout_processing_duration_seconds_bucket[5m])) > 60
+          for: 5m
+          labels:
+            severity: warning
+            team: payments
+          annotations:
+            summary: "Slow payout processing detected"
+            description: "P95 processing time is {{ $value | humanizeDuration }}"
+
+        # Nonce 重置频繁
+        - alert: PayoutNonceResetFrequent
+          expr: rate(nonce_reset_total[5m]) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+            team: payments
+          annotations:
+            summary: "Frequent nonce resets detected"
+            description: "Nonce reset rate is {{ $value }}/s"
+
+        # 服务不可用
+        - alert: PayoutEngineDown
+          expr: service_up{service="payout-engine"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: payments
+          annotations:
+            summary: "Payout Engine is down"
+            description: "Service has been unavailable for more than 1 minute"
+
+    # ============================================================
+    # Event Indexer Alerts
+    # ============================================================
+    - name: event-indexer
+      rules:
+        # 区块同步延迟
+        - alert: IndexerBlockLag
+          expr: indexer_block_lag > 100
+          for: 5m
+          labels:
+            severity: warning
+            team: indexer
+          annotations:
+            summary: "Event indexer is behind chain {{ $labels.chain_id }}"
+            description: "Indexer is {{ $value }} blocks behind"
+
+        # 严重区块延迟
+        - alert: IndexerBlockLagCritical
+          expr: indexer_block_lag > 1000
+          for: 5m
+          labels:
+            severity: critical
+            team: indexer
+          annotations:
+            summary: "Critical block lag on chain {{ $labels.chain_id }}"
+            description: "Indexer is {{ $value }} blocks behind"
+
+        # WebSocket 重连频繁
+        - alert: IndexerWebsocketUnstable
+          expr: rate(indexer_websocket_reconnects_total[5m]) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+            team: indexer
+          annotations:
+            summary: "Unstable WebSocket connection to chain {{ $labels.chain_id }}"
+            description: "Reconnection rate is {{ $value }}/s"
+
+        # 服务不可用
+        - alert: EventIndexerDown
+          expr: service_up{service="event-indexer"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: indexer
+          annotations:
+            summary: "Event Indexer is down"
+            description: "Service has been unavailable for more than 1 minute"
+
+    # ============================================================
+    # Webhook Handler Alerts
+    # ============================================================
+    - name: webhook-handler
+      rules:
+        # 签名验证失败率高
+        - alert: WebhookSignatureFailures
+          expr: |
+            sum(rate(webhook_signature_verification_total{result="failed"}[5m])) by (provider)
+            / sum(rate(webhook_signature_verification_total[5m])) by (provider) > 0.01
+          for: 5m
+          labels:
+            severity: critical
+            team: security
+          annotations:
+            summary: "High webhook signature failure rate for {{ $labels.provider }}"
+            description: "Failure rate is {{ $value | humanizePercentage }}"
+
+        # Webhook 处理延迟
+        - alert: WebhookSlowProcessing
+          expr: |
+            histogram_quantile(0.95, rate(webhook_processing_duration_seconds_bucket[5m])) > 5
+          for: 5m
+          labels:
+            severity: warning
+            team: payments
+          annotations:
+            summary: "Slow webhook processing for {{ $labels.provider }}"
+            description: "P95 processing time is {{ $value | humanizeDuration }}"
+
+        # 服务不可用
+        - alert: WebhookHandlerDown
+          expr: service_up{service="webhook-handler"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: payments
+          annotations:
+            summary: "Webhook Handler is down"
+            description: "Service has been unavailable for more than 1 minute"
+
+    # ============================================================
+    # Infrastructure Alerts
+    # ============================================================
+    - name: infrastructure
+      rules:
+        # 数据库连接池耗尽
+        - alert: DatabaseConnectionsHigh
+          expr: db_connections_active / db_connections_max > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            team: infrastructure
+          annotations:
+            summary: "High database connection usage for {{ $labels.service }}"
+            description: "Connection pool usage is {{ $value | humanizePercentage }}"
+
+        # Redis 连接问题
+        - alert: RedisConnectionsHigh
+          expr: redis_connections_active / redis_connections_max > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            team: infrastructure
+          annotations:
+            summary: "High Redis connection usage for {{ $labels.service }}"
+            description: "Connection usage is {{ $value | humanizePercentage }}"
+
+        # gRPC 错误率
+        - alert: GRPCHighErrorRate
+          expr: |
+            sum(rate(grpc_request_total{status!="OK"}[5m])) by (service, method)
+            / sum(rate(grpc_request_total[5m])) by (service, method) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+            team: infrastructure
+          annotations:
+            summary: "High gRPC error rate for {{ $labels.service }}/{{ $labels.method }}"
+            description: "Error rate is {{ $value | humanizePercentage }}"
+
+    # ============================================================
+    # Security Alerts
+    # ============================================================
+    - name: security
+      rules:
+        # 异常大额支付
+        - alert: LargePayoutDetected
+          expr: payout_amount_total > 1000000000000000000000
+          for: 0m
+          labels:
+            severity: warning
+            team: security
+          annotations:
+            summary: "Large payout detected on chain {{ $labels.chain_id }}"
+            description: "Payout amount: {{ $value }} wei"
+
+        # 短时间大量支付
+        - alert: BurstPayoutActivity
+          expr: rate(payout_transaction_total[1m]) > 100
+          for: 2m
+          labels:
+            severity: warning
+            team: security
+          annotations:
+            summary: "Burst payout activity detected"
+            description: "Transaction rate is {{ $value }}/s"
+
+        # 限流触发
+        - alert: RateLimitTriggered
+          expr: rate(rate_limit_exceeded_total[5m]) > 1
+          for: 5m
+          labels:
+            severity: warning
+            team: security
+          annotations:
+            summary: "Rate limiting triggered frequently"
+            description: "Rate limit exceeded {{ $value }}/s"

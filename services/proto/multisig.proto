@@ -1,0 +1,250 @@
+syntax = "proto3";
+
+package multisig;
+
+option go_package = "github.com/protocol-bank/services/proto/multisig";
+
+import "google/protobuf/timestamp.proto";
+
+// Multi-sig Service - 多签服务
+service MultiSigService {
+  // 创建多签钱包
+  rpc CreateWallet(CreateWalletRequest) returns (CreateWalletResponse);
+  
+  // 提交交易提案
+  rpc ProposeTransaction(ProposeTransactionRequest) returns (ProposeTransactionResponse);
+  
+  // 签名确认
+  rpc ConfirmTransaction(ConfirmTransactionRequest) returns (ConfirmTransactionResponse);
+  
+  // 执行交易
+  rpc ExecuteTransaction(ExecuteTransactionRequest) returns (ExecuteTransactionResponse);
+  
+  // 拒绝交易
+  rpc RejectTransaction(RejectTransactionRequest) returns (RejectTransactionResponse);
+  
+  // 获取待签名交易列表
+  rpc GetPendingTransactions(GetPendingRequest) returns (GetPendingResponse);
+  
+  // 流式获取签名状态
+  rpc StreamSignatureStatus(StreamSignatureRequest) returns (stream SignatureStatus);
+  
+  // 添加签名者
+  rpc AddSigner(AddSignerRequest) returns (AddSignerResponse);
+  
+  // 移除签名者
+  rpc RemoveSigner(RemoveSignerRequest) returns (RemoveSignerResponse);
+  
+  // 修改阈值
+  rpc ChangeThreshold(ChangeThresholdRequest) returns (ChangeThresholdResponse);
+}
+
+// 签名者角色
+enum SignerRole {
+  SIGNER_ROLE_UNSPECIFIED = 0;
+  SIGNER_ROLE_OWNER = 1;            // 所有者
+  SIGNER_ROLE_ADMIN = 2;            // 管理员
+  SIGNER_ROLE_FINANCE = 3;          // 财务
+  SIGNER_ROLE_APPROVER = 4;         // 审批者
+}
+
+// 交易类型
+enum TransactionType {
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  TRANSACTION_TYPE_TRANSFER = 1;    // 普通转账
+  TRANSACTION_TYPE_BATCH_PAYOUT = 2; // 批量支付
+  TRANSACTION_TYPE_CONTRACT_CALL = 3; // 合约调用
+  TRANSACTION_TYPE_ADD_SIGNER = 4;  // 添加签名者
+  TRANSACTION_TYPE_REMOVE_SIGNER = 5; // 移除签名者
+  TRANSACTION_TYPE_CHANGE_THRESHOLD = 6; // 修改阈值
+}
+
+// 交易状态
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  TRANSACTION_STATUS_PENDING = 1;   // 待签名
+  TRANSACTION_STATUS_READY = 2;     // 已达阈值，可执行
+  TRANSACTION_STATUS_EXECUTED = 3;  // 已执行
+  TRANSACTION_STATUS_REJECTED = 4;  // 已拒绝
+  TRANSACTION_STATUS_EXPIRED = 5;   // 已过期
+  TRANSACTION_STATUS_FAILED = 6;    // 执行失败
+}
+
+// 创建钱包请求
+message CreateWalletRequest {
+  string user_id = 1;
+  string name = 2;                  // 钱包名称
+  uint64 chain_id = 3;
+  repeated Signer signers = 4;      // 初始签名者
+  uint32 threshold = 5;             // 签名阈值
+}
+
+// 签名者信息
+message Signer {
+  string address = 1;
+  string name = 2;
+  SignerRole role = 3;
+  string email = 4;                 // 用于通知
+  string phone = 5;                 // 用于短信通知
+}
+
+// 创建钱包响应
+message CreateWalletResponse {
+  bool success = 1;
+  string wallet_id = 2;
+  string safe_address = 3;          // Safe 合约地址
+  string deploy_tx_hash = 4;        // 部署交易哈希
+  string message = 5;
+}
+
+// 提交交易提案请求
+message ProposeTransactionRequest {
+  string wallet_id = 1;
+  string proposer_address = 2;      // 提案者地址
+  TransactionType type = 3;
+  string to_address = 4;            // 目标地址
+  string value = 5;                 // 转账金额 (wei)
+  bytes data = 6;                   // 调用数据
+  string description = 7;           // 交易描述
+  int64 expires_at = 8;             // 过期时间 (Unix timestamp)
+  
+  // 批量支付关联
+  string batch_id = 9;              // 关联的批量支付ID
+}
+
+// 提交交易提案响应
+message ProposeTransactionResponse {
+  bool success = 1;
+  string transaction_id = 2;
+  string safe_tx_hash = 3;          // Safe 交易哈希
+  string message = 4;
+}
+
+// 确认交易请求
+message ConfirmTransactionRequest {
+  string transaction_id = 1;
+  string signer_address = 2;
+  bytes signature = 3;              // EIP-712 签名
+}
+
+// 确认交易响应
+message ConfirmTransactionResponse {
+  bool success = 1;
+  uint32 current_confirmations = 2;
+  uint32 required_confirmations = 3;
+  bool ready_to_execute = 4;
+  string message = 5;
+}
+
+// 执行交易请求
+message ExecuteTransactionRequest {
+  string transaction_id = 1;
+  string executor_address = 2;
+}
+
+// 执行交易响应
+message ExecuteTransactionResponse {
+  bool success = 1;
+  string tx_hash = 2;
+  string message = 3;
+}
+
+// 拒绝交易请求
+message RejectTransactionRequest {
+  string transaction_id = 1;
+  string signer_address = 2;
+  string reason = 3;
+}
+
+// 拒绝交易响应
+message RejectTransactionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// 获取待签名交易请求
+message GetPendingRequest {
+  string wallet_id = 1;
+  string signer_address = 2;        // 筛选该地址待签名的
+}
+
+// 获取待签名交易响应
+message GetPendingResponse {
+  repeated PendingTransaction transactions = 1;
+}
+
+// 待签名交易
+message PendingTransaction {
+  string transaction_id = 1;
+  string wallet_id = 2;
+  TransactionType type = 3;
+  string to_address = 4;
+  string value = 5;
+  string description = 6;
+  string proposer_address = 7;
+  uint32 current_confirmations = 8;
+  uint32 required_confirmations = 9;
+  repeated string confirmed_by = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp expires_at = 12;
+}
+
+// 流式签名状态请求
+message StreamSignatureRequest {
+  string transaction_id = 1;
+}
+
+// 签名状态
+message SignatureStatus {
+  string transaction_id = 1;
+  TransactionStatus status = 2;
+  uint32 current_confirmations = 3;
+  uint32 required_confirmations = 4;
+  string latest_signer = 5;
+  string tx_hash = 6;               // 执行后的交易哈希
+  string message = 7;
+}
+
+// 添加签名者请求
+message AddSignerRequest {
+  string wallet_id = 1;
+  string proposer_address = 2;
+  Signer new_signer = 3;
+  uint32 new_threshold = 4;         // 新阈值 (可选)
+}
+
+// 添加签名者响应
+message AddSignerResponse {
+  bool success = 1;
+  string transaction_id = 2;        // 需要多签确认
+  string message = 3;
+}
+
+// 移除签名者请求
+message RemoveSignerRequest {
+  string wallet_id = 1;
+  string proposer_address = 2;
+  string signer_to_remove = 3;
+  uint32 new_threshold = 4;         // 新阈值
+}
+
+// 移除签名者响应
+message RemoveSignerResponse {
+  bool success = 1;
+  string transaction_id = 2;
+  string message = 3;
+}
+
+// 修改阈值请求
+message ChangeThresholdRequest {
+  string wallet_id = 1;
+  string proposer_address = 2;
+  uint32 new_threshold = 3;
+}
+
+// 修改阈值响应
+message ChangeThresholdResponse {
+  bool success = 1;
+  string transaction_id = 2;
+  string message = 3;
+}

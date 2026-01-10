@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-indexer
+  namespace: protocolbanks
+  labels:
+    app: event-indexer
+    component: backend
+spec:
+  # Single replica per chain for ordering guarantees
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: event-indexer
+  template:
+    metadata:
+      labels:
+        app: event-indexer
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: event-indexer
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      
+      containers:
+        - name: event-indexer
+          image: ghcr.io/protocolbanks/event-indexer:latest
+          imagePullPolicy: Always
+          
+          ports:
+            - name: grpc
+              containerPort: 50052
+            - name: http
+              containerPort: 8081
+            - name: metrics
+              containerPort: 9090
+          
+          envFrom:
+            - configMapRef:
+                name: go-services-config
+            - secretRef:
+                name: go-services-secrets
+          
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-indexer
+  namespace: protocolbanks
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 50052
+      targetPort: grpc
+    - name: http
+      port: 8081
+      targetPort: http
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+  selector:
+    app: event-indexer

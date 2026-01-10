@@ -1,0 +1,157 @@
+syntax = "proto3";
+
+package indexer;
+
+option go_package = "github.com/protocol-bank/services/proto/indexer";
+
+import "google/protobuf/timestamp.proto";
+
+// Event Indexer Service - 链上事件索引
+service IndexerService {
+  // 订阅地址事件
+  rpc SubscribeAddress(SubscribeRequest) returns (stream ChainEvent);
+  
+  // 获取地址交易历史
+  rpc GetTransactionHistory(HistoryRequest) returns (HistoryResponse);
+  
+  // 获取地址余额
+  rpc GetBalances(BalanceRequest) returns (BalanceResponse);
+  
+  // 检测异常交易
+  rpc AnalyzeTransaction(AnalyzeRequest) returns (AnalyzeResponse);
+}
+
+// 链上事件类型
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_TRANSFER = 1;          // 转账
+  EVENT_TYPE_APPROVAL = 2;          // 授权
+  EVENT_TYPE_SWAP = 3;              // Swap
+  EVENT_TYPE_BRIDGE = 4;            // 跨链桥
+  EVENT_TYPE_CONTRACT_DEPLOY = 5;   // 合约部署
+  EVENT_TYPE_MULTISIG_SUBMISSION = 6; // 多签提交
+  EVENT_TYPE_MULTISIG_CONFIRMATION = 7; // 多签确认
+  EVENT_TYPE_MULTISIG_EXECUTION = 8; // 多签执行
+}
+
+// 订阅请求
+message SubscribeRequest {
+  repeated string addresses = 1;    // 要监听��地址
+  repeated uint64 chain_ids = 2;    // 链ID列表
+  repeated EventType event_types = 3; // 事件类型过滤
+  bool include_pending = 4;         // 是否包含待确认交易
+}
+
+// 链上事件
+message ChainEvent {
+  string event_id = 1;
+  uint64 chain_id = 2;
+  string chain_name = 3;
+  EventType event_type = 4;
+  
+  // 交易信息
+  string tx_hash = 5;
+  uint64 block_number = 6;
+  uint32 tx_index = 7;
+  uint32 log_index = 8;
+  
+  // 参与方
+  string from_address = 9;
+  string to_address = 10;
+  
+  // 金额信息
+  string value = 11;                // 原生代币金额
+  string token_address = 12;        // 代币地址 (如果是代币转账)
+  string token_symbol = 13;
+  uint32 token_decimals = 14;
+  string token_amount = 15;
+  
+  // 状态
+  uint64 confirmations = 16;
+  bool is_confirmed = 17;
+  
+  google.protobuf.Timestamp timestamp = 18;
+}
+
+// 历史记录请求
+message HistoryRequest {
+  string address = 1;
+  uint64 chain_id = 2;
+  int64 from_timestamp = 3;
+  int64 to_timestamp = 4;
+  int32 limit = 5;
+  int32 offset = 6;
+  repeated EventType event_types = 7;
+}
+
+// 历史记录响应
+message HistoryResponse {
+  repeated ChainEvent events = 1;
+  int32 total_count = 2;
+  bool has_more = 3;
+}
+
+// 余额请求
+message BalanceRequest {
+  string address = 1;
+  repeated uint64 chain_ids = 2;
+  repeated string token_addresses = 3; // 空=只查原生代币
+}
+
+// 余额响应
+message BalanceResponse {
+  repeated ChainBalance balances = 1;
+  string total_usd_value = 2;
+}
+
+// 单链余额
+message ChainBalance {
+  uint64 chain_id = 1;
+  string chain_name = 2;
+  string native_balance = 3;
+  string native_symbol = 4;
+  string native_usd_value = 5;
+  repeated TokenBalance tokens = 6;
+  string chain_total_usd = 7;
+}
+
+// 代币余额
+message TokenBalance {
+  string token_address = 1;
+  string symbol = 2;
+  uint32 decimals = 3;
+  string balance = 4;
+  string usd_value = 5;
+  string logo_url = 6;
+}
+
+// 交易分析请求
+message AnalyzeRequest {
+  string tx_hash = 1;
+  uint64 chain_id = 2;
+}
+
+// 交易分析响应
+message AnalyzeResponse {
+  string tx_hash = 1;
+  RiskLevel risk_level = 2;
+  repeated RiskFlag risk_flags = 3;
+  string analysis_summary = 4;
+}
+
+// 风险等级
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_LOW = 1;
+  RISK_LEVEL_MEDIUM = 2;
+  RISK_LEVEL_HIGH = 3;
+  RISK_LEVEL_CRITICAL = 4;
+}
+
+// 风险标记
+message RiskFlag {
+  string flag_type = 1;             // sanctioned_address, large_amount, etc.
+  string description = 2;
+  string related_address = 3;
+  RiskLevel severity = 4;
+}

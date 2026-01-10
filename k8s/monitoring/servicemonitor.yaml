@@ -1,0 +1,95 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: go-services
+  namespace: protocolbanks
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      component: backend
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: go-services-alerts
+  namespace: protocolbanks
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: payout-engine
+      rules:
+        - alert: PayoutEngineHighErrorRate
+          expr: |
+            rate(payout_transactions_total{status="failed"}[5m]) 
+            / rate(payout_transactions_total[5m]) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High payout failure rate"
+            description: "Payout failure rate is above 5% for the last 5 minutes"
+        
+        - alert: PayoutEngineQueueBacklog
+          expr: payout_queue_length > 1000
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Payout queue backlog growing"
+            description: "Queue has {{ $value }} pending payouts"
+        
+        - alert: NonceManagerContention
+          expr: rate(nonce_lock_contention_total[5m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High nonce lock contention"
+            description: "Nonce manager experiencing high contention"
+
+    - name: event-indexer
+      rules:
+        - alert: EventIndexerBehind
+          expr: event_indexer_blocks_behind > 100
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Event indexer falling behind"
+            description: "Indexer is {{ $value }} blocks behind on chain {{ $labels.chain_id }}"
+        
+        - alert: EventIndexerReorg
+          expr: increase(event_indexer_reorgs_total[1h]) > 5
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Multiple chain reorgs detected"
+            description: "{{ $value }} reorgs detected in the last hour"
+
+    - name: webhook-handler
+      rules:
+        - alert: WebhookSignatureFailures
+          expr: rate(webhook_signature_failures_total[5m]) > 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Webhook signature verification failures"
+            description: "Possible attack or misconfiguration"
+        
+        - alert: WebhookHighLatency
+          expr: histogram_quantile(0.95, rate(webhook_processing_duration_seconds_bucket[5m])) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Webhook processing latency high"
+            description: "p95 latency is {{ $value }}s"
