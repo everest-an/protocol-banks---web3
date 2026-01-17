@@ -135,22 +135,39 @@ export async function decryptAES(ciphertext: Uint8Array, key: CryptoKey, iv: Uin
 
 /**
  * Convert Uint8Array to base64 string
+ * Fixed to handle binary data correctly without btoa Latin1 limitation
  */
 export function toBase64(data: Uint8Array): string {
-  if (typeof btoa !== "undefined") {
-    return btoa(String.fromCharCode(...data))
+  if (typeof Buffer !== "undefined") {
+    // Node.js environment
+    return Buffer.from(data).toString("base64")
   }
-  return Buffer.from(data).toString("base64")
+
+  // Browser environment - use proper binary string conversion
+  let binary = ""
+  const len = data.byteLength
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(data[i])
+  }
+  return btoa(binary)
 }
 
 /**
  * Convert base64 string to Uint8Array
  */
 export function fromBase64(base64: string): Uint8Array {
-  if (typeof atob !== "undefined") {
-    return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+  if (typeof Buffer !== "undefined") {
+    // Node.js environment
+    return new Uint8Array(Buffer.from(base64, "base64"))
   }
-  return new Uint8Array(Buffer.from(base64, "base64"))
+
+  // Browser environment
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
 }
 
 /**

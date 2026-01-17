@@ -85,7 +85,12 @@ export async function clientEncrypt(data: string, password: string): Promise<str
   result.set(iv, salt.length)
   result.set(new Uint8Array(encrypted), salt.length + iv.length)
 
-  return btoa(String.fromCharCode(...result))
+  // Convert to base64 properly
+  let binary = ""
+  for (let i = 0; i < result.length; i++) {
+    binary += String.fromCharCode(result[i])
+  }
+  return btoa(binary)
 }
 
 // Client-side decryption
@@ -96,7 +101,12 @@ export async function clientDecrypt(encryptedData: string, password: string): Pr
     const encoder = new TextEncoder()
     const decoder = new TextDecoder()
 
-    const data = Uint8Array.from(atob(encryptedData), (c) => c.charCodeAt(0))
+    // Decode base64 properly
+    const binary = atob(encryptedData)
+    const data = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) {
+      data[i] = binary.charCodeAt(i)
+    }
 
     const salt = data.slice(0, 16)
     const iv = data.slice(16, 28)
