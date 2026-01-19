@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { recoverSigner, AuthorizationMessage, DomainInput } from "@/services/eip712.service"
 import { isNonceUsed, markNonceUsed } from "@/services/nonce-manager.service"
+import { isWithinValidityWindow } from "@/services/validity-window.service"
 
 export async function verifyAuthorizationSignature(options: {
   authorizationId: string
@@ -13,7 +14,7 @@ export async function verifyAuthorizationSignature(options: {
   // Load authorization
   const { data: auth, error } = await supabase
     .from("x402_authorizations")
-    .select("user_id, nonce, token_address, chain_id, from_address, status")
+    .select("user_id, nonce, token_address, chain_id, from_address, status, valid_after, valid_before")
     .eq("id", options.authorizationId)
     .single()
 
@@ -23,6 +24,17 @@ export async function verifyAuthorizationSignature(options: {
 
   if (auth.status !== "pending") {
     return { valid: false, error: "Authorization not pending" }
+  }
+
+  // Validity window check
+  const validAfter = new Date(auth.valid_after)
+  const validBefore = new Date(auth.valid_before)
+  if (!isWithinValidityWindow(validAfter, validBefore)) {
+    await supabase
+      .from("x402_authorizations")
+      .update({ status: "expired" })
+      .eq("id", options.authorizationId)
+    return { valid: false, error: "Authorization expired" }
   }
 
   // Nonce reuse check

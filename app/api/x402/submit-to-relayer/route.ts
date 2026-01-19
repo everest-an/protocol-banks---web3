@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server"
 import { getSession } from "@/lib/auth/session"
 import { validateOrigin, validateCSRFToken, addSecurityHeaders } from "@/lib/security-middleware"
 import { submitToRelayer } from "@/services/relayer-client.service"
-import { buildDomain, AuthorizationMessage, TRANSFER_WITH_AUTHORIZATION_TYPES } from "@/services/eip712.service"
+import { buildDomain, AuthorizationMessage } from "@/services/eip712.service"
+import { isWithinValidityWindow } from "@/services/validity-window.service"
 
 export async function POST(request: NextRequest) {
   const origin = validateOrigin(request)
@@ -34,6 +35,13 @@ export async function POST(request: NextRequest) {
 
   if (!auth.signature) {
     return NextResponse.json({ error: "Signature missing" }, { status: 400 })
+  }
+
+  const validAfter = new Date(auth.valid_after)
+  const validBefore = new Date(auth.valid_before)
+  if (!isWithinValidityWindow(validAfter, validBefore)) {
+    await supabase.from("x402_authorizations").update({ status: "expired" }).eq("id", authorizationId)
+    return NextResponse.json({ error: "Authorization expired" }, { status: 400 })
   }
 
   const domain = buildDomain({
