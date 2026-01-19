@@ -55,7 +55,16 @@ export function parsePaymentRequest(header: string): X402PaymentRequest | null {
  * Create X-Payment header for authenticated request
  */
 export function createPaymentProof(proof: X402PaymentProof): string {
-  return btoa(JSON.stringify(proof))
+  const jsonString = JSON.stringify(proof)
+
+  // Convert string to UTF-8 bytes first, then to base64
+  // This avoids the Latin1 character limitation of btoa()
+  const utf8Bytes = new TextEncoder().encode(jsonString)
+  let binary = ""
+  for (let i = 0; i < utf8Bytes.length; i++) {
+    binary += String.fromCharCode(utf8Bytes[i])
+  }
+  return btoa(binary)
 }
 
 /**

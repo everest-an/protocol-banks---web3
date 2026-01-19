@@ -178,19 +178,42 @@ export function combineShares(shares: Array<{ x: number; shares: Uint8Array }>):
 
 /**
  * Encode share to base64 string for storage
+ * Fixed to handle binary data correctly
  */
 export function encodeShare(share: { x: number; shares: Uint8Array }): string {
   const combined = new Uint8Array(1 + share.shares.length)
   combined[0] = share.x
   combined.set(share.shares, 1)
-  return btoa(String.fromCharCode(...combined))
+
+  // Use proper binary to base64 conversion
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(combined).toString("base64")
+  }
+
+  // Browser: convert byte-by-byte to avoid btoa Latin1 issues
+  let binary = ""
+  for (let i = 0; i < combined.length; i++) {
+    binary += String.fromCharCode(combined[i])
+  }
+  return btoa(binary)
 }
 
 /**
  * Decode share from base64 string
  */
 export function decodeShare(encoded: string): { x: number; shares: Uint8Array } {
-  const decoded = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0))
+  let decoded: Uint8Array
+
+  if (typeof Buffer !== "undefined") {
+    decoded = new Uint8Array(Buffer.from(encoded, "base64"))
+  } else {
+    const binary = atob(encoded)
+    decoded = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) {
+      decoded[i] = binary.charCodeAt(i)
+    }
+  }
+
   return {
     x: decoded[0],
     shares: decoded.slice(1),
