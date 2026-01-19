@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
+import { useDemo } from "@/contexts/demo-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -64,6 +65,7 @@ interface AddressChange {
 
 export default function SecurityPage() {
   const { wallets, activeChain, isConnected } = useWeb3()
+  const { isDemoMode } = useDemo()
   const currentWallet = wallets[activeChain]
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
@@ -139,15 +141,21 @@ export default function SecurityPage() {
 
   useEffect(() => {
     if (!isConnected) {
-      setAuditLogs(demoAuditLogs)
-      setSecurityAlerts(demoSecurityAlerts)
-      setAddressChanges(demoAddressChanges)
+      if (isDemoMode) {
+        setAuditLogs(demoAuditLogs)
+        setSecurityAlerts(demoSecurityAlerts)
+        setAddressChanges(demoAddressChanges)
+      } else {
+        setAuditLogs([])
+        setSecurityAlerts([])
+        setAddressChanges([])
+      }
       setIsLoading(false)
       return
     }
 
     loadSecurityData()
-  }, [isConnected, currentWallet])
+  }, [isConnected, currentWallet, isDemoMode])
 
   const loadSecurityData = async () => {
     if (!currentWallet) return
@@ -156,9 +164,15 @@ export default function SecurityPage() {
     try {
       const supabase = getSupabase()
       if (!supabase) {
-        setAuditLogs(demoAuditLogs)
-        setSecurityAlerts(demoSecurityAlerts)
-        setAddressChanges(demoAddressChanges)
+        if (isDemoMode) {
+          setAuditLogs(demoAuditLogs)
+          setSecurityAlerts(demoSecurityAlerts)
+          setAddressChanges(demoAddressChanges)
+        } else {
+          setAuditLogs([])
+          setSecurityAlerts([])
+          setAddressChanges([])
+        }
         return
       }
 
@@ -192,10 +206,15 @@ export default function SecurityPage() {
       if (changes) setAddressChanges(changes)
     } catch (error) {
       console.error("[Security] Failed to load data:", error)
-      // Fall back to demo data
-      setAuditLogs(demoAuditLogs)
-      setSecurityAlerts(demoSecurityAlerts)
-      setAddressChanges(demoAddressChanges)
+      if (isDemoMode) {
+        setAuditLogs(demoAuditLogs)
+        setSecurityAlerts(demoSecurityAlerts)
+        setAddressChanges(demoAddressChanges)
+      } else {
+        setAuditLogs([])
+        setSecurityAlerts([])
+        setAddressChanges([])
+      }
     } finally {
       setIsLoading(false)
     }

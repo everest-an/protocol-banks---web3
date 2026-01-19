@@ -266,15 +266,11 @@ export async function getTokenBalance(walletAddress: string, tokenAddress: strin
 
 export async function sendToken(tokenAddress: string, toAddress: string, amount: string): Promise<string> {
   if (tokenAddress === "SOL") {
-    console.log("[Web3] Simulating Solana transaction...")
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    return "5U3bHwJ6e5..." // Mock Solana signature
+    throw new Error("Solana transfers require a Solana wallet integration")
   }
 
   if (tokenAddress === "BTC") {
-    console.log("[Web3] Simulating Bitcoin transaction...")
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    return "a1b2c3d4..." // Mock Bitcoin tx hash
+    throw new Error("Bitcoin transfers require a Bitcoin wallet integration")
   }
 
   if (typeof window === "undefined" || !window.ethereum) {

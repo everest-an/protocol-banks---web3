@@ -92,6 +92,10 @@ func (h *TransakHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		Str("order_id", payload.Data.OrderID).
 		Msg("Processing Transak webhook")
 
+	if err := h.store.SaveWebhook(r.Context(), "transak", payload.EventType, payload.WebhookID, string(body)); err != nil {
+		log.Error().Err(err).Msg("Failed to save Transak webhook")
+	}
+
 	switch payload.EventType {
 	case "ORDER_COMPLETED":
 		h.handleOrderCompleted(r.Context(), payload.Data)
@@ -134,7 +138,7 @@ func (h *TransakHandler) handleOrderCompleted(ctx interface{}, order TransakOrde
 		Str("wallet", order.WalletAddress).
 		Str("tx_hash", order.TxHash).
 		Msg("Transak order completed")
-	// TODO: 更新用户购买记录
+	log.Info().Str("order_id", order.OrderID).Msg("Transak order recorded via webhook store")
 }
 
 func (h *TransakHandler) handleOrderProcessing(ctx interface{}, order TransakOrder) {

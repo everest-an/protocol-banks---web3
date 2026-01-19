@@ -5,6 +5,8 @@ import { validateOrigin, validateCSRFToken, addSecurityHeaders } from "@/lib/sec
 import { submitToRelayer } from "@/services/relayer-client.service"
 import { buildDomain, AuthorizationMessage } from "@/services/eip712.service"
 import { isWithinValidityWindow } from "@/services/validity-window.service"
+import { calculateRelayerFee } from "@/services/x402-fee-calculator.service"
+import { logFeeDistribution } from "@/services/fee-distributor.service"
 
 export async function POST(request: NextRequest) {
   const origin = validateOrigin(request)
@@ -62,16 +64,32 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const bps = Number.parseInt(process.env.X402_FEE_BPS || "50", 10)
+    const cap = process.env.X402_FEE_CAP
+    const { fee } = calculateRelayerFee({ amount: auth.amount, bps, cap })
+
     const relayerResp = await submitToRelayer({ domain, message, signature: auth.signature })
 
     await supabase
       .from("x402_authorizations")
-      .update({ status: "submitted", relayer_address: relayerResp?.relayerAddress, transaction_hash: relayerResp?.txHash })
+      .update({
+        status: "submitted",
+        relayer_address: relayerResp?.relayerAddress,
+        transaction_hash: relayerResp?.txHash,
+        relayer_fee: fee,
+      })
       .eq("id", authorizationId)
 
     await supabase
       .from("x402_audit_logs")
       .insert({ user_id: session.userId, authorization_id: authorizationId, action: "relayer_submitted", details: relayerResp })
+
+    await logFeeDistribution({
+      authorizationId,
+      userId: session.userId,
+      relayerAddress: relayerResp?.relayerAddress,
+      fee,
+    })
 
     const response = NextResponse.json({ success: true, status: "relayer_submitted", relayerResponse: relayerResp })
     return addSecurityHeaders(response)

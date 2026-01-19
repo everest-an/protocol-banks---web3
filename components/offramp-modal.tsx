@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, ArrowRight, DollarSign, Building2, ExternalLink, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useUserType } from "@/contexts/user-type-context"
-import { getOffRampQuote, getOffRampWidgetUrl, type OffRampProvider, type OffRampQuote } from "@/lib/offramp"
+import { getOffRampQuote, initiateOffRamp, type OffRampProvider, type OffRampQuote } from "@/lib/offramp"
 
 interface OffRampModalProps {
   open: boolean
@@ -64,23 +64,22 @@ export function OffRampModal({ open, onOpenChange, walletAddress, balance = "0" 
     setStep("confirm")
   }
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     setStep("processing")
+    try {
+      const result = await initiateOffRamp({
+        walletAddress,
+        amount,
+        token: "USDC",
+        chainId: 8453,
+        targetCurrency: currency,
+        provider,
+      })
 
-    // Open provider widget in new window
-    const widgetUrl = getOffRampWidgetUrl(provider, {
-      walletAddress,
-      amount,
-      token: "USDC",
-      targetCurrency: currency,
-    })
+      if (result.redirectUrl) {
+        window.open(result.redirectUrl, "_blank", "width=500,height=700")
+      }
 
-    if (widgetUrl) {
-      window.open(widgetUrl, "_blank", "width=500,height=700")
-    }
-
-    // Simulate completion after delay (in production, webhook would confirm)
-    setTimeout(() => {
       setStep("complete")
       toast({
         title: isWeb2User ? "Withdrawal Initiated" : "Off-Ramp Initiated",
@@ -88,7 +87,14 @@ export function OffRampModal({ open, onOpenChange, walletAddress, balance = "0" 
           ? "Your funds will arrive in your bank account within 1-3 business days."
           : "USDC transfer initiated. Check your provider for status.",
       })
-    }, 2000)
+    } catch (error) {
+      setStep("input")
+      toast({
+        title: "Off-ramp failed",
+        description: error instanceof Error ? error.message : "Unable to initiate off-ramp",
+        variant: "destructive",
+      })
+    }
   }
 
   const providers = [

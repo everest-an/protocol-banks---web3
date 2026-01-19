@@ -33,6 +33,7 @@ interface NetworkGraphProps {
   timeRange?: string
   userAddress?: string
   isDemoMode?: boolean
+  onAddContact?: () => void
 }
 
 const getFixedOffset = (index: number, seed: number) => {
@@ -49,6 +50,7 @@ export function NetworkGraph({
   timeRange,
   userAddress,
   isDemoMode = false,
+  onAddContact,
 }: NetworkGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
@@ -229,7 +231,7 @@ export function NetworkGraph({
     }
   }, [nodes, dimensions, onSelectVendor])
 
-  const handleWheel = (e: WheelEvent) => {
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault()
     const scaleAmount = -e.deltaY * 0.001
     const newScale = Math.min(Math.max(0.5, transform.k + scaleAmount), 4)
@@ -615,7 +617,7 @@ export function NetworkGraph({
             </p>
             <button
               onClick={() => {
-                /* TODO: Open add contact modal */
+                onAddContact?.()
               }}
               className="px-5 py-2.5 md:px-6 md:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors text-sm md:text-base"
             >

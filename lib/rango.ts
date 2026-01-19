@@ -340,6 +340,11 @@ export const POPULAR_TOKENS: Record<string, TokenInfo[]> = {
 
 // Rango API service - uses server-side API route
 class RangoService {
+  private demoMode = false
+
+  setDemoMode(enabled: boolean) {
+    this.demoMode = enabled
+  }
   // Get all possible routes for a swap via server API
   async getAllRoutes(
     from: RangoAsset,
@@ -416,8 +421,10 @@ class RangoService {
       return { routes, routeId: data.routeId }
     } catch (error) {
       console.error("Failed to get routes:", error)
-      // Return mock routes for demo
-      return this.getMockRoutes(from, to, amount)
+      if (this.demoMode) {
+        return this.getMockRoutes(from, to, amount)
+      }
+      throw error
     }
   }
 

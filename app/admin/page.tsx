@@ -131,36 +131,48 @@ export default function AdminDashboard() {
         status: (alerts?.length || 0) > 0 ? "warning" : "ok",
         message: `${alerts?.length || 0} unresolved alerts`,
       })
+
+      const { data: contracts } = await supabase
+        .from("contract_deployments")
+        .select("contract_type, chain_id, is_active, is_verified")
+
+      const zetaContract = contracts?.find(
+        (c) => c.contract_type === "zetachain" && c.chain_id === 7000 && c.is_active,
+      )
+      status.push({
+        category: "Contracts",
+        name: "ZetaChain Universal Contract",
+        status: zetaContract ? "ok" : "pending",
+        message: zetaContract ? "Mainnet deployment registered" : "Not deployed to mainnet",
+        action: "Manage",
+        actionUrl: "/admin/contracts",
+      })
+
+      const cctpContract = contracts?.find((c) => c.contract_type === "cctp" && c.is_active)
+      status.push({
+        category: "Contracts",
+        name: "CCTP Integration",
+        status: cctpContract ? "ok" : "pending",
+        message: cctpContract ? "Contract registered" : "No active CCTP contract",
+        action: "Manage",
+        actionUrl: "/admin/contracts",
+      })
+
+      const { data: domains } = await supabase
+        .from("domain_whitelist")
+        .select("domain, is_active, environment")
+        .eq("environment", "production")
+
+      const productionDomain = domains?.find((d) => d.domain === "protocolbanks.com" && d.is_active)
+      status.push({
+        category: "Domains",
+        name: "Production Domain",
+        status: productionDomain ? "ok" : "pending",
+        message: productionDomain ? "Whitelisted in production" : "Add protocolbanks.com to allowlist",
+        action: "Configure",
+        actionUrl: "/admin/domains",
+      })
     }
-
-    // Contract deployment status (placeholder - needs actual check)
-    status.push({
-      category: "Contracts",
-      name: "ZetaChain Universal Contract",
-      status: "pending",
-      message: "Not deployed to mainnet",
-      action: "Deploy",
-      actionUrl: "/admin/contracts",
-    })
-
-    status.push({
-      category: "Contracts",
-      name: "CCTP Integration",
-      status: "pending",
-      message: "Using Circle's official contracts",
-      action: "Verify",
-      actionUrl: "https://developers.circle.com/stablecoins/cctp-getting-started",
-    })
-
-    // Domain whitelist
-    status.push({
-      category: "Domains",
-      name: "Production Domain",
-      status: "pending",
-      message: "Add protocolbanks.com to Reown",
-      action: "Configure",
-      actionUrl: "https://cloud.reown.com",
-    })
 
     setSystemStatus(status)
     setLoading(false)

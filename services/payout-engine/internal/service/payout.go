@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"time"
 
@@ -311,9 +312,9 @@ func (s *PayoutService) buildERC20Transfer(
 // signTransaction 签名交易
 // 注意：生产环境应使用 HSM/KMS，这里只是示例
 func (s *PayoutService) signTransaction(ctx context.Context, tx *types.Transaction, chainID uint64) (*types.Transaction, error) {
-	// TODO: 从安全存储获取私钥
+	// 从安全存储获取私钥
 	// 生产环境应使用 AWS KMS, GCP KMS, 或 HashiCorp Vault
-	privateKeyHex := "" // 从环境变量或密钥管理服务获取
+	privateKeyHex := strings.TrimPrefix(os.Getenv("PAYOUT_PRIVATE_KEY"), "0x")
 
 	if privateKeyHex == "" {
 		return nil, fmt.Errorf("private key not configured")

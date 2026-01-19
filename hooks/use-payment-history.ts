@@ -199,6 +199,11 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
     loadPayments()
   }, [loadPayments])
 
+  const now = new Date()
+  const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonthKey = `${lastMonthDate.getFullYear()}-${lastMonthDate.getMonth()}`
+
   const stats: PaymentHistory = {
     payments,
     totalSent: payments
@@ -207,8 +212,22 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
     totalReceived: payments
       .filter((p) => p.type === "received" && p.status === "completed")
       .reduce((sum, p) => sum + Number.parseFloat(p.amount), 0),
-    thisMonth: 0, // TODO: Calculate
-    lastMonth: 0, // TODO: Calculate
+    thisMonth: payments
+      .filter((p) => p.status === "completed")
+      .filter((p) => {
+        const date = new Date(p.created_at)
+        const key = `${date.getFullYear()}-${date.getMonth()}`
+        return key === currentMonthKey
+      })
+      .reduce((sum, p) => sum + Number.parseFloat(p.amount), 0),
+    lastMonth: payments
+      .filter((p) => p.status === "completed")
+      .filter((p) => {
+        const date = new Date(p.created_at)
+        const key = `${date.getFullYear()}-${date.getMonth()}`
+        return key === lastMonthKey
+      })
+      .reduce((sum, p) => sum + Number.parseFloat(p.amount), 0),
   }
 
   return {

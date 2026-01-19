@@ -476,6 +476,7 @@ export default function HomePage() {
               vendors={filteredVendors}
               userAddress={wallet}
               isDemoMode={isDemoMode}
+              onAddContact={() => setDialogOpen(true)}
               onPaymentRequest={(vendor) => {
                 console.log("[v0] Payment requested for vendor:", vendor)
               }}

@@ -617,6 +617,7 @@ export default function VendorsPage() {
               <NetworkGraph
                 vendors={filteredVendors}
                 userAddress={wallet || undefined}
+                onAddContact={() => setDialogOpen(true)}
                 onPaymentRequest={handlePaymentRequest}
               />
             </div>

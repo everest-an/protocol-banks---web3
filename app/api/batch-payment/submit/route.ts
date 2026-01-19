@@ -42,8 +42,12 @@ export async function POST(request: NextRequest) {
 
   const fees = calculateFees({ items: validation.validItems, paymentMethod })
 
-  // Compute naive totals (token-mixed: store count, fee only)
+  // Compute totals (token-mixed: aggregate numeric amounts for display)
   const itemCount = validation.validItems.length
+  const totalAmount = validation.validItems.reduce((sum, item) => {
+    const value = Number.parseFloat(item.amount)
+    return Number.isNaN(value) ? sum : sum + value
+  }, 0)
 
   // Create batch and items in a transaction-like sequence
   const { data: batch, error: batchInsertError } = await supabase
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
       user_id: session.userId,
       batch_name: draftId,
       status: "processing",
-      total_amount: itemCount, // token-mixed; using count as placeholder aggregate
+      total_amount: totalAmount,
       total_fee: fees.totalFee,
       payment_method: paymentMethod,
       item_count: itemCount,
