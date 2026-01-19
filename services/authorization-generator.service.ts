@@ -65,6 +65,19 @@ export async function generateAuthorization(input: GenerateAuthorizationInput) {
     throw error
   }
 
+  await supabase.from("x402_audit_logs").insert({
+    user_id: input.userId,
+    authorization_id: record.id,
+    action: "authorization_created",
+    details: {
+      tokenAddress: input.tokenAddress,
+      chainId: input.chainId,
+      to: message.to,
+      amount: input.amount,
+      validBefore: new Date(validBefore * 1000).toISOString(),
+    },
+  })
+
   return {
     authorizationId: record.id,
     domain,

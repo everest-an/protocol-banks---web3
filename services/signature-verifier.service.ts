@@ -55,6 +55,12 @@ export async function verifyAuthorizationSignature(options: {
     .update({ signature: options.signature, status: "submitted" })
     .eq("id", options.authorizationId)
 
+  await supabase.from("x402_audit_logs").insert({
+    user_id: auth.user_id,
+    authorization_id: options.authorizationId,
+    action: "signature_verified",
+  })
+
   await markNonceUsed(auth.user_id, auth.token_address, auth.chain_id, auth.nonce)
 
   return { valid: true }
