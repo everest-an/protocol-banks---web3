@@ -1,0 +1,33 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./src/index.ts"],
+  "out": "./docs/api",
+  "name": "@protocolbanks/sdk",
+  "readme": "./README.md",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeInternal": true,
+  "hideGenerator": true,
+  "theme": "default",
+  "navigationLinks": {
+    "GitHub": "https://github.com/protocolbanks/sdk",
+    "Documentation": "https://docs.protocolbanks.com"
+  },
+  "plugin": [],
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Client",
+    "Modules",
+    "Types",
+    "Utilities",
+    "*"
+  ],
+  "sort": ["source-order"],
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": false
+  }
+}
