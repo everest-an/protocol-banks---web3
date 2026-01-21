@@ -57,6 +57,48 @@ ProtocolBanks Payment SDK 是一个多链加密货币收单 SDK，支持商户�
 | components.test.tsx | ✅ | Provider、Button、Selectors |
 | theme.test.ts | ✅ | 主题创建、合并、暗色模式 |
 
+### Python SDK (`protocolbanks`)
+
+| 模块 | 状态 | 文件 |
+|------|------|------|
+| 类型定义 | ✅ | `types.py` |
+| 配置 | ✅ | `config.py` |
+| 错误处理 | ✅ | `errors.py` |
+| HTTP 客户端 | ✅ | `http.py` |
+| 加密工具 | ✅ | `utils/crypto.py` |
+| 地址验证 | ✅ | `utils/validation.py` |
+| 支付链接 | ✅ | `modules/links.py` |
+| x402 Gasless | ✅ | `modules/x402.py` |
+| 批量支付 | ✅ | `modules/batch.py` |
+| Webhook | ✅ | `modules/webhooks.py` |
+| 客户端 | ✅ | `client.py` |
+
+### Go SDK (`protocolbanks-go`)
+
+| 模块 | 状态 | 文件 |
+|------|------|------|
+| 类型定义 | ✅ | `types.go`, `types_x402.go` |
+| 配置 | ✅ | `config.go` |
+| 错误处理 | ✅ | `errors.go` |
+| HTTP 客户端 | ✅ | `http.go` |
+| 加密工具 | ✅ | `crypto.go` |
+| 地址验证 | ✅ | `validation.go` |
+| 支付链接 | ✅ | `links.go` |
+| x402 Gasless | ✅ | `x402.go` |
+| 批量支付 | ✅ | `batch.go` |
+| Webhook | ✅ | `webhooks.go` |
+| 客户端 | ✅ | `client.go` |
+
+### Go SDK 测试
+
+| 测试文件 | 状态 | 覆盖模块 |
+|----------|------|----------|
+| validation_test.go | ✅ | 地址验证、同形字检测、金额验证 |
+| crypto_test.go | ✅ | HMAC签名、Nonce生成、Webhook签名 |
+| links_test.go | ✅ | 支付链接生成、验证、解析 |
+| webhooks_test.go | ✅ | Webhook签名验证、事件解析 |
+| batch_test.go | ✅ | 批量验证、提交 |
+
 ### 文档
 
 | 文档 | 状态 | 文件 |
@@ -103,10 +145,8 @@ ProtocolBanks Payment SDK 是一个多链加密货币收单 SDK，支持商户�
 
 ## 待完成任务
 
-- [ ] Python SDK 实现 (Task 16)
-- [ ] Go SDK 实现 (Task 17)
 - [ ] 属性测试 (可选，标记为 *)
-- [ ] 发布到 npm (需要 npm 凭证)
+- [ ] 发布到 npm/PyPI/GitHub (需要凭证)
 
 ## 命令参考
 
@@ -180,8 +220,10 @@ const link = client.links.generate({
 
 - TypeScript SDK: 19 个源文件 + 5 个测试文件
 - React 组件库: 11 个源文件 + 2 个测试文件
-- 文档: 8 个 Markdown 文件
-- 配置: 12 个配置文件
+- Python SDK: 11 个源文件 + 4 个测试文件
+- Go SDK: 12 个源文件 + 5 个测试文件
+- 文档: 10 个 Markdown 文件
+- 配置: 15 个配置文件
 
 ## 完成进度
 
@@ -189,10 +231,11 @@ const link = client.links.generate({
 - [x] Task 6-8: 嵌入式组件
 - [x] Task 9-12: x402、批量支付、Webhook
 - [x] Task 13-14: SDK 客户端集成、安全性
+- [x] Task 16: Python SDK
+- [x] Task 17: Go SDK
 - [x] Task 19: 文档编写
 - [x] Task 20.1: CI/CD 配置
-- [ ] Task 16-17: Python/Go SDK (计划中)
-- [ ] Task 20.2: 发布到 npm (需要凭证)
+- [ ] Task 20.2: 发布到 npm/PyPI/GitHub (需要凭证)
 
 ---
 

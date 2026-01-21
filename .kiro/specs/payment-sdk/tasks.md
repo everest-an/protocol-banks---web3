@@ -268,14 +268,14 @@
 - [x] 15. Checkpoint - TypeScript SDK 完成
   - 确保所有测试通过，如有问题请询问用户
 
-- [-] 16. Python SDK 实现
-  - [-] 16.1 创建 Python SDK 项目结构
+- [x] 16. Python SDK 实现
+  - [x] 16.1 创建 Python SDK 项目结构
     - 初始化 `protocolbanks` 包
     - 配置 pyproject.toml 和 setup.py
     - 配置 pytest 和 hypothesis
     - _Requirements: 15.2_
 
-  - [ ] 16.2 移植核心模块到 Python
+  - [x] 16.2 移植核心模块到 Python
     - 移植 PaymentLinkModule
     - 移植 X402Module
     - 移植 BatchModule
@@ -287,14 +287,14 @@
     - 验证与 TypeScript SDK 行为一致
     - _Requirements: 15.5_
 
-- [ ] 17. Go SDK 实现
-  - [ ] 17.1 创建 Go SDK 项目结构
+- [x] 17. Go SDK 实现
+  - [x] 17.1 创建 Go SDK 项目结构
     - 初始化 `protocolbanks-go` 模块
     - 配置 go.mod
     - 配置 testing 和 rapid
     - _Requirements: 15.3_
 
-  - [ ] 17.2 移植核心模块到 Go
+  - [x] 17.2 移植核心模块到 Go
     - 移植 PaymentLinkModule
     - 移植 X402Module
     - 移植 BatchModule
