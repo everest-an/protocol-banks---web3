@@ -7,6 +7,12 @@ import { buildDomain, AuthorizationMessage } from "@/services/eip712.service"
 import { isWithinValidityWindow } from "@/services/validity-window.service"
 import { calculateRelayerFee } from "@/services/x402-fee-calculator.service"
 import { logFeeDistribution } from "@/services/fee-distributor.service"
+import {
+  getCDPFacilitator,
+  buildPaymentPayload,
+  buildPaymentRequirements,
+  isCDPSupported,
+} from "@/services/cdp-facilitator.service"
 
 export async function POST(request: NextRequest) {
   const origin = validateOrigin(request)
@@ -27,7 +33,7 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: auth, error } = await supabase
     .from("x402_authorizations")
-    .select("id, user_id, token_address, chain_id, from_address, to_address, amount, nonce, valid_after, valid_before, signature")
+    .select("id, user_id, token_address, chain_id, from_address, to_address, amount, nonce, valid_after, valid_before, signature, token_symbol")
     .eq("id", authorizationId)
     .single()
 
@@ -46,6 +52,77 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Authorization expired" }, { status: 400 })
   }
 
+  // ============================================================================
+  // 优先使用 CDP Facilitator (Base 链 USDC 免费)
+  // ============================================================================
+  const chainId = auth.chain_id
+  const token = auth.token_symbol || "USDC"
+  
+  if (isCDPSupported(chainId, token)) {
+    const cdp = getCDPFacilitator()
+    
+    if (cdp) {
+      try {
+        const paymentPayload = buildPaymentPayload({
+          signature: auth.signature,
+          from: auth.from_address,
+          to: auth.to_address,
+          value: auth.amount,
+          validAfter: Math.floor(validAfter.getTime() / 1000),
+          validBefore: Math.floor(validBefore.getTime() / 1000),
+          nonce: auth.nonce,
+        })
+
+        const paymentRequirements = buildPaymentRequirements({
+          amount: auth.amount,
+          payTo: auth.to_address,
+          resource: "x402-payment",
+          description: "ProtocolBanks x402 Payment",
+        })
+
+        const cdpResult = await cdp.settle({ paymentPayload, paymentRequirements })
+
+        if (cdpResult.success) {
+          // CDP 结算成功 - 0 手续费
+          await supabase
+            .from("x402_authorizations")
+            .update({
+              status: "settled",
+              transaction_hash: cdpResult.transactionHash,
+              settlement_method: "cdp",
+              relayer_fee: "0", // CDP 免费
+            })
+            .eq("id", authorizationId)
+
+          await supabase.from("x402_audit_logs").insert({
+            user_id: session.userId,
+            authorization_id: authorizationId,
+            action: "cdp_settled",
+            details: cdpResult,
+          })
+
+          const response = NextResponse.json({
+            success: true,
+            status: "cdp_settled",
+            transactionHash: cdpResult.transactionHash,
+            network: cdpResult.network,
+            method: "cdp",
+            fee: "0",
+          })
+          return addSecurityHeaders(response)
+        }
+        
+        // CDP 失败，继续使用 Relayer
+        console.warn("[x402] CDP settle failed, falling back to relayer:", cdpResult.error)
+      } catch (cdpError) {
+        console.warn("[x402] CDP error, falling back to relayer:", cdpError)
+      }
+    }
+  }
+
+  // ============================================================================
+  // 回退到自建 Relayer
+  // ============================================================================
   const domain = buildDomain({
     name: "ProtocolBanks",
     version: "1",
@@ -77,6 +154,7 @@ export async function POST(request: NextRequest) {
         relayer_address: relayerResp?.relayerAddress,
         transaction_hash: relayerResp?.txHash,
         relayer_fee: fee,
+        settlement_method: "relayer",
       })
       .eq("id", authorizationId)
 
@@ -91,7 +169,13 @@ export async function POST(request: NextRequest) {
       fee,
     })
 
-    const response = NextResponse.json({ success: true, status: "relayer_submitted", relayerResponse: relayerResp })
+    const response = NextResponse.json({ 
+      success: true, 
+      status: "relayer_submitted", 
+      relayerResponse: relayerResp,
+      method: "relayer",
+      fee,
+    })
     return addSecurityHeaders(response)
   } catch (relayerError) {
     console.error("[x402] relayer submit error", relayerError)

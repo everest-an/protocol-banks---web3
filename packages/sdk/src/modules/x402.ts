@@ -6,6 +6,7 @@
  * - Gasless 支付
  * - Nonce 管理
  * - 授权生命周期
+ * - CDP Facilitator (Base 链 USDC 免费结算)
  */
 
 import type {
@@ -39,6 +40,9 @@ const MAX_VALIDITY_SECONDS = 86400;
 /** Chains that support x402 gasless payments */
 const X402_SUPPORTED_CHAINS: number[] = [1, 137, 8453, 42161, 10];
 
+/** Chains that support CDP Facilitator (free settlement) */
+const CDP_SUPPORTED_CHAINS: number[] = [8453]; // Base mainnet
+
 /** Tokens that support x402 (ERC-3009) */
 const X402_SUPPORTED_TOKENS: TokenSymbol[] = ['USDC', 'DAI'];
 
@@ -53,6 +57,21 @@ const TRANSFER_WITH_AUTHORIZATION_TYPES: EIP712Types = {
     { name: 'nonce', type: 'bytes32' },
   ],
 };
+
+// ============================================================================
+// Settlement Method Types
+// ============================================================================
+
+export type SettlementMethod = 'cdp' | 'relayer' | 'auto';
+
+export interface SettlementResult {
+  success: boolean;
+  method: SettlementMethod;
+  transactionHash?: string;
+  network?: string;
+  fee?: string;
+  error?: string;
+}
 
 // ============================================================================
 // x402 Module Implementation
@@ -182,8 +201,15 @@ export class X402Module implements IX402Module {
   
   /**
    * Submit signed authorization to relayer
+   * @param authId - Authorization ID
+   * @param signature - EIP-712 signature
+   * @param method - Settlement method: 'cdp' (free on Base), 'relayer', or 'auto' (default)
    */
-  async submitSignature(authId: string, signature: string): Promise<X402Authorization> {
+  async submitSignature(
+    authId: string, 
+    signature: string,
+    method: SettlementMethod = 'auto'
+  ): Promise<X402Authorization> {
     const auth = this.authorizations.get(authId);
     
     if (!auth) {
@@ -220,20 +246,35 @@ export class X402Module implements IX402Module {
     auth.status = 'signed';
     auth.signature = signature;
     
-    // Submit to relayer
+    // Determine settlement method
+    const settlementMethod = this.determineSettlementMethod(auth, method);
+    
+    // Submit to appropriate endpoint
     try {
-      const response = await this.http.post<{ transactionHash: string; status: X402Status }>(
-        '/x402/submit',
+      const endpoint = settlementMethod === 'cdp' ? '/x402/settle' : '/x402/submit';
+      
+      const response = await this.http.post<{ 
+        transactionHash: string; 
+        status: X402Status;
+        method?: string;
+        fee?: string;
+      }>(
+        endpoint,
         {
           authorizationId: authId,
           signature,
           domain: auth.domain,
           message: auth.message,
+          preferCDP: settlementMethod === 'cdp' || settlementMethod === 'auto',
         }
       );
       
       auth.status = response.status;
       auth.transactionHash = response.transactionHash;
+      
+      // Store settlement info
+      (auth as any).settlementMethod = response.method || settlementMethod;
+      (auth as any).settlementFee = response.fee || '0';
       
     } catch (error) {
       auth.status = 'failed';
@@ -241,6 +282,49 @@ export class X402Module implements IX402Module {
     }
     
     return auth;
+  }
+  
+  /**
+   * Determine the best settlement method
+   */
+  private determineSettlementMethod(
+    auth: X402Authorization, 
+    preferred: SettlementMethod
+  ): SettlementMethod {
+    // If explicitly requested, use that method
+    if (preferred !== 'auto') {
+      return preferred;
+    }
+    
+    // Auto: prefer CDP for Base chain USDC (free settlement)
+    const chainId = auth.domain.chainId;
+    if (this.isCDPSupported(chainId)) {
+      return 'cdp';
+    }
+    
+    return 'relayer';
+  }
+  
+  /**
+   * Check if CDP Facilitator is supported for this chain
+   */
+  isCDPSupported(chainId: number): boolean {
+    return CDP_SUPPORTED_CHAINS.includes(chainId);
+  }
+  
+  /**
+   * Get settlement fee estimate
+   * @returns Fee in USD (0 for CDP on Base)
+   */
+  getSettlementFeeEstimate(chainId: number, amount: string): { fee: string; method: SettlementMethod } {
+    if (this.isCDPSupported(chainId)) {
+      return { fee: '0', method: 'cdp' };
+    }
+    
+    // Relayer fee: 0.5% with $5 cap
+    const amountNum = parseFloat(amount);
+    const fee = Math.min(amountNum * 0.005, 5);
+    return { fee: fee.toFixed(2), method: 'relayer' };
   }
   
   /**

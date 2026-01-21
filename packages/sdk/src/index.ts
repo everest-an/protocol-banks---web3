@@ -96,6 +96,31 @@ export type {
 } from './types';
 
 // ============================================================================
+// Monetizer Type Exports
+// ============================================================================
+
+export type {
+  UpstreamConfig,
+  MonetizeRateLimitConfig,
+  MonetizeConfig,
+  PaymentRequirement,
+  PaymentProof,
+  UsageRecord,
+  IUsageTracker,
+} from './modules/monetizer';
+
+export type {
+  PricingModel,
+  PricingTier,
+  TokenUsage,
+  PricingConfig,
+  PricingContext,
+  PriceResult,
+  PriceBreakdown,
+  IPricingStrategy,
+} from './modules/pricing';
+
+// ============================================================================
 // Constant Exports
 // ============================================================================
 
@@ -273,6 +298,31 @@ export {
   WEBHOOK_TIMESTAMP_HEADER,
 } from './modules/webhooks';
 export { CheckoutModule, generateHostedCheckoutPage } from './modules/checkout';
+
+// ============================================================================
+// Monetizer Module Exports
+// ============================================================================
+
+export {
+  APIMonetizer,
+  createAPIMonetizer,
+  createNextHandler,
+  createExpressMiddleware,
+} from './modules/monetizer';
+
+export {
+  PerRequestPricing,
+  PerTokenPricing,
+  DynamicPricing,
+  TieredPricing,
+  createPricingStrategy,
+  parsePrice,
+  formatPrice,
+  usdToUSDC,
+  usdcToUSD,
+  AI_PRICING_PRESETS,
+  type AIModelPreset,
+} from './modules/pricing';
 
 // ============================================================================
 // Embed Code Generator Exports

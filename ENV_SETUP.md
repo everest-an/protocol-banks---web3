@@ -134,6 +134,49 @@ NEXT_PUBLIC_ALLOW_DEMO_MODE=true
 
 **Note:** `ETHERSCAN_API_KEY` is used server-side only in API routes, so it does not need the `NEXT_PUBLIC_` prefix.
 
+### 6. Coinbase CDP Facilitator (x402 Free Settlement)
+
+**Get your API keys from:** https://portal.cdp.coinbase.com
+
+```env
+CDP_API_KEY=your_cdp_api_key
+CDP_API_SECRET=your_cdp_api_secret
+CDP_NETWORK=base
+CDP_FACILITATOR_ENDPOINT=https://api.cdp.coinbase.com/x402
+```
+
+This enables:
+- Free USDC settlement on Base chain (0 gas fees)
+- High-performance x402 payment processing
+- MCPay ecosystem compatibility
+
+#### Setting Up CDP Facilitator
+
+1. **Create Coinbase Developer Account**:
+   - Go to https://portal.cdp.coinbase.com
+   - Sign up or log in with your Coinbase account
+
+2. **Create API Key**:
+   - Navigate to "API Keys" section
+   - Click "Create API Key"
+   - Select permissions: `x402:settle`, `x402:verify`
+   - Save your API Key and Secret securely
+
+3. **Configure Network**:
+   - For production: `CDP_NETWORK=base`
+   - For testing: `CDP_NETWORK=base-sepolia`
+
+4. **Test Settlement**:
+   - Use Base Sepolia testnet first
+   - Send a small USDC payment via `/pay` page
+   - Verify transaction on BaseScan
+
+**Benefits**:
+- 0% settlement fee for USDC on Base
+- Sub-second settlement confirmation
+- No gas costs for users
+- Automatic fallback to self-built relayer if CDP unavailable
+
 ## How to Add Variables in v0
 
 1. Open your project in v0
@@ -168,6 +211,13 @@ After adding the variables:
 5. **Verify reCAPTCHA**: The form should show "Send Message" (not "Loading verification...")
 6. **Check Sender**: Email should be from `contact@e.protocolbanks.com` (after domain verification)
 
+7. **Test CDP Settlement** (if configured):
+   - Connect wallet on Base network
+   - Create a payment link with USDC
+   - Complete payment via `/pay` page
+   - Verify "CDP Free" badge appears
+   - Check transaction on BaseScan
+
 ## Troubleshooting
 
 - **Reown not loading**: Check that `NEXT_PUBLIC_REOWN_PROJECT_ID` is set correctly
@@ -179,6 +229,8 @@ After adding the variables:
 - **Wrong sender address**: Domain `e.protocolbanks.com` may not be verified in Resend yet
 - **Email goes to spam**: Ensure SPF/DKIM records are properly configured
 - **"Configuration was ignored" notice**: This is normal. Features are managed via https://dashboard.reown.com, not local code. Check your dashboard settings to enable/disable features.
+- **CDP settlement fails**: Check `CDP_API_KEY` and `CDP_API_SECRET` are valid; verify you're on Base network
+- **CDP not available**: CDP only supports Base chain USDC; other chains/tokens use relayer fallback
 
 ## Security Notes
 

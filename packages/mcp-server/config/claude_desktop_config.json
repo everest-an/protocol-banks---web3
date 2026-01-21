@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-desktop/main/config-schema.json",
+  "mcpServers": {
+    "protocolbanks": {
+      "command": "npx",
+      "args": ["@protocolbanks/mcp-server"],
+      "env": {
+        "MERCHANT_ADDRESS": "0xYourMerchantAddressHere",
+        "NETWORK": "base",
+        "SUPABASE_URL": "https://your-project.supabase.co",
+        "SUPABASE_ANON_KEY": "your-anon-key",
+        "CDP_FACILITATOR_URL": "https://api.cdp.coinbase.com/x402"
+      }
+    }
+  }
+}

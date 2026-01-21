@@ -1,9 +1,16 @@
 /**
  * x402 Protocol Client
  * Handles HTTP 402 Payment Required responses and automatic payment flow
+ * 
+ * Supports:
+ * - CDP Facilitator (free settlement on Base chain USDC)
+ * - Self-built Relayer (fallback for other chains)
  */
 
 import { signERC3009Authorization, executeERC3009Transfer, getTokenAddress, CHAIN_IDS } from "./web3"
+
+// Settlement method types
+export type SettlementMethod = 'cdp' | 'relayer' | 'auto';
 
 // x402 Payment Request Header format
 export interface X402PaymentRequest {
@@ -30,6 +37,17 @@ export interface X402PaymentProof {
   }
   from: string
   timestamp: number
+  method?: SettlementMethod
+}
+
+// CDP Settlement Response
+export interface CDPSettleResponse {
+  success: boolean
+  transactionHash?: string
+  network?: string
+  method: SettlementMethod
+  fee?: string
+  error?: string
 }
 
 /**
@@ -106,17 +124,43 @@ export class X402Client {
   private chainId: number
   private autoSign: boolean
   private maxAutoAmount: number // Maximum amount for auto-signing (in USD)
+  private preferCDP: boolean // Prefer CDP Facilitator when available
 
   constructor(options: {
     walletAddress: string
     chainId?: number
     autoSign?: boolean
     maxAutoAmount?: number
+    preferCDP?: boolean
   }) {
     this.walletAddress = options.walletAddress
     this.chainId = options.chainId || CHAIN_IDS.BASE
     this.autoSign = options.autoSign ?? false
     this.maxAutoAmount = options.maxAutoAmount ?? 1 // Default $1 max for auto
+    this.preferCDP = options.preferCDP ?? true // Default to CDP (free on Base)
+  }
+
+  /**
+   * Check if CDP Facilitator is supported for this chain/token
+   */
+  isCDPSupported(chainId?: number, token?: string): boolean {
+    const chain = chainId || this.chainId
+    const tokenSymbol = token?.toUpperCase() || 'USDC'
+    // CDP supports Base chain (8453) with USDC
+    return chain === 8453 && tokenSymbol === 'USDC'
+  }
+
+  /**
+   * Get settlement fee estimate
+   */
+  getSettlementFee(amount: string, chainId?: number): { fee: string; method: SettlementMethod } {
+    if (this.isCDPSupported(chainId)) {
+      return { fee: '0', method: 'cdp' }
+    }
+    // Relayer fee: 0.5% with $5 cap
+    const amountNum = parseFloat(amount)
+    const fee = Math.min(amountNum * 0.005, 5)
+    return { fee: fee.toFixed(2), method: 'relayer' }
   }
 
   /**
@@ -176,6 +220,7 @@ export class X402Client {
 
   /**
    * Process x402 payment using EIP-3009 signature
+   * Uses CDP Facilitator for Base chain USDC (free), falls back to relayer
    */
   async processPayment(request: X402PaymentRequest): Promise<X402PaymentProof> {
     const tokenAddress = getTokenAddress(request.chainId || this.chainId, request.token)
@@ -192,12 +237,51 @@ export class X402Client {
       request.chainId || this.chainId,
     )
 
+    // Determine settlement method
+    const useCDP = this.preferCDP && this.isCDPSupported(request.chainId, request.token)
+    
+    if (useCDP) {
+      // Submit to CDP Facilitator via our settle endpoint
+      try {
+        const response = await fetch('/api/x402/settle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            signature: auth,
+            from: this.walletAddress,
+            to: request.paymentAddress,
+            value: request.amount,
+            chainId: request.chainId || this.chainId,
+            token: request.token,
+          }),
+        })
+        
+        const result: CDPSettleResponse = await response.json()
+        
+        if (result.success && result.transactionHash) {
+          return {
+            txHash: result.transactionHash,
+            signature: auth,
+            from: this.walletAddress,
+            timestamp: Date.now(),
+            method: 'cdp',
+          }
+        }
+        
+        // CDP failed, fall through to return signature for server-side processing
+        console.warn('[x402] CDP settlement failed, returning signature for fallback')
+      } catch (error) {
+        console.warn('[x402] CDP request failed:', error)
+      }
+    }
+
     // For x402, we typically just send the signature
     // The server/facilitator will execute the transfer
     return {
       signature: auth,
       from: this.walletAddress,
       timestamp: Date.now(),
+      method: useCDP ? 'cdp' : 'relayer',
     }
   }
 
@@ -258,6 +342,13 @@ export class X402Client {
     if (maxAmount !== undefined) {
       this.maxAutoAmount = maxAmount
     }
+  }
+
+  /**
+   * Enable/disable CDP preference
+   */
+  setPreferCDP(enabled: boolean) {
+    this.preferCDP = enabled
   }
 }
 
