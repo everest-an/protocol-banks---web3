@@ -14,6 +14,17 @@ import { FeePreview } from "@/components/fee-preview"
 import { recordFee, calculateFee } from "@/lib/protocol-fees"
 import { getSupabase } from "@/lib/supabase"
 
+interface Invoice {
+  invoice_id: string
+  recipient_address: string
+  amount: number
+  token: string
+  description?: string
+  merchant_name?: string
+  status: string
+  expires_at: string
+}
+
 interface PaymentVerification {
   signatureValid: boolean
   paramsValid: boolean
@@ -103,14 +114,45 @@ function PaymentContent() {
   const [transactionLock, setTransactionLock] = useState<TransactionLock | null>(null)
   const [verificationResult, setVerificationResult] = useState<PaymentVerification | null>(null)
   const [feeEstimate, setFeeEstimate] = useState<{ finalFee: number } | null>(null)
+  const [invoice, setInvoice] = useState<Invoice | null>(null)
+  const [invoiceLoading, setInvoiceLoading] = useState(false)
 
   // Get params
-  const to = searchParams.get("to")
-  const amount = searchParams.get("amount")
-  const token = searchParams.get("token") as "USDC" | "USDT" | "DAI" | null
+  const invoiceId = searchParams.get("invoice")
+  const to = invoice?.recipient_address || searchParams.get("to")
+  const amount = invoice?.amount?.toString() || searchParams.get("amount")
+  const token = (invoice?.token || searchParams.get("token")) as "USDC" | "USDT" | "DAI" | null
   const networkParam = searchParams.get("network")
   const sig = searchParams.get("sig")
   const exp = searchParams.get("exp")
+  const merchantName = invoice?.merchant_name
+  const description = invoice?.description
+
+  // Fetch invoice if invoice ID is present
+  useEffect(() => {
+    if (invoiceId && sig) {
+      setInvoiceLoading(true)
+      fetch(`/api/invoice?id=${invoiceId}&sig=${sig}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.error) {
+            toast({
+              title: "Invalid Invoice",
+              description: data.error,
+              variant: "destructive",
+            })
+          } else {
+            setInvoice(data)
+          }
+        })
+        .catch((err) => {
+          console.error("[Pay] Invoice fetch error:", err)
+        })
+        .finally(() => {
+          setInvoiceLoading(false)
+        })
+    }
+  }, [invoiceId, sig, toast])
 
   const isValid = to && amount && token
   const isUSDC = token === "USDC"

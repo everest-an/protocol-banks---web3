@@ -1,80 +1,155 @@
-import { isAddress } from "ethers"
-import { z } from "zod"
-import { getToken } from "@/services/token-metadata.service"
+/**
+ * Batch Validator Service
+ * Validates batch payment data
+ */
 
-export type ValidationError = { row: number; error: string }
-export type ValidationSummary = { valid: number; invalid: number; warnings: number }
-export type ValidationResult = {
-  validItems: ValidPaymentItem[]
-  invalidItems: ValidationError[]
-  summary: ValidationSummary
+import { isValidAddress } from './account-validator.service'
+
+export interface BatchPaymentItem {
+  recipient: string
+  amount: string | number
+  token?: string
+  memo?: string
 }
 
-export type ValidPaymentItem = {
-  recipient_address: string
-  amount: string
-  token_symbol: string
+export interface BatchValidationResult {
+  valid: boolean
+  errors: BatchValidationError[]
+  validItems: BatchPaymentItem[]
+  invalidItems: { item: BatchPaymentItem; errors: string[] }[]
+}
+
+export interface BatchValidationError {
   row: number
-  chain_id: number
-  token_address: string
+  field: string
+  message: string
 }
 
-const AmountSchema = z.string().regex(/^\d+(\.\d+)?$/, "Amount must be a positive number")
+// Maximum batch size
+export const MAX_BATCH_SIZE = 100
 
-export function validateBatch(
-  items: { recipient_address: string; amount: string; token_symbol: string; row: number; chain_id?: number }[],
-  defaultChainId = 1,
-): ValidationResult {
-  const errors: ValidationError[] = []
-  const seen = new Set<string>()
-  const valid: ValidPaymentItem[] = []
+// Minimum amount
+export const MIN_AMOUNT = 0.000001
 
-  for (const item of items) {
-    const rowId = item.row
-    const addr = item.recipient_address
-    const symbol = item.token_symbol.toUpperCase()
-    const chainId = item.chain_id ?? defaultChainId
-
-    if (!isAddress(addr)) {
-      errors.push({ row: rowId, error: "Invalid Ethereum address" })
-      continue
-    }
-
-    if (!AmountSchema.safeParse(item.amount).success) {
-      errors.push({ row: rowId, error: "Invalid amount" })
-      continue
-    }
-
-    const token = getToken(symbol, chainId)
-    if (!token) {
-      errors.push({ row: rowId, error: "Unsupported token" })
-      continue
-    }
-
-    const dupKey = `${addr.toLowerCase()}-${symbol}-${chainId}`
-    if (seen.has(dupKey)) {
-      errors.push({ row: rowId, error: "Duplicate recipient in batch" })
-      continue
-    }
-    seen.add(dupKey)
-
-    valid.push({
-      recipient_address: addr,
-      amount: item.amount,
-      token_symbol: symbol,
-      row: rowId,
-      chain_id: chainId,
-      token_address: token.address,
-    })
+/**
+ * Validate a single batch payment item
+ */
+export function validateBatchItem(
+  item: BatchPaymentItem,
+  index: number
+): { valid: boolean; errors: BatchValidationError[] } {
+  const errors: BatchValidationError[] = []
+  
+  // Validate recipient address
+  if (!item.recipient) {
+    errors.push({ row: index, field: 'recipient', message: 'Recipient address is required' })
+  } else if (!isValidAddress(item.recipient)) {
+    errors.push({ row: index, field: 'recipient', message: 'Invalid recipient address' })
   }
+  
+  // Validate amount
+  const amount = typeof item.amount === 'string' ? parseFloat(item.amount) : item.amount
+  if (isNaN(amount)) {
+    errors.push({ row: index, field: 'amount', message: 'Invalid amount' })
+  } else if (amount < MIN_AMOUNT) {
+    errors.push({ row: index, field: 'amount', message: `Amount must be at least ${MIN_AMOUNT}` })
+  } else if (amount > Number.MAX_SAFE_INTEGER) {
+    errors.push({ row: index, field: 'amount', message: 'Amount exceeds maximum value' })
+  }
+  
+  // Validate memo if present
+  if (item.memo && item.memo.length > 256) {
+    errors.push({ row: index, field: 'memo', message: 'Memo must be 256 characters or less' })
+  }
+  
+  return { valid: errors.length === 0, errors }
+}
 
+/**
+ * Validate entire batch
+ */
+export function validateBatch(items: BatchPaymentItem[]): BatchValidationResult {
+  const errors: BatchValidationError[] = []
+  const validItems: BatchPaymentItem[] = []
+  const invalidItems: { item: BatchPaymentItem; errors: string[] }[] = []
+  
+  // Check batch size
+  if (items.length === 0) {
+    errors.push({ row: -1, field: 'batch', message: 'Batch cannot be empty' })
+    return { valid: false, errors, validItems, invalidItems }
+  }
+  
+  if (items.length > MAX_BATCH_SIZE) {
+    errors.push({
+      row: -1,
+      field: 'batch',
+      message: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} items`,
+    })
+    return { valid: false, errors, validItems, invalidItems }
+  }
+  
+  // Validate each item
+  items.forEach((item, index) => {
+    const result = validateBatchItem(item, index)
+    if (result.valid) {
+      validItems.push(item)
+    } else {
+      errors.push(...result.errors)
+      invalidItems.push({
+        item,
+        errors: result.errors.map(e => e.message),
+      })
+    }
+  })
+  
   return {
-    validItems: valid,
-    invalidItems: errors,
-    summary: {
-      valid: valid.length,
-      invalid: errors.length,
-      warnings: 0,
-    },
+    valid: invalidItems.length === 0,
+    errors,
+    validItems,
+    invalidItems,
+  }
+}
+
+/**
+ * Check for duplicate recipients in batch
+ */
+export function findDuplicateRecipients(items: BatchPaymentItem[]): string[] {
+  const seen = new Set<string>()
+  const duplicates = new Set<string>()
+  
+  items.forEach(item => {
+    const addr = item.recipient.toLowerCase()
+    if (seen.has(addr)) {
+      duplicates.add(addr)
+    }
+    seen.add(addr)
+  })
+  
+  return Array.from(duplicates)
+}
+
+/**
+ * Calculate batch totals
+ */
+export function calculateBatchTotals(items: BatchPaymentItem[]): {
+  totalAmount: number
+  itemCount: number
+  uniqueRecipients: number
+} {
+  const recipients = new Set<string>()
+  let totalAmount = 0
+  
+  items.forEach(item => {
+    const amount = typeof item.amount === 'string' ? parseFloat(item.amount) : item.amount
+    if (!isNaN(amount)) {
+      totalAmount += amount
+    }
+    recipients.add(item.recipient.toLowerCase())
+  })
+  
+  return {
+    totalAmount,
+    itemCount: items.length,
+    uniqueRecipients: recipients.size,
   }
 }

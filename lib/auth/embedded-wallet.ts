@@ -47,7 +47,6 @@ export interface WalletShares {
 
 export interface WalletCreationResult {
   address: string
-  publicKey: string
   shares: WalletShares
   mnemonic: string // Show once for user to backup
   recoveryCode: string // Show once for user to store
@@ -93,7 +92,6 @@ export async function createEmbeddedWallet(pin: string): Promise<WalletCreationR
 
   return {
     address: wallet.address,
-    publicKey: wallet.publicKey,
     shares: {
       address: wallet.address,
       deviceShare: {
@@ -267,19 +265,6 @@ export function validatePIN(pin: string): { valid: boolean; error?: string } {
   // Check for common weak PINs
   const weakPINs = ["000000", "111111", "123456", "654321", "123123"]
   if (weakPINs.includes(pin)) {
-    return { valid: false, error: "PIN is too weak. Please choose a stronger PIN." }
-  }
-
-  // Reject sequential ascending/descending patterns
-  const digits = pin.split("").map((d) => Number.parseInt(d, 10))
-  const isAscending = digits.every((d, i) => i === 0 || digits[i - 1] + 1 === d)
-  const isDescending = digits.every((d, i) => i === 0 || digits[i - 1] - 1 === d)
-  if (isAscending || isDescending) {
-    return { valid: false, error: "PIN cannot be sequential" }
-  }
-
-  // Reject single repeated digit (e.g., 222222)
-  if (new Set(digits).size === 1) {
     return { valid: false, error: "PIN is too weak. Please choose a stronger PIN." }
   }
 

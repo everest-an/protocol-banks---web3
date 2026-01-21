@@ -59,11 +59,6 @@ export default function SubscriptionsPage() {
       return
     }
 
-    if (!isDemoMode && !currentWallet) {
-      toast({ title: "Error", description: "Please connect your wallet", variant: "destructive" })
-      return
-    }
-
     try {
       validateSubscription(newSubscription)
 
@@ -73,7 +68,7 @@ export default function SubscriptionsPage() {
       await addSubscription({
         ...newSubscription,
         next_payment: nextPaymentDate.toISOString(),
-        created_by: isDemoMode ? "demo" : currentWallet || "",
+        created_by: currentWallet || "demo",
       })
 
       toast({ title: "Success", description: "Subscription added successfully" })

@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { RecaptchaScript } from "@/components/recaptcha-script"
 import { WelcomeGuide } from "@/components/welcome-guide"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
+import { NotificationPrompt } from "@/components/notification-prompt"
 
 export const dynamic = "force-dynamic"
 
@@ -95,6 +96,7 @@ export default function RootLayout({
                   <RecaptchaScript />
                   <WelcomeGuide />
                   <PWAInstallPrompt />
+                  <NotificationPrompt />
                 </DemoProvider>
               </Web3Provider>
             </ReownProvider>

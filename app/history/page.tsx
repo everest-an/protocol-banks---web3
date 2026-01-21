@@ -13,6 +13,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import type { Transaction } from "@/types"
 import { aggregateTransactionsByMonth, calculateYTDGrowth } from "@/lib/services/history-service"
+import { FinancialReport } from "@/components/financial-report"
+import { BusinessMetrics } from "@/components/business-metrics"
+import { PaymentActivity } from "@/components/payment-activity"
 
 export default function HistoryPage() {
   const { isConnected, wallet, chainId } = useWeb3()

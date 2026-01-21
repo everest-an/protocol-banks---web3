@@ -1,7 +1,7 @@
 # Protocol Banks - Product Specification
 
-**Version:** 1.0.0  
-**Last Updated:** 2025-01-09  
+**Version:** 1.2.0  
+**Last Updated:** 2025-01-20  
 **Status:** Production Ready
 
 ---
@@ -16,7 +16,17 @@ Protocol Banks is an enterprise-grade crypto payment infrastructure providing no
 
 ### 1. Authentication System
 
-**Custom Non-Custodial Auth (Privy Alternative)**
+**Dual Authentication Options:**
+
+**A. Reown AppKit (Email/Social Login & Fiat On-Ramp)**
+- Email login (passwordless, no browser extension needed)
+- Social logins (Google, Twitter, GitHub, Discord, Apple, Facebook)
+- Multi-wallet support (MetaMask, Rainbow, Coinbase Wallet, 300+)
+- Built-in fiat on-ramp (credit card/bank purchase)
+- Mobile-first (iOS/Android)
+- Non-custodial embedded wallets
+
+**B. Custom Non-Custodial Auth (Enterprise)**
 - Email Magic Link authentication
 - Google OAuth integration
 - Shamir Secret Sharing (2-of-3 threshold)

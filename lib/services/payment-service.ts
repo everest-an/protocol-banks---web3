@@ -1,6 +1,14 @@
 import { ethers } from "ethers"
 import type { Payment, Recipient, PaymentResult } from "@/types"
 import { sendToken, signERC3009Authorization, executeERC3009Transfer } from "@/lib/web3"
+import {
+  validateBatch,
+  calculateBatchTotals,
+  findDuplicateRecipients,
+  type BatchPaymentItem,
+} from "@/services/batch-validator.service"
+import { calculateBatchFees, formatFee } from "@/services/fee-calculator.service"
+import { generateBatchCsvReport } from "@/services/report-generator.service"
 
 /**
  * 验证收款人数据
@@ -157,23 +165,67 @@ export async function processBatchPayment(
   recipients: Recipient[],
   wallet: string,
   isDemoMode = false,
-): Promise<{ successCount: number; totalPaid: string; results: PaymentResult[] }> {
+): Promise<{ successCount: number; totalPaid: string; results: PaymentResult[]; feeBreakdown?: any; report?: string }> {
   console.log("[v0] processBatchPayment called:", { recipients: recipients.length, wallet, isDemoMode })
+
+  // Convert to BatchPaymentItem for validation
+  const batchItems: BatchPaymentItem[] = recipients.map((r) => ({
+    recipient: r.address,
+    amount: r.amount,
+    token: r.token,
+  }))
+
+  // Use new batch validation service
+  const validationResult = validateBatch(batchItems)
+  if (!validationResult.valid) {
+    const errorMessages = validationResult.errors.map((e) => `Row ${e.row}: ${e.message}`).join("; ")
+    throw new Error(`Validation failed: ${errorMessages}`)
+  }
+
+  // Check for duplicates
+  const duplicates = findDuplicateRecipients(batchItems)
+  if (duplicates.length > 0) {
+    console.warn("[v0] Duplicate recipients found:", duplicates)
+  }
+
+  // Calculate fees using fee service
+  const amounts = recipients.map((r) => r.amount || 0)
+  const feeBreakdown = calculateBatchFees(amounts, "base")
+  console.log("[v0] Fee breakdown:", {
+    totalAmount: formatFee(feeBreakdown.totalAmount),
+    totalFees: formatFee(feeBreakdown.totalFees),
+    netAmount: formatFee(feeBreakdown.totalNetAmount),
+  })
 
   if (isDemoMode) {
     // Demo mode - simulate success
     await new Promise((resolve) => setTimeout(resolve, 1500))
     const total = recipients.reduce((sum, r) => sum + (r.amount || 0), 0)
+    const results = recipients.map((r) => ({
+      success: true,
+      recipient: r.address,
+      amount: r.amount,
+      token: r.token,
+      txHash: `0xdemo${Date.now()}`,
+    }))
+
+    // Generate report
+    const report = generateBatchCsvReport(
+      results.map((r) => ({
+        recipient: r.recipient,
+        amount: r.amount,
+        token: r.token || "USDT",
+        status: "success" as const,
+        txHash: r.txHash,
+      })),
+    )
+
     return {
       successCount: recipients.length,
       totalPaid: total.toFixed(2),
-      results: recipients.map((r) => ({
-        success: true,
-        recipient: r.address,
-        amount: r.amount,
-        token: r.token,
-        txHash: `0xdemo${Date.now()}`,
-      })),
+      results,
+      feeBreakdown,
+      report,
     }
   }
 
@@ -183,9 +235,23 @@ export async function processBatchPayment(
   const successCount = results.filter((r) => r.success).length
   const totalPaid = results.reduce((sum, r) => (r.success ? sum + r.amount : sum), 0).toFixed(2)
 
+  // Generate report
+  const report = generateBatchCsvReport(
+    results.map((r) => ({
+      recipient: r.recipient,
+      amount: r.amount,
+      token: r.token || "USDT",
+      status: r.success ? ("success" as const) : ("failed" as const),
+      txHash: r.txHash,
+      error: r.error,
+    })),
+  )
+
   return {
     successCount,
     totalPaid,
     results,
+    feeBreakdown,
+    report,
   }
 }

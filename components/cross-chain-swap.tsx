@@ -43,7 +43,6 @@ import {
 } from "@/lib/rango"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
-import { useDemo } from "@/contexts/demo-context"
 import { toast } from "sonner"
 import Image from "next/image"
 
@@ -64,7 +63,6 @@ export function CrossChainSwap({
 }: CrossChainSwapProps) {
   const { address, signer, isConnected } = useWeb3()
   const { isWeb2User, translateTerm } = useUserType()
-  const { isDemoMode } = useDemo()
 
   // Chain & Token Selection
   const [fromChain, setFromChain] = useState<string>(defaultFromChain)
@@ -80,10 +78,6 @@ export function CrossChainSwap({
   const [routes, setRoutes] = useState<RangoRoute[]>([])
   const [selectedRoute, setSelectedRoute] = useState<RangoRoute | null>(null)
   const [routeId, setRouteId] = useState<string>("")
-
-  useEffect(() => {
-    rangoService.setDemoMode(isDemoMode)
-  }, [isDemoMode])
   const [isLoadingRoutes, setIsLoadingRoutes] = useState(false)
 
   // UI State

@@ -23,7 +23,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ethers } from "ethers"
 import {
   Send,
   Plus,
@@ -84,26 +83,8 @@ export default function BatchPaymentPage() {
   const [selectedMultisig, setSelectedMultisig] = useState<string | null>(null)
   const [useMultisig, setUseMultisig] = useState(false)
 
-  const [batchHistory, setBatchHistory] = useState<
-    Array<{
-      id: string
-      batch_name?: string | null
-      status: string
-      total_amount: number | null
-      total_fee: number | null
-      item_count: number | null
-      successful_count: number | null
-      failed_count: number | null
-      created_at: string
-    }>
-  >([])
-  const [historyLoading, setHistoryLoading] = useState(false)
-
   // Auto payment states
   const [autoPayments, setAutoPayments] = useState<AutoPayment[]>([])
-
-  const [x402Link, setX402Link] = useState("")
-  const [x402Processing, setX402Processing] = useState(false)
 
   // Batch payment states
   const [recipients, setRecipients] = useState<PaymentRecipient[]>([
@@ -269,158 +250,6 @@ export default function BatchPaymentPage() {
   useEffect(() => {
     loadMultisigWallets()
   }, [loadMultisigWallets])
-
-  useEffect(() => {
-    const loadHistory = async () => {
-      if (!isConnected || !currentWallet) {
-        setBatchHistory([])
-        return
-      }
-
-      if (isDemoMode) {
-        setBatchHistory([
-          {
-            id: "demo-batch-1",
-            batch_name: "Demo Payroll",
-            status: "completed",
-            total_amount: 42000,
-            total_fee: 52,
-            item_count: 8,
-            successful_count: 8,
-            failed_count: 0,
-            created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-          },
-          {
-            id: "demo-batch-2",
-            batch_name: "Demo Vendors",
-            status: "processing",
-            total_amount: 12500,
-            total_fee: 18,
-            item_count: 5,
-            successful_count: 3,
-            failed_count: 0,
-            created_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
-          },
-        ])
-        return
-      }
-
-      setHistoryLoading(true)
-      try {
-        const response = await fetch("/api/batch-payment/history?limit=10")
-        const data = await response.json()
-        if (!response.ok) {
-          throw new Error(data?.error || "Failed to load history")
-        }
-        setBatchHistory(data.batches || [])
-      } catch (error) {
-        console.error("[Batch] Failed to load history", error)
-        setBatchHistory([])
-      } finally {
-        setHistoryLoading(false)
-      }
-    }
-
-    loadHistory()
-  }, [isConnected, currentWallet, isDemoMode])
-
-  const parseX402Link = (link: string) => {
-    const trimmed = link.trim()
-    if (!trimmed) {
-      throw new Error("Payment link is required")
-    }
-
-    const normalized = trimmed.replace(/^x402:\/\//, "https://")
-    const url = new URL(normalized)
-
-    const tokenAddress = url.searchParams.get("token") || url.searchParams.get("tokenAddress")
-    const chainIdValue = url.searchParams.get("chainId") || url.searchParams.get("chain")
-    const toAddress = url.searchParams.get("to") || url.searchParams.get("toAddress")
-    const amount = url.searchParams.get("amount")
-    const validityDurationValue = url.searchParams.get("validity") || url.searchParams.get("validityDuration")
-
-    if (!tokenAddress || !chainIdValue || !toAddress || !amount) {
-      throw new Error("Missing token, chainId, to, or amount in link")
-    }
-
-    const chainId = Number.parseInt(chainIdValue, 10)
-    if (Number.isNaN(chainId)) {
-      throw new Error("Invalid chainId in link")
-    }
-
-    const validityDuration = validityDurationValue ? Number.parseInt(validityDurationValue, 10) : undefined
-
-    return { tokenAddress, chainId, toAddress, amount, validityDuration }
-  }
-
-  const handleX402Payment = async () => {
-    if (!wallets.EVM || !isConnected) {
-      toast({ title: "Wallet required", description: "Connect an EVM wallet to continue" })
-      return
-    }
-
-    setX402Processing(true)
-    try {
-      const { tokenAddress, chainId, toAddress, amount, validityDuration } = parseX402Link(x402Link)
-
-      const genResponse = await fetch("/api/x402/generate-authorization", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tokenAddress, chainId, toAddress, amount, validityDuration }),
-      })
-
-      const genData = await genResponse.json()
-      if (!genResponse.ok) {
-        throw new Error(genData?.error || "Failed to generate authorization")
-      }
-
-      if (!window.ethereum) {
-        throw new Error("Wallet provider not available")
-      }
-
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const signer = await provider.getSigner()
-      const signature = await signer.signTypedData(genData.domain, genData.types, genData.message)
-
-      const submitResponse = await fetch("/api/x402/submit-signature", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          authorizationId: genData.authorizationId,
-          domain: genData.domain,
-          message: genData.message,
-          signature,
-        }),
-      })
-
-      const submitData = await submitResponse.json()
-      if (!submitResponse.ok) {
-        throw new Error(submitData?.error || "Failed to submit signature")
-      }
-
-      const relayerResponse = await fetch("/api/x402/submit-to-relayer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ authorizationId: genData.authorizationId }),
-      })
-
-      const relayerData = await relayerResponse.json()
-      if (!relayerResponse.ok) {
-        throw new Error(relayerData?.error || "Failed to submit to relayer")
-      }
-
-      toast({ title: "Payment submitted", description: "x402 payment sent to relayer" })
-      setX402Link("")
-    } catch (error) {
-      console.error("[x402] Payment failed", error)
-      toast({
-        title: "Payment failed",
-        description: error instanceof Error ? error.message : "Unable to process payment",
-      })
-    } finally {
-      setX402Processing(false)
-    }
-  }
 
   const openTagDialog = (recipientId?: string, address?: string) => {
     setEditingRecipientId(recipientId || null)
@@ -1150,77 +979,28 @@ export default function BatchPaymentPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Payment Link</Label>
-                <Input
-                  placeholder="x402://pay?..."
-                  className="font-mono"
-                  value={x402Link}
-                  onChange={(e) => setX402Link(e.target.value)}
-                />
+                <Input placeholder="x402://pay?..." className="font-mono" />
               </div>
-              <Button className="w-full" onClick={handleX402Payment} disabled={x402Processing}>
-                {x402Processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                {x402Processing ? "Processing..." : "Process Payment"}
+              <Button className="w-full">
+                <Send className="h-4 w-4 mr-2" />
+                Process Payment
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
+      {/* Payment History Section - Placeholder */}
       <Card className="bg-card mt-6">
         <CardHeader>
           <CardTitle>Payment History</CardTitle>
           <CardDescription>Recent outgoing transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          {historyLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading history...</div>
-          ) : batchHistory.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Clock className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>No batch payments yet.</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Batch</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Items</TableHead>
-                  <TableHead className="text-right">Success / Failed</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Fee</TableHead>
-                  <TableHead className="text-right">Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batchHistory.map((batch) => (
-                  <TableRow key={batch.id}>
-                    <TableCell className="font-medium">
-                      {batch.batch_name || batch.id.slice(0, 8)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="uppercase text-[10px]">
-                        {batch.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">{batch.item_count ?? 0}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      {(batch.successful_count ?? 0).toString()} / {(batch.failed_count ?? 0).toString()}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {batch.total_amount != null ? batch.total_amount.toFixed(2) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {batch.total_fee != null ? batch.total_fee.toFixed(2) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">
-                      {new Date(batch.created_at).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <div className="text-center py-8 text-muted-foreground">
+            <Clock className="h-12 w-12 mx-auto mb-4 opacity-20" />
+            <p>Payment history is not yet implemented.</p>
+          </div>
         </CardContent>
       </Card>
 

@@ -11,7 +11,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getSession } from "@/lib/auth/session"
 import { createEmbeddedWallet, validatePIN } from "@/lib/auth/embedded-wallet"
-import { sha256 } from "@/lib/auth/crypto"
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,25 +43,11 @@ export async function POST(request: NextRequest) {
 
     // Create wallet with Shamir secret sharing
     const walletResult = await createEmbeddedWallet(pin)
-    const normalizedMnemonic = walletResult.mnemonic.trim().toLowerCase().replace(/\s+/g, " ")
-    const recoveryHash = await sha256(normalizedMnemonic)
 
     // Store wallet in database (server share only)
     const { error: insertError } = await supabase.from("embedded_wallets").insert({
       user_id: session.userId,
       address: walletResult.address,
-      wallet_address: walletResult.address,
-      public_key: walletResult.publicKey,
-      chain_id: 1, // default Ethereum mainnet; extend for multi-chain
-      // Spec-aligned share fields
-      share_a_encrypted: walletResult.shares.deviceShare.encrypted,
-      share_a_iv: walletResult.shares.deviceShare.iv,
-      share_b_encrypted: walletResult.shares.serverShare.encrypted,
-      share_b_iv: walletResult.shares.serverShare.iv,
-      share_c_recovery: walletResult.shares.encryptedMnemonic.ciphertext,
-      share_c_iv: walletResult.shares.encryptedMnemonic.iv,
-      recovery_phrase_hash: recoveryHash,
-      // Legacy fields for backward compatibility
       server_share_encrypted: walletResult.shares.serverShare.encrypted,
       server_share_iv: walletResult.shares.serverShare.iv,
       recovery_share_encrypted: walletResult.shares.recoveryShare.encrypted,

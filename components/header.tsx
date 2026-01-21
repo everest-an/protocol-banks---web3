@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
+import { SoundSettings } from "@/components/sound-settings"
 
 const UnifiedWalletButton = dynamic(() => import("./unified-wallet-button").then((mod) => mod.UnifiedWalletButton), {
   ssr: false,
@@ -156,6 +157,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <SoundSettings />
           <Button
             variant="outline"
             size="sm"

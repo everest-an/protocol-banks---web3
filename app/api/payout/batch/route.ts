@@ -2,12 +2,15 @@
  * Batch Payout API Route
  *
  * Handles batch payment requests, routing to Go service or TypeScript
- * based on feature flags.
+ * based on feature flags. Uses TypeScript service layer for validation.
  */
 
 import { type NextRequest, NextResponse } from "next/server"
 import { submitBatchPayment, getBatchPaymentStatus } from "@/lib/grpc/payout-bridge"
 import { verifySession } from "@/lib/auth/session"
+import { validateBatch, findDuplicateRecipients, type BatchPaymentItem } from "@/services/batch-validator.service"
+import { calculateBatchFees, formatFee } from "@/services/fee-calculator.service"
+import { logFeeDistribution } from "@/services/fee-distributor.service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,27 +21,46 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { senderAddress, recipients, useMultisig, multisigWalletId, priority } = body
+    const { senderAddress, recipients, useMultisig, multisigWalletId, priority, chainId = "base" } = body
 
     // Validate request
     if (!senderAddress || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json({ error: "Invalid request: senderAddress and recipients are required" }, { status: 400 })
     }
 
-    // Validate each recipient
-    for (const recipient of recipients) {
-      if (!recipient.address || !recipient.amount || !recipient.token) {
-        return NextResponse.json(
-          { error: "Invalid recipient: address, amount, and token are required" },
-          { status: 400 },
-        )
-      }
+    // Convert to BatchPaymentItem for validation
+    const batchItems: BatchPaymentItem[] = recipients.map((r: any) => ({
+      recipient: r.address,
+      amount: r.amount,
+      token: r.token,
+    }))
 
-      // Validate address format
-      if (!/^0x[a-fA-F0-9]{40}$/.test(recipient.address)) {
-        return NextResponse.json({ error: `Invalid address format: ${recipient.address}` }, { status: 400 })
-      }
+    // Use TypeScript service layer for validation
+    const validationResult = validateBatch(batchItems)
+    if (!validationResult.valid) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: validationResult.errors,
+        },
+        { status: 400 },
+      )
     }
+
+    // Check for duplicate recipients
+    const duplicates = findDuplicateRecipients(batchItems)
+    if (duplicates.length > 0) {
+      console.warn("[API] Duplicate recipients detected:", duplicates)
+    }
+
+    // Calculate fees using fee service
+    const amounts = recipients.map((r: any) => r.amount)
+    const feeBreakdown = calculateBatchFees(amounts, chainId)
+    console.log("[API] Fee breakdown:", {
+      totalAmount: formatFee(feeBreakdown.totalAmount),
+      totalFees: formatFee(feeBreakdown.totalFees),
+      netAmount: formatFee(feeBreakdown.totalNetAmount),
+    })
 
     // Submit batch payment
     const result = await submitBatchPayment(session.userId, senderAddress, recipients, {
@@ -47,7 +69,25 @@ export async function POST(request: NextRequest) {
       priority,
     })
 
-    return NextResponse.json(result)
+    // Log fee distribution for completed payments
+    if (result.status === "completed" || result.status === "submitted") {
+      logFeeDistribution({
+        batchId: result.batchId,
+        totalAmount: feeBreakdown.totalAmount,
+        protocolFee: feeBreakdown.totalFees,
+        distributedAt: new Date().toISOString(),
+      })
+    }
+
+    return NextResponse.json({
+      ...result,
+      feeBreakdown: {
+        totalAmount: formatFee(feeBreakdown.totalAmount),
+        totalFees: formatFee(feeBreakdown.totalFees),
+        netAmount: formatFee(feeBreakdown.totalNetAmount),
+      },
+      duplicateWarnings: duplicates.length > 0 ? duplicates : undefined,
+    })
   } catch (error) {
     console.error("[API] Batch payout error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

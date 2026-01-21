@@ -23,35 +23,31 @@ export async function GET(request: NextRequest) {
     const tokenHash = await sha256(token)
 
     // Find magic link
-    const { data: verification, error: findError } = await supabase
-      .from("email_verifications")
+    const { data: magicLink, error: findError } = await supabase
+      .from("magic_links")
       .select("*")
       .eq("token_hash", tokenHash)
-      .eq("is_used", false)
+      .eq("used", false)
       .gt("expires_at", new Date().toISOString())
       .single()
 
-    if (findError || !verification) {
+    if (findError || !magicLink) {
       return NextResponse.redirect(`${baseUrl}/auth/error?error=invalid_or_expired_link`)
     }
 
     // Mark link as used
-    await supabase
-      .from("email_verifications")
-      .update({ is_used: true, used_at: new Date().toISOString() })
-      .eq("id", verification.id)
+    await supabase.from("magic_links").update({ used: true, used_at: new Date().toISOString() }).eq("id", magicLink.id)
 
     // Find or create user
-    let { data: user } = await supabase.from("auth_users").select("*").eq("email", verification.email).single()
+    let { data: user } = await supabase.from("auth_users").select("*").eq("email", magicLink.email).single()
 
     if (!user) {
       // Create new user
       const { data: newUser, error: createError } = await supabase
         .from("auth_users")
         .insert({
-          email: verification.email,
+          email: magicLink.email,
           email_verified: true,
-          status: "email_verified",
         })
         .select()
         .single()
@@ -64,28 +60,17 @@ export async function GET(request: NextRequest) {
       user = newUser
     } else {
       // Update email verification status
-      const nextStatus = ["pin_set", "wallet_created", "active"].includes(user.status)
-        ? user.status
-        : "email_verified"
-
-      await supabase
-        .from("auth_users")
-        .update({ email_verified: true, status: nextStatus })
-        .eq("id", user.id)
+      await supabase.from("auth_users").update({ email_verified: true }).eq("id", user.id)
     }
 
     // Check if user has embedded wallet
-    const { data: wallet } = await supabase
-      .from("embedded_wallets")
-      .select("wallet_address, address")
-      .eq("user_id", user.id)
-      .maybeSingle()
+    const { data: wallet } = await supabase.from("embedded_wallets").select("address").eq("user_id", user.id).single()
 
     // Create session
     const ipAddress = request.headers.get("x-forwarded-for") || "unknown"
     const userAgent = request.headers.get("user-agent") || "unknown"
 
-    await createSession(user.id, user.email, wallet?.wallet_address || wallet?.address, {
+    await createSession(user.id, user.email, wallet?.address, {
       ipAddress,
       userAgent,
     })

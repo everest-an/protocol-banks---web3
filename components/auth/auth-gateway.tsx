@@ -128,29 +128,10 @@ export function AuthGateway({ isOpen, onClose, onSuccess }: AuthGatewayProps) {
     }
   }
 
-  const handleBackupComplete = async (recoveryPhrase: string) => {
-    setIsLoading(true)
-    try {
-      const response = await fetch("/api/auth/confirm-recovery", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recoveryPhrase }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        play("error")
-        throw new Error(data?.error || "Failed to confirm recovery")
-      }
-
-      await refreshSession()
-      setBackupData(null)
-      onSuccess?.()
-      onClose()
-    } finally {
-      setIsLoading(false)
-    }
+  const handleBackupComplete = () => {
+    setBackupData(null)
+    onSuccess?.()
+    onClose()
   }
 
   const handleBusinessConnect = async (type: BusinessConnectType) => {

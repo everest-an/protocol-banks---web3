@@ -13,6 +13,7 @@ import { Copy, Check, ArrowRight, Share2, QrCode, Terminal, Shield, Clock, Alert
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
+import { AddressVerificationDisplay } from "@/components/address-verification-display"
 
 function generateLinkSignature(params: { to: string; amount: string; token: string; expiry: string }): string {
   // Client-side signature using a deterministic hash
@@ -419,6 +420,24 @@ export default function ReceivePage() {
               </p>
             </CardContent>
           </Card>
+
+          {/* Address Verification Display */}
+          {address && isValidAddress(address) && (
+            <AddressVerificationDisplay
+              address={address}
+              label="Your Receiving Address"
+              showQrCode={true}
+              onVerificationComplete={(isSecure) => {
+                if (!isSecure) {
+                  toast({
+                    title: "Clipboard Compromised",
+                    description: "Your clipboard may have been modified. Do not share the address without verification.",
+                    variant: "destructive",
+                  })
+                }
+              }}
+            />
+          )}
 
           <Card>
             <CardHeader>
