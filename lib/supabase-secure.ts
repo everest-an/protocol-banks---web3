@@ -278,6 +278,97 @@ export async function secureUpdateVendor(
   return { success: true, vendor: data, auditLog }
 }
 
+/**
+ * Securely deletes a vendor with ownership verification
+ */
+export async function secureDeleteVendor(
+  vendorId: string,
+  deletedBy: string,
+): Promise<{ success: boolean; error?: string; auditLog: AuditLogEntry }> {
+  const supabase = getSecureSupabaseClient()
+
+  // 1. Validate deleter address
+  const deleterValidation = validateAndChecksumAddress(deletedBy)
+  if (!deleterValidation.valid) {
+    return {
+      success: false,
+      error: `Invalid deleter address: ${deleterValidation.error}`,
+      auditLog: createAuditLog({
+        action: "SECURITY_ALERT",
+        actor: deletedBy,
+        details: { reason: "Invalid deleter address" },
+      }),
+    }
+  }
+
+  // 2. Fetch current vendor to verify ownership
+  const { data: currentVendor, error: fetchError } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("id", vendorId)
+    .single()
+
+  if (fetchError || !currentVendor) {
+    return {
+      success: false,
+      error: "Vendor not found",
+      auditLog: createAuditLog({
+        action: "SECURITY_ALERT",
+        actor: deletedBy,
+        target: vendorId,
+        details: { reason: "Vendor not found during delete" },
+      }),
+    }
+  }
+
+  // 3. Verify ownership (RLS should handle this, but double-check)
+  if (currentVendor.created_by?.toLowerCase() !== deletedBy.toLowerCase()) {
+    return {
+      success: false,
+      error: "Unauthorized: You can only delete vendors you created",
+      auditLog: createAuditLog({
+        action: "SECURITY_ALERT",
+        actor: deletedBy,
+        target: vendorId,
+        details: {
+          reason: "Unauthorized delete attempt",
+          owner: currentVendor.created_by,
+        },
+      }),
+    }
+  }
+
+  // 4. Perform delete
+  const { error } = await supabase.from("vendors").delete().eq("id", vendorId)
+
+  if (error) {
+    return {
+      success: false,
+      error: error.message,
+      auditLog: createAuditLog({
+        action: "VENDOR_DELETED",
+        actor: deleterValidation.checksummed!,
+        target: vendorId,
+        details: { success: false, error: error.message },
+      }),
+    }
+  }
+
+  // 5. Create audit log for successful deletion
+  const auditLog = createAuditLog({
+    action: "VENDOR_DELETED",
+    actor: deleterValidation.checksummed!,
+    target: vendorId,
+    details: {
+      success: true,
+      vendor_name: currentVendor.name,
+      wallet_address: currentVendor.wallet_address,
+    },
+  })
+
+  return { success: true, auditLog }
+}
+
 // ============================================
 // SECURE PAYMENT VERIFICATION
 // ============================================

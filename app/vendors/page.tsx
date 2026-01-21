@@ -41,6 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { generateIntegrityHash } from "@/lib/encryption"
 import { VendorSidebar } from "@/components/vendor-sidebar"
+import { secureCreateVendor, secureUpdateVendor, secureDeleteVendor } from "@/lib/supabase-secure"
 
 // Mock categories for categorization logic
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]

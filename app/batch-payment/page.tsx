@@ -544,8 +544,8 @@ export default function BatchPaymentPage() {
           description: `Batch payment submitted for multi-sig approval (${multisigWallets.find((w) => w.id === selectedMultisig)?.threshold} signatures required)`,
         })
       } else {
-        // Direct payment (existing logic)
-        // Use validation service
+        // Direct payment via API
+        // Step 1: Validate payment data
         try {
           validatePaymentData(validRecipients)
         } catch (error: any) {
@@ -553,12 +553,61 @@ export default function BatchPaymentPage() {
           return
         }
 
-        // Use service layer for batch payment execution
+        // Step 2: Create batch job via API
+        const createResponse = await fetch("/api/batch-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipients: validRecipients.map((r) => ({
+              address: r.address,
+              amount: r.amount,
+              token: r.token,
+              memo: r.vendorName,
+            })),
+            token: validRecipients[0]?.token || "USDT",
+            chainId: 8453, // Base chain for CDP (0 fee)
+            fromAddress: currentWallet,
+          }),
+        })
+
+        if (!createResponse.ok) {
+          const errorData = await createResponse.json()
+          throw new Error(errorData.error || "Failed to create batch")
+        }
+
+        const createData = await createResponse.json()
+        const batchId = createData.batchId
+
+        toast({
+          title: "Batch Created",
+          description: `Processing ${createData.itemCount} payments...`,
+        })
+
+        // Step 3: Execute the batch via API
+        const executeResponse = await fetch("/api/batch-payment/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            batchId,
+            chainId: 8453, // Base chain uses CDP (0 fee)
+          }),
+        })
+
+        if (!executeResponse.ok) {
+          const errorData = await executeResponse.json()
+          throw new Error(errorData.error || "Batch execution failed")
+        }
+
+        const executeData = await executeResponse.json()
+
+        // Also run local service layer for immediate feedback
         const result = await executeBatchPayment(recipients, currentWallet, isDemoMode)
 
         toast({
           title: "Batch Payment Complete",
-          description: `Successfully paid ${result.successCount} recipients (${result.totalPaid} USDT)`,
+          description: executeData.summary
+            ? `${executeData.summary.successful}/${executeData.summary.total} payments successful. ${executeData.summary.settlementMethod === "CDP" ? "0 fee (Base chain)" : `Fee: ${executeData.summary.fee?.toFixed(6)}`}`
+            : `Successfully paid ${result.successCount} recipients (${result.totalPaid} USDT)`,
         })
       }
 

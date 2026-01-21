@@ -1,195 +1,301 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
+import { useWeb3 } from "@/contexts/web3-context"
+import { useToast } from "@/hooks/use-toast"
+import { getSupabase } from "@/lib/supabase"
 
-// ============================================================================
-// Types
-// ============================================================================
-
-export interface MCPSubscriptionPlan {
+export interface MCPProvider {
   id: string
   name: string
-  description: string | null
-  price: number
-  token: string
-  interval: "monthly" | "yearly" | "one-time"
-  features: string[]
-  max_api_calls: number | null
-  is_active: boolean
-  created_at: string
-  updated_at: string
+  description: string
+  icon: string
+  category: "productivity" | "development" | "analytics" | "communication"
+  pricing: {
+    free: { calls: number; features: string[] }
+    pro: { price: number; calls: number; features: string[] }
+    enterprise: { price: number; calls: number; features: string[] }
+  }
 }
 
-export interface MCPUserSubscription {
+export interface MCPSubscription {
   id: string
-  user_id: string
-  plan_id: string
-  status: "pending" | "active" | "cancelled" | "expired"
-  start_date: string | null
-  end_date: string | null
-  auto_renew: boolean
-  created_at: string
-  updated_at: string
-  subscription_plans?: MCPSubscriptionPlan
-}
-
-export interface MCPPaymentRecord {
-  id: string
-  subscription_id: string
-  amount: number
-  token: string
-  tx_hash: string | null
-  network: string
-  status: "pending" | "confirmed" | "failed"
+  provider_id: string
+  provider_name: string
+  plan: "free" | "pro" | "enterprise"
+  status: "active" | "paused" | "cancelled"
+  calls_used: number
+  calls_limit: number
+  current_period_start: string
+  current_period_end: string
   created_at: string
 }
 
-// ============================================================================
-// Hook Options
-// ============================================================================
-
-interface UseMCPSubscriptionsOptions {
-  walletAddress?: string
-  autoLoad?: boolean
+export interface UseMCPSubscriptionsReturn {
+  subscriptions: MCPSubscription[]
+  providers: MCPProvider[]
+  loading: boolean
+  error: string | null
+  subscribe: (providerId: string, plan: "free" | "pro" | "enterprise") => Promise<void>
+  unsubscribe: (subscriptionId: string) => Promise<void>
+  changePlan: (subscriptionId: string, newPlan: "free" | "pro" | "enterprise") => Promise<void>
+  refresh: () => Promise<void>
 }
 
+// Available MCP providers
+const MCP_PROVIDERS: MCPProvider[] = [
+  {
+    id: "linear",
+    name: "Linear",
+    description: "Project management and issue tracking",
+    icon: "📋",
+    category: "productivity",
+    pricing: {
+      free: { calls: 100, features: ["Read issues", "Basic search"] },
+      pro: { price: 29, calls: 10000, features: ["Full API access", "Webhooks", "Priority support"] },
+      enterprise: { price: 99, calls: 100000, features: ["Unlimited calls", "SLA", "Dedicated support"] },
+    },
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    description: "Workspace and documentation platform",
+    icon: "📝",
+    category: "productivity",
+    pricing: {
+      free: { calls: 100, features: ["Read pages", "Basic search"] },
+      pro: { price: 19, calls: 5000, features: ["Full API access", "Create pages"] },
+      enterprise: { price: 79, calls: 50000, features: ["Unlimited calls", "Custom integrations"] },
+    },
+  },
+  {
+    id: "sentry",
+    name: "Sentry",
+    description: "Error tracking and performance monitoring",
+    icon: "🐛",
+    category: "development",
+    pricing: {
+      free: { calls: 50, features: ["View errors", "Basic alerts"] },
+      pro: { price: 39, calls: 20000, features: ["Full API access", "Custom dashboards"] },
+      enterprise: { price: 149, calls: 200000, features: ["Unlimited calls", "Advanced analytics"] },
+    },
+  },
+  {
+    id: "context7",
+    name: "Context7",
+    description: "Documentation and context tools",
+    icon: "📚",
+    category: "development",
+    pricing: {
+      free: { calls: 200, features: ["Basic search", "Public docs"] },
+      pro: { price: 15, calls: 8000, features: ["Private docs", "Advanced search"] },
+      enterprise: { price: 59, calls: 80000, features: ["Unlimited calls", "Custom training"] },
+    },
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    description: "Team communication platform",
+    icon: "💬",
+    category: "communication",
+    pricing: {
+      free: { calls: 100, features: ["Read messages", "Basic notifications"] },
+      pro: { price: 25, calls: 15000, features: ["Send messages", "Channel management"] },
+      enterprise: { price: 89, calls: 150000, features: ["Unlimited calls", "Admin features"] },
+    },
+  },
+]
 
-// ============================================================================
-// Hook Implementation
-// ============================================================================
-
-export function useMCPSubscriptions(options: UseMCPSubscriptionsOptions = {}) {
-  const { walletAddress, autoLoad = true } = options
-  
-  const [plans, setPlans] = useState<MCPSubscriptionPlan[]>([])
-  const [subscriptions, setSubscriptions] = useState<MCPUserSubscription[]>([])
-  const [loading, setLoading] = useState(false)
+export function useMCPSubscriptions(): UseMCPSubscriptionsReturn {
+  const { address } = useWeb3()
+  const { toast } = useToast()
+  const [subscriptions, setSubscriptions] = useState<MCPSubscription[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Load subscription plans
-  const loadPlans = useCallback(async () => {
-    try {
-      const response = await fetch("/api/mcp/plans")
-      if (!response.ok) throw new Error("Failed to fetch plans")
-      const data = await response.json()
-      setPlans(data.plans || [])
-    } catch (err) {
-      console.error("[MCP] Failed to load plans:", err)
-      setError(err instanceof Error ? err.message : "Failed to load plans")
-    }
-  }, [])
-
-  // Load user subscriptions
-  const loadSubscriptions = useCallback(async () => {
-    if (!walletAddress) {
+  const fetchSubscriptions = useCallback(async () => {
+    if (!address) {
       setSubscriptions([])
+      setLoading(false)
       return
     }
 
-    try {
-      const response = await fetch(`/api/mcp/subscriptions?userId=${walletAddress}`)
-      if (!response.ok) throw new Error("Failed to fetch subscriptions")
-      const data = await response.json()
-      setSubscriptions(data.subscriptions || [])
-    } catch (err) {
-      console.error("[MCP] Failed to load subscriptions:", err)
-      setError(err instanceof Error ? err.message : "Failed to load subscriptions")
-    }
-  }, [walletAddress])
-
-  // Load all data
-  const refresh = useCallback(async () => {
     setLoading(true)
     setError(null)
-    await Promise.all([loadPlans(), loadSubscriptions()])
-    setLoading(false)
-  }, [loadPlans, loadSubscriptions])
 
-  // Create subscription
-  const subscribe = useCallback(async (planId: string, autoRenew = true) => {
-    if (!walletAddress) throw new Error("Wallet not connected")
+    try {
+      const supabase = getSupabase()
+      const { data, error: fetchError } = await supabase
+        .from("mcp_subscriptions")
+        .select("*")
+        .eq("wallet_address", address.toLowerCase())
+        .order("created_at", { ascending: false })
 
-    const response = await fetch("/api/mcp/subscriptions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planId, userId: walletAddress, autoRenew }),
-    })
-
-    if (!response.ok) {
-      const data = await response.json()
-      throw new Error(data.error || "Failed to create subscription")
+      if (fetchError) {
+        // Table might not exist, return empty
+        console.warn("[MCP] Subscriptions table error:", fetchError)
+        setSubscriptions([])
+      } else {
+        setSubscriptions(data || [])
+      }
+    } catch (err: any) {
+      console.error("[MCP] Failed to fetch subscriptions:", err)
+      setError(err.message)
+      setSubscriptions([])
+    } finally {
+      setLoading(false)
     }
+  }, [address])
 
-    const data = await response.json()
-    setSubscriptions((prev) => [data.subscription, ...prev])
-    return data.subscription
-  }, [walletAddress])
-
-  // Update subscription status
-  const updateStatus = useCallback(async (
-    subscriptionId: string,
-    status: "active" | "paused" | "cancelled"
-  ) => {
-    const response = await fetch("/api/mcp/subscriptions", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subscriptionId, status }),
-    })
-
-    if (!response.ok) {
-      const data = await response.json()
-      throw new Error(data.error || "Failed to update subscription")
-    }
-
-    const data = await response.json()
-    setSubscriptions((prev) =>
-      prev.map((s) => (s.id === subscriptionId ? data.subscription : s))
-    )
-    return data.subscription
-  }, [])
-
-  // Cancel subscription
-  const cancel = useCallback(async (subscriptionId: string) => {
-    const response = await fetch(`/api/mcp/subscriptions?id=${subscriptionId}`, {
-      method: "DELETE",
-    })
-
-    if (!response.ok) {
-      const data = await response.json()
-      throw new Error(data.error || "Failed to cancel subscription")
-    }
-
-    setSubscriptions((prev) =>
-      prev.map((s) => (s.id === subscriptionId ? { ...s, status: "cancelled" as const } : s))
-    )
-  }, [])
-
-  // Auto-load on mount
   useEffect(() => {
-    if (autoLoad) {
-      refresh()
-    }
-  }, [autoLoad, refresh])
+    fetchSubscriptions()
+  }, [fetchSubscriptions])
 
-  // Computed stats
-  const stats = {
-    totalPlans: plans.length,
-    activeSubscriptions: subscriptions.filter((s) => s.status === "active").length,
-    pendingSubscriptions: subscriptions.filter((s) => s.status === "pending").length,
-    monthlySpend: subscriptions
-      .filter((s) => s.status === "active" && s.subscription_plans?.interval === "monthly")
-      .reduce((sum, s) => sum + (s.subscription_plans?.price || 0), 0),
-  }
+  const subscribe = useCallback(
+    async (providerId: string, plan: "free" | "pro" | "enterprise") => {
+      if (!address) {
+        toast({
+          title: "Error",
+          description: "Please connect your wallet first",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const provider = MCP_PROVIDERS.find((p) => p.id === providerId)
+      if (!provider) {
+        toast({
+          title: "Error",
+          description: "Invalid provider",
+          variant: "destructive",
+        })
+        return
+      }
+
+      try {
+        const supabase = getSupabase()
+        const now = new Date()
+        const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days
+
+        const { data, error: insertError } = await supabase
+          .from("mcp_subscriptions")
+          .insert({
+            wallet_address: address.toLowerCase(),
+            provider_id: providerId,
+            provider_name: provider.name,
+            plan,
+            status: "active",
+            calls_used: 0,
+            calls_limit: provider.pricing[plan].calls,
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+          })
+          .select()
+          .single()
+
+        if (insertError) throw insertError
+
+        setSubscriptions((prev) => [data, ...prev])
+
+        toast({
+          title: "Subscribed",
+          description: `Successfully subscribed to ${provider.name} (${plan} plan)`,
+        })
+      } catch (err: any) {
+        console.error("[MCP] Subscribe error:", err)
+        toast({
+          title: "Subscription Failed",
+          description: err.message || "Failed to subscribe",
+          variant: "destructive",
+        })
+      }
+    },
+    [address, toast],
+  )
+
+  const unsubscribe = useCallback(
+    async (subscriptionId: string) => {
+      try {
+        const supabase = getSupabase()
+        const { error: updateError } = await supabase
+          .from("mcp_subscriptions")
+          .update({ status: "cancelled" })
+          .eq("id", subscriptionId)
+
+        if (updateError) throw updateError
+
+        setSubscriptions((prev) =>
+          prev.map((sub) => (sub.id === subscriptionId ? { ...sub, status: "cancelled" } : sub)),
+        )
+
+        toast({
+          title: "Unsubscribed",
+          description: "Subscription cancelled successfully",
+        })
+      } catch (err: any) {
+        console.error("[MCP] Unsubscribe error:", err)
+        toast({
+          title: "Error",
+          description: err.message || "Failed to unsubscribe",
+          variant: "destructive",
+        })
+      }
+    },
+    [toast],
+  )
+
+  const changePlan = useCallback(
+    async (subscriptionId: string, newPlan: "free" | "pro" | "enterprise") => {
+      try {
+        const subscription = subscriptions.find((s) => s.id === subscriptionId)
+        if (!subscription) throw new Error("Subscription not found")
+
+        const provider = MCP_PROVIDERS.find((p) => p.id === subscription.provider_id)
+        if (!provider) throw new Error("Provider not found")
+
+        const supabase = getSupabase()
+        const { error: updateError } = await supabase
+          .from("mcp_subscriptions")
+          .update({
+            plan: newPlan,
+            calls_limit: provider.pricing[newPlan].calls,
+          })
+          .eq("id", subscriptionId)
+
+        if (updateError) throw updateError
+
+        setSubscriptions((prev) =>
+          prev.map((sub) =>
+            sub.id === subscriptionId
+              ? { ...sub, plan: newPlan, calls_limit: provider.pricing[newPlan].calls }
+              : sub,
+          ),
+        )
+
+        toast({
+          title: "Plan Changed",
+          description: `Upgraded to ${newPlan} plan`,
+        })
+      } catch (err: any) {
+        console.error("[MCP] Change plan error:", err)
+        toast({
+          title: "Error",
+          description: err.message || "Failed to change plan",
+          variant: "destructive",
+        })
+      }
+    },
+    [subscriptions, toast],
+  )
 
   return {
-    plans,
     subscriptions,
+    providers: MCP_PROVIDERS,
     loading,
     error,
-    stats,
-    refresh,
     subscribe,
-    updateStatus,
-    cancel,
+    unsubscribe,
+    changePlan,
+    refresh: fetchSubscriptions,
   }
 }

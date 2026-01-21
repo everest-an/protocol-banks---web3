@@ -157,9 +157,6 @@ function PaymentContent() {
   const isValid = to && amount && token
   const isUSDC = token === "USDC"
   const isGasless = isUSDC && activeChain === "EVM"
-  
-  // Check if CDP (free settlement) is available
-  const isCDPAvailable = isUSDC && chainId === 8453 // Base mainnet
 
   useEffect(() => {
     const params: Record<string, string | null> = {
@@ -310,46 +307,34 @@ function PaymentContent() {
 
         toast({
           title: "Processing Payment",
-          description: isCDPAvailable 
-            ? "Submitting via CDP Facilitator (free settlement)..." 
-            : "Submitting your secure payment...",
+          description: "Submitting your secure payment...",
         })
 
-        // Try CDP settlement first for Base chain USDC
-        if (isCDPAvailable) {
-          try {
-            const cdpResponse = await fetch('/api/x402/settle', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                signature: auth,
-                from: wallets.EVM,
-                to: to,
-                value: amount,
-                chainId: chainId,
-                token: token,
-              }),
-            })
-            
-            const cdpResult = await cdpResponse.json()
-            
-            if (cdpResult.success && cdpResult.transactionHash) {
-              hash = cdpResult.transactionHash
-              toast({
-                title: "CDP Settlement Success",
-                description: "Payment settled via Coinbase CDP (0 fee)!",
-              })
-            } else {
-              // CDP failed, fall back to direct execution
-              console.warn("[pay] CDP failed, falling back to direct execution:", cdpResult.error)
-              hash = await executeERC3009Transfer(tokenAddress, wallets.EVM, to!, amount!, auth)
-            }
-          } catch (cdpError) {
-            console.warn("[pay] CDP request failed, falling back:", cdpError)
-            hash = await executeERC3009Transfer(tokenAddress, wallets.EVM, to!, amount!, auth)
+        hash = await executeERC3009Transfer(tokenAddress, wallets.EVM, to!, amount!, auth)
+
+        // Settle via x402 API - Base chain uses CDP (0 fee), others use Relayer
+        try {
+          const settleResponse = await fetch("/api/x402/settle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              authorizationId: auth.nonce || `auth_${Date.now()}`,
+              transactionHash: hash,
+              chainId,
+              amount: amount!,
+              token: token || "USDC",
+              from: wallets.EVM,
+              to: to!,
+            }),
+          })
+
+          if (settleResponse.ok) {
+            const settleData = await settleResponse.json()
+            console.log("[v0] x402 settlement:", settleData)
           }
-        } else {
-          hash = await executeERC3009Transfer(tokenAddress, wallets.EVM, to!, amount!, auth)
+        } catch (settleErr) {
+          console.warn("[v0] x402 settle warning:", settleErr)
+          // Non-blocking - payment already succeeded
         }
       } else {
         toast({
@@ -599,14 +584,6 @@ function PaymentContent() {
                     x402 Protocol
                   </Badge>
                   <span className="text-xs text-muted-foreground">Gasless payment enabled</span>
-                  {isCDPAvailable && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20"
-                    >
-                      CDP Free
-                    </Badge>
-                  )}
                 </div>
               )}
             </div>

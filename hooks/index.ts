@@ -20,6 +20,10 @@ export { useAuditLog } from "./use-audit-log"
 // Invoice and merchant tools
 export { useInvoice } from "./use-invoice"
 
+// MCP and monetization hooks
+export { useMCPSubscriptions } from "./use-mcp-subscriptions"
+export { useMonetizeConfig } from "./use-monetize-config"
+
 // Payment confirmation with biometric and security
 export { usePaymentConfirmation } from "./use-payment-confirmation"
 

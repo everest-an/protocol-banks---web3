@@ -8,7 +8,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { submitBatchPayment, getBatchPaymentStatus } from "@/lib/grpc/payout-bridge"
 import { verifySession } from "@/lib/auth/session"
-// Import from services index to avoid module resolution issues
 import {
   validateBatch,
   findDuplicateRecipients,

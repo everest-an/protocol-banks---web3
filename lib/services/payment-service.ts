@@ -1,7 +1,6 @@
 import { ethers } from "ethers"
 import type { Payment, Recipient, PaymentResult } from "@/types"
 import { sendToken, signERC3009Authorization, executeERC3009Transfer } from "@/lib/web3"
-// Import from services index to avoid module resolution issues
 import {
   validateBatch,
   calculateBatchTotals,

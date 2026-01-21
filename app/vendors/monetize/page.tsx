@@ -1,468 +1,510 @@
-'use client';
+"use client"
 
-/**
- * API Monetizer Configuration Page
- * 
- * Allows vendors to create and manage monetized API endpoints.
- */
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { useWeb3 } from "@/contexts/web3-context"
+import { useDemo } from "@/contexts/demo-context"
+import {
+  DollarSign,
+  Key,
+  BarChart3,
+  Settings,
+  Copy,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  TrendingUp,
+  Clock,
+  Shield,
+  Zap,
+  ArrowUpRight,
+  Loader2,
+} from "lucide-react"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Area,
+  AreaChart,
+} from "recharts"
 
-import React, { useState } from 'react';
-import { useMonetizeConfigs, useUsageStats, type MonetizeConfigInput, type MonetizeConfig, type EndpointStats } from '@/hooks/use-monetizer-config';
+interface APIKey {
+  id: string
+  name: string
+  key: string
+  createdAt: string
+  lastUsed: string | null
+  calls: number
+  status: "active" | "revoked"
+}
 
-// ============================================================================
-// Types
-// ============================================================================
+interface UsageData {
+  date: string
+  calls: number
+  revenue: number
+  errors: number
+}
 
-type PricingModel = 'perRequest' | 'perToken' | 'tiered';
-
-// ============================================================================
-// Main Page Component
-// ============================================================================
+interface PricingTier {
+  name: string
+  pricePerCall: number
+  monthlyLimit: number
+  features: string[]
+}
 
 export default function MonetizePage() {
-  const { configs, loading, error, createConfig, updateConfig, deleteConfig, toggleActive } = useMonetizeConfigs();
-  const { stats, revenue, endpoints } = useUsageStats();
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const { toast } = useToast()
+  const { wallets, isConnected } = useWeb3()
+  const { isDemoMode } = useDemo()
+  const [loading, setLoading] = useState(true)
+  const [apiKeys, setApiKeys] = useState<APIKey[]>([])
+  const [usageData, setUsageData] = useState<UsageData[]>([])
+  const [showApiKey, setShowApiKey] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState("overview")
   
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              API Monetizer
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Monetize your APIs with x402 payments
-            </p>
-          </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            + New Configuration
-          </button>
-        </div>
-        
-        {/* Stats Overview */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <StatCard title="Total Requests" value={stats.totalRequests.toLocaleString()} />
-            <StatCard title="Total Revenue" value={`$${stats.totalRevenue}`} />
-            <StatCard title="Unique Wallets" value={stats.uniqueWallets.toLocaleString()} />
-            <StatCard title="Avg Latency" value={`${stats.averageLatency}ms`} />
-            <StatCard title="Success Rate" value={stats.successRate} />
-          </div>
-        )}
-        
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-        
-        {/* Create Form Modal */}
-        {showCreateForm && (
-          <CreateConfigModal
-            onClose={() => setShowCreateForm(false)}
-            onCreate={async (config) => {
-              await createConfig(config);
-              setShowCreateForm(false);
-            }}
-          />
-        )}
-        
-        {/* Configurations List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Configurations
-            </h2>
-          </div>
-          
-          {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading...</div>
-          ) : configs.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No configurations yet. Create one to get started.
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {configs.map((config: MonetizeConfig) => (
-                <ConfigRow
-                  key={config.id}
-                  config={config}
-                  onToggle={() => toggleActive(config.id)}
-                  onDelete={() => deleteConfig(config.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-        
-        {/* Endpoint Stats */}
-        {endpoints.length > 0 && (
-          <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Endpoint Statistics
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Endpoint
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Requests
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Revenue
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Avg Latency
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                      Success Rate
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {endpoints.map((ep: EndpointStats) => (
-                    <tr key={ep.endpoint}>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white font-mono">
-                        {ep.endpoint}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 text-right">
-                        {ep.totalRequests.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 text-right">
-                        ${ep.totalRevenue}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 text-right">
-                        {ep.averageLatency}ms
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 text-right">
-                        {ep.successRate}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+  // Monetization settings
+  const [monetizationEnabled, setMonetizationEnabled] = useState(true)
+  const [pricePerCall, setPricePerCall] = useState("0.001")
+  const [monthlyLimit, setMonthlyLimit] = useState("10000")
 
-// ============================================================================
-// Stat Card Component
-// ============================================================================
+  // Load data
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      await new Promise((r) => setTimeout(r, 500))
 
-function StatCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-      <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
-    </div>
-  );
-}
+      // Demo API keys
+      setApiKeys([
+        {
+          id: "key_1",
+          name: "Production API",
+          key: "pk_live_51Hb8J2EZvKYlo2CXD9X8E5xY",
+          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          lastUsed: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          calls: 15432,
+          status: "active",
+        },
+        {
+          id: "key_2",
+          name: "Development API",
+          key: "pk_test_51Hb8J2EZvKYlo2CXD9X8E5xY",
+          createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+          lastUsed: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          calls: 2341,
+          status: "active",
+        },
+      ])
 
-// ============================================================================
-// Config Row Component
-// ============================================================================
-
-function ConfigRow({
-  config,
-  onToggle,
-  onDelete,
-}: {
-  config: {
-    id: string;
-    name: string;
-    upstreamUrl: string;
-    pricingModel: string;
-    recipientAddress: string;
-    network?: string;
-    token?: string;
-    isActive?: boolean;
-  };
-  onToggle: () => void;
-  onDelete: () => void;
-}) {
-  const [showDelete, setShowDelete] = useState(false);
-  
-  return (
-    <div className="px-6 py-4 flex items-center justify-between">
-      <div className="flex-1">
-        <div className="flex items-center gap-3">
-          <h3 className="font-medium text-gray-900 dark:text-white">{config.name}</h3>
-          <span className={`px-2 py-0.5 text-xs rounded-full ${
-            config.isActive
-              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-          }`}>
-            {config.isActive ? 'Active' : 'Inactive'}
-          </span>
-        </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-mono">
-          {config.upstreamUrl}
-        </p>
-        <div className="flex gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
-          <span>Model: {config.pricingModel}</span>
-          <span>Network: {config.network ?? 'base'}</span>
-          <span>Token: {config.token ?? 'USDC'}</span>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onToggle}
-          className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-        >
-          {config.isActive ? 'Disable' : 'Enable'}
-        </button>
-        
-        {showDelete ? (
-          <div className="flex gap-2">
-            <button
-              onClick={onDelete}
-              className="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
-            >
-              Confirm
-            </button>
-            <button
-              onClick={() => setShowDelete(false)}
-              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowDelete(true)}
-            className="px-3 py-1.5 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-          >
-            Delete
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// Create Config Modal
-// ============================================================================
-
-function CreateConfigModal({
-  onClose,
-  onCreate,
-}: {
-  onClose: () => void;
-  onCreate: (config: MonetizeConfigInput) => Promise<void>;
-}) {
-  const [name, setName] = useState('');
-  const [upstreamUrl, setUpstreamUrl] = useState('');
-  const [pricingModel, setPricingModel] = useState<PricingModel>('perRequest');
-  const [perRequest, setPerRequest] = useState('0.01');
-  const [perInputToken, setPerInputToken] = useState('0.00001');
-  const [perOutputToken, setPerOutputToken] = useState('0.00003');
-  const [recipientAddress, setRecipientAddress] = useState('');
-  const [network, setNetwork] = useState<'base' | 'ethereum' | 'polygon'>('base');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      const config: MonetizeConfigInput = {
-        name,
-        upstreamUrl,
-        pricingModel,
-        pricingConfig: pricingModel === 'perRequest'
-          ? { perRequest }
-          : { perInputToken, perOutputToken },
-        recipientAddress,
-        network,
-        token: 'USDC',
-        isActive: true,
-      };
-      
-      await onCreate(config);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create configuration');
-    } finally {
-      setLoading(false);
+      // Generate usage data for last 30 days
+      const data: UsageData[] = []
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+        const baseCalls = 400 + Math.random() * 300
+        const calls = Math.floor(baseCalls + (29 - i) * 15) // Trending up
+        data.push({
+          date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          calls,
+          revenue: calls * 0.001,
+          errors: Math.floor(calls * 0.02 * Math.random()),
+        })
+      }
+      setUsageData(data)
+      setLoading(false)
     }
-  };
-  
+    loadData()
+  }, [])
+
+  const totalCalls = usageData.reduce((sum, d) => sum + d.calls, 0)
+  const totalRevenue = usageData.reduce((sum, d) => sum + d.revenue, 0)
+  const avgCallsPerDay = Math.round(totalCalls / 30)
+  const errorRate = (usageData.reduce((sum, d) => sum + d.errors, 0) / totalCalls * 100).toFixed(2)
+
+  const copyApiKey = (key: string) => {
+    navigator.clipboard.writeText(key)
+    toast({ title: "Copied", description: "API key copied to clipboard" })
+  }
+
+  const generateNewKey = () => {
+    const newKey: APIKey = {
+      id: `key_${Date.now()}`,
+      name: `API Key ${apiKeys.length + 1}`,
+      key: `pk_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`,
+      createdAt: new Date().toISOString(),
+      lastUsed: null,
+      calls: 0,
+      status: "active",
+    }
+    setApiKeys((prev) => [...prev, newKey])
+    toast({ title: "API Key Created", description: "New API key has been generated" })
+  }
+
+  const revokeKey = (id: string) => {
+    setApiKeys((prev) =>
+      prev.map((key) => (key.id === id ? { ...key, status: "revoked" } : key))
+    )
+    toast({ title: "Key Revoked", description: "API key has been revoked" })
+  }
+
+  const PRICING_TIERS: PricingTier[] = [
+    {
+      name: "Free",
+      pricePerCall: 0,
+      monthlyLimit: 1000,
+      features: ["Basic API access", "Community support"],
+    },
+    {
+      name: "Developer",
+      pricePerCall: 0.0005,
+      monthlyLimit: 10000,
+      features: ["Full API access", "Email support", "Analytics"],
+    },
+    {
+      name: "Business",
+      pricePerCall: 0.0003,
+      monthlyLimit: 100000,
+      features: ["Full API access", "Priority support", "Advanced analytics", "SLA guarantee"],
+    },
+    {
+      name: "Enterprise",
+      pricePerCall: 0.0001,
+      monthlyLimit: -1,
+      features: ["Unlimited calls", "Dedicated support", "Custom integrations", "99.99% SLA"],
+    },
+  ]
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            New Monetizer Configuration
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
-          </button>
+    <main className="container mx-auto py-6 px-4 max-w-7xl">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">API Monetization</h1>
+          <p className="text-muted-foreground">Monetize your APIs and track usage analytics</p>
         </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="My API Monetizer"
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={monetizationEnabled}
+              onCheckedChange={setMonetizationEnabled}
+              id="monetization"
             />
+            <Label htmlFor="monetization">Monetization {monetizationEnabled ? "On" : "Off"}</Label>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Upstream API URL
-            </label>
-            <input
-              type="url"
-              value={upstreamUrl}
-              onChange={(e) => setUpstreamUrl(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
-              placeholder="https://api.example.com"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Pricing Model
-            </label>
-            <select
-              value={pricingModel}
-              onChange={(e) => setPricingModel(e.target.value as PricingModel)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="perRequest">Per Request</option>
-              <option value="perToken">Per Token (AI APIs)</option>
-              <option value="tiered">Tiered</option>
-            </select>
-          </div>
-          
-          {pricingModel === 'perRequest' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Price per Request (USD)
-              </label>
-              <input
-                type="text"
-                value={perRequest}
-                onChange={(e) => setPerRequest(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder="0.01"
-              />
-            </div>
-          )}
-          
-          {pricingModel === 'perToken' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Price per Input Token (USD)
-                </label>
-                <input
-                  type="text"
-                  value={perInputToken}
-                  onChange={(e) => setPerInputToken(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="0.00001"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Price per Output Token (USD)
-                </label>
-                <input
-                  type="text"
-                  value={perOutputToken}
-                  onChange={(e) => setPerOutputToken(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="0.00003"
-                />
-              </div>
-            </>
-          )}
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Recipient Address
-            </label>
-            <input
-              type="text"
-              value={recipientAddress}
-              onChange={(e) => setRecipientAddress(e.target.value)}
-              required
-              pattern="^0x[a-fA-F0-9]{40}$"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
-              placeholder="0x..."
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Network
-            </label>
-            <select
-              value={network}
-              onChange={(e) => setNetwork(e.target.value as 'base' | 'ethereum' | 'polygon')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="base">Base (0 fees)</option>
-              <option value="ethereum">Ethereum</option>
-              <option value="polygon">Polygon</option>
-            </select>
-          </div>
-          
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create'}
-            </button>
-          </div>
-        </form>
+          <Button onClick={generateNewKey}>
+            <Key className="h-4 w-4 mr-2" />
+            New API Key
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <BarChart3 className="h-4 w-4" />
+              <span className="text-sm">Total API Calls</span>
+            </div>
+            <div className="text-2xl font-bold">{totalCalls.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <DollarSign className="h-4 w-4" />
+              <span className="text-sm">Revenue</span>
+            </div>
+            <div className="text-2xl font-bold text-emerald-400">${totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-sm">Avg. Daily Calls</span>
+            </div>
+            <div className="text-2xl font-bold">{avgCallsPerDay.toLocaleString()}</div>
+            <p className="text-xs text-emerald-400 mt-1">+12% from last month</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <Shield className="h-4 w-4" />
+              <span className="text-sm">Error Rate</span>
+            </div>
+            <div className="text-2xl font-bold">{errorRate}%</div>
+            <p className="text-xs text-muted-foreground mt-1">Target: under 1%</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="keys">API Keys</TabsTrigger>
+          <TabsTrigger value="pricing">Pricing</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          {/* Usage Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>API Usage Over Time</CardTitle>
+              <CardDescription>Daily API calls and revenue for the last 30 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={usageData}>
+                    <defs>
+                      <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis dataKey="date" stroke="#888" fontSize={12} />
+                    <YAxis stroke="#888" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#1a1a1a",
+                        border: "1px solid #333",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="calls"
+                      stroke="#8884d8"
+                      fillOpacity={1}
+                      fill="url(#colorCalls)"
+                      name="API Calls"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Revenue Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Breakdown</CardTitle>
+              <CardDescription>Daily revenue from API usage</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="h-[250px] flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={usageData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis dataKey="date" stroke="#888" fontSize={12} />
+                    <YAxis stroke="#888" fontSize={12} tickFormatter={(v) => `$${v}`} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#1a1a1a",
+                        border: "1px solid #333",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(value: number) => [`$${value.toFixed(3)}`, "Revenue"]}
+                    />
+                    <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="keys">
+          <Card>
+            <CardHeader>
+              <CardTitle>API Keys</CardTitle>
+              <CardDescription>Manage your API keys for external integrations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Key</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Last Used</TableHead>
+                    <TableHead>Calls</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {apiKeys.map((key) => (
+                    <TableRow key={key.id}>
+                      <TableCell className="font-medium">{key.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                            {showApiKey === key.id
+                              ? key.key
+                              : `${key.key.slice(0, 12)}...${key.key.slice(-4)}`}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
+                          >
+                            {showApiKey === key.id ? (
+                              <EyeOff className="h-3 w-3" />
+                            ) : (
+                              <Eye className="h-3 w-3" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => copyApiKey(key.key)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>{new Date(key.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {key.lastUsed ? new Date(key.lastUsed).toLocaleDateString() : "Never"}
+                      </TableCell>
+                      <TableCell>{key.calls.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            key.status === "active"
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-red-500/10 text-red-400"
+                          }
+                        >
+                          {key.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {key.status === "active" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-400"
+                            onClick={() => revokeKey(key.id)}
+                          >
+                            Revoke
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pricing">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {PRICING_TIERS.map((tier) => (
+              <Card key={tier.name} className={tier.name === "Business" ? "border-primary" : ""}>
+                <CardHeader>
+                  <CardTitle>{tier.name}</CardTitle>
+                  <CardDescription>
+                    {tier.pricePerCall === 0
+                      ? "Free"
+                      : `$${tier.pricePerCall.toFixed(4)} per call`}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold mb-4">
+                    {tier.monthlyLimit === -1
+                      ? "Unlimited"
+                      : `${tier.monthlyLimit.toLocaleString()} calls/mo`}
+                  </div>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {tier.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-primary" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>Monetization Settings</CardTitle>
+              <CardDescription>Configure your API pricing and limits</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="pricePerCall">Price Per Call (USD)</Label>
+                  <Input
+                    id="pricePerCall"
+                    type="number"
+                    step="0.0001"
+                    value={pricePerCall}
+                    onChange={(e) => setPricePerCall(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Amount charged per API call
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyLimit">Monthly Limit</Label>
+                  <Input
+                    id="monthlyLimit"
+                    type="number"
+                    value={monthlyLimit}
+                    onChange={(e) => setMonthlyLimit(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Maximum API calls per month per user
+                  </p>
+                </div>
+              </div>
+              <Button>Save Settings</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </main>
+  )
 }
