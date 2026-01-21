@@ -11,6 +11,8 @@ import { useWeb3 } from "@/contexts/web3-context"
 import { useToast } from "@/hooks/use-toast"
 import { getTokenAddress, signERC3009Authorization, executeERC3009Transfer, sendToken } from "@/lib/web3"
 import { FeePreview } from "@/components/fee-preview"
+import { SettlementMethodBadge } from "@/components/settlement-method-badge"
+import { FeeBreakdown } from "@/components/fee-breakdown"
 import { recordFee, calculateFee } from "@/lib/protocol-fees"
 import { getSupabase } from "@/lib/supabase"
 
@@ -586,6 +588,11 @@ function PaymentContent() {
                   <span className="text-xs text-muted-foreground">Gasless payment enabled</span>
                 </div>
               )}
+              {/* Settlement Method Badge - Base chain (8453) uses CDP with 0 fee */}
+              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                <span className="text-sm text-muted-foreground">Settlement Method</span>
+                <SettlementMethodBadge method={chainId === 8453 ? "cdp" : "relayer"} chainId={chainId} />
+              </div>
             </div>
 
             {amount && Number(amount) > 0 && wallets.EVM && (

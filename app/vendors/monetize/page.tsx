@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { useMonetizeConfig } from "@/hooks/use-monetize-config"
+import { UsageChart } from "@/components/usage-chart"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useDemo } from "@/contexts/demo-context"
 import {
@@ -83,10 +85,22 @@ export default function MonetizePage() {
   const [showApiKey, setShowApiKey] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
   
-  // Monetization settings
-  const [monetizationEnabled, setMonetizationEnabled] = useState(true)
-  const [pricePerCall, setPricePerCall] = useState("0.001")
-  const [monthlyLimit, setMonthlyLimit] = useState("10000")
+  // Use Monetize Config hook for API integration
+  const {
+    config: hookConfig,
+    apiKeys: hookApiKeys,
+    usage: hookUsage,
+    createApiKey: hookCreateApiKey,
+    revokeApiKey: hookRevokeApiKey,
+    updateConfig: hookUpdateConfig,
+    loading: hookLoading,
+    error: hookError,
+  } = useMonetizeConfig()
+  
+  // Monetization settings (use hook data if available)
+  const [monetizationEnabled, setMonetizationEnabled] = useState(hookConfig?.enabled ?? true)
+  const [pricePerCall, setPricePerCall] = useState(hookConfig?.pricePerCall?.toString() ?? "0.001")
+  const [monthlyLimit, setMonthlyLimit] = useState(hookConfig?.monthlyLimit?.toString() ?? "10000")
 
   // Load data
   useEffect(() => {

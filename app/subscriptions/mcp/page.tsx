@@ -19,6 +19,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { useMCPSubscriptions } from "@/hooks/use-mcp-subscriptions"
+import { SubscriptionCard } from "@/components/subscription-card"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useDemo } from "@/contexts/demo-context"
 import {
@@ -118,11 +120,22 @@ export default function MCPSubscriptionsPage() {
   const [selectedTier, setSelectedTier] = useState<string>("")
   const [activeTab, setActiveTab] = useState("active")
 
-  // Load subscriptions
+  // Use MCP Subscriptions hook for API integration
+  const {
+    plans: hookPlans,
+    subscription: currentSubscription,
+    subscribe: hookSubscribe,
+    cancel: hookCancel,
+    changePlan: hookChangePlan,
+    loading: hookLoading,
+    error: hookError,
+  } = useMCPSubscriptions()
+
+  // Load subscriptions (using hook data if available, otherwise demo data)
   useEffect(() => {
     const loadSubscriptions = async () => {
       setLoading(true)
-      // Demo data
+      // Demo data fallback
       await new Promise((r) => setTimeout(r, 500))
       setSubscriptions([
         {

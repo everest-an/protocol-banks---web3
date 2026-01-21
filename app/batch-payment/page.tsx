@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
+import { useBatchPayment } from "@/hooks/use-batch-payment"
+import { BatchStatusTracker } from "@/components/batch-status-tracker"
 import {
   Dialog,
   DialogContent,
@@ -58,8 +60,20 @@ export default function BatchPaymentPage() {
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const supabase = createClient() // Initialize Supabase client here
+  
+  // Use the batch payment hook for API integration
+  const {
+    uploadFile,
+    validateBatch,
+    submitBatch,
+    batchStatus,
+    loading: batchLoading,
+    error: batchError,
+  } = useBatchPayment()
+  
   const [activeTab, setActiveTab] = useState<"batch" | "auto" | "x402">("batch")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [currentBatchId, setCurrentBatchId] = useState<string | null>(null)
   const [vendors, setVendors] = useState<Vendor[]>([])
   const activeChain = "EVM"
   const currentWallet = wallets[activeChain]
