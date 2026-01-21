@@ -250,6 +250,36 @@ export default function HistoryPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Business Metrics */}
+      <BusinessMetrics
+        payments={transactions.map((tx) => ({
+          ...tx,
+          amount_usd: tx.amount_usd ?? Number.parseFloat(tx.amount) || 0,
+        }))}
+        loading={loading}
+      />
+
+      {/* Payment Activity Feed */}
+      <PaymentActivity
+        payments={transactions.map((tx) => ({
+          ...tx,
+          amount_usd: tx.amount_usd ?? Number.parseFloat(tx.amount) || 0,
+        }))}
+        walletAddress={wallet || undefined}
+        loading={loading}
+        title="Recent Activity"
+        description="Your most recent transactions"
+      />
+
+      {/* Financial Report Table */}
+      <FinancialReport
+        payments={transactions.map((tx) => ({
+          ...tx,
+          amount_usd: tx.amount_usd ?? Number.parseFloat(tx.amount) || 0,
+        }))}
+        loading={loading}
+      />
     </main>
   )
 }

@@ -37,38 +37,14 @@ export function calculateDistribution(
   }))
 }
 
-// Flexible log input type
-export interface FeeLogInput {
-  batchId?: string
-  totalAmount?: number
-  totalFee?: number
-  protocolFee?: number
-  relayerFee?: number
-  networkFee?: number
-  transactionHash?: string
-  distributedAt?: string
-  timestamp?: number
-}
-
 /**
- * Log fee distribution to database or console
+ * Log fee distribution to database
  */
 export async function logFeeDistribution(
-  input: FeeDistribution | FeeLogInput,
+  distribution: FeeDistribution,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase?: any
 ): Promise<{ success: boolean; id?: string; error?: string }> {
-  // Normalize input
-  const distribution = {
-    totalFee: (input as FeeDistribution).totalFee ?? (input as FeeLogInput).totalAmount ?? 0,
-    protocolFee: input.protocolFee ?? 0,
-    relayerFee: (input as FeeDistribution).relayerFee ?? 0,
-    networkFee: (input as FeeDistribution).networkFee ?? 0,
-    transactionHash: (input as FeeDistribution).transactionHash,
-    timestamp: (input as FeeDistribution).timestamp ?? Date.now(),
-    batchId: (input as FeeLogInput).batchId,
-  }
-
   if (!supabase) {
     // Log to console in development
     console.log('[FeeDistributor] Fee distribution:', distribution)
@@ -79,7 +55,6 @@ export async function logFeeDistribution(
     const { data, error } = await supabase
       .from('fee_distributions')
       .insert({
-        batch_id: distribution.batchId,
         total_fee: distribution.totalFee,
         protocol_fee: distribution.protocolFee,
         relayer_fee: distribution.relayerFee,

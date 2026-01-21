@@ -1,14 +1,16 @@
 import { ethers } from "ethers"
 import type { Payment, Recipient, PaymentResult } from "@/types"
 import { sendToken, signERC3009Authorization, executeERC3009Transfer } from "@/lib/web3"
+// Import from services index to avoid module resolution issues
 import {
   validateBatch,
   calculateBatchTotals,
   findDuplicateRecipients,
+  calculateBatchFees,
+  formatFee,
+  generateBatchCsvReport,
   type BatchPaymentItem,
-} from "@/services/batch-validator.service"
-import { calculateBatchFees, formatFee } from "@/services/fee-calculator.service"
-import { generateBatchCsvReport } from "@/services/report-generator.service"
+} from "@/services"
 
 /**
  * 验证收款人数据

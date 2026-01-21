@@ -8,9 +8,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { submitBatchPayment, getBatchPaymentStatus } from "@/lib/grpc/payout-bridge"
 import { verifySession } from "@/lib/auth/session"
-import { validateBatch, findDuplicateRecipients, type BatchPaymentItem } from "@/services/batch-validator.service"
-import { calculateBatchFees, formatFee } from "@/services/fee-calculator.service"
-import { logFeeDistribution } from "@/services/fee-distributor.service"
+// Import from services index to avoid module resolution issues
+import {
+  validateBatch,
+  findDuplicateRecipients,
+  calculateBatchFees,
+  formatFee,
+  logFeeDistribution,
+  type BatchPaymentItem,
+} from "@/services"
 
 export async function POST(request: NextRequest) {
   try {

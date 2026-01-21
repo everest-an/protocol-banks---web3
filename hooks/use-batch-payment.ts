@@ -11,7 +11,7 @@ import {
   retryFailedItems,
   storeFailedItems,
   type FailedItem,
-} from "@/services/recovery-manager.service"
+} from "@/services"
 
 export interface BatchPaymentState {
   isProcessing: boolean

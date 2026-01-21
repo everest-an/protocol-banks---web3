@@ -23,6 +23,9 @@ export { useInvoice } from "./use-invoice"
 // Payment confirmation with biometric and security
 export { usePaymentConfirmation } from "./use-payment-confirmation"
 
+// Security monitoring
+export { useSecurityMonitor } from "./use-security-monitor"
+
 // Re-export useful utilities from lib for convenience
 export {
   isValidEVMAddress,
@@ -39,3 +42,15 @@ export {
   CATEGORIES,
   CATEGORY_COLORS,
 } from "@/lib/business-logic"
+
+// Token and chain configuration
+export {
+  SUPPORTED_CHAINS,
+  COMMON_TOKENS,
+  getTokensForChain,
+  getChainInfo,
+  type SupportedChainId,
+} from "@/lib/tokens"
+
+// Protocol fees
+export { calculateFee, recordFee, getProtocolFeeAddress } from "@/lib/protocol-fees"

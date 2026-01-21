@@ -40,6 +40,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { generateIntegrityHash } from "@/lib/encryption"
+import { VendorSidebar } from "@/components/vendor-sidebar"
 
 // Mock categories for categorization logic
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]

@@ -28,50 +28,10 @@ export interface BatchReport {
   }
 }
 
-// Simple report item for quick CSV generation
-export interface SimpleReportItem {
-  recipient: string
-  amount: number
-  token: string
-  status: 'success' | 'failed' | 'pending'
-  txHash?: string
-  error?: string
-}
-
 /**
- * Generate CSV string from batch report or simple items array
+ * Generate CSV string from batch report
  */
-export function generateBatchCsvReport(input: BatchReport | SimpleReportItem[]): string {
-  // Handle array input (simple items)
-  if (Array.isArray(input)) {
-    const headers = ['Recipient', 'Amount', 'Token', 'Status', 'Transaction Hash', 'Error']
-    const rows = input.map(item => [
-      item.recipient,
-      item.amount.toString(),
-      item.token,
-      item.status,
-      item.txHash || '',
-      item.error || '',
-    ])
-    
-    const successful = input.filter(i => i.status === 'success')
-    const failed = input.filter(i => i.status === 'failed')
-    
-    rows.push([])
-    rows.push(['Summary'])
-    rows.push(['Total Items', input.length.toString()])
-    rows.push(['Successful', successful.length.toString()])
-    rows.push(['Failed', failed.length.toString()])
-    rows.push(['Total Amount', input.reduce((sum, i) => sum + i.amount, 0).toFixed(2)])
-    
-    return [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
-    ].join('\n')
-  }
-  
-  // Handle BatchReport input
-  const report = input
+export function generateBatchCsvReport(report: BatchReport): string {
   const headers = [
     'Recipient',
     'Amount',
