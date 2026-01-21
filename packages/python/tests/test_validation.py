@@ -26,9 +26,9 @@ class TestHomoglyphDetection:
 
     def test_detect_cyrillic_homoglyphs(self):
         """Should detect Cyrillic homoglyphs"""
-        # Address with Cyrillic 'а' instead of Latin 'a'
-        address = "0x1234567890123456789012345678901234567890"
-        address_with_cyrillic = address.replace("a", "а")  # Cyrillic а
+        # Address with Cyrillic 'а' (U+0430) instead of Latin 'a'
+        address = "0x1234567890abcdef1234567890abcdef12345678"
+        address_with_cyrillic = address.replace("a", "\u0430")  # Cyrillic а (U+0430)
 
         result = detect_homoglyphs(address_with_cyrillic)
         assert result is not None
@@ -42,8 +42,8 @@ class TestHomoglyphDetection:
 
     def test_contains_homoglyphs(self):
         """Should return True for addresses with homoglyphs"""
-        address_with_cyrillic = "0x1234567890123456789012345678901234567890".replace(
-            "a", "а"
+        address_with_cyrillic = "0x1234567890abcdef1234567890abcdef12345678".replace(
+            "a", "\u0430"  # Cyrillic а (U+0430)
         )
         assert contains_homoglyphs(address_with_cyrillic) is True
 
@@ -70,7 +70,7 @@ class TestAddressValidation:
 
     def test_invalid_evm_address_with_homoglyph(self):
         """Should reject EVM address with homoglyph"""
-        address = "0x1234567890123456789012345678901234567890".replace("a", "а")
+        address = "0x1234567890abcdef1234567890abcdef12345678".replace("a", "\u0430")  # Cyrillic а
         assert is_valid_evm_address(address) is False
 
     def test_valid_solana_address(self, valid_solana_address: str):
@@ -103,7 +103,7 @@ class TestAddressValidation:
 
     def test_validate_address_raises_on_homoglyph(self):
         """Should raise error for address with homoglyph"""
-        address = "0x1234567890123456789012345678901234567890".replace("a", "а")
+        address = "0x1234567890abcdef1234567890abcdef12345678".replace("a", "\u0430")  # Cyrillic а
         with pytest.raises(ProtocolBanksError) as exc_info:
             validate_address(address)
         assert exc_info.value.code == ErrorCodes.LINK_HOMOGLYPH_DETECTED

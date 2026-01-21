@@ -196,8 +196,7 @@ class TransferWithAuthorizationMessage(BaseModel):
     valid_before: int
     nonce: str
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class X402AuthorizationParams(BaseModel):

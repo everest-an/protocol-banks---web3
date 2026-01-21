@@ -99,7 +99,7 @@ class TestPaymentLinkGeneration:
 
     def test_generate_link_homoglyph_address(self, link_module: PaymentLinkModule):
         """Should reject address with homoglyph"""
-        address = "0x1234567890123456789012345678901234567890".replace("a", "а")
+        address = "0x1234567890abcdef1234567890abcdef12345678".replace("a", "\u0430")  # Cyrillic а
         with pytest.raises(ProtocolBanksError) as exc_info:
             link_module.generate(
                 PaymentLinkParams(

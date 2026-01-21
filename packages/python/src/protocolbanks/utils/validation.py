@@ -22,43 +22,43 @@ from protocolbanks.types import ChainId, ErrorCodes, HomoglyphDetails, TokenSymb
 
 # Cyrillic characters that look like Latin characters
 CYRILLIC_HOMOGLYPHS: dict[str, str] = {
-    "а": "a",  # Cyrillic а -> Latin a
-    "е": "e",  # Cyrillic е -> Latin e
-    "о": "o",  # Cyrillic о -> Latin o
-    "р": "p",  # Cyrillic р -> Latin p
-    "с": "c",  # Cyrillic с -> Latin c
-    "х": "x",  # Cyrillic х -> Latin x
-    "у": "y",  # Cyrillic у -> Latin y
-    "А": "A",  # Cyrillic А -> Latin A
-    "В": "B",  # Cyrillic В -> Latin B
-    "Е": "E",  # Cyrillic Е -> Latin E
-    "К": "K",  # Cyrillic К -> Latin K
-    "М": "M",  # Cyrillic М -> Latin M
-    "Н": "H",  # Cyrillic Н -> Latin H
-    "О": "O",  # Cyrillic О -> Latin O
-    "Р": "P",  # Cyrillic Р -> Latin P
-    "С": "C",  # Cyrillic С -> Latin C
-    "Т": "T",  # Cyrillic Т -> Latin T
-    "Х": "X",  # Cyrillic Х -> Latin X
+    "\u0430": "a",  # Cyrillic а -> Latin a
+    "\u0435": "e",  # Cyrillic е -> Latin e
+    "\u043e": "o",  # Cyrillic о -> Latin o
+    "\u0440": "p",  # Cyrillic р -> Latin p
+    "\u0441": "c",  # Cyrillic с -> Latin c
+    "\u0445": "x",  # Cyrillic х -> Latin x
+    "\u0443": "y",  # Cyrillic у -> Latin y
+    "\u0410": "A",  # Cyrillic А -> Latin A
+    "\u0412": "B",  # Cyrillic В -> Latin B
+    "\u0415": "E",  # Cyrillic Е -> Latin E
+    "\u041a": "K",  # Cyrillic К -> Latin K
+    "\u041c": "M",  # Cyrillic М -> Latin M
+    "\u041d": "H",  # Cyrillic Н -> Latin H
+    "\u041e": "O",  # Cyrillic О -> Latin O
+    "\u0420": "P",  # Cyrillic Р -> Latin P
+    "\u0421": "C",  # Cyrillic С -> Latin C
+    "\u0422": "T",  # Cyrillic Т -> Latin T
+    "\u0425": "X",  # Cyrillic Х -> Latin X
 }
 
 # Greek characters that look like Latin characters
 GREEK_HOMOGLYPHS: dict[str, str] = {
-    "Α": "A",  # Greek Alpha -> Latin A
-    "Β": "B",  # Greek Beta -> Latin B
-    "Ε": "E",  # Greek Epsilon -> Latin E
-    "Ζ": "Z",  # Greek Zeta -> Latin Z
-    "Η": "H",  # Greek Eta -> Latin H
-    "Ι": "I",  # Greek Iota -> Latin I
-    "Κ": "K",  # Greek Kappa -> Latin K
-    "Μ": "M",  # Greek Mu -> Latin M
-    "Ν": "N",  # Greek Nu -> Latin N
-    "Ο": "O",  # Greek Omicron -> Latin O
-    "Ρ": "P",  # Greek Rho -> Latin P
-    "Τ": "T",  # Greek Tau -> Latin T
-    "Υ": "Y",  # Greek Upsilon -> Latin Y
-    "Χ": "X",  # Greek Chi -> Latin X
-    "ο": "o",  # Greek omicron -> Latin o
+    "\u0391": "A",  # Greek Alpha -> Latin A
+    "\u0392": "B",  # Greek Beta -> Latin B
+    "\u0395": "E",  # Greek Epsilon -> Latin E
+    "\u0396": "Z",  # Greek Zeta -> Latin Z
+    "\u0397": "H",  # Greek Eta -> Latin H
+    "\u0399": "I",  # Greek Iota -> Latin I
+    "\u039a": "K",  # Greek Kappa -> Latin K
+    "\u039c": "M",  # Greek Mu -> Latin M
+    "\u039d": "N",  # Greek Nu -> Latin N
+    "\u039f": "O",  # Greek Omicron -> Latin O
+    "\u03a1": "P",  # Greek Rho -> Latin P
+    "\u03a4": "T",  # Greek Tau -> Latin T
+    "\u03a5": "Y",  # Greek Upsilon -> Latin Y
+    "\u03a7": "X",  # Greek Chi -> Latin X
+    "\u03bf": "o",  # Greek omicron -> Latin o
 }
 
 # All homoglyphs combined
