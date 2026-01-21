@@ -48,7 +48,6 @@ export interface OffRampTransaction {
   outputAmount: string
   outputCurrency: string
   txHash?: string
-  redirectUrl?: string
   createdAt: string
   completedAt?: string
   bankReference?: string
@@ -64,39 +63,65 @@ export async function getOffRampQuote(
   targetCurrency = "USD",
   provider: OffRampProvider = "coinbase",
 ): Promise<OffRampQuote> {
-  const response = await fetch("/api/offramp/quote", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ provider, amount, token, targetCurrency }),
-  })
+  // Mock quote for development
+  // In production, integrate with actual provider APIs:
+  // - Coinbase: https://docs.cdp.coinbase.com/onramp/docs/api-offramp
+  // - Bridge.xyz: https://docs.bridge.xyz/api/offramp
+  // - Transak: https://docs.transak.com/docs/off-ramp
 
-  const data = await response.json()
-  if (!response.ok) {
-    throw new Error(data?.error || "Failed to fetch off-ramp quote")
+  const fee = Number.parseFloat(amount) * 0.015 // 1.5% fee estimate
+  const outputAmount = (Number.parseFloat(amount) - fee).toFixed(2)
+
+  return {
+    provider,
+    inputAmount: amount,
+    inputToken: token,
+    outputAmount,
+    outputCurrency: targetCurrency,
+    fee: fee.toFixed(2),
+    exchangeRate: "1.00", // 1:1 for stablecoins
+    expiresAt: Date.now() + 300000, // 5 minutes
+    quoteId: `quote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
   }
-
-  return data.quote as OffRampQuote
 }
 
 /**
  * Initiate off-ramp transaction
  */
 export async function initiateOffRamp(request: OffRampRequest): Promise<OffRampTransaction> {
-  const response = await fetch("/api/offramp/initiate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  })
+  const supabase = createClient()
 
-  const data = await response.json()
-  if (!response.ok) {
-    throw new Error(data?.error || "Failed to initiate off-ramp")
+  // Create transaction record
+  const transaction: OffRampTransaction = {
+    id: `offramp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    status: "pending",
+    provider: request.provider,
+    inputAmount: request.amount,
+    inputToken: request.token,
+    outputAmount: (Number.parseFloat(request.amount) * 0.985).toFixed(2), // Minus fees
+    outputCurrency: request.targetCurrency,
+    createdAt: new Date().toISOString(),
   }
 
-  const transaction = data.transaction as OffRampTransaction
-  if (data.redirectUrl) {
-    transaction.redirectUrl = data.redirectUrl
+  // Record in database
+  if (supabase) {
+    await supabase.from("offramp_transactions").insert({
+      id: transaction.id,
+      wallet_address: request.walletAddress,
+      provider: request.provider,
+      input_amount: request.amount,
+      input_token: request.token,
+      output_amount: transaction.outputAmount,
+      output_currency: request.targetCurrency,
+      chain_id: request.chainId,
+      status: "pending",
+    })
   }
+
+  // In production, call the provider API here
+  // Example for Coinbase:
+  // const response = await coinbaseApi.createWithdrawal({...})
+
   return transaction
 }
 

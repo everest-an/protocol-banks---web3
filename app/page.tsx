@@ -50,6 +50,7 @@ import { useVendors } from "@/hooks/use-vendors"
 import { useBalance } from "@/hooks/use-balance"
 import { calculateNetworkStats } from "@/lib/services/vendor-service"
 import { BalanceDistribution } from "@/components/balance-distribution"
+import { QuantumReadinessCard } from "@/components/quantum-readiness-card"
 
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
 

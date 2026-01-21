@@ -1,96 +1,145 @@
-import { getToken } from "@/services/token-metadata.service"
+/**
+ * Fee Calculator Service
+ * Calculates fees for payments and batch operations
+ */
 
-export type FeeBreakdown = {
-  gasEstimate: string
-  serviceFee: string
-  totalFee: string
-  breakdown: Record<string, { gasEstimate: string; serviceFee: string }>
+export interface FeeBreakdown {
+  baseFee: number
+  percentageFee: number
+  networkFee: number
+  totalFee: number
+  netAmount: number
 }
 
-const GAS_PER_ITEM_STANDARD = 65000n // per transfer
-const DEFAULT_GAS_PRICE_GWEI = 30n
-const GWEI = 1_000_000_000n
-const WEI_IN_ETH = 1_000_000_000_000_000_000n
-
-function toBaseUnits(amount: string, decimals: number): bigint {
-  const [intPart, fracPart = ""] = amount.split(".")
-  const safeFrac = (fracPart + "0".repeat(decimals)).slice(0, decimals)
-  return BigInt(intPart || "0") * BigInt(10) ** BigInt(decimals) + BigInt(safeFrac || "0")
+export interface FeeConfig {
+  baseFeeUsd: number
+  percentageRate: number
+  minFeeUsd: number
+  maxFeeUsd: number
 }
 
-function fromBaseUnits(amount: bigint, decimals: number): string {
-  const divisor = BigInt(10) ** BigInt(decimals)
-  const intPart = amount / divisor
-  const fracPart = amount % divisor
-  if (fracPart === 0n) return intPart.toString()
-  const fracStr = fracPart.toString().padStart(decimals, "0").replace(/0+$/, "")
-  return `${intPart.toString()}.${fracStr}`
+// Default fee configuration
+export const DEFAULT_FEE_CONFIG: FeeConfig = {
+  baseFeeUsd: 0.00,
+  percentageRate: 0.001, // 0.1%
+  minFeeUsd: 0.01,
+  maxFeeUsd: 100.00,
 }
 
-function calcServiceFee(total: bigint, decimals: number): bigint {
-  // serviceFee = max(1, min(500, total * 0.5%)) in token units (approx)
-  const percent = (total * 5n) / 1000n // 0.5%
-  const oneToken = BigInt(10) ** BigInt(decimals)
-  const minFee = oneToken
-  const maxFee = oneToken * 500n
-  return percent < minFee ? minFee : percent > maxFee ? maxFee : percent
+// Network gas estimates (in USD)
+export const NETWORK_GAS_ESTIMATES: Record<string, number> = {
+  ethereum: 5.00,
+  polygon: 0.05,
+  arbitrum: 0.15,
+  optimism: 0.10,
+  base: 0.05,
+  avalanche: 0.50,
 }
 
-export function calculateFees(options: {
-  items: { token_symbol: string; amount: string; token_address: string; chain_id: number }[]
-  paymentMethod: "standard" | "x402"
-  gasPriceGwei?: number
-}): FeeBreakdown {
-  const gasPrice = BigInt(Math.max(1, Math.floor(options.gasPriceGwei ?? Number(DEFAULT_GAS_PRICE_GWEI))))
-  let totalGasWei = 0n
-  const breakdown: Record<string, { gasEstimate: string; serviceFee: string }> = {}
-
-  const perTokenTotals = new Map<string, { total: bigint; decimals: number; count: number }>()
-
-  for (const item of options.items) {
-    const token = getToken(item.token_symbol, item.chain_id)
-    if (!token) continue
-    const base = toBaseUnits(item.amount, token.decimals)
-    const current = perTokenTotals.get(item.token_symbol) || { total: 0n, decimals: token.decimals, count: 0 }
-    current.total += base
-    current.count += 1
-    perTokenTotals.set(item.token_symbol, current)
-    if (options.paymentMethod === "standard") {
-      totalGasWei += GAS_PER_ITEM_STANDARD * gasPrice * GWEI
-    }
-  }
-
-  const serviceFees: Record<string, bigint> = {}
-  let totalServiceFeeWei = 0n
-
-  for (const [symbol, info] of perTokenTotals.entries()) {
-    const fee = calcServiceFee(info.total, info.decimals)
-    serviceFees[symbol] = fee
-    // We express service fee in token units; not converted to ETH
-  }
-
-  // Build breakdown strings
-  for (const [symbol, info] of perTokenTotals.entries()) {
-    const token = getToken(symbol, options.items[0]?.chain_id)
-    if (!token) continue
-    const gasForTokenWei = options.paymentMethod === "standard"
-      ? GAS_PER_ITEM_STANDARD * BigInt(info.count) * gasPrice * GWEI
-      : 0n
-    const serviceFee = serviceFees[symbol]
-    breakdown[symbol] = {
-      gasEstimate: fromBaseUnits(gasForTokenWei, 18),
-      serviceFee: fromBaseUnits(serviceFee, token.decimals),
-    }
-  }
-
-  // Total fee = gas (in ETH) + sum service fees (token-specific, here aggregated as Wei-equivalent 0)
-  const totalServiceFeeEth = 0n
-  const totalFeeWei = totalGasWei + totalServiceFeeEth
-
+/**
+ * Calculate fees for a single payment
+ */
+export function calculateFees(
+  amountUsd: number,
+  network: string = 'base',
+  config: FeeConfig = DEFAULT_FEE_CONFIG
+): FeeBreakdown {
+  // Base fee
+  const baseFee = config.baseFeeUsd
+  
+  // Percentage fee
+  let percentageFee = amountUsd * config.percentageRate
+  
+  // Apply min/max bounds
+  const totalProtocolFee = baseFee + percentageFee
+  const boundedProtocolFee = Math.min(Math.max(totalProtocolFee, config.minFeeUsd), config.maxFeeUsd)
+  
+  // Recalculate percentage fee after bounding
+  percentageFee = boundedProtocolFee - baseFee
+  
+  // Network fee
+  const networkFee = NETWORK_GAS_ESTIMATES[network.toLowerCase()] || 0.10
+  
+  // Total
+  const totalFee = boundedProtocolFee + networkFee
+  const netAmount = amountUsd - totalFee
+  
   return {
-    gasEstimate: fromBaseUnits(totalGasWei, 18),
-    serviceFee: "token-denominated", // service fees are per-token above
-    totalFee: fromBaseUnits(totalFeeWei, 18),
-    breakdown,
+    baseFee,
+    percentageFee,
+    networkFee,
+    totalFee,
+    netAmount: Math.max(0, netAmount),
   }
+}
+
+/**
+ * Calculate fees for batch payment
+ */
+export function calculateBatchFees(
+  amounts: number[],
+  network: string = 'base',
+  config: FeeConfig = DEFAULT_FEE_CONFIG
+): {
+  itemFees: FeeBreakdown[]
+  totalAmount: number
+  totalFees: number
+  totalNetAmount: number
+  averageFeePerItem: number
+} {
+  const itemFees = amounts.map(amount => calculateFees(amount, network, config))
+  
+  // Batch discount: reduce network fees for batch
+  const batchNetworkFee = (NETWORK_GAS_ESTIMATES[network.toLowerCase()] || 0.10) * Math.min(amounts.length, 10)
+  const perItemNetworkFee = batchNetworkFee / amounts.length
+  
+  // Adjust network fees for batch discount
+  const adjustedItemFees = itemFees.map(fee => ({
+    ...fee,
+    networkFee: perItemNetworkFee,
+    totalFee: fee.baseFee + fee.percentageFee + perItemNetworkFee,
+    netAmount: fee.netAmount + (fee.networkFee - perItemNetworkFee),
+  }))
+  
+  const totalAmount = amounts.reduce((sum, a) => sum + a, 0)
+  const totalFees = adjustedItemFees.reduce((sum, f) => sum + f.totalFee, 0)
+  const totalNetAmount = totalAmount - totalFees
+  
+  return {
+    itemFees: adjustedItemFees,
+    totalAmount,
+    totalFees,
+    totalNetAmount: Math.max(0, totalNetAmount),
+    averageFeePerItem: totalFees / amounts.length,
+  }
+}
+
+/**
+ * Get fee tier based on volume
+ */
+export function getFeeTier(monthlyVolumeUsd: number): {
+  tier: string
+  percentageRate: number
+  description: string
+} {
+  if (monthlyVolumeUsd >= 1000000) {
+    return { tier: 'enterprise', percentageRate: 0.0005, description: '0.05% (Enterprise)' }
+  }
+  if (monthlyVolumeUsd >= 100000) {
+    return { tier: 'business', percentageRate: 0.00075, description: '0.075% (Business)' }
+  }
+  if (monthlyVolumeUsd >= 10000) {
+    return { tier: 'growth', percentageRate: 0.001, description: '0.1% (Growth)' }
+  }
+  return { tier: 'starter', percentageRate: 0.001, description: '0.1% (Starter)' }
+}
+
+/**
+ * Format fee as string
+ */
+export function formatFee(feeUsd: number): string {
+  if (feeUsd < 0.01) {
+    return '< $0.01'
+  }
+  return `$${feeUsd.toFixed(2)}`
 }

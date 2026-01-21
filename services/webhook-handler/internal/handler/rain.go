@@ -113,10 +113,6 @@ func (h *RainHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		Str("event_type", payload.EventType).
 		Msg("Processing Rain webhook")
 
-	if err := h.store.SaveWebhook(r.Context(), "rain", payload.EventType, payload.EventID, string(body)); err != nil {
-		log.Error().Err(err).Msg("Failed to save Rain webhook")
-	}
-
 	// 根据事件类型处理
 	switch payload.EventType {
 	case "card.transaction":
@@ -215,37 +211,33 @@ func (h *RainHandler) handleTransaction(ctx interface{}, payload RainWebhookPayl
 		Float64("amount", tx.Amount).
 		Str("status", tx.Status).
 		Msg("Card transaction processed")
-	log.Info().Str("tx_id", tx.TransactionID).Msg("Transaction recorded via webhook store")
+
+	// TODO: 同步到数据库，触发通知等
 }
 
 // handleCardCreated 处理卡片创建事件
 func (h *RainHandler) handleCardCreated(ctx interface{}, payload RainWebhookPayload) {
 	log.Info().Str("event_id", payload.EventID).Msg("Card created event")
-	log.Info().Str("event_id", payload.EventID).Msg("Card status update recorded via webhook store")
+	// TODO: 更新用户卡片状态
 }
 
 // handleCardActivated 处理卡片激活事件
 func (h *RainHandler) handleCardActivated(ctx interface{}, payload RainWebhookPayload) {
 	log.Info().Str("event_id", payload.EventID).Msg("Card activated event")
-	log.Info().Str("event_id", payload.EventID).Msg("Card status update recorded via webhook store")
+	// TODO: 更新用户卡片状态
 }
 
 // handleSettlement 处理结算事件
 func (h *RainHandler) handleSettlement(ctx interface{}, payload RainWebhookPayload) {
 	log.Info().Str("event_id", payload.EventID).Msg("Settlement event")
-	log.Info().Str("event_id", payload.EventID).Msg("Settlement recorded via webhook store")
+	// TODO: 处理结算，更新用户余额
 }
 
 // checkAuthorization 检查授权
 func (h *RainHandler) checkAuthorization(ctx interface{}, req RainAuthorizationRequest) (bool, string) {
-	if req.UserID == "" || req.CardID == "" {
-		return false, "missing user or card"
-	}
-	if req.Amount <= 0 {
-		return false, "invalid amount"
-	}
-	if req.Currency == "" {
-		return false, "missing currency"
-	}
+	// TODO: 实现授权检查逻辑
+	// 1. 检查用户余额
+	// 2. 检查交易限额
+	// 3. 检查黑名单商户
 	return true, "approved"
 }

@@ -199,10 +199,25 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
     loadPayments()
   }, [loadPayments])
 
+  // Calculate this month and last month totals
   const now = new Date()
-  const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`
-  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const lastMonthKey = `${lastMonthDate.getFullYear()}-${lastMonthDate.getMonth()}`
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+
+  const thisMonthTotal = payments
+    .filter((p) => {
+      const date = new Date(p.created_at)
+      return p.type === "sent" && p.status === "completed" && date >= thisMonthStart
+    })
+    .reduce((sum, p) => sum + Number.parseFloat(p.amount), 0)
+
+  const lastMonthTotal = payments
+    .filter((p) => {
+      const date = new Date(p.created_at)
+      return p.type === "sent" && p.status === "completed" && date >= lastMonthStart && date <= lastMonthEnd
+    })
+    .reduce((sum, p) => sum + Number.parseFloat(p.amount), 0)
 
   const stats: PaymentHistory = {
     payments,
@@ -212,22 +227,8 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
     totalReceived: payments
       .filter((p) => p.type === "received" && p.status === "completed")
       .reduce((sum, p) => sum + Number.parseFloat(p.amount), 0),
-    thisMonth: payments
-      .filter((p) => p.status === "completed")
-      .filter((p) => {
-        const date = new Date(p.created_at)
-        const key = `${date.getFullYear()}-${date.getMonth()}`
-        return key === currentMonthKey
-      })
-      .reduce((sum, p) => sum + Number.parseFloat(p.amount), 0),
-    lastMonth: payments
-      .filter((p) => p.status === "completed")
-      .filter((p) => {
-        const date = new Date(p.created_at)
-        const key = `${date.getFullYear()}-${date.getMonth()}`
-        return key === lastMonthKey
-      })
-      .reduce((sum, p) => sum + Number.parseFloat(p.amount), 0),
+    thisMonth: thisMonthTotal,
+    lastMonth: lastMonthTotal,
   }
 
   return {

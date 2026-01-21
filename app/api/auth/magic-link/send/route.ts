@@ -13,14 +13,6 @@ import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-const DISPOSABLE_EMAIL_DOMAINS = new Set([
-  "mailinator.com",
-  "guerrillamail.com",
-  "10minutemail.com",
-  "tempmail.com",
-  "trashmail.com",
-])
-
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()
@@ -37,22 +29,19 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Reject disposable email domains (basic blocklist)
-    const domain = email.toLowerCase().split("@")[1]
-    if (domain && DISPOSABLE_EMAIL_DOMAINS.has(domain)) {
-      return NextResponse.json({ error: "Disposable email addresses are not allowed" }, { status: 400 })
-    }
+    // Check rate limiting
+    const cooldownTime = new Date()
+    cooldownTime.setMinutes(cooldownTime.getMinutes() - AUTH_CONFIG.magicLink.cooldownMinutes)
 
-    // Rate limit: max 3 per email per hour (spec)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-    const { count: requestsLastHour } = await supabase
-      .from("email_verifications")
-      .select("id", { count: "exact", head: true })
+    const { data: recentLinks } = await supabase
+      .from("magic_links")
+      .select("id")
       .eq("email", email.toLowerCase())
-      .gt("created_at", oneHourAgo)
+      .gt("created_at", cooldownTime.toISOString())
+      .eq("used", false)
 
-    if ((requestsLastHour || 0) >= 3) {
-      return NextResponse.json({ error: "Too many requests. Try again in 1 hour." }, { status: 429 })
+    if (recentLinks && recentLinks.length > 0) {
+      return NextResponse.json({ error: "Please wait before requesting another link" }, { status: 429 })
     }
 
     // Generate magic link token
@@ -68,7 +57,7 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get("user-agent") || "unknown"
 
     // Store magic link in database
-    const { error: insertError } = await supabase.from("email_verifications").insert({
+    const { error: insertError } = await supabase.from("magic_links").insert({
       email: email.toLowerCase(),
       token_hash: tokenHash,
       expires_at: expiresAt.toISOString(),
@@ -134,7 +123,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to send magic link" }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, message: "Magic link sent", expiresIn: AUTH_CONFIG.magicLink.expiresInMinutes * 60 })
+    return NextResponse.json({ success: true, message: "Magic link sent" })
   } catch (error) {
     console.error("[Auth] Magic link error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

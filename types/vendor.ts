@@ -6,13 +6,11 @@ export interface Vendor {
   id: string
   wallet_address: string
   company_name: string
-  name?: string
   category: VendorCategory
   tier: VendorTier
   chain: string
   contact_email?: string
   contact_name?: string
-  email?: string
   created_by: string
   created_at: string
   updated_at: string
@@ -20,9 +18,6 @@ export interface Vendor {
   notes?: string
   monthly_volume?: number
   transaction_count?: number
-  totalReceived?: number
-  transactionCount?: number
-  parentId?: string
 }
 
 export interface VendorStats {

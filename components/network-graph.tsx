@@ -28,12 +28,13 @@ interface Edge {
 interface NetworkGraphProps {
   vendors: Vendor[]
   onSelectVendor?: (vendor: Vendor) => void
+  onAddContact?: () => void
+  onPaymentRequest?: (vendor: Vendor) => void
   selectedVendorId?: string
   filter?: string
   timeRange?: string
   userAddress?: string
   isDemoMode?: boolean
-  onAddContact?: () => void
 }
 
 const getFixedOffset = (index: number, seed: number) => {
@@ -45,12 +46,13 @@ const getFixedOffset = (index: number, seed: number) => {
 export function NetworkGraph({
   vendors,
   onSelectVendor,
+  onAddContact,
+  onPaymentRequest,
   selectedVendorId,
   filter,
   timeRange,
   userAddress,
   isDemoMode = false,
-  onAddContact,
 }: NetworkGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
@@ -231,7 +233,7 @@ export function NetworkGraph({
     }
   }, [nodes, dimensions, onSelectVendor])
 
-  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+  const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
     const scaleAmount = -e.deltaY * 0.001
     const newScale = Math.min(Math.max(0.5, transform.k + scaleAmount), 4)
@@ -616,9 +618,7 @@ export function NetworkGraph({
               Add your first vendor, partner, or subsidiary to start visualizing your payment network.
             </p>
             <button
-              onClick={() => {
-                onAddContact?.()
-              }}
+              onClick={() => onAddContact?.()}
               className="px-5 py-2.5 md:px-6 md:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors text-sm md:text-base"
             >
               + Add First Contact

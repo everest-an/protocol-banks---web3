@@ -142,9 +142,6 @@ export default function AnalyticsPage() {
   const loadData = async () => {
     try {
       setLoading(true) // Ensure loading state is set
-      if (!isDemoMode && (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
-        throw new Error("Supabase is not configured")
-      }
       const supabase = getSupabase()
 
       // Load payments with vendor info from Supabase
@@ -219,14 +216,6 @@ export default function AnalyticsPage() {
       })
     } catch (error) {
       console.error("[Analytics] Failed to load analytics data:", error)
-      setPayments([])
-      setBatches([])
-      setStats({
-        totalSent: 0,
-        totalTransactions: 0,
-        totalVendors: 0,
-        avgTransaction: 0,
-      })
     } finally {
       setLoading(false)
     }

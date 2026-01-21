@@ -41,7 +41,6 @@ export async function createSession(
   const { error } = await supabase.from("auth_sessions").insert({
     user_id: userId,
     session_token_hash: tokenHash,
-    wallet_address: walletAddress,
     device_fingerprint: metadata?.deviceFingerprint,
     ip_address: metadata?.ipAddress,
     user_agent: metadata?.userAgent,
@@ -87,13 +86,11 @@ export async function getSession(): Promise<Session | null> {
       `
       id,
       user_id,
-      wallet_address,
       expires_at,
       auth_users (
         id,
         email,
         embedded_wallets (
-          wallet_address,
           address
         )
       )
@@ -111,13 +108,11 @@ export async function getSession(): Promise<Session | null> {
   await supabase.from("auth_sessions").update({ last_active_at: new Date().toISOString() }).eq("id", session.id)
 
   const user = session.auth_users as any
-  const persistedWallet = (user?.embedded_wallets && user.embedded_wallets[0]?.wallet_address) ||
-    (user?.embedded_wallets && user.embedded_wallets[0]?.address)
 
   return {
     userId: session.user_id,
     email: user?.email || "",
-    walletAddress: session.wallet_address || persistedWallet,
+    walletAddress: user?.embedded_wallets?.[0]?.address,
     expiresAt: new Date(session.expires_at),
   }
 }
