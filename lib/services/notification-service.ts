@@ -37,6 +37,11 @@ export interface NotificationPreferences {
   subscription_payment: boolean;
   multisig_proposal: boolean;
   multisig_executed: boolean;
+  agent_proposal_created: boolean;
+  agent_proposal_approved: boolean;
+  agent_proposal_rejected: boolean;
+  agent_payment_executed: boolean;
+  agent_payment_failed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +61,12 @@ export type NotificationType =
   | 'subscription_reminder'
   | 'subscription_payment'
   | 'multisig_proposal'
-  | 'multisig_executed';
+  | 'multisig_executed'
+  | 'agent_proposal_created'
+  | 'agent_proposal_approved'
+  | 'agent_proposal_rejected'
+  | 'agent_payment_executed'
+  | 'agent_payment_failed';
 
 // ============================================
 // Constants
@@ -69,6 +79,11 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreferences, 'id' | 'user_address' |
   subscription_payment: true,
   multisig_proposal: true,
   multisig_executed: true,
+  agent_proposal_created: true,
+  agent_proposal_approved: true,
+  agent_proposal_rejected: true,
+  agent_payment_executed: true,
+  agent_payment_failed: true,
 };
 
 // ============================================
@@ -410,6 +425,154 @@ export class NotificationService {
       icon: '/icons/multisig.png',
       tag: 'multisig-executed',
       data: { type: 'multisig_executed', multisigName, amount, token, txHash },
+    });
+  }
+
+  // ============================================
+  // Agent Proposal Notifications
+  // ============================================
+
+  /**
+   * Notify owner when an agent creates a proposal
+   */
+  async notifyAgentProposalCreated(
+    ownerAddress: string,
+    agentName: string,
+    amount: string,
+    token: string,
+    recipientAddress: string,
+    reason: string,
+    proposalId: string
+  ): Promise<void> {
+    await this.send(ownerAddress, 'agent_proposal_created', {
+      title: 'New Agent Payment Proposal',
+      body: `${agentName} requests to send ${amount} ${token} to ${this.truncateAddress(recipientAddress)}`,
+      icon: '/icons/agent-proposal.png',
+      tag: `agent-proposal-${proposalId}`,
+      data: { 
+        type: 'agent_proposal_created', 
+        agentName, 
+        amount, 
+        token, 
+        recipient: recipientAddress,
+        reason,
+        proposalId 
+      },
+    });
+  }
+
+  /**
+   * Notify owner when a proposal is approved (for confirmation)
+   */
+  async notifyAgentProposalApproved(
+    ownerAddress: string,
+    agentName: string,
+    amount: string,
+    token: string,
+    proposalId: string
+  ): Promise<void> {
+    await this.send(ownerAddress, 'agent_proposal_approved', {
+      title: 'Proposal Approved',
+      body: `You approved ${agentName}'s proposal for ${amount} ${token}`,
+      icon: '/icons/agent-approved.png',
+      tag: `agent-approved-${proposalId}`,
+      data: { 
+        type: 'agent_proposal_approved', 
+        agentName, 
+        amount, 
+        token, 
+        proposalId 
+      },
+    });
+  }
+
+  /**
+   * Notify owner when a proposal is rejected (for confirmation)
+   */
+  async notifyAgentProposalRejected(
+    ownerAddress: string,
+    agentName: string,
+    amount: string,
+    token: string,
+    proposalId: string,
+    reason?: string
+  ): Promise<void> {
+    await this.send(ownerAddress, 'agent_proposal_rejected', {
+      title: 'Proposal Rejected',
+      body: `You rejected ${agentName}'s proposal for ${amount} ${token}${reason ? `: ${reason}` : ''}`,
+      icon: '/icons/agent-rejected.png',
+      tag: `agent-rejected-${proposalId}`,
+      data: { 
+        type: 'agent_proposal_rejected', 
+        agentName, 
+        amount, 
+        token, 
+        proposalId,
+        reason 
+      },
+    });
+  }
+
+  /**
+   * Notify owner when an agent payment is executed (including auto-execute)
+   */
+  async notifyAgentPaymentExecuted(
+    ownerAddress: string,
+    agentName: string,
+    amount: string,
+    token: string,
+    recipientAddress: string,
+    txHash: string,
+    autoExecuted: boolean = false
+  ): Promise<void> {
+    const title = autoExecuted ? 'Auto-Executed Payment' : 'Agent Payment Executed';
+    const body = autoExecuted 
+      ? `${agentName} auto-executed ${amount} ${token} to ${this.truncateAddress(recipientAddress)}`
+      : `${agentName}'s payment of ${amount} ${token} to ${this.truncateAddress(recipientAddress)} was executed`;
+
+    await this.send(ownerAddress, 'agent_payment_executed', {
+      title,
+      body,
+      icon: '/icons/agent-executed.png',
+      tag: `agent-executed-${txHash}`,
+      data: { 
+        type: 'agent_payment_executed', 
+        agentName, 
+        amount, 
+        token, 
+        recipient: recipientAddress,
+        txHash,
+        autoExecuted 
+      },
+    });
+  }
+
+  /**
+   * Notify owner when an agent payment fails
+   */
+  async notifyAgentPaymentFailed(
+    ownerAddress: string,
+    agentName: string,
+    amount: string,
+    token: string,
+    recipientAddress: string,
+    errorMessage: string,
+    proposalId: string
+  ): Promise<void> {
+    await this.send(ownerAddress, 'agent_payment_failed', {
+      title: 'Agent Payment Failed',
+      body: `${agentName}'s payment of ${amount} ${token} to ${this.truncateAddress(recipientAddress)} failed`,
+      icon: '/icons/agent-failed.png',
+      tag: `agent-failed-${proposalId}`,
+      data: { 
+        type: 'agent_payment_failed', 
+        agentName, 
+        amount, 
+        token, 
+        recipient: recipientAddress,
+        error: errorMessage,
+        proposalId 
+      },
     });
   }
 

@@ -8,6 +8,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { notificationService } from './notification-service';
 
 // ============================================
 // Types
@@ -38,6 +39,7 @@ export interface PaymentProposal {
 
 export interface CreateProposalInput {
   agent_id: string;
+  agent_name?: string; // For notification purposes
   owner_address: string;
   recipient_address: string;
   amount: string;
@@ -145,7 +147,39 @@ export class ProposalService {
     };
 
     proposalStore.set(proposal.id, proposal);
+
+    // Send notification to owner (async, don't block)
+    this.sendProposalCreatedNotification(
+      proposal,
+      input.agent_name || 'AI Agent'
+    ).catch(err => {
+      console.error('[ProposalService] Failed to send notification:', err);
+    });
+
     return proposal;
+  }
+
+  /**
+   * Send notification when proposal is created
+   */
+  private async sendProposalCreatedNotification(
+    proposal: PaymentProposal,
+    agentName: string
+  ): Promise<void> {
+    try {
+      await notificationService.notifyAgentProposalCreated(
+        proposal.owner_address,
+        agentName,
+        proposal.amount,
+        proposal.token,
+        proposal.recipient_address,
+        proposal.reason,
+        proposal.id
+      );
+    } catch (err) {
+      // Log but don't throw - notifications shouldn't break the main flow
+      console.error('[ProposalService] Notification error:', err);
+    }
   }
 
   /**
@@ -256,7 +290,7 @@ export class ProposalService {
   /**
    * Approve a proposal
    */
-  async approve(proposalId: string, ownerAddress: string): Promise<PaymentProposal> {
+  async approve(proposalId: string, ownerAddress: string, agentName?: string): Promise<PaymentProposal> {
     const proposal = proposalStore.get(proposalId);
     if (!proposal) {
       throw new Error('Proposal not found');
@@ -279,13 +313,25 @@ export class ProposalService {
     };
 
     proposalStore.set(proposalId, updatedProposal);
+
+    // Send notification (async, don't block)
+    notificationService.notifyAgentProposalApproved(
+      proposal.owner_address,
+      agentName || 'AI Agent',
+      proposal.amount,
+      proposal.token,
+      proposal.id
+    ).catch(err => {
+      console.error('[ProposalService] Failed to send approval notification:', err);
+    });
+
     return updatedProposal;
   }
 
   /**
    * Reject a proposal
    */
-  async reject(proposalId: string, ownerAddress: string, reason?: string): Promise<PaymentProposal> {
+  async reject(proposalId: string, ownerAddress: string, reason?: string, agentName?: string): Promise<PaymentProposal> {
     const proposal = proposalStore.get(proposalId);
     if (!proposal) {
       throw new Error('Proposal not found');
@@ -308,6 +354,19 @@ export class ProposalService {
     };
 
     proposalStore.set(proposalId, updatedProposal);
+
+    // Send notification (async, don't block)
+    notificationService.notifyAgentProposalRejected(
+      proposal.owner_address,
+      agentName || 'AI Agent',
+      proposal.amount,
+      proposal.token,
+      proposal.id,
+      reason
+    ).catch(err => {
+      console.error('[ProposalService] Failed to send rejection notification:', err);
+    });
+
     return updatedProposal;
   }
 
@@ -338,7 +397,13 @@ export class ProposalService {
   /**
    * Mark proposal as executed
    */
-  async markExecuted(proposalId: string, txHash: string, x402AuthId?: string): Promise<PaymentProposal> {
+  async markExecuted(
+    proposalId: string, 
+    txHash: string, 
+    x402AuthId?: string,
+    agentName?: string,
+    autoExecuted: boolean = false
+  ): Promise<PaymentProposal> {
     const proposal = proposalStore.get(proposalId);
     if (!proposal) {
       throw new Error('Proposal not found');
@@ -359,13 +424,27 @@ export class ProposalService {
     };
 
     proposalStore.set(proposalId, updatedProposal);
+
+    // Send notification (async, don't block)
+    notificationService.notifyAgentPaymentExecuted(
+      proposal.owner_address,
+      agentName || 'AI Agent',
+      proposal.amount,
+      proposal.token,
+      proposal.recipient_address,
+      txHash,
+      autoExecuted
+    ).catch(err => {
+      console.error('[ProposalService] Failed to send execution notification:', err);
+    });
+
     return updatedProposal;
   }
 
   /**
    * Mark proposal as failed
    */
-  async markFailed(proposalId: string, reason?: string): Promise<PaymentProposal> {
+  async markFailed(proposalId: string, reason?: string, agentName?: string): Promise<PaymentProposal> {
     const proposal = proposalStore.get(proposalId);
     if (!proposal) {
       throw new Error('Proposal not found');
@@ -384,6 +463,20 @@ export class ProposalService {
     };
 
     proposalStore.set(proposalId, updatedProposal);
+
+    // Send notification (async, don't block)
+    notificationService.notifyAgentPaymentFailed(
+      proposal.owner_address,
+      agentName || 'AI Agent',
+      proposal.amount,
+      proposal.token,
+      proposal.recipient_address,
+      reason || 'Unknown error',
+      proposal.id
+    ).catch(err => {
+      console.error('[ProposalService] Failed to send failure notification:', err);
+    });
+
     return updatedProposal;
   }
 

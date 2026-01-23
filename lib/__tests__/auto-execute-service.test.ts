@@ -12,27 +12,20 @@ import { autoExecuteService } from '../services/auto-execute-service';
 import { proposalService } from '../services/proposal-service';
 import { budgetService } from '../services/budget-service';
 import { agentService, AutoExecuteRules } from '../services/agent-service';
+import { notificationService } from '../services/notification-service';
 
 // ============================================
 // Test Helpers
 // ============================================
 
-const validTokens = ['USDC', 'USDT', 'DAI', 'ETH', 'WETH'];
-const validChainIds = [1, 137, 42161, 10, 8453];
-
 // Arbitrary for wallet address
-const walletAddressArb = fc.hexaString({ minLength: 40, maxLength: 40 }).map(s => `0x${s}`);
-
-// Arbitrary for positive amount
-const amountArb = fc.integer({ min: 1, max: 100000 })
-  .map(n => (n / 100).toFixed(2));
+const walletAddressArb = fc.stringMatching(/^0x[a-f0-9]{40}$/);
 
 // ============================================
 // Unit Tests
 // ============================================
 
 describe('Auto-Execute Service', () => {
-  let testAgentId: string;
   let testOwnerAddress: string;
 
   beforeEach(async () => {
@@ -297,6 +290,133 @@ describe('Auto-Execute Service', () => {
         ),
         { numRuns: 100 }
       );
+    });
+  });
+
+  describe('Property 13: Auto-Execute Notification', () => {
+    /**
+     * Feature: agent-link-api, Property 13: Auto-Execute Notification
+     * 
+     * For any auto-executed payment, the owner SHALL receive a notification 
+     * containing the agent name, amount, token, recipient, and transaction hash.
+     * For payments requiring manual approval, the owner SHALL receive a 
+     * notification with the reason for manual approval.
+     * 
+     * Validates: Requirements 5.3
+     */
+    it('should send notification on auto-executed payment', async () => {
+      // Mock notification service
+      const notifySpy = jest.spyOn(notificationService, 'notifyAgentPaymentExecuted')
+        .mockResolvedValue(undefined);
+      const proposalNotifySpy = jest.spyOn(notificationService, 'notifyAgentProposalCreated')
+        .mockResolvedValue(undefined);
+
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 10, max: 100 }).map(n => n.toString()),
+          fc.constantFrom('USDC', 'USDT', 'DAI'),
+          async (amount, token) => {
+            proposalService._clearAll();
+            budgetService._clearAll();
+            agentService._clearAll();
+            notifySpy.mockClear();
+            proposalNotifySpy.mockClear();
+
+            const agent = await createTestAgent({ autoExecuteEnabled: true });
+            
+            // Create sufficient budget
+            await budgetService.create({
+              agent_id: agent.id,
+              owner_address: testOwnerAddress,
+              amount: '10000',
+              token,
+              period: 'monthly',
+            });
+
+            const proposal = await createTestProposal(agent.id, {
+              amount,
+              token,
+            });
+
+            const result = await autoExecuteService.processProposal(proposal);
+
+            if (result.auto_executed) {
+              // Notification should be sent for auto-executed payment
+              expect(notifySpy).toHaveBeenCalled();
+              const callArgs = notifySpy.mock.calls[0];
+              expect(callArgs[0]).toBe(testOwnerAddress); // owner
+              expect(callArgs[1]).toBe(agent.name); // agent name
+              expect(callArgs[2]).toBe(amount); // amount
+              expect(callArgs[3]).toBe(token); // token
+              expect(callArgs[5]).toBeDefined(); // tx_hash
+              expect(callArgs[6]).toBe(true); // autoExecuted flag
+            }
+          }
+        ),
+        { numRuns: 100 }
+      );
+
+      notifySpy.mockRestore();
+      proposalNotifySpy.mockRestore();
+    });
+
+    it('should send notification when manual approval is needed', async () => {
+      // Mock notification service
+      const notifySpy = jest.spyOn(notificationService, 'notifyAgentProposalCreated')
+        .mockResolvedValue(undefined);
+
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 100, max: 500 }).map(n => n.toString()),
+          fc.integer({ min: 10, max: 50 }).map(n => n.toString()),
+          async (paymentAmount, maxAmount) => {
+            proposalService._clearAll();
+            budgetService._clearAll();
+            agentService._clearAll();
+            notifySpy.mockClear();
+
+            // Create agent with rule that will be violated
+            const agent = await createTestAgent({
+              autoExecuteEnabled: true,
+              rules: { max_single_amount: maxAmount },
+            });
+
+            // Create sufficient budget
+            await budgetService.create({
+              agent_id: agent.id,
+              owner_address: testOwnerAddress,
+              amount: '10000',
+              token: 'USDC',
+              period: 'monthly',
+            });
+
+            const proposal = await createTestProposal(agent.id, {
+              amount: paymentAmount,
+              token: 'USDC',
+            });
+
+            const result = await autoExecuteService.processProposal(proposal);
+
+            const paymentNum = parseFloat(paymentAmount);
+            const maxNum = parseFloat(maxAmount);
+
+            if (paymentNum > maxNum) {
+              // Should not auto-execute
+              expect(result.auto_executed).toBe(false);
+              // Notification should be sent for manual approval needed
+              expect(notifySpy).toHaveBeenCalled();
+              const callArgs = notifySpy.mock.calls[0];
+              expect(callArgs[0]).toBe(testOwnerAddress); // owner
+              expect(callArgs[1]).toBe(agent.name); // agent name
+              // Reason should mention manual approval
+              expect(callArgs[5]).toContain('Manual approval needed');
+            }
+          }
+        ),
+        { numRuns: 100 }
+      );
+
+      notifySpy.mockRestore();
     });
   });
 

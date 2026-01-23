@@ -10,6 +10,7 @@
 import { PaymentProposal, proposalService } from './proposal-service';
 import { budgetService } from './budget-service';
 import { agentService, Agent, AutoExecuteRules } from './agent-service';
+import { notificationService } from './notification-service';
 
 // ============================================
 // Types
@@ -48,6 +49,8 @@ export class AutoExecuteService {
 
     // Check if auto-execute is enabled
     if (!agent.auto_execute_enabled) {
+      // Notify owner that manual approval is needed
+      this.notifyManualApprovalNeeded(proposal, agent.name, 'Auto-execute is disabled');
       return {
         auto_executed: false,
         reason: 'Auto-execute is disabled for this agent',
@@ -67,6 +70,12 @@ export class AutoExecuteService {
     // Check rules
     const ruleCheck = await this.checkRules(agent, proposal);
     if (!ruleCheck.passed) {
+      // Notify owner that manual approval is needed due to rule violations
+      this.notifyManualApprovalNeeded(
+        proposal, 
+        agent.name, 
+        `Rule violations: ${ruleCheck.violations.join(', ')}`
+      );
       return {
         auto_executed: false,
         reason: `Rule violations: ${ruleCheck.violations.join(', ')}`,
@@ -83,6 +92,8 @@ export class AutoExecuteService {
     );
 
     if (!withinBudget) {
+      // Notify owner that manual approval is needed due to budget
+      this.notifyManualApprovalNeeded(proposal, agent.name, 'Insufficient budget');
       return {
         auto_executed: false,
         reason: 'Insufficient budget for auto-execution',
@@ -91,9 +102,10 @@ export class AutoExecuteService {
     }
 
     // Auto-approve the proposal
-    const approvedProposal = await proposalService.approve(
+    await proposalService.approve(
       proposal.id,
-      proposal.owner_address
+      proposal.owner_address,
+      agent.name
     );
 
     // Deduct from budget if budget_id is set
@@ -105,7 +117,8 @@ export class AutoExecuteService {
         await proposalService.reject(
           proposal.id,
           proposal.owner_address,
-          'Budget deduction failed'
+          'Budget deduction failed',
+          agent.name
         );
         return {
           auto_executed: false,
@@ -116,15 +129,19 @@ export class AutoExecuteService {
     }
 
     // Start execution
-    const executingProposal = await proposalService.startExecution(proposal.id);
+    await proposalService.startExecution(proposal.id);
 
     // Execute via x402 (simulated for now)
     try {
       const txHash = await this.executePayment(executingProposal);
       
+      // Mark as executed with auto-execute flag for notification
       const executedProposal = await proposalService.markExecuted(
         proposal.id,
-        txHash
+        txHash,
+        undefined,
+        agent.name,
+        true // auto-executed
       );
 
       return {
@@ -135,7 +152,8 @@ export class AutoExecuteService {
     } catch (error) {
       const failedProposal = await proposalService.markFailed(
         proposal.id,
-        error instanceof Error ? error.message : 'Execution failed'
+        error instanceof Error ? error.message : 'Execution failed',
+        agent.name
       );
 
       return {
@@ -144,6 +162,28 @@ export class AutoExecuteService {
         proposal: failedProposal,
       };
     }
+  }
+
+  /**
+   * Send notification when manual approval is needed
+   */
+  private notifyManualApprovalNeeded(
+    proposal: PaymentProposal,
+    agentName: string,
+    reason: string
+  ): void {
+    // Send notification asynchronously (don't block)
+    notificationService.notifyAgentProposalCreated(
+      proposal.owner_address,
+      agentName,
+      proposal.amount,
+      proposal.token,
+      proposal.recipient_address,
+      `${proposal.reason} (Manual approval needed: ${reason})`,
+      proposal.id
+    ).catch(err => {
+      console.error('[AutoExecuteService] Failed to send notification:', err);
+    });
   }
 
   /**
