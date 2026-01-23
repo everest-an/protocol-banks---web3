@@ -279,7 +279,7 @@ export async function secureUpdateVendor(
 }
 
 /**
- * Securely deletes a vendor with ownership verification
+ * Securely deletes a vendor with ownership verification and audit logging
  */
 export async function secureDeleteVendor(
   vendorId: string,

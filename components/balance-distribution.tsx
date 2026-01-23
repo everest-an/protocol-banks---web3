@@ -21,10 +21,11 @@ const CHAIN_COLORS: Record<string, string> = {
   "BNB Chain": "bg-[#F0B90B]",
 }
 
-export function BalanceDistribution({ distribution, totalUSD, className }: BalanceDistributionProps) {
+export function BalanceDistribution({ distribution = [], totalUSD = 0, className }: BalanceDistributionProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  if (distribution.length === 0) {
+  // Guard against undefined or empty distribution
+  if (!distribution || distribution.length === 0) {
     return null
   }
 

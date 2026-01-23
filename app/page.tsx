@@ -51,6 +51,7 @@ import { useBalance } from "@/hooks/use-balance"
 import { calculateNetworkStats } from "@/lib/services/vendor-service"
 import { BalanceDistribution } from "@/components/balance-distribution"
 import { QuantumReadinessCard } from "@/components/quantum-readiness-card"
+import { DashboardActivity } from "@/components/dashboard-activity"
 
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
 
@@ -592,6 +593,20 @@ export default function HomePage() {
             )}
           </div>
         )}
+
+        {/* Dashboard Activity Section */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <DashboardActivity walletAddress={wallet} limit={10} showTabs={true} />
+          <div className="space-y-6">
+            {balance?.chainDistribution && balance.chainDistribution.length > 0 && (
+              <BalanceDistribution
+                distribution={balance.chainDistribution}
+                totalUSD={balance.totalUSD}
+              />
+            )}
+            <QuantumReadinessCard />
+          </div>
+        </div>
       </main>
 
       {/* Delete confirmation dialog */}

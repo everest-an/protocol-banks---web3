@@ -251,20 +251,20 @@ export default function HistoryPage() {
         </Card>
       )}
 
-      {/* Business Metrics */}
+      {/* Business Metrics Card - displays key financial metrics */}
       <BusinessMetrics
         payments={transactions.map((tx) => ({
           ...tx,
-          amount_usd: tx.amount_usd ?? Number.parseFloat(tx.amount) || 0,
+          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(tx.amount) || 0),
         }))}
         loading={loading}
       />
 
-      {/* Payment Activity Feed */}
+      {/* Payment Activity Feed Card - shows recent payment activity */}
       <PaymentActivity
         payments={transactions.map((tx) => ({
           ...tx,
-          amount_usd: tx.amount_usd ?? Number.parseFloat(tx.amount) || 0,
+          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(tx.amount) || 0),
         }))}
         walletAddress={wallet || undefined}
         loading={loading}
@@ -272,11 +272,11 @@ export default function HistoryPage() {
         description="Your most recent transactions"
       />
 
-      {/* Financial Report Table */}
+      {/* Financial Report Table Card - detailed transaction report */}
       <FinancialReport
         payments={transactions.map((tx) => ({
           ...tx,
-          amount_usd: tx.amount_usd ?? Number.parseFloat(tx.amount) || 0,
+          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(tx.amount) || 0),
         }))}
         loading={loading}
       />
