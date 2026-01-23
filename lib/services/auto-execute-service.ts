@@ -129,7 +129,7 @@ export class AutoExecuteService {
     }
 
     // Start execution
-    await proposalService.startExecution(proposal.id);
+    const executingProposal = await proposalService.startExecution(proposal.id);
 
     // Execute via x402 (simulated for now)
     try {
