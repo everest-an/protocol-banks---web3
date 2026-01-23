@@ -11,7 +11,6 @@ import {
   formatSubscriptionForDisplay,
 } from "@/lib/services/subscription-service"
 import { processSinglePayment } from "@/lib/services/payment-service"
-import { SubscriptionService } from "@/lib/subscription-service"
 import type { SubscriptionInput } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"

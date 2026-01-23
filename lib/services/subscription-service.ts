@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase-client';
+import type { Subscription as UISubscription, SubscriptionInput, SubscriptionFrequency as UIFrequency } from '@/types';
 
 // ============================================
 // Types
@@ -117,6 +118,59 @@ export function isSubscriptionDue(subscription: Subscription): boolean {
 
   const nextPayment = new Date(subscription.next_payment_date);
   return nextPayment <= new Date();
+}
+
+/**
+ * Validate subscription input
+ */
+export function validateSubscription(input: SubscriptionInput): void {
+  if (!input.service_name || input.service_name.trim() === '') {
+    throw new Error('Service name is required');
+  }
+
+  if (!input.amount || input.amount <= 0) {
+    throw new Error('Amount must be greater than 0');
+  }
+
+  if (!input.recipient_address || !input.recipient_address.startsWith('0x')) {
+    throw new Error('Valid recipient address is required');
+  }
+
+  if (!['daily', 'weekly', 'monthly', 'yearly'].includes(input.frequency)) {
+    throw new Error('Invalid frequency');
+  }
+
+  if (!['USDC', 'USDT', 'DAI', 'ETH'].includes(input.token)) {
+    throw new Error('Invalid token');
+  }
+}
+
+/**
+ * Format subscription for display
+ */
+export function formatSubscriptionForDisplay(subscription: UISubscription): {
+  formattedAmount: string;
+  formattedFrequency: string;
+  formattedNextPayment: string;
+  formattedLastPayment: string;
+} {
+  const frequencyLabels: Record<string, string> = {
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+  };
+
+  return {
+    formattedAmount: `${subscription.amount} ${subscription.token}`,
+    formattedFrequency: frequencyLabels[subscription.frequency] || subscription.frequency,
+    formattedNextPayment: subscription.next_payment
+      ? new Date(subscription.next_payment).toLocaleDateString()
+      : 'N/A',
+    formattedLastPayment: subscription.last_payment
+      ? new Date(subscription.last_payment).toLocaleDateString()
+      : 'Never',
+  };
 }
 
 // ============================================

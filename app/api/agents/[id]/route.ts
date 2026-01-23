@@ -1,0 +1,192 @@
+/**
+ * Agent Detail API Routes
+ * 
+ * GET /api/agents/[id] - Get agent details
+ * PUT /api/agents/[id] - Update agent
+ * DELETE /api/agents/[id] - Deactivate agent
+ * 
+ * @module app/api/agents/[id]/route
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { agentService, AgentType, UpdateAgentInput } from '@/lib/services/agent-service';
+import { getSupabase } from '@/lib/supabase';
+
+// ============================================
+// Helper Functions
+// ============================================
+
+async function getOwnerAddress(): Promise<string | null> {
+  const supabase = getSupabase();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error || !user) {
+    return null;
+  }
+
+  return user.user_metadata?.wallet_address || user.email || null;
+}
+
+// ============================================
+// GET /api/agents/[id] - Get agent details
+// ============================================
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const ownerAddress = await getOwnerAddress();
+    if (!ownerAddress) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const agent = await agentService.get(params.id, ownerAddress);
+    
+    if (!agent) {
+      return NextResponse.json(
+        { error: 'Agent not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      agent,
+    });
+
+  } catch (error) {
+    console.error('Error getting agent:', error);
+    return NextResponse.json(
+      { error: 'Failed to get agent' },
+      { status: 500 }
+    );
+  }
+}
+
+// ============================================
+// PUT /api/agents/[id] - Update agent
+// ============================================
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const ownerAddress = await getOwnerAddress();
+    if (!ownerAddress) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
+
+    // Validate type if provided
+    const validTypes: AgentType[] = ['trading', 'payroll', 'expense', 'subscription', 'custom'];
+    if (body.type && !validTypes.includes(body.type)) {
+      return NextResponse.json(
+        { error: `Invalid type. Must be one of: ${validTypes.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate status if provided
+    const validStatuses = ['active', 'paused', 'deactivated'];
+    if (body.status && !validStatuses.includes(body.status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate rate_limit_per_minute if provided
+    if (body.rate_limit_per_minute !== undefined) {
+      const rateLimit = Number(body.rate_limit_per_minute);
+      if (isNaN(rateLimit) || rateLimit < 1 || rateLimit > 1000) {
+        return NextResponse.json(
+          { error: 'rate_limit_per_minute must be between 1 and 1000' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const input: UpdateAgentInput = {};
+    if (body.name !== undefined) input.name = body.name;
+    if (body.description !== undefined) input.description = body.description;
+    if (body.type !== undefined) input.type = body.type;
+    if (body.avatar_url !== undefined) input.avatar_url = body.avatar_url;
+    if (body.webhook_url !== undefined) input.webhook_url = body.webhook_url;
+    if (body.status !== undefined) input.status = body.status;
+    if (body.auto_execute_enabled !== undefined) input.auto_execute_enabled = body.auto_execute_enabled;
+    if (body.auto_execute_rules !== undefined) input.auto_execute_rules = body.auto_execute_rules;
+    if (body.rate_limit_per_minute !== undefined) input.rate_limit_per_minute = body.rate_limit_per_minute;
+
+    const agent = await agentService.update(params.id, ownerAddress, input);
+
+    return NextResponse.json({
+      success: true,
+      agent,
+      message: 'Agent updated successfully',
+    });
+
+  } catch (error) {
+    console.error('Error updating agent:', error);
+    
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+      }
+      if (error.message.includes('is required')) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to update agent' },
+      { status: 500 }
+    );
+  }
+}
+
+// ============================================
+// DELETE /api/agents/[id] - Deactivate agent
+// ============================================
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const ownerAddress = await getOwnerAddress();
+    if (!ownerAddress) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    await agentService.deactivate(params.id, ownerAddress);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Agent deactivated successfully',
+    });
+
+  } catch (error) {
+    console.error('Error deactivating agent:', error);
+    
+    if (error instanceof Error && error.message.includes('not found')) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to deactivate agent' },
+      { status: 500 }
+    );
+  }
+}
