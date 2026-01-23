@@ -10,6 +10,8 @@ import {
   generateBatchCsvReport,
   type BatchPaymentItem,
 } from "@/services"
+import { webhookTriggerService, type PaymentEventData, type BatchPaymentEventData } from "./webhook-trigger-service"
+import { vendorPaymentService } from "./vendor-payment-service"
 
 /**
  * 验证收款人数据
@@ -58,8 +60,43 @@ export async function processSinglePayment(
 ): Promise<PaymentResult> {
   console.log("[v0] Processing payment:", { recipient, wallet, chain })
 
+  const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const eventData: PaymentEventData = {
+    payment_id: paymentId,
+    from_address: wallet,
+    to_address: recipient.address,
+    amount: String(recipient.amount),
+    token_symbol: recipient.token,
+    chain_id: chain === "EVM" ? 1 : 1, // Default to mainnet
+    status: "pending",
+    created_at: new Date().toISOString(),
+  }
+
+  // Trigger payment.created webhook (fire and forget)
+  webhookTriggerService.triggerPaymentCreated(wallet, eventData).catch((err) => {
+    console.error("[v0] Failed to trigger payment.created webhook:", err)
+  })
+
+  // Auto-link payment to vendor (fire and forget)
+  vendorPaymentService.autoLinkPayment(paymentId, recipient.address).then((vendorId) => {
+    if (vendorId) {
+      console.log("[v0] Payment auto-linked to vendor:", vendorId)
+    }
+  }).catch((err) => {
+    console.error("[v0] Failed to auto-link payment to vendor:", err)
+  })
+
   try {
     const txHash = await sendToken(wallet, recipient.address, recipient.amount, recipient.token, chain)
+
+    // Trigger payment.completed webhook (fire and forget)
+    webhookTriggerService.triggerPaymentCompleted(wallet, {
+      ...eventData,
+      tx_hash: txHash,
+      status: "completed",
+    }).catch((err) => {
+      console.error("[v0] Failed to trigger payment.completed webhook:", err)
+    })
 
     return {
       success: true,
@@ -70,6 +107,15 @@ export async function processSinglePayment(
     }
   } catch (error) {
     console.error("[v0] Payment failed:", error)
+
+    // Trigger payment.failed webhook (fire and forget)
+    webhookTriggerService.triggerPaymentFailed(wallet, {
+      ...eventData,
+      status: "failed",
+    }).catch((err) => {
+      console.error("[v0] Failed to trigger payment.failed webhook:", err)
+    })
+
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -198,10 +244,27 @@ export async function processBatchPayment(
     netAmount: formatFee(feeBreakdown.totalNetAmount),
   })
 
+  const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const total = recipients.reduce((sum, r) => sum + (r.amount || 0), 0)
+  const batchEventData: BatchPaymentEventData = {
+    batch_id: batchId,
+    from_address: wallet,
+    total_amount: String(total),
+    total_items: recipients.length,
+    token: recipients[0]?.token || "USDT",
+    chain_id: 1, // Default to mainnet
+    status: "pending",
+    created_at: new Date().toISOString(),
+  }
+
+  // Trigger batch_payment.created webhook (fire and forget)
+  webhookTriggerService.triggerBatchPaymentCreated(wallet, batchEventData).catch((err) => {
+    console.error("[v0] Failed to trigger batch_payment.created webhook:", err)
+  })
+
   if (isDemoMode) {
     // Demo mode - simulate success
     await new Promise((resolve) => setTimeout(resolve, 1500))
-    const total = recipients.reduce((sum, r) => sum + (r.amount || 0), 0)
     const results = recipients.map((r) => ({
       success: true,
       recipient: r.address,
@@ -220,6 +283,14 @@ export async function processBatchPayment(
         txHash: r.txHash,
       })),
     )
+
+    // Trigger batch_payment.completed webhook (fire and forget)
+    webhookTriggerService.triggerBatchPaymentCompleted(wallet, {
+      ...batchEventData,
+      status: "completed",
+    }).catch((err) => {
+      console.error("[v0] Failed to trigger batch_payment.completed webhook:", err)
+    })
 
     return {
       successCount: recipients.length,
@@ -247,6 +318,14 @@ export async function processBatchPayment(
       error: r.error,
     })),
   )
+
+  // Trigger batch_payment.completed webhook (fire and forget)
+  webhookTriggerService.triggerBatchPaymentCompleted(wallet, {
+    ...batchEventData,
+    status: successCount === recipients.length ? "completed" : "partial",
+  }).catch((err) => {
+    console.error("[v0] Failed to trigger batch_payment.completed webhook:", err)
+  })
 
   return {
     successCount,

@@ -1,8 +1,11 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { createClient } from "@/lib/supabase-client"
 import type { Subscription, SubscriptionStatus } from "@/types"
+
+// ============================================
+// Demo Data
+// ============================================
 
 const DEMO_SUBSCRIPTIONS: Subscription[] = [
   {
@@ -102,10 +105,50 @@ const DEMO_SUBSCRIPTIONS: Subscription[] = [
   },
 ]
 
+// ============================================
+// API Helper
+// ============================================
+
+class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message)
+    this.name = "ApiError"
+  }
+}
+
+async function apiRequest<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  })
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new ApiError(
+      data.message || data.error || `Request failed with status ${response.status}`,
+      response.status
+    )
+  }
+
+  return data as T
+}
+
+// ============================================
+// Types
+// ============================================
+
 interface UseSubscriptionsOptions {
   isDemoMode?: boolean
   walletAddress?: string
 }
+
+// ============================================
+// Hook Implementation
+// ============================================
 
 export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
   const { isDemoMode = false, walletAddress } = options
@@ -113,12 +156,14 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Load subscriptions via REST API
   const loadSubscriptions = useCallback(async () => {
     console.log("[v0] useSubscriptions: Loading", { isDemoMode, walletAddress })
     setLoading(true)
     setError(null)
 
     try {
+      // Demo mode - use static data
       if (isDemoMode) {
         console.log("[v0] useSubscriptions: Using demo data, count:", DEMO_SUBSCRIPTIONS.length)
         setSubscriptions(DEMO_SUBSCRIPTIONS)
@@ -126,6 +171,7 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
         return
       }
 
+      // No wallet - return empty
       if (!walletAddress) {
         console.log("[v0] useSubscriptions: No wallet, returning empty")
         setSubscriptions([])
@@ -133,17 +179,13 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
         return
       }
 
-      const supabase = createClient()
-      const { data, error: dbError } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("created_by", walletAddress)
-        .order("created_at", { ascending: false })
+      // Fetch from REST API
+      const response = await apiRequest<{ success: boolean; subscriptions: Subscription[] }>(
+        "/api/subscriptions"
+      )
 
-      if (dbError) throw dbError
-
-      console.log("[v0] useSubscriptions: Loaded from DB, count:", data?.length || 0)
-      setSubscriptions(data || [])
+      console.log("[v0] useSubscriptions: Loaded from API, count:", response.subscriptions?.length || 0)
+      setSubscriptions(response.subscriptions || [])
     } catch (err) {
       console.error("[v0] useSubscriptions: Error:", err)
       setError(err instanceof Error ? err.message : "Failed to load subscriptions")
@@ -153,8 +195,10 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
     }
   }, [isDemoMode, walletAddress])
 
+  // Add subscription via REST API
   const addSubscription = useCallback(
     async (subscription: Omit<Subscription, "id" | "created_at" | "updated_at">) => {
+      // Demo mode - add locally
       if (isDemoMode) {
         const newSub: Subscription = {
           ...subscription,
@@ -166,19 +210,25 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
         return newSub
       }
 
-      const supabase = createClient()
-      const { data, error: dbError } = await supabase.from("subscriptions").insert([subscription]).select().single()
+      // Create via REST API
+      const response = await apiRequest<{ success: boolean; subscription: Subscription }>(
+        "/api/subscriptions",
+        {
+          method: "POST",
+          body: JSON.stringify(subscription),
+        }
+      )
 
-      if (dbError) throw dbError
-
-      setSubscriptions((prev) => [data, ...prev])
-      return data
+      setSubscriptions((prev) => [response.subscription, ...prev])
+      return response.subscription
     },
     [isDemoMode],
   )
 
+  // Update subscription status via REST API
   const updateSubscriptionStatus = useCallback(
     async (id: string, status: SubscriptionStatus) => {
+      // Demo mode - update locally
       if (isDemoMode) {
         setSubscriptions((prev) =>
           prev.map((s) => (s.id === id ? { ...s, status, updated_at: new Date().toISOString() } : s)),
@@ -186,13 +236,14 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
         return
       }
 
-      const supabase = createClient()
-      const { error: dbError } = await supabase
-        .from("subscriptions")
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq("id", id)
-
-      if (dbError) throw dbError
+      // Update via REST API
+      await apiRequest<{ success: boolean }>(
+        `/api/subscriptions/${id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ status }),
+        }
+      )
 
       setSubscriptions((prev) =>
         prev.map((s) => (s.id === id ? { ...s, status, updated_at: new Date().toISOString() } : s)),
@@ -201,27 +252,32 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
     [isDemoMode],
   )
 
+  // Delete subscription via REST API
   const deleteSubscription = useCallback(
     async (id: string) => {
+      // Demo mode - delete locally
       if (isDemoMode) {
         setSubscriptions((prev) => prev.filter((s) => s.id !== id))
         return
       }
 
-      const supabase = createClient()
-      const { error: dbError } = await supabase.from("subscriptions").delete().eq("id", id)
-
-      if (dbError) throw dbError
+      // Delete via REST API
+      await apiRequest<{ success: boolean }>(
+        `/api/subscriptions/${id}`,
+        { method: "DELETE" }
+      )
 
       setSubscriptions((prev) => prev.filter((s) => s.id !== id))
     },
     [isDemoMode],
   )
 
+  // Load on mount and when dependencies change
   useEffect(() => {
     loadSubscriptions()
   }, [loadSubscriptions])
 
+  // Calculate stats
   const stats = {
     active: subscriptions.filter((s) => s.status === "active").length,
     paused: subscriptions.filter((s) => s.status === "paused").length,

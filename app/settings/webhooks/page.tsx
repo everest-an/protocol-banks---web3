@@ -21,65 +21,70 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useToast } from "@/hooks/use-toast"
-import { webhookService, WEBHOOK_EVENTS, type Webhook, type WebhookDelivery } from "@/lib/api-keys"
-import { WebhookIcon, Plus, Copy, Trash2, ChevronDown, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react"
+import { useWebhooks, WEBHOOK_EVENTS, type WebhookDelivery } from "@/hooks/use-webhooks"
+import { WebhookIcon, Plus, Copy, Trash2, ChevronDown, AlertTriangle, CheckCircle, XCircle, Clock, Play } from "lucide-react"
 
 export default function WebhooksPage() {
-  const { address } = useWeb3()
+  const { wallets } = useWeb3()
+  const address = wallets.EVM
   const { toast } = useToast()
-  const [webhooks, setWebhooks] = useState<Webhook[]>([])
-  const [loading, setLoading] = useState(true)
+  
+  // Use the new useWebhooks Hook
+  const {
+    webhooks,
+    loading,
+    error,
+    createWebhook,
+    updateWebhook,
+    deleteWebhook,
+    testWebhook,
+    getDeliveries,
+  } = useWebhooks()
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [newSecret, setNewSecret] = useState<string | null>(null)
   const [expandedWebhook, setExpandedWebhook] = useState<string | null>(null)
   const [deliveries, setDeliveries] = useState<Record<string, WebhookDelivery[]>>({})
+  const [testingWebhook, setTestingWebhook] = useState<string | null>(null)
 
   // Form state
   const [webhookName, setWebhookName] = useState("")
   const [webhookUrl, setWebhookUrl] = useState("")
   const [selectedEvents, setSelectedEvents] = useState<string[]>([])
+  const [creating, setCreating] = useState(false)
 
+  // Show error toast if hook has error
   useEffect(() => {
-    if (address) {
-      loadWebhooks()
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      })
     }
-  }, [address])
-
-  const loadWebhooks = async () => {
-    if (!address) return
-    setLoading(true)
-    try {
-      const data = await webhookService.getWebhooks(address)
-      setWebhooks(data)
-    } catch (error) {
-      console.error("Failed to load webhooks:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [error, toast])
 
   const loadDeliveries = async (webhookId: string) => {
     try {
-      const data = await webhookService.getDeliveries(webhookId)
+      const data = await getDeliveries(webhookId)
       setDeliveries((prev) => ({ ...prev, [webhookId]: data }))
-    } catch (error) {
-      console.error("Failed to load deliveries:", error)
+    } catch (err) {
+      console.error("Failed to load deliveries:", err)
     }
   }
 
   const handleCreateWebhook = async () => {
-    if (!address || !webhookName || !webhookUrl || selectedEvents.length === 0) return
+    if (!webhookName || !webhookUrl || selectedEvents.length === 0) return
 
+    setCreating(true)
     try {
-      const result = await webhookService.createWebhook({
+      const result = await createWebhook({
         name: webhookName,
         url: webhookUrl,
-        ownerAddress: address,
         events: selectedEvents,
       })
 
       setNewSecret(result.secret)
-      setWebhooks((prev) => [result.webhook, ...prev])
       toast({
         title: "Webhook Created",
         description: "Copy your signing secret now - it won't be shown again.",
@@ -88,45 +93,66 @@ export default function WebhooksPage() {
       setWebhookName("")
       setWebhookUrl("")
       setSelectedEvents([])
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to create webhook",
+        description: err instanceof Error ? err.message : "Failed to create webhook",
         variant: "destructive",
       })
+    } finally {
+      setCreating(false)
     }
   }
 
-  const handleToggleWebhook = async (webhook: Webhook) => {
-    if (!address) return
+  const handleToggleWebhook = async (webhookId: string, currentActive: boolean) => {
     try {
-      await webhookService.updateWebhook({
-        webhookId: webhook.id,
-        ownerAddress: address,
-        updates: { is_active: !webhook.is_active },
-      })
-      setWebhooks((prev) => prev.map((w) => (w.id === webhook.id ? { ...w, is_active: !w.is_active } : w)))
-    } catch (error) {
+      await updateWebhook(webhookId, { is_active: !currentActive })
+    } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to update webhook",
+        description: err instanceof Error ? err.message : "Failed to update webhook",
         variant: "destructive",
       })
     }
   }
 
   const handleDeleteWebhook = async (webhookId: string) => {
-    if (!address) return
     try {
-      await webhookService.deleteWebhook(webhookId, address)
-      setWebhooks((prev) => prev.filter((w) => w.id !== webhookId))
+      await deleteWebhook(webhookId)
       toast({ title: "Webhook Deleted" })
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to delete webhook",
+        description: err instanceof Error ? err.message : "Failed to delete webhook",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleTestWebhook = async (webhookId: string) => {
+    setTestingWebhook(webhookId)
+    try {
+      const result = await testWebhook(webhookId)
+      if (result.success) {
+        toast({
+          title: "Test Successful",
+          description: `Response: ${result.status_code} (${result.response_time_ms}ms)`,
+        })
+      } else {
+        toast({
+          title: "Test Failed",
+          description: result.error || "Webhook endpoint did not respond successfully",
+          variant: "destructive",
+        })
+      }
+    } catch (err) {
+      toast({
+        title: "Test Error",
+        description: err instanceof Error ? err.message : "Failed to test webhook",
+        variant: "destructive",
+      })
+    } finally {
+      setTestingWebhook(null)
     }
   }
 
@@ -167,7 +193,7 @@ export default function WebhooksPage() {
         </div>
         <Dialog
           open={createDialogOpen}
-          onOpenChange={(open) => {
+          onOpenChange={(open: boolean) => {
             setCreateDialogOpen(open)
             if (!open) setNewSecret(null)
           }}
@@ -248,7 +274,7 @@ export default function WebhooksPage() {
                       <label key={event} className="flex items-center gap-2 text-sm">
                         <Checkbox
                           checked={selectedEvents.includes(event)}
-                          onCheckedChange={(checked) => {
+                          onCheckedChange={(checked: boolean) => {
                             if (checked) {
                               setSelectedEvents((prev) => [...prev, event])
                             } else {
@@ -268,9 +294,9 @@ export default function WebhooksPage() {
                   </Button>
                   <Button
                     onClick={handleCreateWebhook}
-                    disabled={!webhookName || !webhookUrl || selectedEvents.length === 0}
+                    disabled={!webhookName || !webhookUrl || selectedEvents.length === 0 || creating}
                   >
-                    Create Webhook
+                    {creating ? "Creating..." : "Create Webhook"}
                   </Button>
                 </DialogFooter>
               </div>
@@ -300,7 +326,7 @@ export default function WebhooksPage() {
                 <Collapsible
                   key={webhook.id}
                   open={expandedWebhook === webhook.id}
-                  onOpenChange={(open) => {
+                  onOpenChange={(open: boolean) => {
                     setExpandedWebhook(open ? webhook.id : null)
                     if (open && !deliveries[webhook.id]) {
                       loadDeliveries(webhook.id)
@@ -324,9 +350,25 @@ export default function WebhooksPage() {
                             </Badge>
                           ))}
                         </div>
+                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                          <span>✓ {webhook.success_count} delivered</span>
+                          <span>✗ {webhook.failure_count} failed</span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Switch checked={webhook.is_active} onCheckedChange={() => handleToggleWebhook(webhook)} />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleTestWebhook(webhook.id)}
+                          disabled={testingWebhook === webhook.id}
+                          title="Test webhook"
+                        >
+                          <Play className={`h-4 w-4 ${testingWebhook === webhook.id ? "animate-pulse" : ""}`} />
+                        </Button>
+                        <Switch 
+                          checked={webhook.is_active} 
+                          onCheckedChange={() => handleToggleWebhook(webhook.id, webhook.is_active)} 
+                        />
                         <Button
                           variant="ghost"
                           size="icon"
