@@ -341,9 +341,9 @@ export default function ReceivePage() {
                 )}
               </div>
 
-              {link && showQRCode && (
+              {address && isValidAddress(address) && showQRCode && (
                 <div className="flex justify-center p-4 bg-white rounded-lg">
-                  <QRCodeSVG value={link} size={200} level="H" includeMargin={true} />
+                  <QRCodeSVG value={address} size={200} level="H" includeMargin={true} />
                 </div>
               )}
 
