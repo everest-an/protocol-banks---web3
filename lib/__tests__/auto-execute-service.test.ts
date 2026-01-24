@@ -61,6 +61,7 @@ describe('Auto-Execute Service', () => {
     chainId?: number;
     recipient?: string;
     budgetId?: string;
+    agentName?: string;
   } = {}) {
     return proposalService.create({
       agent_id: agentId,
@@ -71,6 +72,7 @@ describe('Auto-Execute Service', () => {
       chain_id: options.chainId || 1,
       reason: 'Test payment',
       budget_id: options.budgetId,
+      agent_name: options.agentName || 'Test Agent',
     });
   }
 
@@ -262,7 +264,7 @@ describe('Auto-Execute Service', () => {
             });
 
             // Create sufficient budget
-            await budgetService.create({
+            const budget = await budgetService.create({
               agent_id: agent.id,
               owner_address: testOwnerAddress,
               amount: '10000',
@@ -273,6 +275,7 @@ describe('Auto-Execute Service', () => {
             const proposal = await createTestProposal(agent.id, {
               amount: paymentAmount,
               token: 'USDC',
+              budgetId: budget.id,
             });
 
             const result = await autoExecuteService.processProposal(proposal);
@@ -325,7 +328,7 @@ describe('Auto-Execute Service', () => {
             const agent = await createTestAgent({ autoExecuteEnabled: true });
             
             // Create sufficient budget
-            await budgetService.create({
+            const budget = await budgetService.create({
               agent_id: agent.id,
               owner_address: testOwnerAddress,
               amount: '10000',
@@ -336,6 +339,7 @@ describe('Auto-Execute Service', () => {
             const proposal = await createTestProposal(agent.id, {
               amount,
               token,
+              budgetId: budget.id,
             });
 
             const result = await autoExecuteService.processProposal(proposal);
@@ -382,7 +386,7 @@ describe('Auto-Execute Service', () => {
             });
 
             // Create sufficient budget
-            await budgetService.create({
+            const budget = await budgetService.create({
               agent_id: agent.id,
               owner_address: testOwnerAddress,
               amount: '10000',
@@ -393,6 +397,7 @@ describe('Auto-Execute Service', () => {
             const proposal = await createTestProposal(agent.id, {
               amount: paymentAmount,
               token: 'USDC',
+              budgetId: budget.id,
             });
 
             const result = await autoExecuteService.processProposal(proposal);
@@ -404,8 +409,9 @@ describe('Auto-Execute Service', () => {
               // Should not auto-execute
               expect(result.auto_executed).toBe(false);
               // Notification should be sent for manual approval needed
-              expect(notifySpy).toHaveBeenCalled();
-              const callArgs = notifySpy.mock.calls[0];
+              // The second call is from autoExecuteService (first is from proposalService.create)
+              expect(notifySpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+              const callArgs = notifySpy.mock.calls[1]; // Second call is from autoExecuteService
               expect(callArgs[0]).toBe(testOwnerAddress); // owner
               expect(callArgs[1]).toBe(agent.name); // agent name
               // Reason should mention manual approval
