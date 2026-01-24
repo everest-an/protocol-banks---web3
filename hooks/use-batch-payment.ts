@@ -4,14 +4,7 @@ import { useState, useCallback } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useDemo } from "@/contexts/demo-context"
 import { useToast } from "@/hooks/use-toast"
-import type { Recipient, PaymentResult } from "@/types"
-import { processBatchPayment } from "@/lib/services/payment-service"
-import {
-  createFailedItem,
-  retryFailedItems,
-  storeFailedItems,
-  type FailedItem,
-} from "@/services"
+import type { PaymentRecipient } from "@/types"
 
 export interface BatchPaymentState {
   isProcessing: boolean
@@ -29,15 +22,32 @@ export interface BatchPaymentState {
   report: string | null
 }
 
+export interface PaymentResult {
+  success: boolean
+  recipient: string
+  amount: number | string
+  token?: string
+  txHash?: string
+  error?: string
+}
+
+export interface FailedItem {
+  id: string
+  recipient: string
+  amount: string
+  token: string
+  error: string
+  retryCount: number
+}
+
 export interface UseBatchPaymentReturn extends BatchPaymentState {
-  executeBatch: (recipients: Recipient[]) => Promise<void>
+  executeBatch: (recipients: PaymentRecipient[]) => Promise<void>
   retryFailed: () => Promise<void>
   reset: () => void
   downloadReport: () => void
-  // API integration methods
-  uploadFile: (file: File) => Promise<{ batchId: string; itemCount: number } | null>
-  validateBatch: (batchId: string) => Promise<{ valid: boolean; errors: string[] }>
-  submitBatch: (batchId: string) => Promise<{ success: boolean; txHash?: string }>
+  uploadFile: (file: File) => Promise<PaymentRecipient[]>
+  validateBatch: (recipients: PaymentRecipient[]) => { isValid: boolean; errors: string[] }
+  submitBatch: (recipients: PaymentRecipient[]) => Promise<void>
   batchStatus: string | null
   loading: boolean
 }
@@ -55,14 +65,73 @@ const initialState: BatchPaymentState = {
 }
 
 export function useBatchPayment(): UseBatchPaymentReturn {
-  const { address } = useWeb3()
+  const { wallets } = useWeb3()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const [state, setState] = useState<BatchPaymentState>(initialState)
+  const [batchStatus, setBatchStatus] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const currentWallet = wallets.EVM
+
+  const uploadFile = useCallback(async (file: File): Promise<PaymentRecipient[]> => {
+    // Parse CSV/Excel file and return recipients
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string
+          const lines = text.split('\n').filter(line => line.trim())
+          const recipients: PaymentRecipient[] = []
+          
+          // Skip header row
+          for (let i = 1; i < lines.length; i++) {
+            const [address, amount, token, vendorName] = lines[i].split(',').map(s => s.trim())
+            if (address && amount) {
+              recipients.push({
+                id: `${Date.now()}_${i}`,
+                address,
+                amount,
+                token: token || 'USDT',
+                vendorName: vendorName || '',
+              })
+            }
+          }
+          resolve(recipients)
+        } catch (err) {
+          reject(new Error('Failed to parse file'))
+        }
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsText(file)
+    })
+  }, [])
+
+  const validateBatch = useCallback((recipients: PaymentRecipient[]): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = []
+    
+    recipients.forEach((r, idx) => {
+      if (!r.address || !/^0x[a-fA-F0-9]{40}$/.test(r.address)) {
+        errors.push(`Row ${idx + 1}: Invalid address`)
+      }
+      if (!r.amount || isNaN(parseFloat(r.amount)) || parseFloat(r.amount) <= 0) {
+        errors.push(`Row ${idx + 1}: Invalid amount`)
+      }
+    })
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    }
+  }, [])
+
+  const submitBatch = useCallback(async (recipients: PaymentRecipient[]) => {
+    await executeBatch(recipients)
+  }, [])
 
   const executeBatch = useCallback(
-    async (recipients: Recipient[]) => {
-      if (!address) {
+    async (recipients: PaymentRecipient[]) => {
+      if (!currentWallet) {
         toast({
           title: "Error",
           description: "Please connect your wallet first",
@@ -88,6 +157,8 @@ export function useBatchPayment(): UseBatchPaymentReturn {
         results: [],
         error: null,
       }))
+      setLoading(true)
+      setBatchStatus('processing')
 
       try {
         // Simulate progress updates
@@ -98,47 +169,75 @@ export function useBatchPayment(): UseBatchPaymentReturn {
           }))
         }, 200)
 
-        // Execute batch payment using the service layer
-        const result = await processBatchPayment(recipients, address, isDemoMode)
+        // In demo mode, simulate success
+        if (isDemoMode) {
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          clearInterval(progressInterval)
+          
+          const results: PaymentResult[] = recipients.map(r => ({
+            success: true,
+            recipient: r.address,
+            amount: r.amount,
+            token: r.token,
+            txHash: `0x${Math.random().toString(16).slice(2)}`,
+          }))
+
+          setState((prev) => ({
+            ...prev,
+            isProcessing: false,
+            progress: 100,
+            results,
+            feeBreakdown: {
+              totalAmount: recipients.reduce((sum, r) => sum + parseFloat(r.amount), 0).toString(),
+              totalFees: '0',
+              netAmount: recipients.reduce((sum, r) => sum + parseFloat(r.amount), 0).toString(),
+            },
+          }))
+          setBatchStatus('completed')
+          setLoading(false)
+
+          toast({
+            title: "Batch Payment Complete",
+            description: `${recipients.length} payments successful (Demo Mode)`,
+          })
+          return
+        }
+
+        // Real API call
+        const response = await fetch('/api/batch-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipients: recipients.map(r => ({
+              address: r.address,
+              amount: r.amount,
+              token: r.token,
+              memo: r.vendorName,
+            })),
+            fromAddress: currentWallet,
+          }),
+        })
 
         clearInterval(progressInterval)
+
+        if (!response.ok) {
+          throw new Error('Batch payment failed')
+        }
+
+        const data = await response.json()
 
         setState((prev) => ({
           ...prev,
           isProcessing: false,
           progress: 100,
-          results: result.results,
-          feeBreakdown: result.feeBreakdown
-            ? {
-                totalAmount: result.feeBreakdown.totalAmount?.toString() || "0",
-                totalFees: result.feeBreakdown.totalFees?.toString() || "0",
-                netAmount: result.feeBreakdown.totalNetAmount?.toString() || "0",
-              }
-            : null,
-          report: result.report || null,
+          results: data.results || [],
         }))
-
-        // Track failed items for retry
-        const failedResults = result.results.filter((r) => !r.success)
-        const failedItems: FailedItem[] = failedResults.map((r, idx) => 
-          createFailedItem(
-            `failed_${Date.now()}_${idx}`,
-            r.recipient,
-            r.amount,
-            r.token || "USDT",
-            r.error || "Unknown error"
-          )
-        )
-
-        if (failedItems.length > 0) {
-          setState((prev) => ({ ...prev, failedItems }))
-          // Store failed items for later recovery
-          await storeFailedItems(failedItems)
-        }
+        setBatchStatus('completed')
+        setLoading(false)
 
         toast({
           title: "Batch Payment Complete",
-          description: `${result.successCount} of ${recipients.length} payments successful. Total: $${result.totalPaid}${failedItems.length > 0 ? `. ${failedItems.length} failed - can retry.` : ""}`,
+          description: `${data.successCount || recipients.length} payments processed`,
         })
       } catch (error: any) {
         setState((prev) => ({
@@ -146,6 +245,8 @@ export function useBatchPayment(): UseBatchPaymentReturn {
           isProcessing: false,
           error: error.message || "Batch payment failed",
         }))
+        setBatchStatus('failed')
+        setLoading(false)
 
         toast({
           title: "Batch Payment Failed",
@@ -154,7 +255,7 @@ export function useBatchPayment(): UseBatchPaymentReturn {
         })
       }
     },
-    [address, isDemoMode, toast],
+    [currentWallet, isDemoMode, toast],
   )
 
   const retryFailed = useCallback(async () => {
@@ -169,77 +270,54 @@ export function useBatchPayment(): UseBatchPaymentReturn {
     setState((prev) => ({ ...prev, isRetrying: true, error: null }))
 
     try {
-      const retryResult = await retryFailedItems(
-        state.failedItems,
-        async (item) => {
-          // Convert failed item back to recipient and process
-          const recipients: Recipient[] = [{
-            address: item.recipient,
-            amount: item.amount,
-            token: item.token,
-          }]
-          
-          const result = await processBatchPayment(recipients, address!, isDemoMode)
-          const paymentResult = result.results[0]
-          
-          return {
-            id: item.id,
-            success: paymentResult?.success || false,
-            transactionHash: paymentResult?.txHash,
-            error: paymentResult?.error,
-          }
-        }
-      )
+      // Convert failed items to recipients and retry
+      const recipients: PaymentRecipient[] = state.failedItems.map(item => ({
+        id: item.id,
+        address: item.recipient,
+        amount: item.amount,
+        token: item.token,
+      }))
 
+      await executeBatch(recipients)
+      
       setState((prev) => ({
         ...prev,
         isRetrying: false,
-        failedItems: retryResult.stillFailed,
-        results: [
-          ...prev.results,
-          ...retryResult.results.filter(r => r.success).map(r => ({
-            success: true,
-            recipient: state.failedItems.find(f => f.id === r.id)?.recipient || "",
-            amount: state.failedItems.find(f => f.id === r.id)?.amount || 0,
-            txHash: r.transactionHash,
-          }))
-        ],
+        failedItems: [],
       }))
-
-      toast({
-        title: "Retry Complete",
-        description: `${retryResult.successCount} succeeded, ${retryResult.failureCount} still failed`,
-      })
     } catch (error: any) {
       setState((prev) => ({
         ...prev,
         isRetrying: false,
         error: error.message || "Retry failed",
       }))
-
-      toast({
-        title: "Retry Failed",
-        description: error.message || "An error occurred during retry",
-        variant: "destructive",
-      })
     }
-  }, [state.failedItems, address, isDemoMode, toast])
+  }, [state.failedItems, executeBatch, toast])
 
   const reset = useCallback(() => {
     setState(initialState)
+    setBatchStatus(null)
+    setLoading(false)
   }, [])
 
   const downloadReport = useCallback(() => {
-    if (!state.report) {
+    if (state.results.length === 0) {
       toast({
         title: "No Report",
-        description: "No report available to download",
+        description: "No results available to download",
         variant: "destructive",
       })
       return
     }
 
-    const blob = new Blob([state.report], { type: "text/csv" })
+    const csv = [
+      'recipient,amount,token,status,txHash,error',
+      ...state.results.map(r => 
+        `${r.recipient},${r.amount},${r.token || 'USDT'},${r.success ? 'success' : 'failed'},${r.txHash || ''},${r.error || ''}`
+      )
+    ].join('\n')
+
+    const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
@@ -253,88 +331,7 @@ export function useBatchPayment(): UseBatchPaymentReturn {
       title: "Report Downloaded",
       description: "The batch payment report has been downloaded",
     })
-  }, [state.report, toast])
-
-  // API integration methods
-  const [batchStatus, setBatchStatus] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  const uploadFile = useCallback(async (file: File): Promise<{ batchId: string; itemCount: number } | null> => {
-    setLoading(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-      
-      const response = await fetch("/api/batch-payment/upload", {
-        method: "POST",
-        body: formData,
-      })
-      
-      if (!response.ok) {
-        throw new Error("Upload failed")
-      }
-      
-      const data = await response.json()
-      setBatchStatus("uploaded")
-      return { batchId: data.batchId, itemCount: data.itemCount }
-    } catch (error: any) {
-      toast({
-        title: "Upload Failed",
-        description: error.message || "Failed to upload file",
-        variant: "destructive",
-      })
-      return null
-    } finally {
-      setLoading(false)
-    }
-  }, [toast])
-
-  const validateBatch = useCallback(async (batchId: string): Promise<{ valid: boolean; errors: string[] }> => {
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/batch-payment/${batchId}/validate`, {
-        method: "POST",
-      })
-      
-      if (!response.ok) {
-        throw new Error("Validation failed")
-      }
-      
-      const data = await response.json()
-      setBatchStatus(data.valid ? "validated" : "invalid")
-      return { valid: data.valid, errors: data.errors || [] }
-    } catch (error: any) {
-      return { valid: false, errors: [error.message || "Validation failed"] }
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const submitBatch = useCallback(async (batchId: string): Promise<{ success: boolean; txHash?: string }> => {
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/batch-payment/${batchId}/execute`, {
-        method: "POST",
-      })
-      
-      if (!response.ok) {
-        throw new Error("Submission failed")
-      }
-      
-      const data = await response.json()
-      setBatchStatus("completed")
-      return { success: true, txHash: data.txHash }
-    } catch (error: any) {
-      toast({
-        title: "Submission Failed",
-        description: error.message || "Failed to submit batch",
-        variant: "destructive",
-      })
-      return { success: false }
-    } finally {
-      setLoading(false)
-    }
-  }, [toast])
+  }, [state.results, toast])
 
   return {
     ...state,
@@ -342,7 +339,6 @@ export function useBatchPayment(): UseBatchPaymentReturn {
     retryFailed,
     reset,
     downloadReport,
-    // API integration
     uploadFile,
     validateBatch,
     submitBatch,

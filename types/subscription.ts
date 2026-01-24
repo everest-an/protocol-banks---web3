@@ -33,17 +33,22 @@ export interface Subscription {
 
 export interface AutoPayment {
   id: string
-  vendor_id: string
-  vendor_name: string
-  recipient_address: string
+  vendor_id?: string
+  vendorId?: string  // Legacy alias
+  vendor_name?: string
+  vendorName?: string  // Legacy alias
+  recipient_address?: string
+  walletAddress?: string  // Legacy alias
   amount: string
   token: string
-  chain: string
+  chain?: string
   frequency: SubscriptionFrequency
   status: SubscriptionStatus
-  max_amount: string
-  next_execution: string
+  max_amount?: string
+  maxAmount?: string  // Legacy alias
+  next_execution?: string
+  nextPayment?: Date  // Legacy alias
   last_execution?: string
-  created_by: string
-  created_at: string
+  created_by?: string
+  created_at?: string
 }

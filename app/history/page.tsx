@@ -51,15 +51,15 @@ export default function HistoryPage() {
         .eq("to_address", wallet)
         .order("timestamp", { ascending: false })
 
-      const sent = (sentPayments || []).map((p: Record<string, unknown>) => ({ ...p, type: "sent" as const }))
-      const received = (receivedPayments || []).map((p: Record<string, unknown>) => ({ ...p, type: "received" as const }))
+      const sent = (sentPayments || []).map((p) => ({ ...p, type: "sent" as const }))
+      const received = (receivedPayments || []).map((p) => ({ ...p, type: "received" as const }))
 
       // Merge and sort by timestamp
       const allTx = [...sent, ...received].sort(
-        (a, b) => new Date(b.timestamp as string).getTime() - new Date(a.timestamp as string).getTime(),
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       )
 
-      setTransactions(allTx as Transaction[])
+      setTransactions(allTx)
     } catch (error) {
       console.error("Failed to load transactions:", error)
     } finally {
@@ -69,9 +69,9 @@ export default function HistoryPage() {
 
   const filteredTransactions = transactions.filter((tx) => {
     const matchesSearch =
-      (tx.to_address || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (tx.from_address || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (tx.tx_hash || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.to_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.from_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.tx_hash.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (tx.notes && tx.notes.toLowerCase().includes(searchQuery.toLowerCase()))
 
     if (activeTab === "all") return matchesSearch

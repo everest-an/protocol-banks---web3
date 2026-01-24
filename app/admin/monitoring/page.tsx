@@ -89,14 +89,14 @@ export default function MonitoringPage() {
 
     const { data: volumeData } = await supabase.from("payments").select("amount_usd")
 
-    const totalVolume = volumeData?.reduce((sum: number, p: { amount_usd?: number }) => sum + (Number(p.amount_usd) || 0), 0) || 0
+    const totalVolume = volumeData?.reduce((sum, p) => sum + (Number(p.amount_usd) || 0), 0) || 0
 
     const { data: uniqueUsers } = await supabase.from("payments").select("from_address")
 
-    const activeUsers = new Set(uniqueUsers?.map((u: { from_address: string }) => u.from_address)).size
+    const activeUsers = new Set(uniqueUsers?.map((u) => u.from_address)).size
 
     const pendingAlerts =
-      (monAlerts?.filter((a: { is_resolved?: boolean }) => !a.is_resolved).length || 0) + (secAlerts?.filter((a: { resolved?: boolean }) => !a.resolved).length || 0)
+      (monAlerts?.filter((a) => !a.is_resolved).length || 0) + (secAlerts?.filter((a) => !a.resolved).length || 0)
 
     setMetrics({
       totalPayments: paymentsCount || 0,

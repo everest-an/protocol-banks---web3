@@ -40,10 +40,6 @@ export interface UseMCPSubscriptionsReturn {
   unsubscribe: (subscriptionId: string) => Promise<void>
   changePlan: (subscriptionId: string, newPlan: "free" | "pro" | "enterprise") => Promise<void>
   refresh: () => Promise<void>
-  // Aliases for backward compatibility
-  plans: MCPProvider[]
-  subscription: MCPSubscription | null
-  cancel: (subscriptionId: string) => Promise<void>
 }
 
 // Available MCP providers
@@ -301,9 +297,5 @@ export function useMCPSubscriptions(): UseMCPSubscriptionsReturn {
     unsubscribe,
     changePlan,
     refresh: fetchSubscriptions,
-    // Aliases for backward compatibility
-    plans: MCP_PROVIDERS,
-    subscription: subscriptions.length > 0 ? subscriptions[0] : null,
-    cancel: unsubscribe,
   }
 }

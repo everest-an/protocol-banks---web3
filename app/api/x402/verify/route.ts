@@ -114,7 +114,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Verif
       tx_hash: txHash,
       status: "completed",
       created_at: new Date().toISOString(),
-    }).catch((err: Error) => {
+    }).catch(err => {
       console.error("[x402] Failed to log payment:", err)
     })
 

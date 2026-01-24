@@ -42,34 +42,4 @@ export interface PaymentRecipient {
   vendorName?: string
   vendorId?: string
   token: string
-  memo?: string
-}
-
-export interface Transaction {
-  id: string
-  type: "sent" | "received" | "swap" | "stake"
-  amount: string
-  token: string
-  to?: string
-  from?: string
-  hash?: string
-  status: PaymentStatus
-  timestamp: string
-  chain?: string
-  // Additional properties for compatibility
-  to_address?: string
-  from_address?: string
-  tx_hash?: string
-  token_symbol?: string
-  notes?: string
-  amount_usd?: number
-}
-
-export interface Recipient {
-  address: string
-  amount: number | string
-  token?: string
-  vendorName?: string
-  vendorId?: string
-  memo?: string
 }

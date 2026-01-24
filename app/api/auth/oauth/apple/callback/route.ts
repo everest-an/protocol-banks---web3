@@ -79,9 +79,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session
-    const response = NextResponse.redirect(new URL("/?login=success", request.url))
-    await createSession(userId, email || "")
+    await createSession(userId, email || '')
 
+    const response = NextResponse.redirect(new URL("/?login=success", request.url))
     return response
   } catch (error) {
     console.error("[OAuth] Error:", error)

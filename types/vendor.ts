@@ -1,4 +1,4 @@
-export type VendorTier = "subsidiary" | "partner" | "vendor" | "Partner" | "Vendor" | "Subsidiary"
+export type VendorTier = "subsidiary" | "partner" | "vendor"
 
 export type VendorCategory = 
   | "supplier" 
@@ -14,41 +14,25 @@ export type VendorCategory =
   | "Marketing"
   | "Infrastructure"
   | "Legal"
-  | string // Allow any string for flexibility
 
 export interface Vendor {
   id: string
   wallet_address: string
-  company_name: string
+  company_name?: string
+  name?: string  // Alias for company_name
   category: VendorCategory
-  tier: VendorTier
+  tier?: VendorTier
+  type?: string  // Legacy field
   chain: string
   contact_email?: string
   contact_name?: string
-  created_by: string
-  created_at: string
-  updated_at: string
+  created_by?: string
+  created_at?: string
+  updated_at?: string
   tags?: string[]
   notes?: string
   monthly_volume?: number
   transaction_count?: number
-  // Aliases for backward compatibility
-  name?: string
-  email?: string
-  type?: string
-}
-
-export interface VendorInput {
-  wallet_address: string
-  name: string
-  company_name?: string
-  category?: VendorCategory
-  tier?: VendorTier
-  chain?: string
-  contact_email?: string
-  email?: string
-  contact_name?: string
-  notes?: string
 }
 
 export interface VendorStats {

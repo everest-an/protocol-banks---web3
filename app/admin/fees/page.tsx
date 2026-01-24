@@ -142,7 +142,7 @@ export default function AdminFeesPage() {
         setFeeConfig(configData)
 
         // Set editing values from config
-        const baseConfig = configData.find((c: { config_key: string; config_value: { rate?: number; min_fee_usd?: number; max_fee_usd?: number } }) => c.config_key === "base_fee_rate")
+        const baseConfig = configData.find((c) => c.config_key === "base_fee_rate")
         if (baseConfig) {
           setNewBaseRate(String(baseConfig.config_value.rate || 0.001))
           setNewMinFee(String(baseConfig.config_value.min_fee_usd || 0.5))

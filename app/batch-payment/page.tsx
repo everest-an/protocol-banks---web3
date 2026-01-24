@@ -110,154 +110,103 @@ export default function BatchPaymentPage() {
     {
       id: "v1",
       name: "Acme Corp",
-      company_name: "Acme Corp",
       wallet_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f7DCFF",
       category: "Technology",
-      tier: "partner",
       type: "Partner",
       chain: "Ethereum",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     },
     {
       id: "v2",
       name: "Global Supplies Inc",
-      company_name: "Global Supplies Inc",
       wallet_address: "0x8B3392483BA26D65E331dB86D4F430E9B3814E5e",
       category: "Manufacturing",
-      tier: "vendor",
       type: "Vendor",
       chain: "Polygon",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     },
     {
       id: "v3",
       name: "Tech Solutions Ltd",
-      company_name: "Tech Solutions Ltd",
       wallet_address: "0x1234567890123456789012345678901234567890",
       category: "Software",
-      tier: "partner",
       type: "Partner",
       chain: "Ethereum",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     },
     {
       id: "v4",
       name: "APAC Division",
-      company_name: "APAC Division",
       wallet_address: "0x9876543210987654321098765432109876543210",
       category: "Internal",
-      tier: "subsidiary",
       type: "Subsidiary",
       chain: "Arbitrum",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     },
     {
       id: "v5",
       name: "Marketing Agency Pro",
-      company_name: "Marketing Agency Pro",
       wallet_address: "0xABCDEF1234567890ABCDEF1234567890ABCDEF12",
       category: "Marketing",
-      tier: "vendor",
       type: "Vendor",
       chain: "Base",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     },
     {
       id: "v6",
       name: "Cloud Services Co",
-      company_name: "Cloud Services Co",
       wallet_address: "0xDEF0123456789ABCDEF0123456789ABCDEF01234",
       category: "Infrastructure",
-      tier: "vendor",
       type: "Vendor",
       chain: "Ethereum",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     },
     {
       id: "v7",
       name: "Legal Partners LLP",
-      company_name: "Legal Partners LLP",
       wallet_address: "0x1111222233334444555566667777888899990000",
       category: "Legal",
-      tier: "partner",
       type: "Partner",
       chain: "Ethereum",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     },
     {
       id: "v8",
       name: "EMEA Operations",
-      company_name: "EMEA Operations",
       wallet_address: "0x2222333344445555666677778888999900001111",
       category: "Internal",
-      tier: "subsidiary",
       type: "Subsidiary",
       chain: "Polygon",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     },
   ]
 
   const demoAutoPayments: AutoPayment[] = [
     {
       id: "ap1",
-      vendor_id: "v1",
-      vendor_name: "Acme Corp",
-      recipient_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f7DCFF",
+      vendorId: "v1",
+      vendorName: "Acme Corp",
+      walletAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f7DCFF",
       amount: "5000",
       token: "USDT",
-      chain: "Ethereum",
       frequency: "monthly",
       status: "active",
-      next_execution: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-      max_amount: "6000",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
+      nextPayment: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      maxAmount: "6000",
     },
     {
       id: "ap2",
-      vendor_id: "v6",
-      vendor_name: "Cloud Services Co",
-      recipient_address: "0xDEF0123456789ABCDEF0123456789ABCDEF01234",
+      vendorId: "v6",
+      vendorName: "Cloud Services Co",
+      walletAddress: "0xDEF0123456789ABCDEF0123456789ABCDEF01234",
       amount: "2500",
       token: "USDC",
-      chain: "Ethereum",
       frequency: "monthly",
       status: "active",
-      next_execution: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-      max_amount: "3000",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
+      nextPayment: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
     },
     {
       id: "ap3",
-      vendor_id: "v4",
-      vendor_name: "APAC Division",
-      recipient_address: "0x9876543210987654321098765432109876543210",
+      vendorId: "v4",
+      vendorName: "APAC Division",
+      walletAddress: "0x9876543210987654321098765432109876543210",
       amount: "15000",
       token: "USDT",
-      chain: "Arbitrum",
       frequency: "monthly",
       status: "paused",
-      next_execution: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-      max_amount: "20000",
-      created_by: "demo",
-      created_at: new Date().toISOString(),
+      nextPayment: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
     },
   ]
 
@@ -418,6 +367,20 @@ export default function BatchPaymentPage() {
   }, [recipients, toast])
 
   const saveWalletTag = async () => {
+    try {
+      // Use validation service
+      const addressValidation = validateVendorData({
+        wallet_address: tagFormData.wallet_address,
+        name: tagFormData.name,
+        category: tagFormData.category,
+      })
+
+      // ... rest of existing save logic
+    } catch (error: any) {
+      toast({ title: "Validation Error", description: error.message, variant: "destructive" })
+      return
+    }
+
     if (!tagFormData.name || !tagFormData.wallet_address) {
       toast({
         title: "Missing Information",
@@ -427,21 +390,13 @@ export default function BatchPaymentPage() {
       return
     }
 
-    // Validate using ethers
-    let checksumAddress: string
-    try {
-      const { ethers } = await import("ethers")
-      if (!ethers.isAddress(tagFormData.wallet_address)) {
-        toast({
-          title: "Invalid Address",
-          description: "Please enter a valid wallet address.",
-          variant: "destructive",
-        })
-        return
-      }
-      checksumAddress = ethers.getAddress(tagFormData.wallet_address)
-    } catch (error: any) {
-      toast({ title: "Validation Error", description: error.message, variant: "destructive" })
+    const addressValidation = validateVendorData(tagFormData.wallet_address)
+    if (!addressValidation.isValid) {
+      toast({
+        title: "Invalid Address",
+        description: "Please enter a valid wallet address.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -450,15 +405,10 @@ export default function BatchPaymentPage() {
       const newVendor: Vendor = {
         id: `demo-${Date.now()}`,
         name: tagFormData.name,
-        company_name: tagFormData.name,
-        wallet_address: checksumAddress,
-        category: tagFormData.category as any,
-        tier: tagFormData.tier as any,
+        wallet_address: addressValidation.checksumAddress || tagFormData.wallet_address,
+        category: tagFormData.category,
         type: tagFormData.tier,
         chain: tagFormData.chain,
-        created_by: "demo",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       }
       setVendors((prev) => [...prev, newVendor])
 
@@ -490,7 +440,7 @@ export default function BatchPaymentPage() {
         .from("vendors")
         .insert({
           name: tagFormData.name,
-          wallet_address: checksumAddress,
+          wallet_address: addressValidation.checksumAddress || tagFormData.wallet_address,
           category: tagFormData.category,
           tier: tagFormData.tier,
           notes: tagFormData.notes,
@@ -706,7 +656,7 @@ export default function BatchPaymentPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "batch" | "auto" | "x402")} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
           <TabsTrigger value="batch">Batch Payment</TabsTrigger>
           <TabsTrigger value="auto">Auto Payments</TabsTrigger>
@@ -846,10 +796,10 @@ export default function BatchPaymentPage() {
                                     >
                                       <div className="flex items-center gap-2 w-full">
                                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                                          {(vendor.name || vendor.company_name || "?").charAt(0)}
+                                          {vendor.name.charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                          <div className="font-medium truncate">{vendor.name || vendor.company_name}</div>
+                                          <div className="font-medium truncate">{vendor.name}</div>
                                           <div className="text-xs text-muted-foreground font-mono truncate">
                                             {vendor.wallet_address.slice(0, 10)}...
                                           </div>
@@ -1047,7 +997,7 @@ export default function BatchPaymentPage() {
                       </div>
                       <div>
                         <div className="font-medium flex items-center gap-2">
-                          {payment.vendor_name}
+                          {payment.vendorName}
                           <Badge variant={payment.status === "active" ? "default" : "secondary"}>
                             {payment.status}
                           </Badge>
@@ -1056,7 +1006,7 @@ export default function BatchPaymentPage() {
                           ${payment.amount} {payment.token} / {payment.frequency}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Next: {new Date(payment.next_execution).toLocaleDateString()}
+                          Next: {payment.nextPayment.toLocaleDateString()}
                         </div>
                       </div>
                     </div>
