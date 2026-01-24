@@ -58,11 +58,12 @@ export interface VendorInput {
   wallet_address: string
   company_name?: string
   name?: string
-  category: VendorCategory
+  category: VendorCategory | ''
   tier?: VendorTier
   type?: string
   chain: string
   contact_email?: string
+  email?: string  // Alias for contact_email
   contact_name?: string
   notes?: string
   tags?: string[]
