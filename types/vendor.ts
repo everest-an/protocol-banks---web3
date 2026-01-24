@@ -6,6 +6,7 @@ export type VendorCategory =
   | "contractor" 
   | "partner" 
   | "subsidiary" 
+  | "vendor"
   | "other"
   | "Technology"
   | "Manufacturing"
