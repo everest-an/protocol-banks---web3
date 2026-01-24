@@ -2,24 +2,44 @@ import type { Vendor, VendorInput, VendorStats } from "@/types"
 import { ethers } from "ethers"
 
 /**
+ * 验证钱包地址
+ */
+export function validateAddress(address: string): { isValid: boolean; checksumAddress?: string; error?: string } {
+  if (!address) {
+    return { isValid: false, error: "Address is required" }
+  }
+
+  try {
+    if (!ethers.isAddress(address)) {
+      return { isValid: false, error: "Invalid wallet address format" }
+    }
+    const checksumAddress = ethers.getAddress(address)
+    return { isValid: true, checksumAddress }
+  } catch {
+    return { isValid: false, error: "Invalid wallet address" }
+  }
+}
+
+/**
  * 验证供应商数据
  */
-export function validateVendorData(data: VendorInput): void {
-  if (!data.name || data.name.trim().length === 0) {
-    throw new Error("Vendor name is required")
+export function validateVendorData(data: VendorInput | string): { isValid: boolean; checksumAddress?: string; error?: string } {
+  // If string is passed, validate as address only
+  if (typeof data === 'string') {
+    return validateAddress(data)
   }
 
-  if (!data.wallet_address || !ethers.isAddress(data.wallet_address)) {
-    throw new Error("Invalid wallet address")
+  // Full vendor validation
+  if (!data.name && !data.company_name) {
+    return { isValid: false, error: "Vendor name is required" }
   }
 
-  if (!data.category || !["subsidiary", "partner", "vendor"].includes(data.category)) {
-    throw new Error("Invalid category")
+  const addressValidation = validateAddress(data.wallet_address)
+  if (!addressValidation.isValid) {
+    return addressValidation
   }
 
-  if (!data.chain) {
-    throw new Error("Chain is required")
-  }
+  return { isValid: true, checksumAddress: addressValidation.checksumAddress }
 }
 
 /**

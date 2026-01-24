@@ -51,15 +51,15 @@ export default function HistoryPage() {
         .eq("to_address", wallet)
         .order("timestamp", { ascending: false })
 
-      const sent = (sentPayments || []).map((p) => ({ ...p, type: "sent" as const }))
-      const received = (receivedPayments || []).map((p) => ({ ...p, type: "received" as const }))
+      const sent = (sentPayments || []).map((p: Transaction) => ({ ...p, type: "sent" as const }))
+      const received = (receivedPayments || []).map((p: Transaction) => ({ ...p, type: "received" as const }))
 
       // Merge and sort by timestamp
       const allTx = [...sent, ...received].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        (a, b) => new Date(b.timestamp || b.created_at).getTime() - new Date(a.timestamp || a.created_at).getTime(),
       )
 
-      setTransactions(allTx)
+      setTransactions(allTx as Transaction[])
     } catch (error) {
       console.error("Failed to load transactions:", error)
     } finally {

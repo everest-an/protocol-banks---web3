@@ -33,11 +33,14 @@ export interface MCPSubscription {
 
 export interface UseMCPSubscriptionsReturn {
   subscriptions: MCPSubscription[]
+  subscription: MCPSubscription | null  // Current active subscription
   providers: MCPProvider[]
+  plans: MCPProvider['pricing']  // Available plans
   loading: boolean
   error: string | null
   subscribe: (providerId: string, plan: "free" | "pro" | "enterprise") => Promise<void>
   unsubscribe: (subscriptionId: string) => Promise<void>
+  cancel: (subscriptionId: string) => Promise<void>  // Alias for unsubscribe
   changePlan: (subscriptionId: string, newPlan: "free" | "pro" | "enterprise") => Promise<void>
   refresh: () => Promise<void>
 }
@@ -288,13 +291,26 @@ export function useMCPSubscriptions(): UseMCPSubscriptionsReturn {
     [subscriptions, toast],
   )
 
+  // Get current active subscription
+  const currentSubscription = subscriptions.find(s => s.status === 'active') || null
+
+  // Get plans from first provider (they're all the same structure)
+  const plans = MCP_PROVIDERS[0]?.pricing || {
+    free: { calls: 100, features: [] },
+    pro: { price: 29, calls: 10000, features: [] },
+    enterprise: { price: 99, calls: 100000, features: [] },
+  }
+
   return {
     subscriptions,
+    subscription: currentSubscription,
     providers: MCP_PROVIDERS,
+    plans,
     loading,
     error,
     subscribe,
     unsubscribe,
+    cancel: unsubscribe,  // Alias
     changePlan,
     refresh: fetchSubscriptions,
   }

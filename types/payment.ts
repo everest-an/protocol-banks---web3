@@ -43,3 +43,25 @@ export interface PaymentRecipient {
   vendorId?: string
   token: string
 }
+
+
+export interface Transaction {
+  id: string
+  from_address: string
+  to_address: string
+  amount: string
+  token: string
+  token_symbol?: string
+  chain: string
+  status: PaymentStatus
+  type: PaymentType
+  tx_hash?: string
+  created_at: string
+  completed_at?: string
+  timestamp?: string
+  memo?: string
+  notes?: string
+  amount_usd?: number
+  method?: PaymentMethod
+  created_by?: string
+}
