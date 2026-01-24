@@ -233,7 +233,7 @@ export function NetworkGraph({
     }
   }, [nodes, dimensions, onSelectVendor])
 
-  const handleWheel = (e: WheelEvent) => {
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault()
     const scaleAmount = -e.deltaY * 0.001
     const newScale = Math.min(Math.max(0.5, transform.k + scaleAmount), 4)
@@ -480,7 +480,7 @@ export function NetworkGraph({
             <div className="space-y-1">
               <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Tx Count</p>
               <p className="text-lg md:text-xl font-light text-white">
-                {selectedNode.data.transaction_count || selectedNode.data.transactionCount || 0}
+                {selectedNode.data.transaction_count || 0}
               </p>
             </div>
           </div>

@@ -1,8 +1,18 @@
-import { getRecaptchaSiteKey } from "@/app/actions/get-recaptcha-key"
+"use client"
+
+import { useEffect, useState } from "react"
 import Script from "next/script"
 
-export async function RecaptchaScript() {
-  const siteKey = await getRecaptchaSiteKey()
+export function RecaptchaScript() {
+  const [siteKey, setSiteKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Get the site key from environment variable on client side
+    const key = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    if (key) {
+      setSiteKey(key)
+    }
+  }, [])
 
   if (!siteKey) return null
 

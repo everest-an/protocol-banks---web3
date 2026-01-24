@@ -14,7 +14,7 @@ interface Payment {
   amount: string
   amount_usd: number
   status: string
-  token_symbol: string
+  token_symbol?: string
   tx_hash?: string
   notes?: string
   vendor?: {

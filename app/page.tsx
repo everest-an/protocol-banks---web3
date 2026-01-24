@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
-import type { Vendor, VendorInput } from "@/types"
+import type { Vendor, VendorInput, VendorCategory } from "@/types"
 import { useVendors } from "@/hooks/use-vendors"
 import { useBalance } from "@/hooks/use-balance"
 import { calculateNetworkStats } from "@/lib/services/vendor-service"
@@ -66,8 +66,8 @@ export default function HomePage() {
     setWalletConnected(isConnected)
   }, [isConnected, setWalletConnected])
 
-  const { vendors, loading, addVendor, updateVendor, deleteVendor } = useVendors({ isDemoMode, walletAddress: wallet })
-  const { balance, loading: balanceLoading } = useBalance({ isDemoMode, walletAddress: wallet })
+  const { vendors, loading, addVendor, updateVendor, deleteVendor } = useVendors({ isDemoMode, walletAddress: wallet || undefined })
+  const { balance, loading: balanceLoading } = useBalance({ isDemoMode, walletAddress: wallet || undefined })
 
   const [tierFilter, setTierFilter] = useState<"all" | "subsidiary" | "partner" | "vendor">("all")
   const [viewMode, setViewMode] = useState<"graph" | "list">("graph")
@@ -92,7 +92,7 @@ export default function HomePage() {
     wallet_address: "",
     email: "",
     notes: "",
-    category: "",
+    category: undefined,
     tier: "vendor",
     chain: "ethereum",
   })
@@ -115,16 +115,16 @@ export default function HomePage() {
   const stats = useMemo(() => calculateNetworkStats(vendors), [vendors])
 
   const handlePaymentRequest = (vendor: Vendor) => {
-    const url = `/batch-payment?recipient=${vendor.wallet_address}&name=${encodeURIComponent(vendor.name)}`
+    const url = `/batch-payment?recipient=${vendor.wallet_address}&name=${encodeURIComponent(vendor.name || vendor.company_name || '')}`
     router.push(url)
   }
 
   const handleEditVendor = (vendor: Vendor) => {
     setEditingVendor(vendor)
     setFormData({
-      name: vendor.name,
+      name: vendor.name || vendor.company_name || "",
       wallet_address: vendor.wallet_address,
-      email: vendor.email || "",
+      email: vendor.email || vendor.contact_email || "",
       notes: vendor.notes || "",
       category: vendor.category || "",
       tier: vendor.tier || "vendor",
@@ -181,7 +181,7 @@ export default function HomePage() {
         wallet_address: "",
         email: "",
         notes: "",
-        category: "",
+        category: undefined,
         tier: "vendor",
         chain: "ethereum",
       })
@@ -201,7 +201,7 @@ export default function HomePage() {
         wallet_address: "",
         email: "",
         notes: "",
-        category: "",
+        category: undefined,
         tier: "vendor",
         chain: "ethereum",
       })
@@ -233,7 +233,7 @@ export default function HomePage() {
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-2">
           <Label htmlFor="category">Category</Label>
-          <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
+          <Select value={formData.category || ""} onValueChange={(val) => setFormData({ ...formData, category: val as VendorCategory })}>
             <SelectTrigger>
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
@@ -476,7 +476,7 @@ export default function HomePage() {
           <div className="h-[calc(100vh-280px)] sm:h-[600px] md:h-[800px] min-h-[400px]">
             <NetworkGraph
               vendors={filteredVendors}
-              userAddress={wallet}
+              userAddress={wallet || undefined}
               isDemoMode={isDemoMode}
               onAddContact={() => setDialogOpen(true)}
               onPaymentRequest={(vendor) => {
@@ -577,7 +577,7 @@ export default function HomePage() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Added</p>
-                        <p>{new Date(vendor.created_at).toLocaleDateString()}</p>
+                        <p>{vendor.created_at ? new Date(vendor.created_at).toLocaleDateString() : "N/A"}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Status</p>
@@ -596,7 +596,7 @@ export default function HomePage() {
 
         {/* Dashboard Activity Section */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <DashboardActivity walletAddress={wallet} limit={10} showTabs={true} />
+          <DashboardActivity walletAddress={wallet || undefined} limit={10} showTabs={true} />
           <div className="space-y-6">
             {balance?.chainDistribution && balance.chainDistribution.length > 0 && (
               <BalanceDistribution
@@ -604,7 +604,11 @@ export default function HomePage() {
                 totalUSD={balance.totalUSD}
               />
             )}
-            <QuantumReadinessCard />
+            <QuantumReadinessCard 
+              addressAge={30} 
+              totalValue={balance?.totalUSD || 0} 
+              transactionCount={vendors.length} 
+            />
           </div>
         </div>
       </main>
