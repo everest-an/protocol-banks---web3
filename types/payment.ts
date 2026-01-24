@@ -6,19 +6,22 @@ export interface Payment {
   id: string
   from_address: string
   to_address: string
-  amount: string
+  amount: string | number
   token: string
   chain: string
   status: PaymentStatus
   type: PaymentType
-  method: PaymentMethod
+  method?: PaymentMethod
   tx_hash?: string
   created_at: string
+  timestamp?: string
   completed_at?: string
-  created_by: string
+  created_by?: string
   vendor_name?: string
   category?: string
   memo?: string
+  token_symbol?: string
+  amount_usd?: number
 }
 
 export interface PaymentHistory {

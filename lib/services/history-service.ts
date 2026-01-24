@@ -14,7 +14,8 @@ export function aggregateByMonth(payments: Payment[]): { month: string; amount: 
       monthlyData[monthKey] = 0
     }
 
-    monthlyData[monthKey] += payment.amount
+    const amount = typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount
+    monthlyData[monthKey] += amount || 0
   })
 
   // 转换为数组并排序
@@ -37,8 +38,9 @@ export function calculateYTDGrowth(payments: Payment[]): number {
     return date >= twelveMonthsAgo && date < sixMonthsAgo
   })
 
-  const recentTotal = recentPayments.reduce((sum, p) => sum + p.amount, 0)
-  const oldTotal = oldPayments.reduce((sum, p) => sum + p.amount, 0)
+  const getAmount = (p: Payment) => typeof p.amount === 'string' ? parseFloat(p.amount) : p.amount
+  const recentTotal = recentPayments.reduce((sum, p) => sum + (getAmount(p) || 0), 0)
+  const oldTotal = oldPayments.reduce((sum, p) => sum + (getAmount(p) || 0), 0)
 
   if (oldTotal === 0) return recentTotal > 0 ? 100 : 0
 

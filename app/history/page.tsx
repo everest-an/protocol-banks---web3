@@ -71,7 +71,7 @@ export default function HistoryPage() {
     const matchesSearch =
       tx.to_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tx.from_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.tx_hash.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (tx.tx_hash || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (tx.notes && tx.notes.toLowerCase().includes(searchQuery.toLowerCase()))
 
     if (activeTab === "all") return matchesSearch
@@ -83,14 +83,14 @@ export default function HistoryPage() {
   const exportToCSV = () => {
     const headers = ["Date", "Type", "Amount", "Token", "From", "To", "Status", "TX Hash"]
     const rows = filteredTransactions.map((tx) => [
-      new Date(tx.timestamp).toLocaleDateString(),
+      new Date(tx.timestamp || tx.created_at).toLocaleDateString(),
       tx.type,
       tx.amount,
-      tx.token_symbol,
+      tx.token_symbol || tx.token,
       tx.from_address,
       tx.to_address,
       tx.status,
-      tx.tx_hash,
+      tx.tx_hash || '',
     ])
 
     const csv = [headers, ...rows].map((row) => row.join(",")).join("\n")
@@ -198,7 +198,7 @@ export default function HistoryPage() {
                       </div>
                       <div>
                         <div className="font-medium">
-                          {tx.type === "sent" ? "Sent" : "Received"} {tx.token_symbol}
+                          {tx.type === "sent" ? "Sent" : "Received"} {tx.token_symbol || tx.token}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {tx.type === "sent"
@@ -206,7 +206,7 @@ export default function HistoryPage() {
                             : `From: ${tx.from_address.slice(0, 6)}...${tx.from_address.slice(-4)}`}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {new Date(tx.timestamp).toLocaleDateString()} {new Date(tx.timestamp).toLocaleTimeString()}
+                          {new Date(tx.timestamp || tx.created_at).toLocaleDateString()} {new Date(tx.timestamp || tx.created_at).toLocaleTimeString()}
                         </div>
                       </div>
                     </div>
@@ -216,10 +216,10 @@ export default function HistoryPage() {
                           className={`font-mono font-medium ${tx.type === "sent" ? "text-red-500" : "text-green-500"}`}
                         >
                           {tx.type === "sent" ? "-" : "+"}
-                          {tx.amount} {tx.token_symbol}
+                          {tx.amount} {tx.token_symbol || tx.token}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          ${((tx.amount_usd ?? Number.parseFloat(tx.amount)) || 0).toFixed(2)}
+                          ${((tx.amount_usd ?? Number.parseFloat(String(tx.amount))) || 0).toFixed(2)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -234,7 +234,7 @@ export default function HistoryPage() {
                           {tx.status}
                         </Badge>
                         <a
-                          href={getExplorerUrl(tx.tx_hash)}
+                          href={getExplorerUrl(tx.tx_hash || '')}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-muted-foreground hover:text-foreground transition-colors"
@@ -255,8 +255,9 @@ export default function HistoryPage() {
       <BusinessMetrics
         payments={transactions.map((tx) => ({
           ...tx,
-          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(tx.amount) || 0),
-        }))}
+          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(String(tx.amount)) || 0),
+          timestamp: tx.timestamp || tx.created_at,
+        })) as Payment[]}
         loading={loading}
       />
 
@@ -264,8 +265,9 @@ export default function HistoryPage() {
       <PaymentActivity
         payments={transactions.map((tx) => ({
           ...tx,
-          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(tx.amount) || 0),
-        }))}
+          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(String(tx.amount)) || 0),
+          timestamp: tx.timestamp || tx.created_at,
+        })) as Payment[]}
         walletAddress={wallet || undefined}
         loading={loading}
         title="Recent Activity"
@@ -276,8 +278,9 @@ export default function HistoryPage() {
       <FinancialReport
         payments={transactions.map((tx) => ({
           ...tx,
-          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(tx.amount) || 0),
-        }))}
+          amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(String(tx.amount)) || 0),
+          timestamp: tx.timestamp || tx.created_at,
+        })) as Payment[]}
         loading={loading}
       />
     </main>
