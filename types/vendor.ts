@@ -1,6 +1,20 @@
-export type VendorTier = "subsidiary" | "partner" | "vendor"
+export type VendorTier = "subsidiary" | "partner" | "vendor" | "Partner" | "Vendor" | "Subsidiary"
 
-export type VendorCategory = "supplier" | "service-provider" | "contractor" | "partner" | "subsidiary" | "other"
+export type VendorCategory = 
+  | "supplier" 
+  | "service-provider" 
+  | "contractor" 
+  | "partner" 
+  | "subsidiary" 
+  | "other"
+  | "Technology"
+  | "Manufacturing"
+  | "Software"
+  | "Internal"
+  | "Marketing"
+  | "Infrastructure"
+  | "Legal"
+  | string // Allow any string for flexibility
 
 export interface Vendor {
   id: string
@@ -18,6 +32,23 @@ export interface Vendor {
   notes?: string
   monthly_volume?: number
   transaction_count?: number
+  // Aliases for backward compatibility
+  name?: string
+  email?: string
+  type?: string
+}
+
+export interface VendorInput {
+  wallet_address: string
+  name: string
+  company_name?: string
+  category?: VendorCategory
+  tier?: VendorTier
+  chain?: string
+  contact_email?: string
+  email?: string
+  contact_name?: string
+  notes?: string
 }
 
 export interface VendorStats {

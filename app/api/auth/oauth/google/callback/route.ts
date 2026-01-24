@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
     // Create session
     const response = NextResponse.redirect(new URL("/?login=success", request.url))
-    await createSession(userId, response)
+    await createSession(userId, userInfo.email || "")
 
     return response
   } catch (error) {

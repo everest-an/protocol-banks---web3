@@ -34,6 +34,12 @@ export interface UseBatchPaymentReturn extends BatchPaymentState {
   retryFailed: () => Promise<void>
   reset: () => void
   downloadReport: () => void
+  // API integration methods
+  uploadFile: (file: File) => Promise<{ batchId: string; itemCount: number } | null>
+  validateBatch: (batchId: string) => Promise<{ valid: boolean; errors: string[] }>
+  submitBatch: (batchId: string) => Promise<{ success: boolean; txHash?: string }>
+  batchStatus: string | null
+  loading: boolean
 }
 
 const initialState: BatchPaymentState = {
@@ -249,11 +255,98 @@ export function useBatchPayment(): UseBatchPaymentReturn {
     })
   }, [state.report, toast])
 
+  // API integration methods
+  const [batchStatus, setBatchStatus] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const uploadFile = useCallback(async (file: File): Promise<{ batchId: string; itemCount: number } | null> => {
+    setLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      
+      const response = await fetch("/api/batch-payment/upload", {
+        method: "POST",
+        body: formData,
+      })
+      
+      if (!response.ok) {
+        throw new Error("Upload failed")
+      }
+      
+      const data = await response.json()
+      setBatchStatus("uploaded")
+      return { batchId: data.batchId, itemCount: data.itemCount }
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload file",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  const validateBatch = useCallback(async (batchId: string): Promise<{ valid: boolean; errors: string[] }> => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/batch-payment/${batchId}/validate`, {
+        method: "POST",
+      })
+      
+      if (!response.ok) {
+        throw new Error("Validation failed")
+      }
+      
+      const data = await response.json()
+      setBatchStatus(data.valid ? "validated" : "invalid")
+      return { valid: data.valid, errors: data.errors || [] }
+    } catch (error: any) {
+      return { valid: false, errors: [error.message || "Validation failed"] }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const submitBatch = useCallback(async (batchId: string): Promise<{ success: boolean; txHash?: string }> => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/batch-payment/${batchId}/execute`, {
+        method: "POST",
+      })
+      
+      if (!response.ok) {
+        throw new Error("Submission failed")
+      }
+      
+      const data = await response.json()
+      setBatchStatus("completed")
+      return { success: true, txHash: data.txHash }
+    } catch (error: any) {
+      toast({
+        title: "Submission Failed",
+        description: error.message || "Failed to submit batch",
+        variant: "destructive",
+      })
+      return { success: false }
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
   return {
     ...state,
     executeBatch,
     retryFailed,
     reset,
     downloadReport,
+    // API integration
+    uploadFile,
+    validateBatch,
+    submitBatch,
+    batchStatus,
+    loading,
   }
 }

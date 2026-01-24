@@ -37,6 +37,9 @@ export interface MonetizeConfig {
   defaultTier: string
   webhookUrl: string | null
   rateLimitEnabled: boolean
+  // Additional properties for backward compatibility
+  pricePerCall?: number
+  monthlyLimit?: number
 }
 
 export interface UseMonetizeConfigReturn {
@@ -54,6 +57,9 @@ export interface UseMonetizeConfigReturn {
   updateTier: (tierId: string, updates: Partial<PricingTier>) => Promise<void>
   deleteTier: (tierId: string) => Promise<void>
   refresh: () => Promise<void>
+  // Aliases for backward compatibility (camelCase variants)
+  createApiKey: (name: string, tier: string) => Promise<APIKey | null>
+  revokeApiKey: (keyId: string) => Promise<void>
 }
 
 const DEFAULT_TIERS: PricingTier[] = [
@@ -323,5 +329,8 @@ export function useMonetizeConfig(): UseMonetizeConfigReturn {
     updateTier,
     deleteTier,
     refresh: fetchData,
+    // Aliases for backward compatibility (camelCase variants)
+    createApiKey: createAPIKey,
+    revokeApiKey: revokeAPIKey,
   }
 }

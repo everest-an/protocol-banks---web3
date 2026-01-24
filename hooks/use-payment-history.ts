@@ -239,5 +239,7 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
     refresh: loadPayments,
     addPayment,
     getMonthlyData,
+    // Alias for backward compatibility
+    addTransaction: addPayment,
   }
 }

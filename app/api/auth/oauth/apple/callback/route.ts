@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Create session
     const response = NextResponse.redirect(new URL("/?login=success", request.url))
-    await createSession(userId, response)
+    await createSession(userId, email || "")
 
     return response
   } catch (error) {

@@ -25,7 +25,7 @@ import {
   signEvent,
 } from "@/lib/cross-function-security"
 
-interface Web3ContextType {
+export interface Web3ContextType {
   wallets: {
     EVM: string | null
     SOLANA: string | null
@@ -52,6 +52,28 @@ interface Web3ContextType {
     warnings: string[]
   }
   verifyBeforeTransaction: () => Promise<{ allowed: boolean; errors: string[] }>
+  // Computed properties for convenience
+  address: string | null
+  wallet: string | null
+  signer: any | null
+  // Transaction methods
+  sendToken: (to: string, amount: string, token: string) => Promise<string | null>
+  signERC3009Authorization: (params: {
+    token: string
+    to: string
+    value: string
+    validAfter: number
+    validBefore: number
+  }) => Promise<{ v: number; r: string; s: string; nonce: string } | null>
+  signMessage: (message: string) => Promise<string | null>
+  addTransaction: (tx: {
+    type: string
+    amount: string
+    token: string
+    to?: string
+    from?: string
+    hash?: string
+  }) => void
 }
 
 const Web3Context = createContext<Web3ContextType | undefined>(undefined)
@@ -305,6 +327,68 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Computed properties
+  const address = wallets[activeChain]
+  const wallet = wallets[activeChain]
+  const signer = wallets.EVM && typeof window !== "undefined" && window.ethereum ? window.ethereum : null
+
+  // Transaction methods
+  const sendToken = useCallback(async (to: string, amount: string, token: string): Promise<string | null> => {
+    if (!wallets.EVM || !window.ethereum) return null
+    try {
+      // This is a placeholder - actual implementation would use ethers.js or web3.js
+      console.log("[v0] sendToken called:", { to, amount, token })
+      return null
+    } catch (error) {
+      console.error("[v0] sendToken failed:", error)
+      return null
+    }
+  }, [wallets.EVM])
+
+  const signERC3009Authorization = useCallback(async (params: {
+    token: string
+    to: string
+    value: string
+    validAfter: number
+    validBefore: number
+  }): Promise<{ v: number; r: string; s: string; nonce: string } | null> => {
+    if (!wallets.EVM || !window.ethereum) return null
+    try {
+      // This is a placeholder - actual implementation would use EIP-3009 signing
+      console.log("[v0] signERC3009Authorization called:", params)
+      return null
+    } catch (error) {
+      console.error("[v0] signERC3009Authorization failed:", error)
+      return null
+    }
+  }, [wallets.EVM])
+
+  const signMessage = useCallback(async (message: string): Promise<string | null> => {
+    if (!wallets.EVM || !window.ethereum) return null
+    try {
+      const signature = await window.ethereum.request({
+        method: "personal_sign",
+        params: [message, wallets.EVM],
+      })
+      return signature as string
+    } catch (error) {
+      console.error("[v0] signMessage failed:", error)
+      return null
+    }
+  }, [wallets.EVM])
+
+  const addTransaction = useCallback((tx: {
+    type: string
+    amount: string
+    token: string
+    to?: string
+    from?: string
+    hash?: string
+  }) => {
+    // This is a placeholder - actual implementation would store transactions
+    console.log("[v0] addTransaction called:", tx)
+  }, [])
+
   useEffect(() => {
     const checkMetaMask = async () => {
       const available = isMetaMaskAvailable()
@@ -417,6 +501,15 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         isSupportedNetwork,
         securityStatus,
         verifyBeforeTransaction,
+        // Computed properties
+        address,
+        wallet,
+        signer,
+        // Transaction methods
+        sendToken,
+        signERC3009Authorization,
+        signMessage,
+        addTransaction,
       }}
     >
       {children}
