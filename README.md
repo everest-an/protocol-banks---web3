@@ -76,17 +76,17 @@ Protocol Banks is a non-custodial, multi-chain payment solution designed for DAO
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| 🔐 **Dual Authentication** | Personal (Email/Google + Embedded Wallet) / Business (Hardware Wallets) | ✅ |
-| 💳 **Single Payments** | Multi-chain payments with ENS resolution, real-time gas estimation | ✅ |
-| 📦 **Batch Payments** | Excel/CSV import, 500+ TPS concurrent processing | ✅ |
-| 🔏 **Multi-Sig Wallets** | Gnosis Safe protocol, mobile approvals, push notifications | ✅ |
-| 🔄 **Cross-Chain** | Rango Exchange aggregation, ZetaChain bridging | ✅ |
-| 📅 **Subscriptions** | Recurring payments, auto-debit, balance monitoring | ✅ |
-| 🤖 **AI Agent API** | Agent budget management, x402 protocol, auto-execute | ✅ |
-| 🔔 **Webhooks** | Event notifications with HMAC signature verification | ✅ |
-| 📊 **Analytics** | Real-time balance, transaction history, network visualization | ✅ |
+| **Dual Authentication** | Personal (Email/Google + Embedded Wallet) / Business (Hardware Wallets) | Done |
+| **Single Payments** | Multi-chain payments with ENS resolution, real-time gas estimation | Done |
+| **Batch Payments** | Excel/CSV import, 500+ TPS concurrent processing | Done |
+| **Multi-Sig Wallets** | Gnosis Safe protocol, mobile approvals, push notifications | Done |
+| **Cross-Chain** | Rango Exchange aggregation, ZetaChain bridging | Done |
+| **Subscriptions** | Recurring payments, auto-debit, balance monitoring | Done |
+| **AI Agent API** | Agent budget management, x402 protocol, auto-execute | Done |
+| **Webhooks** | Event notifications with HMAC signature verification | Done |
+| **Analytics** | Real-time balance, transaction history, network visualization | Done |
 
-## 🤖 AI Agent Integration
+## AI Agent Integration
 
 Protocol Banks provides a comprehensive API for AI agents to interact with the treasury system programmatically.
 
@@ -179,15 +179,15 @@ const response = await fetch('/api/agents/proposals', {
 
 | Chain | Type | Status |
 |-------|------|--------|
-| Ethereum | EVM | ✅ |
-| Polygon | EVM L2 | ✅ |
-| Arbitrum | EVM L2 | ✅ |
-| Base | EVM L2 | ✅ |
-| Optimism | EVM L2 | ✅ |
-| BNB Chain | EVM | ✅ |
-| Solana | SVM | ✅ |
-| Bitcoin | UTXO | 🔜 Planned |
-| Aptos (MSafe) | Move | 🔜 Planned |
+| Ethereum | EVM | Done |
+| Polygon | EVM L2 | Done |
+| Arbitrum | EVM L2 | Done |
+| Base | EVM L2 | Done |
+| Optimism | EVM L2 | Done |
+| BNB Chain | EVM | Done |
+| Solana | SVM | Done |
+| Bitcoin | UTXO | Planned |
+| Aptos (MSafe) | Move | Planned |
 
 ## Tech Stack
 
@@ -387,14 +387,14 @@ Protocol Banks 是一个非托管、多链支付解决方案，专为 DAO、AI A
 
 | 功能模块 | 描述 | 状态 |
 |---------|------|------|
-| 🔐 **双模式认证** | 个人用户 (Email/Google + 嵌入式钱包) / 企业用户 (硬件钱包) | ✅ |
-| 💳 **单笔支付** | 多链支付，支持 ENS 解析，实时 Gas 估算 | ✅ |
-| 📦 **批量支付** | Excel/CSV 导入，500+ TPS 并发处理 | ✅ |
-| 🔏 **多签钱包** | Gnosis Safe 协议，移动端审批，推送通知 | ✅ |
-| 🔄 **跨链操作** | Rango Exchange 聚合，ZetaChain 桥接 | ✅ |
-| 📅 **订阅管理** | 定期支付，自动扣款，余额监控 | ✅ |
-| 🤖 **AI Agent API** | Agent 预算管理，x402 协议，自动执行 | ✅ |
-| 🔔 **Webhook** | 事件通知，HMAC 签名验证 | ✅ |
+| **双模式认证** | 个人用户 (Email/Google + 嵌入式钱包) / 企业用户 (硬件钱包) | 已完成 |
+| **单笔支付** | 多链支付，支持 ENS 解析，实时 Gas 估算 | 已完成 |
+| **批量支付** | Excel/CSV 导入，500+ TPS 并发处理 | 已完成 |
+| **多签钱包** | Gnosis Safe 协议，移动端审批，推送通知 | 已完成 |
+| **跨链操作** | Rango Exchange 聚合，ZetaChain 桥接 | 已完成 |
+| **订阅管理** | 定期支付，自动扣款，余额监控 | 已完成 |
+| **AI Agent API** | Agent 预算管理，x402 协议，自动执行 | 已完成 |
+| **Webhook** | 事件通知，HMAC 签名验证 | 已完成 |
 
 ### AI Agent 功能
 
@@ -448,6 +448,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Built with ❤️ for the Web3 Future**
+**Built for the Web3 Future**
 
 </div>
