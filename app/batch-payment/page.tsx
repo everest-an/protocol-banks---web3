@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useBatchPayment } from "@/hooks/use-batch-payment"
 import { BatchStatusTracker } from "@/components/batch-status-tracker"
 import { BatchTransferProgress, type BatchTransferStep } from "@/components/batch-transfer-progress"
+import { PaymentActivity } from "@/components/payment-activity"
 import {
   Dialog,
   DialogContent,
@@ -112,6 +113,10 @@ export default function BatchPaymentPage() {
 
   // Auto payment states
   const [autoPayments, setAutoPayments] = useState<AutoPayment[]>([])
+
+  // Payment history states
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   // Batch payment states
   const [recipients, setRecipients] = useState<PaymentRecipient[]>([
@@ -223,9 +228,78 @@ export default function BatchPaymentPage() {
     },
   ]
 
+  const demoPaymentHistory = [
+    {
+      id: "p1",
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
+      to_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f7DCFF",
+      amount: "5000",
+      amount_usd: 5000,
+      status: "completed",
+      token_symbol: "USDT",
+      tx_hash: "0xabc123def456...",
+      notes: "Monthly vendor payment",
+      vendor: { name: "Acme Corp" },
+    },
+    {
+      id: "p2",
+      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
+      to_address: "0x8B3392483BA26D65E331dB86D4F430E9B3814E5e",
+      amount: "3200",
+      amount_usd: 3200,
+      status: "completed",
+      token_symbol: "USDC",
+      tx_hash: "0xdef789ghi012...",
+      notes: "Supply purchase",
+      vendor: { name: "Global Supplies Inc" },
+    },
+    {
+      id: "p3",
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
+      to_address: "0xDEF0123456789ABCDEF0123456789ABCDEF01234",
+      amount: "2500",
+      amount_usd: 2500,
+      status: "completed",
+      token_symbol: "USDT",
+      tx_hash: "0xghi345jkl678...",
+      notes: "Cloud hosting fees",
+      vendor: { name: "Cloud Services Co" },
+    },
+    {
+      id: "p4",
+      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
+      to_address: "0x1111222233334444555566667777888899990000",
+      amount: "8500",
+      amount_usd: 8500,
+      status: "completed",
+      token_symbol: "USDC",
+      tx_hash: "0xjkl901mno234...",
+      notes: "Legal consultation",
+      vendor: { name: "Legal Partners LLP" },
+    },
+    {
+      id: "p5",
+      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
+      to_address: "0x9876543210987654321098765432109876543210",
+      amount: "15000",
+      amount_usd: 15000,
+      status: "completed",
+      token_symbol: "USDT",
+      tx_hash: "0xmno567pqr890...",
+      notes: "Quarterly transfer to APAC",
+      vendor: { name: "APAC Division" },
+    },
+  ]
+
   // Use demo or real data
   const displayVendors = isDemoMode ? demoVendors : vendors
   const displayAutoPayments = isDemoMode ? demoAutoPayments : autoPayments
+  const displayPaymentHistory = isDemoMode ? demoPaymentHistory : paymentHistory
 
   // Filter vendors by search query
   const filteredVendors = displayVendors.filter(
@@ -262,6 +336,51 @@ export default function BatchPaymentPage() {
   useEffect(() => {
     loadVendors()
   }, [loadVendors])
+
+  // Load payment history
+  const loadPaymentHistory = useCallback(async () => {
+    if (!currentWallet) {
+      console.log('[PaymentHistory] No wallet connected')
+      setPaymentHistory([])
+      return
+    }
+
+    console.log('[PaymentHistory] Loading payment history for:', currentWallet)
+    setHistoryLoading(true)
+    try {
+      if (!supabase) {
+        console.error('[PaymentHistory] Supabase client not available')
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("payments")
+        .select(`
+          *,
+          vendor:vendors(name)
+        `)
+        .or(`from_address.eq.${currentWallet},to_address.eq.${currentWallet}`)
+        .order("timestamp", { ascending: false })
+        .limit(20)
+
+      if (error) {
+        console.error('[PaymentHistory] Error loading payments:', error)
+        throw error
+      }
+
+      console.log('[PaymentHistory] Loaded payments:', data)
+      setPaymentHistory(data || [])
+    } catch (err) {
+      console.error("[PaymentHistory] Failed to load payment history:", err)
+      setPaymentHistory([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [currentWallet, supabase])
+
+  useEffect(() => {
+    loadPaymentHistory()
+  }, [loadPaymentHistory])
 
   const loadMultisigWallets = useCallback(async () => {
     if (isDemoMode || !currentWallet) return
@@ -577,8 +696,63 @@ export default function BatchPaymentPage() {
         for (const recipient of validRecipients) {
           try {
             // 使用 sendToken 发送单笔转账
-            await sendToken(recipient.address, recipient.amount, recipient.token || 'USDT')
+            const txHash = await sendToken(recipient.address, recipient.amount, recipient.token || 'USDT')
             successCount++
+
+            // 保存支付记录到数据库
+            if (supabase && txHash) {
+              try {
+                const paymentData = {
+                  tx_hash: txHash,
+                  from_address: currentWallet.toLowerCase(),
+                  to_address: recipient.address.toLowerCase(),
+                  vendor_id: recipient.vendorId || null,
+                  token_symbol: recipient.token || 'USDT',
+                  token_address: '0x0000000000000000000000000000000000000000', // 占位符
+                  amount: recipient.amount,
+                  amount_usd: parseFloat(recipient.amount), // 简化处理，假设稳定币
+                  status: 'completed',
+                  timestamp: new Date().toISOString(),
+                  notes: recipient.vendorName ? `Payment to ${recipient.vendorName}` : undefined,
+                }
+
+                console.log('[IndividualPayment] Attempting to save payment:', paymentData)
+
+                const { data: insertedData, error: dbError } = await supabase
+                  .from('payments')
+                  .insert(paymentData)
+                  .select()
+
+                if (dbError) {
+                  console.error('[IndividualPayment] Failed to save payment record:', {
+                    error: dbError,
+                    code: dbError.code,
+                    message: dbError.message,
+                    details: dbError.details,
+                    hint: dbError.hint,
+                  })
+
+                  // 显示用户友好的错误信息
+                  if (dbError.code === '42501') {
+                    toast({
+                      title: "数据库权限错误",
+                      description: "无法保存支付记录。请检查 Supabase RLS 策略配置。",
+                      variant: "destructive",
+                    })
+                  }
+                } else {
+                  console.log('[IndividualPayment] Payment record saved successfully:', insertedData)
+                  // 重新加载支付历史
+                  await loadPaymentHistory()
+                }
+              } catch (dbErr: any) {
+                console.error('[IndividualPayment] Database exception:', {
+                  error: dbErr,
+                  message: dbErr.message,
+                  stack: dbErr.stack,
+                })
+              }
+            }
 
             toast({
               title: "转账成功",
@@ -707,6 +881,85 @@ export default function BatchPaymentPage() {
       if (result.success && result.txHash) {
         setBatchTransferStep('transferring')
         setBatchTxHash(result.txHash)
+
+        // 保存批量转账记录到数据库
+        if (supabase && result.txHash) {
+          try {
+            console.log('[BatchPayment] Saving batch payment records to database...')
+            console.log('[BatchPayment] Transaction hash:', result.txHash)
+            console.log('[BatchPayment] Number of recipients:', validRecipients.length)
+
+            // 为每个收款人创建一条支付记录
+            // 由于 tx_hash 有 UNIQUE 约束，我们为每条记录添加唯一后缀
+            const paymentRecords = validRecipients.map((recipient, index) => ({
+              tx_hash: `${result.txHash}-${index}`, // 添加索引后缀使其唯一
+              from_address: currentWallet.toLowerCase(),
+              to_address: recipient.address.toLowerCase(),
+              vendor_id: recipient.vendorId || null,
+              token_symbol: tokenSymbol,
+              token_address: '0x0000000000000000000000000000000000000000', // 占位符
+              amount: recipient.amount,
+              amount_usd: parseFloat(recipient.amount),
+              status: 'completed',
+              timestamp: new Date().toISOString(),
+              notes: recipient.vendorName
+                ? `Batch payment to ${recipient.vendorName} (tx: ${result.txHash})`
+                : `Batch payment ${index + 1}/${recipientCount} (tx: ${result.txHash})`,
+            }))
+
+            console.log('[BatchPayment] Payment records to insert:', JSON.stringify(paymentRecords, null, 2))
+
+            // 逐条插入，避免批量插入可能的问题
+            let successCount = 0
+            let failCount = 0
+
+            for (let i = 0; i < paymentRecords.length; i++) {
+              const record = paymentRecords[i]
+              console.log(`[BatchPayment] Inserting record ${i + 1}/${paymentRecords.length}...`)
+
+              const { data: insertedData, error: dbError } = await supabase
+                .from('payments')
+                .insert(record)
+                .select()
+
+              if (dbError) {
+                failCount++
+                console.error(`[BatchPayment] Failed to save payment record ${i + 1}:`, {
+                  error: dbError,
+                  code: dbError.code,
+                  message: dbError.message,
+                  details: dbError.details,
+                  hint: dbError.hint,
+                  record: record,
+                })
+              } else {
+                successCount++
+                console.log(`[BatchPayment] Payment record ${i + 1} saved successfully:`, insertedData)
+              }
+            }
+
+            console.log(`[BatchPayment] Batch save completed: ${successCount} success, ${failCount} failed`)
+
+            if (failCount > 0) {
+              toast({
+                title: "部分记录保存失败",
+                description: `批量转账成功，但 ${failCount}/${paymentRecords.length} 条记录保存失败`,
+                variant: "default",
+              })
+            } else {
+              console.log('[BatchPayment] All payment records saved successfully')
+              // 重新加载支付历史
+              await loadPaymentHistory()
+            }
+
+          } catch (dbErr: any) {
+            console.error('[BatchPayment] Database exception:', {
+              error: dbErr,
+              message: dbErr.message,
+              stack: dbErr.stack,
+            })
+          }
+        }
 
         // 等待一下再显示成功
         setTimeout(() => {
@@ -1165,19 +1418,16 @@ export default function BatchPaymentPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Payment History Section - Placeholder */}
-      <Card className="bg-card mt-6">
-        <CardHeader>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>Recent outgoing transactions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Clock className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>Payment history is not yet implemented.</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Payment History Section */}
+      <div className="mt-6">
+        <PaymentActivity
+          payments={displayPaymentHistory}
+          walletAddress={currentWallet}
+          loading={historyLoading && !isDemoMode}
+          title="Payment History"
+          description="Recent outgoing transactions"
+        />
+      </div>
 
       <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
         <DialogContent>
