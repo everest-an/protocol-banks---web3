@@ -8,6 +8,10 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 import { verifySession } from "@/lib/auth/session";
 
+export const dynamic = "force-dynamic";
+
+const NO_STORE_HEADERS = { "Cache-Control": "no-store, max-age=0" };
+
 // Generate order number
 function generateOrderNo(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -167,12 +171,48 @@ export async function GET(request: NextRequest) {
       },
     );
 
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: NO_STORE_HEADERS },
+      );
+    }
+
+    const { data: merchantRows, error: merchantsError } = await supabase
+      .from("merchants")
+      .select("id")
+      .eq("user_id", session.userId);
+
+    if (merchantsError) {
+      console.error("[API] Merchants fetch error:", merchantsError);
+      return NextResponse.json(
+        { error: "Failed to fetch merchants" },
+        { status: 500, headers: NO_STORE_HEADERS },
+      );
+    }
+
+    const merchantIds = (merchantRows || []).map((row) => row.id);
+    if (merchantId && !merchantIds.includes(merchantId)) {
+      return NextResponse.json(
+        { error: "Merchant not found" },
+        { status: 404, headers: NO_STORE_HEADERS },
+      );
+    }
+
     let query = supabase
       .from("acquiring_orders")
       .select("*", { count: "exact" });
 
     if (merchantId) {
       query = query.eq("merchant_id", merchantId);
+    } else if (merchantIds.length > 0) {
+      query = query.in("merchant_id", merchantIds);
+    } else {
+      return NextResponse.json(
+        { success: true, orders: [], total: 0, limit, offset },
+        { headers: NO_STORE_HEADERS },
+      );
     }
 
     if (status) {
@@ -191,22 +231,25 @@ export async function GET(request: NextRequest) {
       console.error("[API] Orders fetch error:", error);
       return NextResponse.json(
         { error: "Failed to fetch orders" },
-        { status: 500 },
+        { status: 500, headers: NO_STORE_HEADERS },
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      orders,
-      total: count,
-      limit,
-      offset,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        orders,
+        total: count,
+        limit,
+        offset,
+      },
+      { headers: NO_STORE_HEADERS },
+    );
   } catch (error: any) {
     console.error("[API] Orders fetch error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 },
+      { status: 500, headers: NO_STORE_HEADERS },
     );
   }
 }

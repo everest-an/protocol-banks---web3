@@ -8,6 +8,10 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 import { verifySession } from "@/lib/auth/session";
 
+export const dynamic = "force-dynamic";
+
+const NO_STORE_HEADERS = { "Cache-Control": "no-store, max-age=0" };
+
 // Generate API Key
 function generateApiKey(): {
   keyId: string;
@@ -67,7 +71,23 @@ export async function POST(request: NextRequest) {
 
     const session = await verifySession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: NO_STORE_HEADERS },
+      );
+    }
+
+    const { data: authUser, error: authUserError } = await supabase
+      .from("auth_users")
+      .select("id")
+      .eq("id", session.userId)
+      .single();
+
+    if (authUserError || !authUser) {
+      return NextResponse.json(
+        { error: "Invalid user session" },
+        { status: 400 },
+      );
     }
 
     // Create merchant
@@ -146,34 +166,37 @@ export async function GET(request: NextRequest) {
       },
     );
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: NO_STORE_HEADERS },
+      );
     }
 
     const { data: merchants, error } = await supabase
       .from("merchants")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", session.userId)
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("[API] Merchants fetch error:", error);
       return NextResponse.json(
         { error: "Failed to fetch merchants" },
-        { status: 500 },
+        { status: 500, headers: NO_STORE_HEADERS },
       );
     }
 
-    return NextResponse.json({ success: true, merchants });
+    return NextResponse.json(
+      { success: true, merchants },
+      { headers: NO_STORE_HEADERS },
+    );
   } catch (error: any) {
     console.error("[API] Merchants fetch error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 },
+      { status: 500, headers: NO_STORE_HEADERS },
     );
   }
 }

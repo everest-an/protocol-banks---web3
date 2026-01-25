@@ -57,6 +57,11 @@ CREATE TABLE IF NOT EXISTS merchant_balances (
   UNIQUE(merchant_id, token)
 );
 
+ALTER TABLE merchants DROP CONSTRAINT IF EXISTS merchants_user_id_fkey;
+ALTER TABLE merchant_api_keys DROP CONSTRAINT IF EXISTS merchant_api_keys_merchant_id_fkey;
+ALTER TABLE acquiring_orders DROP CONSTRAINT IF EXISTS acquiring_orders_merchant_id_fkey;
+ALTER TABLE merchant_balances DROP CONSTRAINT IF EXISTS merchant_balances_merchant_id_fkey;
+
 -- Create Indexes
 CREATE INDEX IF NOT EXISTS idx_merchants_user_id ON merchants(user_id);
 CREATE INDEX IF NOT EXISTS idx_merchants_status ON merchants(status);

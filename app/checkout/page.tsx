@@ -2,14 +2,17 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Clock, Copy, ArrowLeft, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWeb3 } from "@/contexts/web3-context";
-import { sendToken, getTokenAddress } from "@/lib/web3";
+import { sendToken, getTokenAddress, ERC20_ABI, CHAIN_IDS, RPC_URLS } from "@/lib/web3";
 import { ethers } from "ethers";
+import { QRCodeSVG } from "qrcode.react";
 import type { AcquiringOrder } from "@/types/acquiring";
 
 interface PaymentMethod {
@@ -19,7 +22,8 @@ interface PaymentMethod {
   description: string;
   feesIncluded: boolean;
   icon: string;
-  tokens?: string[];
+  tokens?: { symbol: string; logo: string }[];
+  disabled?: boolean;
 }
 
 const PAYMENT_METHODS: PaymentMethod[] = [
@@ -30,6 +34,7 @@ const PAYMENT_METHODS: PaymentMethod[] = [
     description: "Pay with any token in your Binance account",
     feesIncluded: true,
     icon: "⚡",
+    disabled: true,
   },
   {
     id: "kucoin_pay",
@@ -38,6 +43,7 @@ const PAYMENT_METHODS: PaymentMethod[] = [
     description: "Pay with any token in your KuCoin account",
     feesIncluded: true,
     icon: "⚡",
+    disabled: true,
   },
   {
     id: "crypto_transfer",
@@ -46,14 +52,24 @@ const PAYMENT_METHODS: PaymentMethod[] = [
     description: "No Channel Fee",
     feesIncluded: false,
     icon: "🔗",
-    tokens: ["USDC", "USDT", "DAI"],
+    tokens: [
+      { symbol: "USDT", logo: "/tokens/usdt.png" },
+      { symbol: "USDC", logo: "/tokens/usdc.png" },
+    ],
   },
 ];
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { isConnected, wallets, chainId } = useWeb3();
+  const { chainId } = useWeb3();
+
+  const NETWORK_CHAIN_IDS: Record<string, number> = {
+    eth: CHAIN_IDS.MAINNET,
+    base: CHAIN_IDS.BASE,
+    arb: CHAIN_IDS.ARBITRUM,
+    bnb: CHAIN_IDS.BSC,
+  };
 
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -61,6 +77,9 @@ function CheckoutContent() {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [completed, setCompleted] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [showNetworkSelection, setShowNetworkSelection] = useState(false);
+  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
 
   const orderNo = searchParams.get("order");
 
@@ -115,6 +134,98 @@ function CheckoutContent() {
     return () => clearInterval(interval);
   }, [order]);
 
+  // Monitor transactions when QR code is shown
+  useEffect(() => {
+    if (!showQRCode || !order || completed || !selectedNetwork) return;
+
+    const targetChainId = NETWORK_CHAIN_IDS[selectedNetwork];
+    if (!targetChainId) return;
+
+    const rpcUrl = RPC_URLS[targetChainId as keyof typeof RPC_URLS];
+    // If no RPC (e.g. Tron), we can't monitor via EVM provider. 
+    // Ideally we should have a Tron monitoring logic, but for now skip.
+    if (!rpcUrl) return;
+
+    let contract: ethers.Contract | null = null;
+    let provider: ethers.JsonRpcProvider | null = null;
+
+    const startMonitoring = async () => {
+      try {
+        // Use JsonRpcProvider to monitor the specific chain independent of user wallet
+        provider = new ethers.JsonRpcProvider(rpcUrl);
+        
+        const tokenAddress = getTokenAddress(targetChainId, order.token);
+        
+        if (!tokenAddress) return;
+
+        contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+        const recipientAddress = (order as any).merchant_wallet_address || order.merchant_id;
+
+        console.log(`Monitoring ${selectedNetwork} (${targetChainId}) transfers to:`, recipientAddress);
+
+        // Filter for Transfer events to the recipient
+        const filter = contract.filters.Transfer(null, recipientAddress);
+
+        // Listen for events
+        contract.on(filter, async (from, to, value, event) => {
+          try {
+            // Get token decimals to format amount correctly
+            const decimals = await contract!.decimals();
+            const formattedAmount = ethers.formatUnits(value, decimals);
+            
+            console.log(`Detected transfer: ${formattedAmount} ${order.token} from ${from}`);
+
+            // Check if amount matches (or is greater/equal)
+            // Note: In production, we should also check the timestamp/block to ensure it's new
+            if (parseFloat(formattedAmount) >= order.amount) {
+              console.log("Payment detected!");
+              
+              // Update order status
+              await fetch(`/api/acquiring/orders/${order.order_no}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  status: "paid",
+                  payment_method: "crypto_transfer_qr",
+                  payer_address: from,
+                  tx_hash: event.log.transactionHash,
+                }),
+              });
+
+              setCompleted(true);
+              setShowQRCode(false);
+              toast({
+                title: "Payment Successful",
+                description: "Transaction detected and confirmed",
+              });
+              
+              if (order.return_url) {
+                setTimeout(() => {
+                  window.location.href = order.return_url!;
+                }, 3000);
+              }
+            }
+          } catch (err) {
+            console.error("Error processing event:", err);
+          }
+        });
+
+      } catch (err) {
+        console.error("Error setting up monitoring:", err);
+      }
+    };
+
+    startMonitoring();
+
+    return () => {
+      if (contract) {
+        contract.removeAllListeners();
+      }
+      // JsonRpcProvider doesn't need explicit destroy usually, but good to clean up listeners
+    };
+  }, [showQRCode, order, completed, toast, selectedNetwork]);
+
+
   // Format countdown time
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -123,90 +234,41 @@ function CheckoutContent() {
     return `${String(h).padStart(2, "0")} : ${String(m).padStart(2, "0")} : ${String(s).padStart(2, "0")}`;
   };
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied",
+      description: "Address copied to clipboard",
+    });
+  };
+
   // Handle payment
   const handlePayment = async () => {
-    if (!selectedMethod || !order || !isConnected || !wallets.EVM) {
-      toast({
-        title: "Please Connect Wallet",
-        description: "You need to connect wallet to complete payment",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!selectedMethod) return;
 
     if (selectedMethod === "binance_pay" || selectedMethod === "kucoin_pay") {
-      toast({
-        title: "Feature In Development",
-        description:
-          "This payment method is not yet integrated, please choose Crypto Transfer",
-        variant: "destructive",
-      });
-      return;
+        // Disabled in UI, but keep safety check
+        return;
     }
 
-    setProcessing(true);
-
-    try {
-      const tokenAddress = getTokenAddress(chainId, order.token);
-      if (!tokenAddress) {
-        throw new Error("Token not supported on this network");
-      }
-
-      toast({
-        title: "Please Confirm Transaction",
-        description: "Please confirm the payment transaction in your wallet",
-      });
-
-      // Send tokens
-      // Note: This should use the merchant's wallet address, currently using merchant_id as placeholder
-      // Should actually return merchant's wallet_address from order details API
-      const recipientAddress =
-        (order as any).merchant_wallet_address || order.merchant_id;
-
-      if (!recipientAddress || !ethers.isAddress(recipientAddress)) {
-        throw new Error("Invalid merchant wallet address");
-      }
-
-      const txHash = await sendToken(
-        tokenAddress,
-        recipientAddress,
-        order.amount.toString(),
-      );
-
-      // Update order status
-      await fetch(`/api/acquiring/orders/${order.order_no}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "paid",
-          payment_method: selectedMethod,
-          payer_address: wallets.EVM,
-          tx_hash: txHash,
-        }),
-      });
-
-      setCompleted(true);
-      toast({
-        title: "Payment Successful",
-        description: "Your payment has been completed",
-      });
-
-      // If there's a return URL, redirect after 3 seconds
-      if (order.return_url) {
-        setTimeout(() => {
-          window.location.href = order.return_url!;
-        }, 3000);
-      }
-    } catch (error: any) {
-      console.error("[Checkout] Payment error:", error);
-      toast({
-        title: "Payment Failed",
-        description: error.message || "An error occurred during payment",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessing(false);
+    if (selectedMethod === "crypto_transfer") {
+        setShowNetworkSelection(true);
+        return;
     }
+  };
+
+  const NETWORKS = [
+    { id: "eth", name: "Ethereum", logo: "/networks/eth.png" },
+    { id: "base", name: "Base", logo: "/networks/base.png" },
+    { id: "arb", name: "Arbitrum", logo: "/networks/arb.png" },
+    { id: "bnb", name: "BNB Chain", logo: "/networks/bnb.png" },
+    { id: "tron", name: "Tron", logo: "/networks/tron.png" },
+  ];
+
+  const handleNetworkSelect = (networkId: string) => {
+    setSelectedNetwork(networkId);
+    setShowNetworkSelection(false);
+    setShowQRCode(true);
   };
 
   if (loading) {
@@ -303,6 +365,26 @@ function CheckoutContent() {
     );
   }
 
+  const recipientAddress = (order as any).merchant_wallet_address || order.merchant_id;
+
+  const getQRCodeValue = () => {
+    if (!selectedNetwork) return recipientAddress;
+
+    const chainId = NETWORK_CHAIN_IDS[selectedNetwork];
+    if (!chainId) return recipientAddress;
+
+    const tokenAddress = getTokenAddress(chainId, order.token);
+    
+    // EIP-681 URI
+    if (tokenAddress) {
+       // ethereum:<token_address>@<chain_id>/transfer?address=<recipient_address>
+       return `ethereum:${tokenAddress}@${chainId}/transfer?address=${recipientAddress}`;
+    }
+    
+    // Fallback for native or if token address not found
+    return `ethereum:${recipientAddress}@${chainId}`;
+  };
+
   return (
     <div className="container max-w-lg mx-auto py-10 px-4">
       <Card className="border-border shadow-lg">
@@ -327,89 +409,223 @@ function CheckoutContent() {
         </CardHeader>
 
         <CardContent className="pt-6 space-y-4">
-          {PAYMENT_METHODS.map((method) => (
-            <button
-              key={method.id}
-              onClick={() => setSelectedMethod(method.id)}
-              className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
-                selectedMethod === method.id
-                  ? "border-primary bg-primary/10 shadow-md transform scale-[1.02]"
-                  : "border-border hover:border-primary/50 opacity-80 hover:opacity-100"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{method.icon}</span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{method.name}</span>
-                      <Badge
-                        variant="secondary"
-                        className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 text-xs"
-                      >
-                        {method.badge}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {method.description}
-                    </div>
-                    {method.feesIncluded && (
-                      <div className="text-xs text-muted-foreground italic mt-1">
-                        Fees Included
-                      </div>
-                    )}
-                    {method.tokens && (
-                      <div className="flex gap-1 mt-2">
-                        {method.tokens.map((token) => (
-                          <span
-                            key={token}
-                            className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs"
-                          >
-                            {token[0]}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+          {showNetworkSelection ? (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right duration-300">
+              <div className="flex items-center mb-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNetworkSelection(false)}
+                  className="-ml-2"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <h3 className="text-lg font-semibold ml-2">Select Network</h3>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                {NETWORKS.map((network) => (
+                  <button
+                    key={network.id}
+                    onClick={() => handleNetworkSelect(network.id)}
+                    className="flex items-center gap-3 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all text-left"
+                  >
+                    <Image
+                      src={network.logo}
+                      alt={network.name}
+                      width={32}
+                      height={32}
+                      className="rounded-full"
+                    />
+                    <span className="font-medium">{network.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : !showQRCode ? (
+            <>
+              {PAYMENT_METHODS.map((method) => (
+                <button
+                  key={method.id}
+                  onClick={() => !method.disabled && setSelectedMethod(method.id)}
+                  disabled={method.disabled}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     selectedMethod === method.id
-                      ? "border-primary"
-                      : "border-muted-foreground/30"
+                      ? "border-primary bg-primary/10 shadow-md transform scale-[1.02]"
+                      : method.disabled
+                        ? "border-border/50 opacity-50 cursor-not-allowed bg-muted/20"
+                        : "border-border hover:border-primary/50 opacity-80 hover:opacity-100"
                   }`}
                 >
-                  {selectedMethod === method.id && (
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                  )}
-                </div>
-              </div>
-            </button>
-          ))}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{method.icon}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{method.name}</span>
+                          <Badge
+                            variant="secondary"
+                            className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 text-xs"
+                          >
+                            {method.badge}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {method.description}
+                        </div>
+                        {method.feesIncluded && (
+                          <div className="text-xs text-muted-foreground italic mt-1">
+                            Fees Included
+                          </div>
+                        )}
+                        {method.tokens && (
+                          <div className="flex gap-2 mt-2">
+                            {method.tokens.map((token) => (
+                              <div
+                                key={token.symbol}
+                                className="w-6 h-6 rounded-full bg-background border flex items-center justify-center overflow-hidden"
+                                title={token.symbol}
+                              >
+                                <Image 
+                                    src={token.logo} 
+                                    alt={token.symbol} 
+                                    width={24} 
+                                    height={24}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        selectedMethod === method.id
+                          ? "border-primary"
+                          : "border-muted-foreground/30"
+                      }`}
+                    >
+                      {selectedMethod === method.id && (
+                        <div className="w-3 h-3 rounded-full bg-primary" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
 
-          <Button
-            size="lg"
-            className="w-full mt-6"
-            onClick={handlePayment}
-            disabled={!selectedMethod || processing || !isConnected}
-          >
-            {processing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : !isConnected ? (
-              "Please Connect Wallet"
-            ) : (
-              "Continue"
-            )}
-          </Button>
+              <Button
+                size="lg"
+                className="w-full mt-6"
+                onClick={handlePayment}
+                disabled={!selectedMethod || processing}
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Continue"
+                )}
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+               <div className="flex items-center justify-between">
+                   <Button variant="ghost" size="sm" onClick={() => setShowQRCode(false)} className="-ml-2">
+                       <ArrowLeft className="w-4 h-4 mr-2" />
+                       Back
+                   </Button>
+                   <Badge variant="outline" className="animate-pulse">
+                       <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                       Monitoring Network
+                   </Badge>
+               </div>
+               
+               <div className="flex flex-col items-center justify-center p-6 bg-white rounded-xl shadow-inner border border-border">
+                  <QRCodeSVG 
+                    value={getQRCodeValue()} 
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+               </div>
+
+               <div className="space-y-4">
+                  <div className="space-y-1">
+                      <div className="text-sm text-muted-foreground">Send Amount</div>
+                      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
+                          <div className="flex items-center gap-2">
+                             {['USDC', 'USDT'].includes(order.token) && (
+                                <Image 
+                                    src={`/tokens/${order.token.toLowerCase()}.png`}
+                                    alt={order.token}
+                                    width={24}
+                                    height={24}
+                                    className="rounded-full"
+                                />
+                             )}
+                             <span className="font-mono font-bold text-lg">{order.amount} {order.token}</span>
+                          </div>
+                          <Button variant="ghost" size="icon" onClick={() => handleCopy(order.amount.toString())}>
+                              <Copy className="w-4 h-4" />
+                          </Button>
+                      </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                      <div className="text-sm text-muted-foreground">Network</div>
+                      <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border border-border">
+                          {selectedNetwork && (() => {
+                              const network = NETWORKS.find(n => n.id === selectedNetwork);
+                              return network ? (
+                                  <>
+                                      <Image 
+                                          src={network.logo} 
+                                          alt={network.name} 
+                                          width={20} 
+                                          height={20}
+                                          className="rounded-full"
+                                      />
+                                      <span className="font-medium">{network.name}</span>
+                                  </>
+                              ) : null;
+                          })()}
+                      </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                      <div className="text-sm text-muted-foreground">To Address</div>
+                      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
+                          <span className="font-mono text-xs break-all">{recipientAddress}</span>
+                          <Button variant="ghost" size="icon" onClick={() => handleCopy(recipientAddress)}>
+                              <Copy className="w-4 h-4" />
+                          </Button>
+                      </div>
+                  </div>
+               </div>
+
+               <div className="text-center text-sm text-muted-foreground bg-blue-500/5 p-4 rounded-lg border border-blue-500/10">
+                   <p>Please send the exact amount to the address above.</p>
+                   <p className="mt-1">The page will automatically update once payment is detected.</p>
+               </div>
+            </div>
+          )}
 
           <div className="text-center text-sm text-muted-foreground mt-4">
             Powered by Protocol Banks
           </div>
         </CardContent>
       </Card>
+
+      <div className="mt-6 text-center">
+        <Link href="/acquiring/orders">
+          <Button variant="link" className="text-muted-foreground">
+            Back to Console
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

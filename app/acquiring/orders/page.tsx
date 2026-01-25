@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import NextImage from "next/image";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -284,9 +282,27 @@ export default function OrdersPage() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    View Details
-                  </Button>
+                  <div className="flex gap-2">
+                    {order.status === "pending" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(
+                            `${window.location.origin}/checkout?order=${order.order_no}`,
+                            "_blank",
+                          );
+                        }}
+                      >
+                        Checkout
+                        <ExternalLink className="ml-2 h-3 w-3" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm">
+                      View Details
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -294,8 +310,15 @@ export default function OrdersPage() {
         )}
       </div>
 
-      {/* Create Order Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog 
+        open={showCreateDialog} 
+        onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) {
+            setNewCheckoutUrl("");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Order</DialogTitle>
@@ -350,9 +373,30 @@ export default function OrdersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USDC">USDC</SelectItem>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                    <SelectItem value="DAI">DAI</SelectItem>
+                    <SelectItem value="USDC">
+                      <div className="flex items-center gap-2">
+                        <NextImage
+                          src="/tokens/usdc.png"
+                          alt="USDC"
+                          width={20}
+                          height={20}
+                          className="rounded-full"
+                        />
+                        <span>USDC</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="USDT">
+                      <div className="flex items-center gap-2">
+                        <NextImage
+                          src="/tokens/usdt.png"
+                          alt="USDT"
+                          width={20}
+                          height={20}
+                          className="rounded-full"
+                        />
+                        <span>USDT</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -397,22 +441,24 @@ export default function OrdersPage() {
               </div>
             )}
             <div className="flex gap-2">
-              <Button type="submit" disabled={creating}>
-                {creating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Order"
-                )}
-              </Button>
+              {!newCheckoutUrl && (
+                <Button type="submit" disabled={creating}>
+                  {creating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Order"
+                  )}
+                </Button>
+              )}
               <Button
                 type="button"
-                variant="outline"
+                variant={newCheckoutUrl ? "default" : "outline"}
                 onClick={() => setShowCreateDialog(false)}
               >
-                Cancel
+                {newCheckoutUrl ? "Close" : "Cancel"}
               </Button>
             </div>
           </form>
@@ -457,6 +503,47 @@ export default function OrdersPage() {
                   <div className="mt-1">{selectedOrder.chain_id}</div>
                 </div>
               </div>
+
+              {selectedOrder.status === "pending" && (
+                <div className="space-y-2 p-3 bg-secondary/20 rounded-lg">
+                  <Label className="text-xs text-muted-foreground">
+                    Checkout Link
+                  </Label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 p-2 bg-background rounded border text-xs font-mono truncate">
+                      {typeof window !== "undefined"
+                        ? `${window.location.origin}/checkout?order=${selectedOrder.order_no}`
+                        : ""}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      onClick={() =>
+                        copyToClipboard(
+                          `${window.location.origin}/checkout?order=${selectedOrder.order_no}`,
+                        )
+                      }
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      onClick={() =>
+                        window.open(
+                          `${window.location.origin}/checkout?order=${selectedOrder.order_no}`,
+                          "_blank",
+                        )
+                      }
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {selectedOrder.payer_address && (
                 <div className="text-sm">
                   <span className="text-muted-foreground">Payer Address</span>

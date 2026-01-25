@@ -1,5 +1,6 @@
 import { ethers } from "ethers"
-import type { ChainType } from "./path-to-chain-type" // Assuming ChainType is declared in another file
+
+export type ChainType = "EVM" | "SOL" | "BTC"
 
 // Re-export service layer functions for unified access
 export {
@@ -19,6 +20,16 @@ export const CHAIN_IDS = {
   MAINNET: 1,
   SEPOLIA: 11155111,
   BASE: 8453,
+  ARBITRUM: 42161,
+  BSC: 56,
+} as const
+
+export const RPC_URLS = {
+  [CHAIN_IDS.MAINNET]: "https://cloudflare-eth.com",
+  [CHAIN_IDS.BASE]: "https://mainnet.base.org",
+  [CHAIN_IDS.ARBITRUM]: "https://arb1.arbitrum.io/rpc",
+  [CHAIN_IDS.BSC]: "https://bsc-dataseed.binance.org",
+  [CHAIN_IDS.SEPOLIA]: "https://rpc.sepolia.org",
 } as const
 
 export const CCTP_DOMAINS = {
@@ -58,6 +69,14 @@ export const TOKEN_ADDRESSES = {
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Native USDC (Circle)
     DAI: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", // Bridged DAI
   },
+  [CHAIN_IDS.ARBITRUM]: {
+    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+  },
+  [CHAIN_IDS.BSC]: {
+    USDT: "0x55d398326f99059fF775485246999027B3197955",
+    USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+  },
 } as const
 
 export const ERC20_ABI = [
@@ -68,6 +87,7 @@ export const ERC20_ABI = [
   "function allowance(address owner, address spender) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)",
   "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external",
+  "event Transfer(address indexed from, address indexed to, uint256 value)",
 ]
 
 export const CCTP_ABI = [
@@ -76,6 +96,7 @@ export const CCTP_ABI = [
 
 declare global {
   interface Window {
+    ethereum?: any
     solana?: {
       isPhantom?: boolean
       connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString: () => string } }>
