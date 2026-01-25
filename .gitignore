@@ -25,3 +25,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#others
+xx.txt
+/scripts/list-all-tables.js
+/scripts/run-migration.js
