@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # Redis - 用于队列和缓存
   redis:

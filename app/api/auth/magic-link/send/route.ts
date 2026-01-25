@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Send email
     try {
-      await resend.emails.send({
+      const { data, error: resendError } = await resend.emails.send({
         from: `${AUTH_CONFIG.email.fromName} <${AUTH_CONFIG.email.fromAddress}>`,
         to: email.toLowerCase(),
         subject: "Sign in to Protocol Bank",
@@ -117,10 +117,30 @@ export async function POST(request: NextRequest) {
           </html>
         `,
       })
+      if (resendError) {
+        console.error("[Auth] Failed to send email:", resendError)
+        return NextResponse.json(
+          { error: "Failed to send magic link", message: resendError.message || "Resend error" },
+          { status: 502 },
+        )
+      }
+      if (!data?.id) {
+        console.error("[Auth] Resend returned no message id:", data)
+        return NextResponse.json(
+          { error: "Failed to send magic link", message: "No message id returned" },
+          { status: 502 },
+        )
+      }
     } catch (emailError) {
       console.error("[Auth] Failed to send email:", emailError)
       // Don't expose email errors to client
-      return NextResponse.json({ error: "Failed to send magic link" }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: "Failed to send magic link",
+          message: emailError instanceof Error ? emailError.message : "Unknown error",
+        },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({ success: true, message: "Magic link sent" })

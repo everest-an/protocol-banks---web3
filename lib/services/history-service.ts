@@ -70,8 +70,9 @@ export function filterTransactions(
     if (filters.startDate && paymentDate < filters.startDate) return false
     if (filters.endDate && paymentDate > filters.endDate) return false
 
-    if (filters.minAmount !== undefined && payment.amount < filters.minAmount) return false
-    if (filters.maxAmount !== undefined && payment.amount > filters.maxAmount) return false
+    const amount = typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount
+    if (filters.minAmount !== undefined && amount < filters.minAmount) return false
+    if (filters.maxAmount !== undefined && amount > filters.maxAmount) return false
 
     return true
   })
@@ -98,7 +99,8 @@ export function getLast12MonthsData(payments: Payment[]): { month: string; amoun
 
     const monthData = months.find((m) => m.month === monthKey)
     if (monthData) {
-      monthData.amount += payment.amount
+      const amount = typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount
+      monthData.amount += amount || 0
     }
   })
 
@@ -114,7 +116,10 @@ export function calculateTransactionStats(payments: Payment[]) {
   const pending = payments.filter((p) => p.status === "pending").length
   const failed = payments.filter((p) => p.status === "failed").length
 
-  const totalVolume = payments.reduce((sum, p) => sum + p.amount, 0)
+  const totalVolume = payments.reduce((sum, p) => {
+    const amount = typeof p.amount === 'string' ? parseFloat(p.amount) : p.amount
+    return sum + (amount || 0)
+  }, 0)
   const avgAmount = total > 0 ? totalVolume / total : 0
 
   return {

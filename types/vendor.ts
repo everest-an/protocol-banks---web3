@@ -6,6 +6,7 @@ export type VendorCategory =
   | "contractor" 
   | "partner" 
   | "subsidiary" 
+  | "vendor"
   | "other"
   | "Technology"
   | "Manufacturing"
@@ -20,7 +21,7 @@ export interface Vendor {
   wallet_address: string
   company_name?: string
   name?: string  // Alias for company_name
-  category: VendorCategory
+  category?: VendorCategory
   tier?: VendorTier
   type?: string  // Legacy field
   chain: string
@@ -34,6 +35,8 @@ export interface Vendor {
   notes?: string
   monthly_volume?: number
   transaction_count?: number
+  parentId?: string  // For network graph hierarchy
+  totalReceived?: number  // Total amount received
   metadata?: {
     total_volume?: number
     tx_count?: number
@@ -58,7 +61,7 @@ export interface VendorInput {
   wallet_address: string
   company_name?: string
   name?: string
-  category: VendorCategory | ''
+  category?: VendorCategory
   tier?: VendorTier
   type?: string
   chain: string
