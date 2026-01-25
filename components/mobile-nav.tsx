@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Wallet, Send, QrCode, ArrowLeftRight, Shield } from "lucide-react"
+import { Wallet, Send, QrCode, ArrowLeftRight, Shield, ShoppingBag } from "lucide-react"
 
 const navItems = [
   { href: "/", label: "Account", icon: Wallet },
   { href: "/batch-payment", label: "Pay", icon: Send },
   { href: "/receive", label: "Receive", icon: QrCode },
   { href: "/swap", label: "Swap", icon: ArrowLeftRight },
+  { href: "/acquiring", label: "Acquiring", icon: ShoppingBag },
   { href: "/settings/multisig", label: "Multi-sig", icon: Shield },
 ]
 
