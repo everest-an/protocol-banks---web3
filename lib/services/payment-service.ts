@@ -87,7 +87,33 @@ export async function processSinglePayment(
   })
 
   try {
-    const txHash = await sendToken(wallet, recipient.address, recipient.amount, recipient.token, chain)
+    // Get the correct token address for the current chain
+    const chainId = await (async () => {
+      if (typeof window !== "undefined" && window.ethereum) {
+        const provider = new (await import("ethers")).ethers.BrowserProvider(window.ethereum)
+        const network = await provider.getNetwork()
+        return Number(network.chainId)
+      }
+      return 1 // Default to mainnet
+    })()
+
+    const { getTokenAddress } = await import("@/lib/web3")
+    const tokenAddress = getTokenAddress(chainId, recipient.token || "USDC")
+
+    if (!tokenAddress) {
+      throw new Error(`Token ${recipient.token} not supported on chain ${chainId}`)
+    }
+
+    console.log("[v0] Sending token:", {
+      tokenAddress,
+      to: recipient.address,
+      amount: recipient.amount,
+      token: recipient.token,
+      chainId,
+    })
+
+    const { sendToken } = await import("@/lib/web3")
+    const txHash = await sendToken(tokenAddress, recipient.address, recipient.amount)
 
     // Trigger payment.completed webhook (fire and forget)
     webhookTriggerService.triggerPaymentCompleted(wallet, {
@@ -245,7 +271,7 @@ export async function processBatchPayment(
   })
 
   const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  const total = recipients.reduce((sum, r) => sum + (r.amount || 0), 0)
+  const total = Number(recipients.reduce((sum, r) => sum + (r.amount || 0), 0))
   const batchEventData: BatchPaymentEventData = {
     batch_id: batchId,
     from_address: wallet,
@@ -305,7 +331,7 @@ export async function processBatchPayment(
   const results = await processBatchPayments(recipients, wallet, "EVM")
 
   const successCount = results.filter((r) => r.success).length
-  const totalPaid = results.reduce((sum, r) => (r.success ? sum + r.amount : sum), 0).toFixed(2)
+  const totalPaid = Number(results.reduce((sum, r) => (r.success ? sum + Number(r.amount) : sum), 0)).toFixed(2)
 
   // Generate report
   const report = generateBatchCsvReport(

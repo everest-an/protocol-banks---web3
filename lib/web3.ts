@@ -19,11 +19,13 @@ export const CHAIN_IDS = {
   MAINNET: 1,
   SEPOLIA: 11155111,
   BASE: 8453,
+  ARBITRUM: 42161,
 } as const
 
 export const CCTP_DOMAINS = {
   [CHAIN_IDS.MAINNET]: 0,
   [CHAIN_IDS.BASE]: 6,
+  [CHAIN_IDS.ARBITRUM]: 3,
   [CHAIN_IDS.SEPOLIA]: 0, // Eth Sepolia is 0
   // Note: Base Sepolia is 6, but we treat Sepolia as Eth testnet mostly here.
   // If we support Base Sepolia, we'd need a new Chain ID in CHAIN_IDS.
@@ -32,6 +34,7 @@ export const CCTP_DOMAINS = {
 export const CCTP_TOKEN_MESSENGER_ADDRESSES = {
   [CHAIN_IDS.MAINNET]: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d", // Verified Mainnet
   [CHAIN_IDS.BASE]: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d", // Verified Base
+  [CHAIN_IDS.ARBITRUM]: "0x19330d10D9Cc8751218eaf51E8885D058642E08A", // Verified Arbitrum One
   [CHAIN_IDS.SEPOLIA]: "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA", // Verified Sepolia
 } as const
 
@@ -58,6 +61,12 @@ export const TOKEN_ADDRESSES = {
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Native USDC (Circle)
     DAI: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", // Bridged DAI
   },
+  [CHAIN_IDS.ARBITRUM]: {
+    // Arbitrum One Mainnet Addresses
+    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", // Bridged USDT (Arbitrum Official Bridge)
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // Native USDC (Circle)
+    DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", // Bridged DAI
+  },
 } as const
 
 export const ERC20_ABI = [
@@ -76,6 +85,8 @@ export const CCTP_ABI = [
 
 declare global {
   interface Window {
+    ethereum?: any
+    tokenpocket?: any
     solana?: {
       isPhantom?: boolean
       connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString: () => string } }>
@@ -104,6 +115,31 @@ export function isMetaMaskAvailable(): boolean {
   return !!eth.isMetaMask
 }
 
+export function isTokenPocketAvailable(): boolean {
+  if (typeof window === "undefined") return false
+  const eth = window.ethereum as any
+  if (!eth) return false
+
+  // TokenPocket sets isTokenPocket flag
+  if (eth.isTokenPocket) return true
+
+  // Check in providers array
+  if (eth.providers) {
+    return eth.providers.some((p: any) => p.isTokenPocket)
+  }
+
+  // Check window.tokenpocket
+  return !!window.tokenpocket
+}
+
+export function getAvailableWallets(): string[] {
+  const wallets: string[] = []
+  if (isMetaMaskAvailable()) wallets.push("MetaMask")
+  if (isTokenPocketAvailable()) wallets.push("TokenPocket")
+  if (window.ethereum) wallets.push("Injected")
+  return wallets
+}
+
 export function isMobileDevice(): boolean {
   if (typeof window === "undefined") return false
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -127,19 +163,19 @@ export async function getChainId(): Promise<number> {
   return Number(network.chainId)
 }
 
-export async function connectWallet(type: ChainType): Promise<string | null> {
+export async function connectWallet(type: ChainType, preferredWallet?: "MetaMask" | "TokenPocket"): Promise<string | null> {
   if (typeof window === "undefined") {
     throw new Error("Window is not available")
   }
 
   // If mobile and no ethereum provider, we can't connect directly
-  // The UI should handle redirecting to MetaMask app
+  // The UI should handle redirecting to wallet app
   if (isMobileDevice() && !window.ethereum) {
     return null
   }
 
   if (!window.ethereum) {
-    throw new Error("Please install MetaMask extension to connect your wallet")
+    throw new Error("Please install a Web3 wallet (MetaMask, TokenPocket, etc.)")
   }
 
   try {
@@ -147,20 +183,40 @@ export async function connectWallet(type: ChainType): Promise<string | null> {
 
     if (type === "EVM") {
       let provider = window.ethereum as any
-      if (provider.providers) {
-        const metaMaskProvider = provider.providers.find((p: any) => p.isMetaMask)
-        if (metaMaskProvider) {
-          provider = metaMaskProvider
+
+      // Handle multiple wallet providers
+      if (provider.providers && provider.providers.length > 0) {
+        // Try to find preferred wallet first
+        if (preferredWallet === "TokenPocket") {
+          const tpProvider = provider.providers.find((p: any) => p.isTokenPocket)
+          if (tpProvider) {
+            provider = tpProvider
+            console.log("[Web3] Using TokenPocket provider")
+          }
+        } else if (preferredWallet === "MetaMask") {
+          const mmProvider = provider.providers.find((p: any) => p.isMetaMask)
+          if (mmProvider) {
+            provider = mmProvider
+            console.log("[Web3] Using MetaMask provider")
+          }
+        } else {
+          // Auto-detect: prefer TokenPocket if available, fallback to MetaMask
+          const tpProvider = provider.providers.find((p: any) => p.isTokenPocket)
+          const mmProvider = provider.providers.find((p: any) => p.isMetaMask)
+          provider = tpProvider || mmProvider || provider.providers[0]
+          console.log("[Web3] Auto-detected provider:", provider.isTokenPocket ? "TokenPocket" : provider.isMetaMask ? "MetaMask" : "Unknown")
         }
       }
 
-      console.log("[Web3] Requesting accounts from provider:", provider)
+      console.log("[Web3] Requesting accounts from provider")
 
-      // This is more reliable for triggering the popup
+      // Request account access
       const accounts = (await provider.request({
         method: "eth_requestAccounts",
       })) as string[]
       address = accounts[0]
+
+      console.log("[Web3] Connected to address:", address)
     }
 
     if (address) {
@@ -169,7 +225,8 @@ export async function connectWallet(type: ChainType): Promise<string | null> {
   } catch (error: any) {
     console.error("[Web3] Failed to connect wallet:", error.message)
     if (error.code !== 4001) {
-      // alert(error.message || "Failed to connect wallet")
+      // User rejected request
+      console.warn("[Web3] User rejected the connection request")
     }
     throw new Error(error.message || "Failed to connect wallet")
   }
@@ -186,21 +243,66 @@ export function getTokenAddress(chainId: number, symbol: string): string | undef
   return (chainAddresses as any)[symbol]
 }
 
+// Network configurations for adding chains
+export const NETWORK_CONFIGS: Record<number, {
+  chainId: string
+  chainName: string
+  nativeCurrency: { name: string; symbol: string; decimals: number }
+  rpcUrls: string[]
+  blockExplorerUrls: string[]
+}> = {
+  [CHAIN_IDS.ARBITRUM]: {
+    chainId: "0x" + CHAIN_IDS.ARBITRUM.toString(16),
+    chainName: "Arbitrum One",
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: ["https://arb1.arbitrum.io/rpc"],
+    blockExplorerUrls: ["https://arbiscan.io"],
+  },
+  [CHAIN_IDS.BASE]: {
+    chainId: "0x" + CHAIN_IDS.BASE.toString(16),
+    chainName: "Base",
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: ["https://mainnet.base.org"],
+    blockExplorerUrls: ["https://basescan.org"],
+  },
+}
+
 export async function switchNetwork(chainId: number) {
   if (typeof window === "undefined" || !window.ethereum) return
+
+  const hexChainId = "0x" + chainId.toString(16)
 
   try {
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0x" + chainId.toString(16) }],
+      params: [{ chainId: hexChainId }],
     })
+    console.log(`[Web3] Switched to chain ${chainId}`)
   } catch (error: any) {
-    // This error code indicates that the chain has not been added to MetaMask.
+    // This error code indicates that the chain has not been added to the wallet
     if (error.code === 4902) {
-      // We could add logic here to add the chain, but for Mainnet/Sepolia it's usually there
-      console.error("[v0] Chain not found in MetaMask")
+      console.log(`[Web3] Chain ${chainId} not found, attempting to add it`)
+
+      const networkConfig = NETWORK_CONFIGS[chainId]
+      if (networkConfig) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [networkConfig],
+          })
+          console.log(`[Web3] Successfully added chain ${chainId}`)
+        } catch (addError: any) {
+          console.error("[Web3] Failed to add chain:", addError)
+          throw new Error(`Failed to add ${networkConfig.chainName} to your wallet`)
+        }
+      } else {
+        console.error(`[Web3] No configuration found for chain ${chainId}`)
+        throw new Error(`Chain ${chainId} is not supported`)
+      }
+    } else {
+      console.error("[Web3] Failed to switch network:", error)
+      throw error
     }
-    throw error
   }
 }
 
@@ -279,6 +381,8 @@ export async function getTokenBalance(walletAddress: string, tokenAddress: strin
 }
 
 export async function sendToken(tokenAddress: string, toAddress: string, amount: string): Promise<string> {
+  console.log("[Web3] sendToken called with:", { tokenAddress, toAddress, amount })
+
   if (tokenAddress === "SOL") {
     console.log("[Web3] Simulating Solana transaction...")
     await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -292,7 +396,7 @@ export async function sendToken(tokenAddress: string, toAddress: string, amount:
   }
 
   if (typeof window === "undefined" || !window.ethereum) {
-    throw new Error("MetaMask is not available")
+    throw new Error("Wallet is not available")
   }
 
   if (!ethers.isAddress(toAddress)) {
@@ -304,13 +408,65 @@ export async function sendToken(tokenAddress: string, toAddress: string, amount:
 
   const provider = new ethers.BrowserProvider(window.ethereum)
   const signer = await provider.getSigner()
+  const network = await provider.getNetwork()
+
+  console.log("[Web3] Current network:", {
+    chainId: Number(network.chainId),
+    name: network.name,
+  })
+
+  // Verify the contract exists on the current network
+  try {
+    console.log("[Web3] Checking contract code at:", tokenAddress)
+    const code = await provider.getCode(tokenAddress)
+    console.log("[Web3] Contract code:", code.substring(0, 20) + "...")
+
+    if (code === "0x" || code === "0x0") {
+      console.error("[Web3] Contract not found! Details:", {
+        chainId: Number(network.chainId),
+        tokenAddress,
+        codeLength: code.length,
+      })
+      throw new Error(
+        `Token contract not found on current network (Chain ID: ${network.chainId}). Please switch to the correct network.`
+      )
+    }
+  } catch (error: any) {
+    if (error.message.includes("Token contract not found")) {
+      throw error
+    }
+    console.warn("[Web3] Failed to verify contract existence:", error)
+  }
 
   const contract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
-  const decimals = await contract.decimals()
+
+  // Get decimals with error handling
+  let decimals = 18
+  try {
+    decimals = await contract.decimals()
+  } catch (error: any) {
+    console.error("[Web3] Failed to get decimals:", error)
+    if (error.code === "BAD_DATA") {
+      throw new Error("Invalid token contract or wrong network. Please verify the token address and network.")
+    }
+    throw new Error("Failed to read token contract. Please check the token address and network.")
+  }
+
   const amountInWei = ethers.parseUnits(amount, decimals)
 
+  console.log("[Web3] Sending transaction:", {
+    token: tokenAddress,
+    to: toAddress,
+    amount: amount,
+    decimals,
+    amountInWei: amountInWei.toString(),
+  })
+
   const tx = await contract.transfer(toAddress, amountInWei)
-  await tx.wait()
+  console.log("[Web3] Transaction sent:", tx.hash)
+
+  const receipt = await tx.wait()
+  console.log("[Web3] Transaction confirmed:", receipt.hash)
 
   return tx.hash
 }

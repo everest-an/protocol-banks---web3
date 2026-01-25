@@ -9,10 +9,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Wallet, CheckCircle2, AlertCircle, ShieldAlert, ShieldCheck, Eye } from "lucide-react"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useToast } from "@/hooks/use-toast"
-import { getTokenAddress, signERC3009Authorization, executeERC3009Transfer, sendToken } from "@/lib/web3"
+import { getTokenAddress, signERC3009Authorization, executeERC3009Transfer, sendToken, getTokenBalance } from "@/lib/web3"
 import { FeePreview } from "@/components/fee-preview"
 import { SettlementMethodBadge } from "@/components/settlement-method-badge"
-import { FeeBreakdown } from "@/components/fee-breakdown"
 import { recordFee, calculateFee } from "@/lib/protocol-fees"
 import { getSupabase } from "@/lib/supabase"
 
@@ -34,7 +33,7 @@ interface PaymentVerification {
   tamperedFields: string[]
 }
 
-function verifyPaymentLink(params: Record<string, string | null>): PaymentVerification {
+async function verifyPaymentLink(params: Record<string, string | null>): Promise<PaymentVerification> {
   const result: PaymentVerification = {
     signatureValid: false,
     paramsValid: true,
@@ -83,12 +82,33 @@ function verifyPaymentLink(params: Record<string, string | null>): PaymentVerifi
     }
   }
 
-  // Verify signature if present
+  // ✅ P0 IMPROVEMENT: Server-side HMAC signature verification
   const sig = params.sig
   if (sig && params.to && params.amount && params.token) {
-    // In production, verify HMAC signature server-side
-    // For now, mark as valid if signature exists
-    result.signatureValid = sig.length === 16
+    try {
+      const response = await fetch('/api/payment/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: params.to,
+          amount: params.amount,
+          token: params.token,
+          exp: params.exp,
+          sig
+        }),
+      })
+
+      if (response.ok) {
+        const { valid } = await response.json()
+        result.signatureValid = valid
+      } else {
+        console.error('[Pay] Signature verification failed:', await response.text())
+        result.signatureValid = false
+      }
+    } catch (error) {
+      console.error('[Pay] Signature verification error:', error)
+      result.signatureValid = false
+    }
   }
 
   return result
@@ -161,40 +181,44 @@ function PaymentContent() {
   const isGasless = isUSDC && activeChain === "EVM"
 
   useEffect(() => {
-    const params: Record<string, string | null> = {
-      to,
-      amount,
-      token,
-      network: networkParam,
-      sig,
-      exp,
+    async function verifyLink() {
+      const params: Record<string, string | null> = {
+        to,
+        amount,
+        token,
+        network: networkParam,
+        sig,
+        exp,
+      }
+
+      const verification = await verifyPaymentLink(params)
+      setVerificationResult(verification)
+
+      const warnings: string[] = []
+
+      if (verification.expired) {
+        warnings.push("This payment link has expired")
+      }
+
+      if (!verification.signatureValid && sig) {
+        warnings.push("Payment link signature is invalid - link may have been tampered with")
+      }
+
+      if (verification.tamperedFields.length > 0) {
+        warnings.push(`Invalid parameters detected: ${verification.tamperedFields.join(", ")}`)
+      }
+
+      // Check for unsigned links (less secure)
+      if (!sig) {
+        warnings.push("This payment link is unsigned - verify the recipient address carefully")
+      }
+
+      setSecurityWarnings(warnings)
+      setSecurityChecked(true)
+      setLoading(false)
     }
 
-    const verification = verifyPaymentLink(params)
-    setVerificationResult(verification)
-
-    const warnings: string[] = []
-
-    if (verification.expired) {
-      warnings.push("This payment link has expired")
-    }
-
-    if (!verification.signatureValid && sig) {
-      warnings.push("Payment link signature is invalid - link may have been tampered with")
-    }
-
-    if (verification.tamperedFields.length > 0) {
-      warnings.push(`Invalid parameters detected: ${verification.tamperedFields.join(", ")}`)
-    }
-
-    // Check for unsigned links (less secure)
-    if (!sig) {
-      warnings.push("This payment link is unsigned - verify the recipient address carefully")
-    }
-
-    setSecurityWarnings(warnings)
-    setSecurityChecked(true)
-    setLoading(false)
+    verifyLink()
   }, [to, amount, token, networkParam, sig, exp])
 
   useEffect(() => {
@@ -286,6 +310,41 @@ function PaymentContent() {
       const tokenAddress = getTokenAddress(chainId, token || "USDC")
       if (!tokenAddress) throw new Error("Token not supported on this network")
 
+      console.log("[Pay] Payment details:", {
+        chainId,
+        chainName: chainId === 1 ? "Ethereum" : chainId === 42161 ? "Arbitrum" : chainId === 8453 ? "Base" : "Unknown",
+        token,
+        tokenAddress,
+        to,
+        amount,
+        walletAddress: wallets.EVM,
+      })
+
+      // ✅ P0 IMPROVEMENT: Balance check before payment
+      try {
+        const balance = await getTokenBalance(wallets.EVM, tokenAddress)
+        const requiredAmount = parseFloat(amount!)
+
+        if (parseFloat(balance) < requiredAmount) {
+          toast({
+            title: "Insufficient Balance",
+            description: `You need ${amount} ${token} but only have ${parseFloat(balance).toFixed(6)} ${token}`,
+            variant: "destructive",
+          })
+          setProcessing(false)
+          return
+        }
+      } catch (balanceError: any) {
+        console.error("[Pay] Balance check failed:", balanceError)
+        toast({
+          title: "Balance Check Failed",
+          description: "Unable to verify balance. Please check your wallet connection.",
+          variant: "destructive",
+        })
+        setProcessing(false)
+        return
+      }
+
       const currentTo = searchParams.get("to")
       const currentAmount = searchParams.get("amount")
       if (currentTo !== to || currentAmount !== amount) {
@@ -294,13 +353,26 @@ function PaymentContent() {
 
       let hash = ""
 
+      console.log("[Pay] Payment method:", {
+        isGasless,
+        isUSDC,
+        token,
+        activeChain,
+      })
+
       if (isGasless) {
+        console.log("[Pay] Using Gasless (ERC-3009) payment method")
+
         toast({
           title: "Signing Authorization",
           description: "Please sign the x402 payment authorization.",
         })
 
+        console.log("[Pay] Calling signERC3009Authorization...")
+
         const auth = await signERC3009Authorization(tokenAddress, wallets.EVM, to!, amount!, chainId)
+
+        console.log("[Pay] Authorization signed:", auth)
 
         if (!verifyLock(lock)) {
           setProcessing(false)
@@ -312,7 +384,15 @@ function PaymentContent() {
           description: "Submitting your secure payment...",
         })
 
-        hash = await executeERC3009Transfer(tokenAddress, wallets.EVM, to!, amount!, auth)
+        console.log("[Pay] Calling executeERC3009Transfer...")
+
+        try {
+          hash = await executeERC3009Transfer(tokenAddress, wallets.EVM, to!, amount!, auth)
+          console.log("[Pay] ERC3009 transfer executed, hash:", hash)
+        } catch (erc3009Error: any) {
+          console.error("[Pay] executeERC3009Transfer failed:", erc3009Error)
+          throw new Error(`ERC-3009 transfer failed: ${erc3009Error.message}`)
+        }
 
         // Settle via x402 API - Base chain uses CDP (0 fee), others use Relayer
         try {
@@ -349,13 +429,28 @@ function PaymentContent() {
           return
         }
 
-        hash = await sendToken(tokenAddress, to!, amount!)
+        console.log("[Pay] Calling sendToken with:", {
+          tokenAddress,
+          to,
+          amount,
+          walletAddress: wallets.EVM,
+          chainId,
+        })
+
+        try {
+          hash = await sendToken(tokenAddress, to!, amount!)
+          console.log("[Pay] Transaction hash received:", hash)
+        } catch (sendError: any) {
+          console.error("[Pay] sendToken failed:", sendError)
+          throw new Error(`Transaction failed: ${sendError.message}`)
+        }
       }
 
+      // ✅ P0 IMPROVEMENT: Database write with retry queue fallback
       const supabase = getSupabase()
       if (supabase) {
         try {
-          const { data: paymentData } = await supabase
+          const { data: paymentData, error: dbError } = await supabase
             .from("payments")
             .insert({
               tx_hash: hash,
@@ -370,6 +465,8 @@ function PaymentContent() {
             .select()
             .single()
 
+          if (dbError) throw dbError
+
           // Record protocol fee
           if (paymentData) {
             await recordFee({
@@ -382,9 +479,34 @@ function PaymentContent() {
               collectionMethod: "deferred",
             })
           }
-        } catch (dbError) {
-          console.warn("[v0] Database recording failed:", dbError)
-          // Don't fail the payment if DB recording fails
+        } catch (dbError: any) {
+          console.error("[Pay] Database recording failed:", dbError)
+
+          // Add to retry queue to prevent data loss
+          try {
+            await fetch('/api/payment/retry-queue', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                txHash: hash,
+                paymentData: {
+                  tx_hash: hash,
+                  from_address: wallets.EVM,
+                  to_address: to,
+                  token_symbol: token,
+                  token_address: tokenAddress,
+                  amount: amount,
+                  amount_usd: Number(amount),
+                  status: "completed",
+                }
+              })
+            })
+
+            console.log("[Pay] Payment queued for retry")
+          } catch (retryError) {
+            console.error("[Pay] Retry queue failed:", retryError)
+            // Even if retry queue fails, don't block transaction success display
+          }
         }
       }
 
@@ -412,10 +534,13 @@ function PaymentContent() {
     handlePayment()
   }
 
-  if (loading) {
+  if (loading || invoiceLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {invoiceLoading && (
+          <p className="ml-3 text-sm text-muted-foreground">Loading invoice...</p>
+        )}
       </div>
     )
   }
@@ -534,12 +659,18 @@ function PaymentContent() {
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Wallet className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Payment Request</CardTitle>
+          <CardTitle className="text-2xl">
+            {merchantName || "Payment Request"}
+          </CardTitle>
           <CardDescription>
-            You are paying{" "}
-            <span className="text-foreground font-medium">
-              {amount} {token}
-            </span>
+            {description || (
+              <>
+                You are paying{" "}
+                <span className="text-foreground font-medium">
+                  {amount} {token}
+                </span>
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-8 space-y-6">

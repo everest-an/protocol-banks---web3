@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { useBatchPayment } from "@/hooks/use-batch-payment"
 import { BatchStatusTracker } from "@/components/batch-status-tracker"
+import { BatchTransferProgress, type BatchTransferStep } from "@/components/batch-transfer-progress"
 import {
   Dialog,
   DialogContent,
@@ -54,13 +55,16 @@ import { validatePaymentData, processBatchPayment as executeBatchPayment } from 
 import { validateVendorData } from "@/lib/services/vendor-service"
 import { parsePaymentFile, generateSampleCSV, generateSampleExcel, type ParseResult } from "@/lib/excel-parser"
 import { multisigService, type MultisigWallet } from "@/lib/multisig"
+import { publicBatchTransferService } from "@/lib/services/public-batch-transfer-service"
+import { createWalletClient, createPublicClient, http, custom } from "viem"
+import { arbitrum } from "viem/chains"
 
 export default function BatchPaymentPage() {
   const { wallets, sendToken, signERC3009Authorization, isConnected } = useWeb3()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const supabase = createClient() // Initialize Supabase client here
-  
+
   // Use the batch payment hook for API integration
   const {
     uploadFile,
@@ -70,13 +74,22 @@ export default function BatchPaymentPage() {
     loading: batchLoading,
     error: batchError,
   } = useBatchPayment()
-  
+
   const [activeTab, setActiveTab] = useState<"batch" | "auto" | "x402">("batch")
   const [isProcessing, setIsProcessing] = useState(false)
   const [currentBatchId, setCurrentBatchId] = useState<string | null>(null)
   const [vendors, setVendors] = useState<Vendor[]>([])
   const activeChain = "EVM"
   const currentWallet = wallets[activeChain]
+
+  // Batch transfer progress state
+  const [batchProgressOpen, setBatchProgressOpen] = useState(false)
+  const [batchTransferStep, setBatchTransferStep] = useState<BatchTransferStep>('idle')
+  const [batchTxHash, setBatchTxHash] = useState<string | undefined>(undefined)
+  const [batchErrorMessage, setBatchErrorMessage] = useState<string | undefined>(undefined)
+  const [batchTotalRecipients, setBatchTotalRecipients] = useState(0)
+  const [isBatchTransferProcessing, setIsBatchTransferProcessing] = useState(false)
+  const [isApproving, setIsApproving] = useState(false)
 
   const [tagDialogOpen, setTagDialogOpen] = useState(false)
   const [tagFormData, setTagFormData] = useState({
@@ -465,7 +478,19 @@ export default function BatchPaymentPage() {
       setTagDialogOpen(false)
     } catch (err: any) {
       console.error("[v0] Failed to save wallet tag:", err)
-      toast({ title: "Error", description: err.message, variant: "destructive" })
+
+      // Provide helpful error message based on error type
+      let errorMessage = err.message || "Failed to save wallet tag"
+
+      if (err.code === "42501" || err.message?.includes("row-level security")) {
+        errorMessage = "Database permission error. Please configure Supabase RLS policies for the vendors table."
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      })
     }
   }
 
@@ -516,11 +541,12 @@ export default function BatchPaymentPage() {
     toast({ title: "Draft Saved", description: "Your payment draft has been saved locally." })
   }
 
-  const processBatchPayment = async () => {
+  // 旧的逐笔转账功能（保留）
+  const processIndividualPayments = async () => {
     if (!currentWallet) {
       toast({
-        title: "Error",
-        description: "Please connect your wallet first",
+        title: "错误",
+        description: "请先连接钱包",
         variant: "destructive",
       })
       return
@@ -529,8 +555,8 @@ export default function BatchPaymentPage() {
     const validRecipients = recipients.filter((r) => r.address && r.amount)
     if (validRecipients.length === 0) {
       toast({
-        title: "Error",
-        description: "Please add at least one valid recipient",
+        title: "错误",
+        description: "请至少添加一个有效的收款地址",
         variant: "destructive",
       })
       return
@@ -545,7 +571,7 @@ export default function BatchPaymentPage() {
 
         await multisigService.createTransaction({
           multisigId: selectedMultisig,
-          toAddress: validRecipients[0].address, // For batch, use contract address
+          toAddress: validRecipients[0].address,
           value: totalAmount.toString(),
           description: `Batch payment to ${validRecipients.length} recipients`,
           tokenSymbol: validRecipients[0].token,
@@ -558,84 +584,179 @@ export default function BatchPaymentPage() {
           description: `Batch payment submitted for multi-sig approval (${multisigWallets.find((w) => w.id === selectedMultisig)?.threshold} signatures required)`,
         })
       } else {
-        // Direct payment via API
-        // Step 1: Validate payment data
-        try {
-          validatePaymentData(validRecipients)
-        } catch (error: any) {
-          toast({ title: "Validation Error", description: error.message, variant: "destructive" })
-          return
+        // 逐笔转账（旧方式）
+        let successCount = 0
+        let failCount = 0
+
+        for (const recipient of validRecipients) {
+          try {
+            // 使用 sendToken 发送单笔转账
+            await sendToken(recipient.address, recipient.amount, recipient.token || 'USDT')
+            successCount++
+
+            toast({
+              title: "转账成功",
+              description: `向 ${recipient.vendorName || recipient.address.slice(0, 10)} 发送 ${recipient.amount} ${recipient.token}`,
+            })
+          } catch (err: any) {
+            failCount++
+            console.error(`[IndividualPayment] Failed to send to ${recipient.address}:`, err)
+
+            toast({
+              title: "转账失败",
+              description: `向 ${recipient.address.slice(0, 10)}... 转账失败: ${err.message}`,
+              variant: "destructive",
+            })
+          }
         }
-
-        // Step 2: Create batch job via API
-        const createResponse = await fetch("/api/batch-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipients: validRecipients.map((r) => ({
-              address: r.address,
-              amount: r.amount,
-              token: r.token,
-              memo: r.vendorName,
-            })),
-            token: validRecipients[0]?.token || "USDT",
-            chainId: 8453, // Base chain for CDP (0 fee)
-            fromAddress: currentWallet,
-          }),
-        })
-
-        if (!createResponse.ok) {
-          const errorData = await createResponse.json()
-          throw new Error(errorData.error || "Failed to create batch")
-        }
-
-        const createData = await createResponse.json()
-        const batchId = createData.batchId
 
         toast({
-          title: "Batch Created",
-          description: `Processing ${createData.itemCount} payments...`,
+          title: "转账完成",
+          description: `成功: ${successCount} 笔，失败: ${failCount} 笔`,
         })
 
-        // Step 3: Execute the batch via API
-        const executeResponse = await fetch("/api/batch-payment/execute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            batchId,
-            chainId: 8453, // Base chain uses CDP (0 fee)
-          }),
-        })
-
-        if (!executeResponse.ok) {
-          const errorData = await executeResponse.json()
-          throw new Error(errorData.error || "Batch execution failed")
+        if (successCount > 0) {
+          // 重置表单
+          setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
         }
-
-        const executeData = await executeResponse.json()
-
-        // Also run local service layer for immediate feedback
-        const result = await executeBatchPayment(recipients, currentWallet, isDemoMode)
-
-        toast({
-          title: "Batch Payment Complete",
-          description: executeData.summary
-            ? `${executeData.summary.successful}/${executeData.summary.total} payments successful. ${executeData.summary.settlementMethod === "CDP" ? "0 fee (Base chain)" : `Fee: ${executeData.summary.fee?.toFixed(6)}`}`
-            : `Successfully paid ${result.successCount} recipients (${result.totalPaid} USDT)`,
-        })
       }
-
-      // Reset form
-      setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
     } catch (err: any) {
-      console.error("[v0] Batch payment failed:", err)
+      console.error("[IndividualPayment] Error:", err)
       toast({
-        title: "Payment failed",
-        description: err.message || "Failed to process batch payment",
+        title: "转账失败",
+        description: err.message || "转账失败，请重试",
         variant: "destructive",
       })
     } finally {
       setIsProcessing(false)
+    }
+  }
+
+  // 新的批量转账功能（一次签名）
+  const processBatchPayment = async () => {
+    if (!currentWallet) {
+      toast({
+        title: "错误",
+        description: "请先连接钱包",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const validRecipients = recipients.filter((r) => r.address && r.amount)
+    if (validRecipients.length === 0) {
+      toast({
+        title: "错误",
+        description: "请至少添加一个有效的收款地址",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // 使用新的批量转账功能（一次签名）
+    setIsBatchTransferProcessing(true)
+
+    try {
+      // 保存收款人数量（在表单重置前）
+      const recipientCount = validRecipients.length
+
+      // 重置状态
+      setBatchTransferStep('idle')
+      setBatchTxHash(undefined)
+      setBatchErrorMessage(undefined)
+      setBatchTotalRecipients(recipientCount)
+      setBatchProgressOpen(true)
+
+      const tokenSymbol = validRecipients[0]?.token || 'USDT'
+
+      console.log('[BatchPayment] Starting batch transfer...')
+      console.log('  Recipients:', recipientCount)
+      console.log('  Token:', tokenSymbol)
+      console.log('  From:', currentWallet)
+
+      toast({
+        title: "准备批量转账",
+        description: `准备向 ${recipientCount} 个地址发送 ${tokenSymbol}`,
+      })
+
+      // 检查 ethereum provider
+      if (typeof window === 'undefined' || !window.ethereum) {
+        throw new Error('请安装 MetaMask 或其他 Web3 钱包')
+      }
+
+      // 创建 viem 客户端
+      const publicClient = createPublicClient({
+        chain: arbitrum,
+        transport: http()
+      })
+
+      const walletClient = createWalletClient({
+        chain: arbitrum,
+        transport: custom(window.ethereum)
+      })
+
+      // 准备批量转账数据
+      const batchRecipients = validRecipients.map(r => ({
+        address: r.address as `0x${string}`,
+        amount: r.amount,
+      }))
+
+      // 步骤1：授权
+      setBatchTransferStep('approving')
+      setIsApproving(true)
+
+      console.log('[BatchPayment] Executing batch transfer...')
+
+      // 执行批量转账
+      const result = await publicBatchTransferService.batchTransfer(
+        walletClient,
+        publicClient,
+        batchRecipients,
+        tokenSymbol,
+        42161 // Arbitrum chain ID
+      )
+
+      setIsApproving(false)
+
+      if (result.success && result.txHash) {
+        setBatchTransferStep('transferring')
+        setBatchTxHash(result.txHash)
+
+        // 等待一下再显示成功
+        setTimeout(() => {
+          setBatchTransferStep('success')
+        }, 1500)
+
+        toast({
+          title: "批量转账成功！",
+          description: `成功向 ${recipientCount} 个地址发送代币`,
+        })
+
+        // 重置表单
+        setRecipients([{ id: "1", address: "", amount: "", vendorName: "", vendorId: "", token: "USDT" }])
+      } else {
+        setBatchTransferStep('error')
+        setBatchErrorMessage(result.errorMessage || '批量转账失败')
+
+        toast({
+          title: "转账失败",
+          description: result.errorMessage || "批量转账失败，请重试",
+          variant: "destructive",
+        })
+      }
+    } catch (err: any) {
+      console.error("[BatchPayment] Error:", err)
+      setIsApproving(false)
+      setBatchTransferStep('error')
+      setBatchErrorMessage(err.message || '批量转账失败')
+
+      toast({
+        title: "转账失败",
+        description: err.message || "批量转账失败，请重试",
+        variant: "destructive",
+      })
+    } finally {
+      setIsBatchTransferProcessing(false)
     }
   }
 
@@ -920,16 +1041,16 @@ export default function BatchPaymentPage() {
                   </Button>
                 </div>
 
-                <Button className="w-full" size="lg" onClick={processBatchPayment} disabled={isProcessing}>
+                <Button className="w-full" size="lg" onClick={processIndividualPayments} disabled={isProcessing}>
                   {isProcessing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
+                      转账中...
                     </>
                   ) : (
                     <>
                       <Send className="mr-2 h-4 w-4" />
-                      Send Payment
+                      转账
                     </>
                   )}
                 </Button>
@@ -939,23 +1060,28 @@ export default function BatchPaymentPage() {
           <div className="flex justify-end gap-4">
             <Button
               onClick={processBatchPayment}
-              disabled={isProcessing || recipients.filter((r) => r.address && r.amount).length === 0}
+              disabled={isBatchTransferProcessing || isApproving || recipients.filter((r) => r.address && r.amount).length === 0}
               className="bg-cyan-500 hover:bg-cyan-600"
             >
-              {isProcessing ? (
+              {isApproving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
+                  授权中...
+                </>
+              ) : isBatchTransferProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  处理中...
                 </>
               ) : useMultisig ? (
                 <>
                   <Shield className="h-4 w-4 mr-2" />
-                  Submit for Approval
+                  提交审批
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Process Batch Payment
+                  执行批量转账
                 </>
               )}
             </Button>
@@ -1233,6 +1359,17 @@ export default function BatchPaymentPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Batch Transfer Progress Dialog */}
+      <BatchTransferProgress
+        open={batchProgressOpen}
+        onOpenChange={setBatchProgressOpen}
+        step={batchTransferStep}
+        totalRecipients={batchTotalRecipients}
+        txHash={batchTxHash}
+        errorMessage={batchErrorMessage}
+        chainId={42161}
+      />
     </main>
   )
 }

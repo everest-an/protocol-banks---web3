@@ -137,9 +137,17 @@ export function getFeeTier(monthlyVolumeUsd: number): {
 /**
  * Format fee as string
  */
-export function formatFee(feeUsd: number): string {
-  if (feeUsd < 0.01) {
+export function formatFee(feeUsd: number | string): string {
+  // Convert to number if string
+  const fee = typeof feeUsd === 'string' ? parseFloat(feeUsd) : feeUsd
+
+  // Handle invalid numbers
+  if (isNaN(fee) || fee === null || fee === undefined) {
+    return '$0.00'
+  }
+
+  if (fee < 0.01) {
     return '< $0.01'
   }
-  return `$${feeUsd.toFixed(2)}`
+  return `$${fee.toFixed(2)}`
 }
