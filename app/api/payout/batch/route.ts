@@ -75,12 +75,13 @@ export async function POST(request: NextRequest) {
     })
 
     // Log fee distribution for completed payments
-    if (result.status === "completed" || result.status === "submitted") {
+    if (result.status === "completed" || result.status === "partial_failure") {
       logFeeDistribution({
-        batchId: result.batchId,
-        totalAmount: feeBreakdown.totalAmount,
+        totalFee: feeBreakdown.totalAmount,
         protocolFee: feeBreakdown.totalFees,
-        distributedAt: new Date().toISOString(),
+        relayerFee: 0,
+        networkFee: 0,
+        timestamp: Date.now(),
       })
     }
 

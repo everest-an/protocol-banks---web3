@@ -14,13 +14,13 @@ interface Payment {
   amount: string
   amount_usd: number
   status: string
-  notes?: string // Made optional
-  tx_hash: string
-  token_symbol: string
+  notes?: string
+  tx_hash?: string
+  token_symbol?: string
   vendor?: {
     name: string
   }
-  is_external?: boolean // Added optional flag
+  is_external?: boolean
 }
 
 interface FinancialReportProps {

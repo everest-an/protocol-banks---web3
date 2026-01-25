@@ -14,14 +14,19 @@ export interface Payment {
   method?: PaymentMethod
   tx_hash?: string
   created_at: string
-  timestamp?: string
+  timestamp: string  // Required - use created_at as fallback when mapping
   completed_at?: string
   created_by?: string
   vendor_name?: string
   category?: string
   memo?: string
+  notes?: string
   token_symbol?: string
   amount_usd?: number
+  vendor?: {
+    name: string
+  }
+  is_external?: boolean
 }
 
 export interface PaymentHistory {

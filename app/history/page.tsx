@@ -12,7 +12,6 @@ import { getSupabase } from "@/lib/supabase"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import type { Transaction } from "@/types"
-import { aggregateTransactionsByMonth, calculateYTDGrowth } from "@/lib/services/history-service"
 import { FinancialReport } from "@/components/financial-report"
 import { BusinessMetrics } from "@/components/business-metrics"
 import { PaymentActivity } from "@/components/payment-activity"
@@ -110,14 +109,6 @@ export default function HistoryPage() {
       "42161": "https://arbiscan.io/tx/",
     }
     return `${explorers[chainId || "1"] || explorers["1"]}${txHash}`
-  }
-
-  const getMonthlyStats = () => {
-    return aggregateTransactionsByMonth(filteredTransactions)
-  }
-
-  const getGrowthRate = () => {
-    return calculateYTDGrowth(filteredTransactions)
   }
 
   return (
@@ -257,7 +248,7 @@ export default function HistoryPage() {
           ...tx,
           amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(String(tx.amount)) || 0),
           timestamp: tx.timestamp || tx.created_at,
-        })) as Payment[]}
+        }))}
         loading={loading}
       />
 
@@ -267,7 +258,7 @@ export default function HistoryPage() {
           ...tx,
           amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(String(tx.amount)) || 0),
           timestamp: tx.timestamp || tx.created_at,
-        })) as Payment[]}
+        }))}
         walletAddress={wallet || undefined}
         loading={loading}
         title="Recent Activity"
@@ -280,7 +271,7 @@ export default function HistoryPage() {
           ...tx,
           amount_usd: tx.amount_usd != null ? tx.amount_usd : (Number.parseFloat(String(tx.amount)) || 0),
           timestamp: tx.timestamp || tx.created_at,
-        })) as Payment[]}
+        }))}
         loading={loading}
       />
     </main>

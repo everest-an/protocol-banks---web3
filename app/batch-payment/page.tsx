@@ -49,7 +49,7 @@ import {
   Users,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase-client"
-import type { Vendor, PaymentRecipient, AutoPayment } from "@/types"
+import type { Vendor, PaymentRecipient, AutoPayment, VendorCategory } from "@/types"
 import { validatePaymentData, processBatchPayment as executeBatchPayment } from "@/lib/services/payment-service"
 import { validateVendorData } from "@/lib/services/vendor-service"
 import { parsePaymentFile, generateSampleCSV, generateSampleExcel, type ParseResult } from "@/lib/excel-parser"
@@ -367,20 +367,6 @@ export default function BatchPaymentPage() {
   }, [recipients, toast])
 
   const saveWalletTag = async () => {
-    try {
-      // Use validation service
-      const addressValidation = validateVendorData({
-        wallet_address: tagFormData.wallet_address,
-        name: tagFormData.name,
-        category: tagFormData.category,
-      })
-
-      // ... rest of existing save logic
-    } catch (error: any) {
-      toast({ title: "Validation Error", description: error.message, variant: "destructive" })
-      return
-    }
-
     if (!tagFormData.name || !tagFormData.wallet_address) {
       toast({
         title: "Missing Information",
@@ -406,7 +392,7 @@ export default function BatchPaymentPage() {
         id: `demo-${Date.now()}`,
         name: tagFormData.name,
         wallet_address: addressValidation.checksumAddress || tagFormData.wallet_address,
-        category: tagFormData.category,
+        category: (tagFormData.category as VendorCategory) || 'other',
         type: tagFormData.tier,
         chain: tagFormData.chain,
       }
@@ -656,7 +642,7 @@ export default function BatchPaymentPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "batch" | "auto" | "x402")} className="w-full">
         <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
           <TabsTrigger value="batch">Batch Payment</TabsTrigger>
           <TabsTrigger value="auto">Auto Payments</TabsTrigger>
@@ -796,10 +782,10 @@ export default function BatchPaymentPage() {
                                     >
                                       <div className="flex items-center gap-2 w-full">
                                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                                          {vendor.name.charAt(0)}
+                                          {(vendor.name || vendor.company_name || 'V').charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                          <div className="font-medium truncate">{vendor.name}</div>
+                                          <div className="font-medium truncate">{vendor.name || vendor.company_name}</div>
                                           <div className="text-xs text-muted-foreground font-mono truncate">
                                             {vendor.wallet_address.slice(0, 10)}...
                                           </div>
@@ -1006,7 +992,7 @@ export default function BatchPaymentPage() {
                           ${payment.amount} {payment.token} / {payment.frequency}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Next: {payment.nextPayment.toLocaleDateString()}
+                          Next: {payment.nextPayment?.toLocaleDateString() || 'Not scheduled'}
                         </div>
                       </div>
                     </div>
