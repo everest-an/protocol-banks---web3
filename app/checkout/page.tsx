@@ -69,6 +69,7 @@ function CheckoutContent() {
     base: CHAIN_IDS.BASE,
     arb: CHAIN_IDS.ARBITRUM,
     bnb: CHAIN_IDS.BSC,
+    hsk: CHAIN_IDS.HASHKEY,
   };
 
   const [loading, setLoading] = useState(true);
@@ -263,6 +264,7 @@ function CheckoutContent() {
     { id: "arb", name: "Arbitrum", logo: "/networks/arb.png" },
     { id: "bnb", name: "BNB Chain", logo: "/networks/bnb.png" },
     { id: "tron", name: "Tron", logo: "/networks/tron.png" },
+    { id: "hsk", name: "HashKey Chain", logo: "/networks/hsk.png" },
   ];
 
   const handleNetworkSelect = (networkId: string) => {

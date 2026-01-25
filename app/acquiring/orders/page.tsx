@@ -347,59 +347,18 @@ export default function OrdersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Amount</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amount: e.target.value })
-                  }
-                  placeholder="0.99"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Token</Label>
-                <Select
-                  value={formData.token}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, token: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDC">
-                      <div className="flex items-center gap-2">
-                        <NextImage
-                          src="/tokens/usdc.png"
-                          alt="USDC"
-                          width={20}
-                          height={20}
-                          className="rounded-full"
-                        />
-                        <span>USDC</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="USDT">
-                      <div className="flex items-center gap-2">
-                        <NextImage
-                          src="/tokens/usdt.png"
-                          alt="USDT"
-                          width={20}
-                          height={20}
-                          className="rounded-full"
-                        />
-                        <span>USDT</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Amount</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) =>
+                  setFormData({ ...formData, amount: e.target.value })
+                }
+                placeholder="0.99"
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label>Validity (Minutes)</Label>
