@@ -22,6 +22,7 @@ export const CHAIN_IDS = {
   BASE: 8453,
   ARBITRUM: 42161,
   BSC: 56,
+  HASHKEY: 177,
 } as const
 
 export const RPC_URLS = {
@@ -30,6 +31,7 @@ export const RPC_URLS = {
   [CHAIN_IDS.ARBITRUM]: "https://arb1.arbitrum.io/rpc",
   [CHAIN_IDS.BSC]: "https://bsc-dataseed.binance.org",
   [CHAIN_IDS.SEPOLIA]: "https://rpc.sepolia.org",
+  [CHAIN_IDS.HASHKEY]: "https://mainnet.hsk.xyz",
 } as const
 
 export const CCTP_DOMAINS = {
@@ -76,6 +78,11 @@ export const TOKEN_ADDRESSES = {
   [CHAIN_IDS.BSC]: {
     USDT: "0x55d398326f99059fF775485246999027B3197955",
     USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+  },
+  [CHAIN_IDS.HASHKEY]: {
+    // TODO: Update with actual HashKey Chain token addresses
+    USDT: "0x0000000000000000000000000000000000000000",
+    USDC: "0x0000000000000000000000000000000000000000",
   },
 } as const
 
