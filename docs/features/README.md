@@ -8,10 +8,10 @@
 
 | 优先级 | 功能 | 文档 | 状态 |
 |--------|------|------|------|
-| P0 | 百分比分账 | [01-split-payment/](./01-split-payment/) | 文档完成 |
-| P0 | 定时发薪 | [02-scheduled-payroll/](./02-scheduled-payroll/) | 文档完成 |
-| P1 | 权限系统 | [03-permission-system/](./03-permission-system/) | 文档完成 |
-| P1 | 账单导出 | [04-invoice-export/](./04-invoice-export/) | 文档完成 |
+| P0 | 百分比分账 | [01-split-payment/](./01-split-payment/) | ✅ 已完成 |
+| P0 | 定时发薪 | [02-scheduled-payroll/](./02-scheduled-payroll/) | ✅ 已完成 |
+| P1 | 权限系统 | [03-permission-system/](./03-permission-system/) | ✅ 已完成 |
+| P1 | 账单导出 | [04-invoice-export/](./04-invoice-export/) | ✅ 已完成 |
 
 ### 文档清单
 
