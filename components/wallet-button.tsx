@@ -188,8 +188,12 @@ export function WalletButton() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.MAINNET)}>Switch to Mainnet</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.SEPOLIA)}>Switch to Sepolia (Test)</DropdownMenuItem>
+          <DropdownMenuLabel>Switch Network</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.MAINNET)}>Ethereum Mainnet</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.BASE)}>Base</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.ARBITRUM)}>Arbitrum One</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.SEPOLIA)}>Sepolia (Testnet)</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     )
@@ -218,7 +222,13 @@ export function WalletButton() {
             {activeWallet ? formatAddress(activeWallet) : "Connect"}
           </span>
           <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-white/80 hidden md:inline">
-            ({activeChain === "EVM" ? (chainId === CHAIN_IDS.MAINNET ? "Mainnet" : "Sepolia") : activeChain})
+            ({activeChain === "EVM" ? (
+              chainId === CHAIN_IDS.MAINNET ? "Mainnet" :
+              chainId === CHAIN_IDS.BASE ? "Base" :
+              chainId === CHAIN_IDS.ARBITRUM ? "Arbitrum" :
+              chainId === CHAIN_IDS.SEPOLIA ? "Sepolia" :
+              "Unknown"
+            ) : activeChain})
           </span>
         </Button>
       </DropdownMenuTrigger>
@@ -344,11 +354,22 @@ export function WalletButton() {
         <DropdownMenuSeparator className="bg-border" />
 
         {activeChain === "EVM" && wallets.EVM && (
-          <DropdownMenuItem
-            onClick={() => switchNetwork(chainId === CHAIN_IDS.MAINNET ? CHAIN_IDS.SEPOLIA : CHAIN_IDS.MAINNET)}
-          >
-            Switch to {chainId === CHAIN_IDS.MAINNET ? "Sepolia" : "Mainnet"}
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuLabel>Switch Network</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.MAINNET)}>
+              Ethereum Mainnet
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.BASE)}>
+              Base
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.ARBITRUM)}>
+              Arbitrum One
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => switchNetwork(CHAIN_IDS.SEPOLIA)}>
+              Sepolia (Testnet)
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
         )}
 
         <DropdownMenuItem onClick={() => activeWallet && copyAddress(activeWallet)} className="cursor-pointer">

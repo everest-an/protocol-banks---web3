@@ -104,7 +104,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const [stateNonce, setStateNonce] = useState<string | null>(null)
 
   const isSupportedNetwork =
-    chainId === CHAIN_IDS.MAINNET || chainId === CHAIN_IDS.SEPOLIA || chainId === CHAIN_IDS.BASE
+    chainId === CHAIN_IDS.MAINNET ||
+    chainId === CHAIN_IDS.SEPOLIA ||
+    chainId === CHAIN_IDS.BASE ||
+    chainId === CHAIN_IDS.ARBITRUM
 
   const refreshBalances = useCallback(async () => {
     if (!wallets.EVM) {
@@ -417,10 +420,72 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   }, [wallets.EVM])
 
   const sendToken = useCallback(async (to: string, amount: string, token: string): Promise<string> => {
-    // Placeholder - actual implementation would use ethers.js
-    console.log('[v0] sendToken called:', { to, amount, token })
-    return `0x${Math.random().toString(16).slice(2)}`
-  }, [])
+    if (!wallets.EVM) {
+      throw new Error('Wallet not connected')
+    }
+
+    if (typeof window === 'undefined' || !window.ethereum) {
+      throw new Error('MetaMask not installed')
+    }
+
+    try {
+      console.log('[Web3] sendToken called:', { to, amount, token })
+
+      // 动态导入 ethers
+      const { ethers } = await import('ethers')
+
+      // 创建 provider 和 signer
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+
+      // 获取代币地址
+      const tokenAddresses: Record<string, string> = {
+        'USDT': '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', // Arbitrum USDT
+        'USDC': '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // Arbitrum USDC
+        'DAI': '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',  // Arbitrum DAI
+      }
+
+      const tokenAddress = tokenAddresses[token.toUpperCase()]
+      if (!tokenAddress) {
+        throw new Error(`Unsupported token: ${token}`)
+      }
+
+      // ERC20 ABI
+      const erc20Abi = [
+        'function transfer(address to, uint256 amount) returns (bool)',
+        'function decimals() view returns (uint8)',
+      ]
+
+      // 创建合约实例
+      const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer)
+
+      // 获取代币精度
+      const decimals = await tokenContract.decimals()
+
+      // 转换金额（考虑精度）
+      const amountInWei = ethers.parseUnits(amount, decimals)
+
+      console.log('[Web3] Sending transaction:', {
+        to,
+        amount: amountInWei.toString(),
+        token,
+        tokenAddress,
+      })
+
+      // 发送交易
+      const tx = await tokenContract.transfer(to, amountInWei)
+      console.log('[Web3] Transaction sent:', tx.hash)
+
+      // 等待确认
+      const receipt = await tx.wait()
+      console.log('[Web3] Transaction confirmed:', receipt.hash)
+
+      return receipt.hash
+    } catch (error: any) {
+      console.error('[Web3] sendToken error:', error)
+      throw new Error(error.message || 'Transfer failed')
+    }
+  }, [wallets.EVM])
 
   const signERC3009Authorization = useCallback(async (params: any): Promise<string> => {
     // Placeholder - actual implementation would sign EIP-3009 authorization

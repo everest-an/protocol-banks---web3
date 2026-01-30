@@ -2,6 +2,29 @@ export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled"
 export type PaymentType = "sent" | "received"
 export type PaymentMethod = "eip3009" | "direct" | "batch"
 
+/**
+ * 收款人信息（用于批量支付）
+ */
+export interface Recipient {
+  address: string
+  amount: number
+  token: string
+  name?: string
+  memo?: string
+}
+
+/**
+ * 单笔支付结果
+ */
+export interface PaymentResult {
+  success: boolean
+  recipient: string
+  amount: number
+  token: string
+  txHash?: string
+  error?: string
+}
+
 export interface Payment {
   id: string
   from_address: string

@@ -1,6 +1,6 @@
 import { createAppKit } from "@reown/appkit"
 import { EthersAdapter } from "@reown/appkit-adapter-ethers"
-import { mainnet, sepolia, base } from "@reown/appkit/networks"
+import { mainnet, sepolia, base, arbitrum } from "@reown/appkit/networks"
 
 // Reown Project ID - Get from https://cloud.reown.com
 const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || ""
@@ -9,7 +9,7 @@ const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || ""
 const ethersAdapter = new EthersAdapter()
 
 // Configure supported networks
-const networks = [mainnet, sepolia, base]
+const networks = [mainnet, sepolia, base, arbitrum]
 
 // Metadata for your app
 const metadata = {

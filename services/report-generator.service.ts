@@ -30,8 +30,28 @@ export interface BatchReport {
 
 /**
  * Generate CSV string from batch report
+ * Can accept either a BatchReport object or an array of items (for backward compatibility)
  */
-export function generateBatchCsvReport(report: BatchReport): string {
+export function generateBatchCsvReport(report: BatchReport | BatchReportItem[]): string {
+  // Handle array input (backward compatibility)
+  let items: BatchReportItem[]
+  let summary: BatchReport['summary'] | null = null
+
+  if (Array.isArray(report)) {
+    // Convert array to items with timestamp
+    items = report.map(item => ({
+      ...item,
+      timestamp: item.timestamp || Date.now(),
+    }))
+  } else if (report && report.items && Array.isArray(report.items)) {
+    // Valid BatchReport object
+    items = report.items
+    summary = report.summary
+  } else {
+    console.error('[ReportGenerator] Invalid report structure:', report)
+    return ''
+  }
+
   const headers = [
     'Recipient',
     'Amount',
@@ -41,8 +61,8 @@ export function generateBatchCsvReport(report: BatchReport): string {
     'Error',
     'Timestamp',
   ]
-  
-  const rows = report.items.map(item => [
+
+  const rows = items.map(item => [
     item.recipient,
     item.amount.toString(),
     item.token,
@@ -52,15 +72,31 @@ export function generateBatchCsvReport(report: BatchReport): string {
     new Date(item.timestamp).toISOString(),
   ])
   
-  // Add summary row
-  rows.push([])
-  rows.push(['Summary'])
-  rows.push(['Total Items', report.summary.total.toString()])
-  rows.push(['Successful', report.summary.successful.toString()])
-  rows.push(['Failed', report.summary.failed.toString()])
-  rows.push(['Pending', report.summary.pending.toString()])
-  rows.push(['Total Amount', report.summary.totalAmount.toString()])
-  rows.push(['Successful Amount', report.summary.successfulAmount.toString()])
+  // Add summary row (if available)
+  if (summary) {
+    rows.push([])
+    rows.push(['Summary'])
+    rows.push(['Total Items', summary.total.toString()])
+    rows.push(['Successful', summary.successful.toString()])
+    rows.push(['Failed', summary.failed.toString()])
+    rows.push(['Pending', summary.pending.toString()])
+    rows.push(['Total Amount', summary.totalAmount.toString()])
+    rows.push(['Successful Amount', summary.successfulAmount.toString()])
+  } else {
+    // Calculate summary from items
+    const successful = items.filter(i => i.status === 'success')
+    const failed = items.filter(i => i.status === 'failed')
+    const pending = items.filter(i => i.status === 'pending')
+
+    rows.push([])
+    rows.push(['Summary'])
+    rows.push(['Total Items', items.length.toString()])
+    rows.push(['Successful', successful.length.toString()])
+    rows.push(['Failed', failed.length.toString()])
+    rows.push(['Pending', pending.length.toString()])
+    rows.push(['Total Amount', items.reduce((sum, i) => sum + i.amount, 0).toString()])
+    rows.push(['Successful Amount', successful.reduce((sum, i) => sum + i.amount, 0).toString()])
+  }
   
   // Convert to CSV
   const csvContent = [

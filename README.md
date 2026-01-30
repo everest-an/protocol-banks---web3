@@ -79,7 +79,10 @@ Protocol Banks is a non-custodial, multi-chain payment solution designed for DAO
 | **Dual Authentication** | Personal (Email/Google + Embedded Wallet) / Business (Hardware Wallets) | Done |
 | **Single Payments** | Multi-chain payments with ENS resolution, real-time gas estimation | Done |
 | **Batch Payments** | Excel/CSV import, 500+ TPS concurrent processing | Done |
+| **Split Payments** | Percentage/fixed-amount distribution to multiple recipients | Done |
+| **Scheduled Payroll** | Automated recurring payments (daily/weekly/monthly), approval workflows | Done |
 | **Multi-Sig Wallets** | Gnosis Safe protocol, mobile approvals, push notifications | Done |
+| **Permission System** | RBAC, organization management, approval rules, payment limits | Done |
 | **Cross-Chain** | Rango Exchange aggregation, ZetaChain bridging | Done |
 | **Subscriptions** | Recurring payments, auto-debit, balance monitoring | Done |
 | **AI Agent API** | Agent budget management, x402 protocol, auto-execute | Done |
@@ -390,7 +393,10 @@ Protocol Banks 是一个非托管、多链支付解决方案，专为 DAO、AI A
 | **双模式认证** | 个人用户 (Email/Google + 嵌入式钱包) / 企业用户 (硬件钱包) | 已完成 |
 | **单笔支付** | 多链支付，支持 ENS 解析，实时 Gas 估算 | 已完成 |
 | **批量支付** | Excel/CSV 导入，500+ TPS 并发处理 | 已完成 |
+| **分账支付** | 按比例/固定金额分配给多个收款人 | 已完成 |
+| **定时发薪** | 自动化周期支付（日/周/月），审批工作流 | 已完成 |
 | **多签钱包** | Gnosis Safe 协议，移动端审批，推送通知 | 已完成 |
+| **权限系统** | RBAC 角色权限，组织管理，审批规则，支付限额 | 已完成 |
 | **跨链操作** | Rango Exchange 聚合，ZetaChain 桥接 | 已完成 |
 | **订阅管理** | 定期支付，自动扣款，余额监控 | 已完成 |
 | **AI Agent API** | Agent 预算管理，x402 协议，自动执行 | 已完成 |

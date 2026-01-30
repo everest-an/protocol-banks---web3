@@ -37,11 +37,11 @@ test-unit:
 # Run integration tests (requires docker)
 test-integration:
 	@echo "Running integration tests..."
-	docker-compose -f docker-compose.test.yml up -d
+	docker compose -f docker-compose.test.yml up -d
 	@for service in $(SERVICES); do \
 		cd $$service && $(GOTEST) -v -tags=integration ./... && cd ..; \
 	done
-	docker-compose -f docker-compose.test.yml down
+	docker compose -f docker-compose.test.yml down
 
 # Run all tests
 test: test-unit
@@ -83,15 +83,15 @@ tidy:
 
 # Run locally with docker-compose
 run:
-	docker-compose up -d
+	docker compose up -d
 
 # Stop local services
 stop:
-	docker-compose down
+	docker compose down
 
 # View logs
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 # Generate coverage report
 coverage:
