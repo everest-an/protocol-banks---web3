@@ -36,7 +36,7 @@
 
 ---
 
-### TD-002: 缺少统一的错误处理机制（中优先级）
+### TD-002: 缺少统一的错误处理机制（已解决 ✅）
 
 **位置**: 多处 API 路由和服务
 
@@ -45,23 +45,21 @@
 - 缺少错误码
 - 前端难以做针对性处理
 
-**影响**:
-- 用户体验差
-- 调试困难
-- 国际化困难
+**解决方案**: 已实现统一错误处理系统
 
-**解决方案**:
-```typescript
-// 建议的错误格式
-interface ApiError {
-  code: string        // "INVALID_ADDRESS"
-  message: string     // 用户友好消息
-  details?: any       // 调试信息
-  field?: string      // 相关字段
-}
-```
+**修改内容**:
+1. 新增 `lib/errors/index.ts` - 错误码、消息、HTTP 状态映射
+2. 新增 `lib/errors/api-handler.ts` - API 包装器和验证助手
+3. 重构订阅 API 路由使用新系统
 
-**预计工作量**: 1-2 天
+**特性**:
+- 30+ 错误类型（Auth、Validation、Payment、Blockchain 等）
+- 双语支持（英文/中文）
+- 自动 HTTP 状态码映射
+- `withErrorHandling` API 包装器
+- 验证助手（validateAddress、validateRequired 等）
+
+**解决日期**: 2025-01-30
 
 ---
 
@@ -87,26 +85,32 @@ interface ApiError {
 
 ---
 
-### TD-004: Rain Card 授权检查未实现（低优先级）
+### TD-004: Rain Card 授权检查未实现（已解决 ✅）
 
-**位置**: `services/webhook-handler/internal/handler/rain.go:237-243`
+**位置**: `services/webhook-handler/internal/handler/rain.go`
 
-**问题描述**:
-```go
-func (h *RainHandler) checkAuthorization(...) (bool, string) {
-  // TODO: 实现授权检查逻辑
-  return true, "approved"
-}
-```
+**问题描述**: 授权检查直接返回硬编码 "approved"，存在安全风险
 
-**影响**:
-- Rain Card 功能不完整
-- 安全风险（无限额检查）
+**解决方案**: 已实现完整授权检查
 
-**解决方案**:
-- 暂不处理，Rain Card 非 MVP 优先级
+**修改内容**:
+1. 修改 `checkAuthorization` 实现完整授权逻辑
+2. 新增 `store.GetCardUserInfo` 获取卡用户信息
+3. 新增 `store.IsMerchantBlacklisted` 商户黑名单检查
+4. 新增 `store.RecordAuthorization` 授权记录
+5. 新增数据库迁移 `2025-01-30_rain_card_tables.sql`
 
-**预计工作量**: 2-3 天
+**授权检查项**:
+- 卡激活状态验证
+- 余额充足性检查
+- 单笔交易限额检查
+- 日消费限额检查
+- 月消费限额检查
+- 商户黑名单验证
+
+**安全设计**: 查询失败时拒绝交易（Fail-safe）
+
+**解决日期**: 2025-01-30
 
 ---
 
@@ -176,14 +180,47 @@ func (h *RainHandler) checkAuthorization(...) (bool, string) {
 
 ---
 
+### TD-008: Payout Engine 私钥管理不安全（已解决 ✅）
+
+**位置**: `services/payout-engine/internal/service/payout.go`
+
+**问题描述**: `signTransaction` 使用硬编码空字符串，无法执行交易签名
+
+**解决方案**: 已实现 KMS（密钥管理服务）集成
+
+**修改内容**:
+
+1. 新增 `services/payout-engine/internal/kms/` 包
+2. 实现 `Signer` 接口支持多种 KMS 提供商
+3. 更新 `PayoutService` 使用 KMS 签名器
+4. 更新配置支持 KMS 环境变量
+
+**支持的 KMS 提供商**:
+
+- `local`: 本地私钥（仅开发环境）
+- `aws`: AWS Key Management Service
+- `gcp`: Google Cloud KMS
+- `vault`: HashiCorp Vault Transit
+
+**环境变量**:
+
+- `KMS_PROVIDER`: 选择提供商
+- `PAYOUT_PRIVATE_KEY`: 本地私钥（开发）
+- `AWS_REGION`, `AWS_KMS_KEY_ID`: AWS 配置
+- `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_KEY_NAME`: Vault 配置
+
+**解决日期**: 2025-01-30
+
+---
+
 ## 债务偿还计划
 
-| 季度 | 计划偿还 | 原因 |
-|------|---------|------|
-| 本周期 | TD-001, TD-003 | 影响核心功能 |
-| 下周期 | TD-002, TD-006 | 影响稳定性 |
-| 后续 | TD-005, TD-007 | 技术改进 |
-| 暂缓 | TD-004 | 非 MVP 功能 |
+| 状态 | 项目 | 说明 |
+|------|------|------|
+| ✅ 已完成 | TD-001, TD-003, TD-006 | 批量支付、订阅执行、数据库索引 |
+| ✅ 已完成 | TD-002, TD-004, TD-008 | 错误处理、Rain Card、KMS 集成 |
+| 待处理 | TD-005 | 前端状态管理（中优先级） |
+| 待处理 | TD-007 | 单元测试覆盖（持续进行） |
 
 ---
 
