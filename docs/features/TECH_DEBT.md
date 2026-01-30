@@ -217,14 +217,14 @@
 | Webhooks Hook | `hooks/__tests__/use-webhooks.test.ts` | 10 | ✅ |
 | Dashboard Activity | `hooks/__tests__/use-dashboard-activity.test.ts` | 15 | ✅ |
 
-**总计**: 557 个测试，29 个测试套件全部通过
+**总计**: 581 个测试，30 个测试套件全部通过
 
 **测试覆盖范围**:
 - ✅ 错误处理（ErrorCodes, ApiError, 辅助函数）
 - ✅ 状态管理（UI Store, Wallet Store）
 - ✅ 并发控制（runConcurrent, 重试, 超时）
 - ✅ 数据获取 Hooks（orders, merchants, payments）
-- ⏳ 服务层（payment-service, subscription-service）
+- ✅ 服务层（payment-service, subscription-service, vendor-payment-service）
 - ⏳ React 组件测试
 - ⏳ E2E 测试
 
