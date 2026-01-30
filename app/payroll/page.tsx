@@ -24,8 +24,11 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Plus, Calendar, History, Loader2, RefreshCw } from "lucide-react"
 import { PayrollScheduleForm, PayrollScheduleList } from "@/components/payroll"
+import { PayrollScheduleDetail } from "@/components/payroll/payroll-schedule-detail"
 import type { PayrollSchedule, PayrollExecution, CreatePayrollScheduleRequest } from "@/types/payroll"
 import { toast } from "sonner"
+
+type ViewMode = "list" | "detail" | "edit"
 
 export default function PayrollPage() {
   const { walletAddress } = useAuth()
@@ -36,6 +39,9 @@ export default function PayrollPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [deleteScheduleId, setDeleteScheduleId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("schedules")
+  const [viewMode, setViewMode] = useState<ViewMode>("list")
+  const [selectedSchedule, setSelectedSchedule] = useState<PayrollSchedule | null>(null)
+  const [selectedExecutions, setSelectedExecutions] = useState<PayrollExecution[]>([])
 
   // Fetch schedules
   const fetchSchedules = useCallback(async () => {
@@ -198,16 +204,54 @@ export default function PayrollPage() {
     }
   }
 
-  // Edit schedule (open detail view)
-  const handleEdit = (id: string) => {
-    // TODO: Implement edit dialog
-    toast.info("编辑功能开发中")
+  // Fetch schedule details
+  const fetchScheduleDetails = async (id: string) => {
+    try {
+      const response = await fetch(`/api/payroll/schedules/${id}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setSelectedSchedule(data.schedule)
+        setSelectedExecutions(data.executions || [])
+        return data.schedule
+      } else {
+        toast.error("获取计划详情失败")
+        return null
+      }
+    } catch (error) {
+      console.error("Fetch schedule details error:", error)
+      toast.error("获取计划详情失败")
+      return null
+    }
+  }
+
+  // Edit schedule
+  const handleEdit = async (id: string) => {
+    setIsLoading(true)
+    const schedule = await fetchScheduleDetails(id)
+    setIsLoading(false)
+
+    if (schedule) {
+      setViewMode("edit")
+    }
   }
 
   // View schedule details
-  const handleView = (id: string) => {
-    // TODO: Navigate to detail page or open detail dialog
-    toast.info("详情页面开发中")
+  const handleView = async (id: string) => {
+    setIsLoading(true)
+    const schedule = await fetchScheduleDetails(id)
+    setIsLoading(false)
+
+    if (schedule) {
+      setViewMode("detail")
+    }
+  }
+
+  // Back to list
+  const handleBackToList = () => {
+    setViewMode("list")
+    setSelectedSchedule(null)
+    setSelectedExecutions([])
   }
 
   // Refresh data
@@ -235,6 +279,74 @@ export default function PayrollPage() {
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>请先连接钱包</p>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Detail view
+  if (viewMode === "detail" && selectedSchedule) {
+    return (
+      <div className="container mx-auto py-8">
+        <PayrollScheduleDetail
+          schedule={selectedSchedule}
+          executions={selectedExecutions}
+          onBack={handleBackToList}
+          onEdit={() => setViewMode("edit")}
+          onPause={() => handlePause(selectedSchedule.id)}
+          onResume={() => handleResume(selectedSchedule.id)}
+          onDelete={() => setDeleteScheduleId(selectedSchedule.id)}
+          isLoading={isSubmitting}
+        />
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteScheduleId} onOpenChange={() => setDeleteScheduleId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认删除</AlertDialogTitle>
+              <AlertDialogDescription>
+                此操作将删除该发薪计划，已执行的记录将保留。确定要继续吗？
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  await handleDelete()
+                  handleBackToList()
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    )
+  }
+
+  // Edit view
+  if (viewMode === "edit" && selectedSchedule) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>编辑发薪计划</CardTitle>
+            <CardDescription>修改 "{selectedSchedule.name}" 的设置</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PayrollScheduleForm
+              initialData={selectedSchedule}
+              onSubmit={async (data) => {
+                // TODO: Implement update API
+                toast.info("更新功能开发中")
+                handleBackToList()
+              }}
+              onCancel={handleBackToList}
+              isLoading={isSubmitting}
+            />
           </CardContent>
         </Card>
       </div>

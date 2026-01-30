@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { subscriptionService, type Subscription } from "@/lib/services/subscription-service"
+import { subscriptionExecutorService } from "@/lib/services/subscription-executor-service"
 import { webhookTriggerService, type SubscriptionEventData } from "@/lib/services/webhook-trigger-service"
 
 // ============================================
@@ -94,31 +95,32 @@ async function executeSubscription(subscription: Subscription): Promise<Executio
       eventData
     )
 
-    // TODO: Actually process the payment here
-    // For now, we just record it as successful
-    // In production, this would:
-    // 1. Check wallet balance
-    // 2. Execute the transfer
-    // 3. Wait for confirmation
+    // Execute the payment using the executor service
+    const executionResult = await subscriptionExecutorService.executeSubscription(subscription)
 
-    // Record successful payment
-    await subscriptionService.recordPayment(subscription.id, subscription.amount)
+    if (executionResult.success) {
+      // Record successful payment
+      await subscriptionService.recordPayment(subscription.id, subscription.amount)
 
-    // Trigger payment_completed webhook
-    await webhookTriggerService.triggerSubscriptionPaymentCompleted(
-      subscription.owner_address,
-      {
-        ...eventData,
-        status: "active",
-      }
-    )
+      // Trigger payment_completed webhook
+      await webhookTriggerService.triggerSubscriptionPaymentCompleted(
+        subscription.owner_address,
+        {
+          ...eventData,
+          status: "active",
+          tx_hash: executionResult.txHash,
+        }
+      )
 
-    console.log(`[SubscriptionExecute] Successfully processed subscription ${subscription.id}`)
+      console.log(`[SubscriptionExecute] Successfully processed subscription ${subscription.id}, tx: ${executionResult.txHash}`)
+    } else {
+      throw new Error(executionResult.error || "Payment execution failed")
+    }
   } catch (error) {
     result.status = "failed"
     result.error = error instanceof Error ? error.message : "Unknown error"
 
-    // Record payment failure
+    // Record payment failure (this also schedules retry)
     try {
       await subscriptionService.recordPaymentFailure(subscription.id, result.error)
     } catch (recordError) {
@@ -179,9 +181,14 @@ export async function POST(request: NextRequest) {
 
     console.log(`[SubscriptionExecute] Completed: ${summary.successful} success, ${summary.failed} failed, ${summary.skipped} skipped`)
 
+    // Also process retry queue
+    const retryResults = await subscriptionExecutorService.processRetryQueue(50)
+    console.log(`[SubscriptionExecute] Retry queue: ${retryResults.processed} processed, ${retryResults.successful} successful`)
+
     return NextResponse.json({
       success: true,
       summary,
+      retryQueue: retryResults,
     })
   } catch (error) {
     console.error("[SubscriptionExecute] Error:", error)
