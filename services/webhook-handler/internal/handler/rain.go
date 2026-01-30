@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -235,9 +236,108 @@ func (h *RainHandler) handleSettlement(ctx interface{}, payload RainWebhookPaylo
 
 // checkAuthorization 检查授权
 func (h *RainHandler) checkAuthorization(ctx interface{}, req RainAuthorizationRequest) (bool, string) {
-	// TODO: 实现授权检查逻辑
-	// 1. 检查用户余额
-	// 2. 检查交易限额
-	// 3. 检查黑名单商户
+	// 转换 context
+	realCtx, ok := ctx.(context.Context)
+	if !ok {
+		log.Error().Msg("Invalid context type for authorization check")
+		return false, "internal_error"
+	}
+
+	// 使用带超时的 context（授权请求通常需要快速响应）
+	checkCtx, cancel := context.WithTimeout(realCtx, 5*time.Second)
+	defer cancel()
+
+	// 1. 获取卡用户信息
+	userInfo, err := h.store.GetCardUserInfo(checkCtx, req.CardID)
+	if err != nil {
+		log.Error().Err(err).Str("card_id", req.CardID).Msg("Failed to get card user info")
+		// 查询失败时拒绝交易（安全优先）
+		h.recordAuthorizationResult(checkCtx, req, false, "card_not_found")
+		return false, "card_not_found"
+	}
+
+	// 2. 检查卡是否激活
+	if !userInfo.IsActive {
+		log.Warn().Str("card_id", req.CardID).Msg("Card is not active")
+		h.recordAuthorizationResult(checkCtx, req, false, "card_inactive")
+		return false, "card_inactive"
+	}
+
+	// 3. 检查余额是否充足
+	if userInfo.Balance < req.Amount {
+		log.Warn().
+			Str("card_id", req.CardID).
+			Float64("balance", userInfo.Balance).
+			Float64("amount", req.Amount).
+			Msg("Insufficient balance")
+		h.recordAuthorizationResult(checkCtx, req, false, "insufficient_balance")
+		return false, "insufficient_balance"
+	}
+
+	// 4. 检查单笔交易限额
+	if req.Amount > userInfo.SingleTxLimit {
+		log.Warn().
+			Str("card_id", req.CardID).
+			Float64("amount", req.Amount).
+			Float64("limit", userInfo.SingleTxLimit).
+			Msg("Single transaction limit exceeded")
+		h.recordAuthorizationResult(checkCtx, req, false, "single_tx_limit_exceeded")
+		return false, "single_tx_limit_exceeded"
+	}
+
+	// 5. 检查日限额
+	if userInfo.DailySpent+req.Amount > userInfo.DailyLimit {
+		log.Warn().
+			Str("card_id", req.CardID).
+			Float64("daily_spent", userInfo.DailySpent).
+			Float64("amount", req.Amount).
+			Float64("limit", userInfo.DailyLimit).
+			Msg("Daily limit exceeded")
+		h.recordAuthorizationResult(checkCtx, req, false, "daily_limit_exceeded")
+		return false, "daily_limit_exceeded"
+	}
+
+	// 6. 检查月限额
+	if userInfo.MonthlySpent+req.Amount > userInfo.MonthlyLimit {
+		log.Warn().
+			Str("card_id", req.CardID).
+			Float64("monthly_spent", userInfo.MonthlySpent).
+			Float64("amount", req.Amount).
+			Float64("limit", userInfo.MonthlyLimit).
+			Msg("Monthly limit exceeded")
+		h.recordAuthorizationResult(checkCtx, req, false, "monthly_limit_exceeded")
+		return false, "monthly_limit_exceeded"
+	}
+
+	// 7. 检查商户黑名单
+	isBlacklisted, err := h.store.IsMerchantBlacklisted(checkCtx, req.MerchantName, "")
+	if err != nil {
+		log.Error().Err(err).Str("merchant", req.MerchantName).Msg("Failed to check merchant blacklist")
+		// 查询失败时拒绝交易（安全优先）
+		h.recordAuthorizationResult(checkCtx, req, false, "blacklist_check_failed")
+		return false, "blacklist_check_failed"
+	}
+	if isBlacklisted {
+		log.Warn().Str("merchant", req.MerchantName).Msg("Merchant is blacklisted")
+		h.recordAuthorizationResult(checkCtx, req, false, "merchant_blacklisted")
+		return false, "merchant_blacklisted"
+	}
+
+	// 所有检查通过，批准交易
+	log.Info().
+		Str("card_id", req.CardID).
+		Str("user_id", req.UserID).
+		Float64("amount", req.Amount).
+		Str("merchant", req.MerchantName).
+		Msg("Authorization approved")
+
+	h.recordAuthorizationResult(checkCtx, req, true, "approved")
 	return true, "approved"
+}
+
+// recordAuthorizationResult 记录授权结果
+func (h *RainHandler) recordAuthorizationResult(ctx context.Context, req RainAuthorizationRequest, approved bool, reason string) {
+	if err := h.store.RecordAuthorization(ctx, req.AuthorizationID, req.CardID, req.UserID, req.MerchantName, req.Amount, approved, reason); err != nil {
+		log.Error().Err(err).Str("auth_id", req.AuthorizationID).Msg("Failed to record authorization")
+	}
 }
