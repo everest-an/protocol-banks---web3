@@ -11,7 +11,15 @@ import { generateSecureToken, sha256 } from "@/lib/auth/crypto"
 import { AUTH_CONFIG } from "@/lib/auth/config"
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialize Resend to avoid build-time errors when API key is not set
+let resend: Resend | null = null
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resend
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,8 +83,14 @@ export async function POST(request: NextRequest) {
     const magicLinkUrl = `${baseUrl}/api/auth/magic-link/verify?token=${token}`
 
     // Send email
+    const resendClient = getResend()
+    if (!resendClient) {
+      console.error("[Auth] Resend API key not configured")
+      return NextResponse.json({ error: "Email service not configured" }, { status: 500 })
+    }
+
     try {
-      const { data, error: resendError } = await resend.emails.send({
+      const { data, error: resendError } = await resendClient.emails.send({
         from: `${AUTH_CONFIG.email.fromName} <${AUTH_CONFIG.email.fromAddress}>`,
         to: email.toLowerCase(),
         subject: "Sign in to Protocol Bank",

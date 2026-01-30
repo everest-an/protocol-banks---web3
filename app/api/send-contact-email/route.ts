@@ -2,7 +2,15 @@ import { NextResponse } from "next/server"
 import { Resend } from "resend"
 import { sanitizeTextInput, checkRateLimit } from "@/lib/security"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialize Resend to avoid build-time errors when API key is not set
+let resend: Resend | null = null
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resend
+}
 
 const INPUT_LIMITS = {
   name: 100,
@@ -116,9 +124,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY
+    const resendClient = getResend()
 
-    if (!resendApiKey) {
+    if (!resendClient) {
       return NextResponse.json(
         {
           success: false,
@@ -128,7 +136,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await resendClient.emails.send({
       from: "Protocol Banks <contact@e.protocolbanks.com>",
       to: ["everest9812@gmail.com"],
       subject: `Contact Form: ${sanitizedSubject}`,

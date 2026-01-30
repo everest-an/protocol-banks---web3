@@ -22,6 +22,13 @@ export const CHAIN_IDS = {
   ARBITRUM: 42161,
 } as const
 
+export const RPC_URLS: Record<number, string> = {
+  [CHAIN_IDS.MAINNET]: "https://eth.llamarpc.com",
+  [CHAIN_IDS.SEPOLIA]: "https://rpc.sepolia.org",
+  [CHAIN_IDS.BASE]: "https://mainnet.base.org",
+  [CHAIN_IDS.ARBITRUM]: "https://arb1.arbitrum.io/rpc",
+} as const
+
 export const CCTP_DOMAINS = {
   [CHAIN_IDS.MAINNET]: 0,
   [CHAIN_IDS.BASE]: 6,
