@@ -18,6 +18,34 @@ type Config struct {
 
 	// Blockchain
 	Chains map[uint64]ChainConfig
+
+	// Key Management Service
+	KMS KMSConfig
+}
+
+// KMSConfig holds key management service configuration
+type KMSConfig struct {
+	Provider string // local, aws, gcp, vault
+
+	// Local provider (development only - NOT for production)
+	LocalPrivateKey string
+
+	// AWS KMS
+	AWSRegion string
+	AWSKeyID  string
+
+	// GCP KMS
+	GCPProjectID  string
+	GCPLocationID string
+	GCPKeyRingID  string
+	GCPKeyID      string
+	GCPKeyVersion string
+
+	// HashiCorp Vault
+	VaultAddress   string
+	VaultToken     string
+	VaultMountPath string
+	VaultKeyName   string
 }
 
 type DatabaseConfig struct {
@@ -54,6 +82,21 @@ func Load() (*Config, error) {
 			URL:      getEnv("REDIS_URL", "localhost:6379"),
 			Password: getEnv("REDIS_PASSWORD", ""),
 			DB:       redisDB,
+		},
+		KMS: KMSConfig{
+			Provider:        getEnv("KMS_PROVIDER", "local"),
+			LocalPrivateKey: getEnv("PAYOUT_PRIVATE_KEY", ""),
+			AWSRegion:       getEnv("AWS_REGION", "us-east-1"),
+			AWSKeyID:        getEnv("AWS_KMS_KEY_ID", ""),
+			GCPProjectID:    getEnv("GCP_PROJECT_ID", ""),
+			GCPLocationID:   getEnv("GCP_LOCATION_ID", "global"),
+			GCPKeyRingID:    getEnv("GCP_KEY_RING_ID", ""),
+			GCPKeyID:        getEnv("GCP_KEY_ID", ""),
+			GCPKeyVersion:   getEnv("GCP_KEY_VERSION", "1"),
+			VaultAddress:    getEnv("VAULT_ADDR", ""),
+			VaultToken:      getEnv("VAULT_TOKEN", ""),
+			VaultMountPath:  getEnv("VAULT_MOUNT_PATH", "transit"),
+			VaultKeyName:    getEnv("VAULT_KEY_NAME", ""),
 		},
 		Chains: map[uint64]ChainConfig{
 			1: {
