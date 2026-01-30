@@ -114,7 +114,7 @@
 
 ---
 
-### TD-005: 前端状态管理分散（中优先级）
+### TD-005: 前端状态管理分散（已解决 ✅）
 
 **位置**: 多个页面组件
 
@@ -123,17 +123,44 @@
 - 无全局状态管理
 - 数据获取逻辑分散
 
-**影响**:
-- 组件间状态同步困难
-- 重复请求
-- 代码难维护
+**解决方案**: 已实现 Zustand + SWR 状态管理系统
 
-**解决方案**:
-1. 引入 Zustand 或 Jotai 做全局状态
-2. 统一使用 SWR/React Query 做数据获取
-3. 抽象 hooks
+**修改内容**:
 
-**预计工作量**: 3-5 天
+1. 新增 `lib/stores/ui-store.ts` - UI 状态管理
+   - 侧边栏状态
+   - 全局 loading
+   - Modal 管理
+   - Toast 通知队列
+   - Demo 模式
+
+2. 新增 `lib/stores/wallet-store.ts` - 钱包状态管理
+   - 连接状态
+   - 余额管理
+   - 最近地址历史
+
+3. 新增 `lib/hooks/use-payments.ts` - 支付数据获取
+   - usePayments - 支付列表
+   - useBatchPayments - 批量支付
+   - usePaymentStats - 统计数据
+
+4. 新增 `lib/hooks/use-merchants.ts` - 商户数据获取
+   - useMerchants - 商户列表
+   - useCreateMerchant - 创建商户
+   - useMerchantStats - 商户统计
+
+5. 新增 `lib/hooks/use-orders.ts` - 订单数据获取
+   - useOrders - 订单列表
+   - useCreateOrder - 创建订单
+   - useCheckout - 收银台状态
+
+**特性**:
+- Zustand 全局状态（持久化、DevTools）
+- SWR 数据获取（自动重验证、去重、缓存）
+- TypeScript 类型安全
+- 按模块导出 hooks
+
+**解决日期**: 2025-01-30
 
 ---
 
@@ -219,7 +246,7 @@
 |------|------|------|
 | ✅ 已完成 | TD-001, TD-003, TD-006 | 批量支付、订阅执行、数据库索引 |
 | ✅ 已完成 | TD-002, TD-004, TD-008 | 错误处理、Rain Card、KMS 集成 |
-| 待处理 | TD-005 | 前端状态管理（中优先级） |
+| ✅ 已完成 | TD-005 | 前端状态管理（Zustand + SWR） |
 | 待处理 | TD-007 | 单元测试覆盖（持续进行） |
 
 ---
