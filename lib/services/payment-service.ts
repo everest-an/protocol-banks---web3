@@ -12,6 +12,29 @@ import {
 } from "@/services"
 import { webhookTriggerService, type PaymentEventData, type BatchPaymentEventData } from "./webhook-trigger-service"
 import { vendorPaymentService } from "./vendor-payment-service"
+import { runConcurrent, type TaskResult } from "@/lib/utils/concurrency"
+
+/**
+ * 批量支付配置
+ */
+export interface BatchPaymentOptions {
+  /** 最大并发数，默认 5 */
+  concurrency?: number
+  /** 每批之间的延迟（毫秒），默认 200ms */
+  batchDelay?: number
+  /** 单笔支付超时（毫秒），默认 60000ms */
+  timeout?: number
+  /** 失败后重试次数，默认 1 */
+  retries?: number
+}
+
+/** 默认批量支付配置 */
+const DEFAULT_BATCH_OPTIONS: Required<BatchPaymentOptions> = {
+  concurrency: 5,
+  batchDelay: 200,
+  timeout: 60000,
+  retries: 1,
+}
 
 /**
  * 验证收款人数据
@@ -87,7 +110,33 @@ export async function processSinglePayment(
   })
 
   try {
-    const txHash = await sendToken(wallet, recipient.address, recipient.amount, recipient.token, chain)
+    // Get the correct token address for the current chain
+    const chainId = await (async () => {
+      if (typeof window !== "undefined" && window.ethereum) {
+        const provider = new (await import("ethers")).ethers.BrowserProvider(window.ethereum)
+        const network = await provider.getNetwork()
+        return Number(network.chainId)
+      }
+      return 1 // Default to mainnet
+    })()
+
+    const { getTokenAddress } = await import("@/lib/web3")
+    const tokenAddress = getTokenAddress(chainId, recipient.token || "USDC")
+
+    if (!tokenAddress) {
+      throw new Error(`Token ${recipient.token} not supported on chain ${chainId}`)
+    }
+
+    console.log("[v0] Sending token:", {
+      tokenAddress,
+      to: recipient.address,
+      amount: recipient.amount,
+      token: recipient.token,
+      chainId,
+    })
+
+    const { sendToken } = await import("@/lib/web3")
+    const txHash = await sendToken(tokenAddress, recipient.address, recipient.amount)
 
     // Trigger payment.completed webhook (fire and forget)
     webhookTriggerService.triggerPaymentCompleted(wallet, {
@@ -127,33 +176,94 @@ export async function processSinglePayment(
 }
 
 /**
- * 处理批量支付
+ * 处理批量支付（并行执行）
+ *
+ * @param recipients - 收款人列表
+ * @param wallet - 付款钱包地址
+ * @param chain - 链标识
+ * @param onProgress - 进度回调
+ * @param options - 并行执行配置
+ * @returns 支付结果数组
+ *
+ * @example
+ * ```ts
+ * // 默认并发数 5
+ * const results = await processBatchPayments(recipients, wallet, "EVM")
+ *
+ * // 自定义并发数
+ * const results = await processBatchPayments(
+ *   recipients, wallet, "EVM",
+ *   (done, total) => console.log(`${done}/${total}`),
+ *   { concurrency: 10 }
+ * )
+ * ```
  */
 export async function processBatchPayments(
   recipients: Recipient[],
   wallet: string,
   chain: string,
   onProgress?: (current: number, total: number) => void,
+  options?: BatchPaymentOptions,
 ): Promise<PaymentResult[]> {
-  console.log("[v0] Processing batch payments:", { count: recipients.length, wallet, chain })
+  const opts = { ...DEFAULT_BATCH_OPTIONS, ...options }
+
+  console.log("[v0] Processing batch payments (parallel):", {
+    count: recipients.length,
+    wallet,
+    chain,
+    concurrency: opts.concurrency,
+  })
 
   validateRecipients(recipients)
 
-  const results: PaymentResult[] = []
+  const startTime = Date.now()
 
-  for (let i = 0; i < recipients.length; i++) {
-    const result = await processSinglePayment(recipients[i], wallet, chain)
-    results.push(result)
+  // 创建支付任务数组
+  const tasks = recipients.map((recipient) => () => processSinglePayment(recipient, wallet, chain))
 
-    if (onProgress) {
-      onProgress(i + 1, recipients.length)
+  // 并行执行
+  const taskResults = await runConcurrent<PaymentResult>(
+    tasks,
+    {
+      concurrency: opts.concurrency,
+      batchDelay: opts.batchDelay,
+      timeout: opts.timeout,
+      retries: opts.retries,
+    },
+    (completed, total) => {
+      if (onProgress) {
+        onProgress(completed, total)
+      }
     }
+  )
 
-    // 防止网络拥堵，添加小延迟
-    if (i < recipients.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    }
-  }
+  // 转换结果格式，保持原始顺序
+  const results: PaymentResult[] = taskResults
+    .sort((a, b) => a.index - b.index)
+    .map((tr, idx) => {
+      if (tr.success && tr.result) {
+        return tr.result
+      }
+      // 处理并发控制层面的错误
+      return {
+        success: false,
+        error: tr.error || "Unknown error",
+        recipient: recipients[idx].address,
+        amount: recipients[idx].amount,
+        token: recipients[idx].token,
+      }
+    })
+
+  const elapsed = Date.now() - startTime
+  const successCount = results.filter((r) => r.success).length
+
+  console.log("[v0] Batch payments completed:", {
+    total: recipients.length,
+    success: successCount,
+    failed: recipients.length - successCount,
+    elapsed: `${elapsed}ms`,
+    avgPerPayment: `${Math.round(elapsed / recipients.length)}ms`,
+  })
 
   return results
 }
@@ -245,7 +355,7 @@ export async function processBatchPayment(
   })
 
   const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  const total = recipients.reduce((sum, r) => sum + (r.amount || 0), 0)
+  const total = Number(recipients.reduce((sum, r) => sum + (r.amount || 0), 0))
   const batchEventData: BatchPaymentEventData = {
     batch_id: batchId,
     from_address: wallet,
@@ -305,7 +415,7 @@ export async function processBatchPayment(
   const results = await processBatchPayments(recipients, wallet, "EVM")
 
   const successCount = results.filter((r) => r.success).length
-  const totalPaid = results.reduce((sum, r) => (r.success ? sum + r.amount : sum), 0).toFixed(2)
+  const totalPaid = Number(results.reduce((sum, r) => (r.success ? sum + Number(r.amount) : sum), 0)).toFixed(2)
 
   // Generate report
   const report = generateBatchCsvReport(
