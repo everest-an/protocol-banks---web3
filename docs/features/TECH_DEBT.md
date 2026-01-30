@@ -185,7 +185,7 @@
 
 ---
 
-### TD-007: 缺少单元测试覆盖（中优先级）
+### TD-007: 缺少单元测试覆盖（进行中 🔄）
 
 **位置**: 整个项目
 
@@ -202,6 +202,31 @@
 - 核心服务添加单元测试
 - 关键流程添加集成测试
 - CI 添加测试覆盖率检查
+
+**当前进度**:
+
+| 模块 | 测试文件 | 测试数量 | 状态 |
+|------|---------|---------|------|
+| 错误处理系统 | `lib/__tests__/errors.test.ts` | 37 | ✅ |
+| UI Store | `lib/__tests__/stores.test.ts` | 12 | ✅ |
+| Wallet Store | `lib/__tests__/stores.test.ts` | 17 | ✅ |
+| 并发工具 | `lib/__tests__/concurrency.test.ts` | 21 | ✅ |
+| SWR Hooks | `lib/__tests__/hooks.test.ts` | 20 | ✅ |
+| API Keys Hook | `hooks/__tests__/use-api-keys.test.ts` | 10 | ✅ |
+| Subscriptions Hook | `hooks/__tests__/use-subscriptions.test.ts` | 11 | ✅ |
+| Webhooks Hook | `hooks/__tests__/use-webhooks.test.ts` | 10 | ✅ |
+| Dashboard Activity | `hooks/__tests__/use-dashboard-activity.test.ts` | 15 | ✅ |
+
+**总计**: 557 个测试，29 个测试套件全部通过
+
+**测试覆盖范围**:
+- ✅ 错误处理（ErrorCodes, ApiError, 辅助函数）
+- ✅ 状态管理（UI Store, Wallet Store）
+- ✅ 并发控制（runConcurrent, 重试, 超时）
+- ✅ 数据获取 Hooks（orders, merchants, payments）
+- ⏳ 服务层（payment-service, subscription-service）
+- ⏳ React 组件测试
+- ⏳ E2E 测试
 
 **预计工作量**: 持续进行
 
