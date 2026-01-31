@@ -8,6 +8,7 @@ import { ExternalLink, ZoomIn, ZoomOut, RotateCcw, Search } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
+import { useTheme } from "next-themes"
 
 interface Node {
   id: string
@@ -81,6 +82,29 @@ export function NetworkGraph({
 
   const isMobile = useMediaQuery("(max-width: 768px)")
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+  
+  // Theme-aware colors - monochrome gray palette
+  const colors = {
+    bg: isDark ? "#0a0a0a" : "#fafafa",
+    text: isDark ? "#ffffff" : "#18181b",
+    textMuted: isDark ? "#71717a" : "#71717a",
+    border: isDark ? "#27272a" : "#e4e4e7",
+    card: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(63, 63, 70, 0.95)",
+    cardBorder: isDark ? "#27272a" : "#52525b",
+    cardText: isDark ? "#ffffff" : "#ffffff",
+    cardTextMuted: isDark ? "#71717a" : "#a1a1aa",
+    inputBg: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.95)",
+    hover: isDark ? "#27272a" : "#52525b",
+    line: isDark ? "rgba(255,255,255,0.15)" : "rgba(39,39,42,0.25)",
+    lineActive: isDark ? "rgba(255,255,255,0.6)" : "rgba(39,39,42,0.6)",
+    nodeStroke: isDark ? "#0a0a0a" : "#fafafa",
+    nodeFill: isDark ? "#0a0a0a" : "#ffffff",
+    nodeColor: isDark ? "#ffffff" : "#27272a",
+    subsidiaryColor: isDark ? "#10b981" : "#52525b",
+    partnerColor: isDark ? "#3b82f6" : "#71717a",
+  }
 
   const { nodes, edges } = useMemo(() => {
     if (!vendors.length) {
@@ -96,7 +120,7 @@ export function NetworkGraph({
         r: 40,
         data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
         type: "root",
-        color: "#ffffff",
+        color: colors.nodeColor,
       }
       return { nodes: [rootNode], edges: [] }
     }
@@ -113,7 +137,7 @@ export function NetworkGraph({
       r: 40,
       data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
       type: "root",
-      color: "#ffffff",
+      color: colors.nodeColor,
     }
 
     const processedNodes: Node[] = [rootNode]
@@ -136,7 +160,7 @@ export function NetworkGraph({
         r: 25,
         data: v,
         type: "subsidiary",
-        color: "#10b981",
+        color: colors.subsidiaryColor,
       }
       processedNodes.push(node)
       processedEdges.push({ source: rootNode, target: node, weight: 3 })
@@ -163,7 +187,7 @@ export function NetworkGraph({
         r: 15,
         data: v,
         type: "partner",
-        color: "#3b82f6",
+        color: colors.partnerColor,
       }
       processedNodes.push(node)
       processedEdges.push({ source: parent, target: node, weight: 2 })
@@ -195,7 +219,7 @@ export function NetworkGraph({
     })
 
     return { nodes: processedNodes, edges: processedEdges }
-  }, [vendors, dimensions, userAddress, customPositions])
+  }, [vendors, dimensions, userAddress, customPositions, isDark])
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -433,7 +457,7 @@ export function NetworkGraph({
   const DetailPanelContent = () => {
     if (!selectedNode || !selectedNode.data) {
       return (
-        <div className="flex flex-col items-center justify-center h-48 text-center p-6 text-zinc-500">
+        <div className="flex flex-col items-center justify-center h-48 text-center p-6 text-zinc-400">
           <p className="text-sm">Select an entity to view details</p>
         </div>
       )
@@ -441,23 +465,13 @@ export function NetworkGraph({
 
     return (
       <div className="flex flex-col h-full animate-in slide-in-from-right duration-300">
-        <div className="p-4 md:p-6 border-b border-zinc-800">
+        <div className="p-4 md:p-6 border-b border-zinc-600">
           <div className="flex items-center justify-between mb-4">
-            <span
-              className={`font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded border ${
-                selectedNode.type === "subsidiary"
-                  ? "text-emerald-500 border-emerald-500/30"
-                  : selectedNode.type === "partner"
-                    ? "text-blue-500 border-blue-500/30"
-                    : selectedNode.type === "root"
-                      ? "text-white border-white/30"
-                      : "text-zinc-500 border-zinc-700"
-              }`}
-            >
+            <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded border text-white border-white/30">
               {selectedNode.type.toUpperCase()}
             </span>
             <button
-              className="p-2 hover:bg-zinc-800 rounded transition-colors"
+              className="p-2 hover:bg-zinc-600 rounded transition-colors"
               onClick={() => window.open(`/vendors/${selectedNode.id}`, "_blank")}
             >
               <ExternalLink className="w-4 h-4 text-zinc-400" />
@@ -467,7 +481,7 @@ export function NetworkGraph({
           <h2 className="text-lg md:text-xl font-light text-white mb-2">
             {selectedNode.data?.company_name || selectedNode.data?.name || "Unknown"}
           </h2>
-          <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 bg-zinc-900 rounded px-2 py-1 w-fit">
+          <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 bg-zinc-700/50 rounded px-2 py-1 w-fit">
             <span className="truncate max-w-[180px]">{selectedNode.data?.wallet_address}</span>
           </div>
         </div>
@@ -475,7 +489,7 @@ export function NetworkGraph({
         <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Total Volume</p>
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Total Volume</p>
               <p className="text-lg md:text-xl font-light text-white">
                 $
                 {(selectedNode.data.monthly_volume || selectedNode.data.totalReceived || 0).toLocaleString(undefined, {
@@ -484,7 +498,7 @@ export function NetworkGraph({
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Tx Count</p>
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Tx Count</p>
               <p className="text-lg md:text-xl font-light text-white">
                 {selectedNode.data.transaction_count || 0}
               </p>
@@ -493,14 +507,14 @@ export function NetworkGraph({
 
           <div className="space-y-2">
             <div className="flex justify-between items-end">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Payment Flow (YTD)</p>
-              <p className="text-xs text-emerald-500">+12.4% vs prev</p>
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Payment Flow (YTD)</p>
+              <p className="text-xs text-zinc-300">+12.4% vs prev</p>
             </div>
             <div className="h-12 md:h-16 flex items-end gap-0.5">
               {Array.from({ length: 20 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex-1 bg-zinc-700 hover:bg-zinc-500 transition-all rounded-t-sm"
+                  className="flex-1 bg-zinc-600 hover:bg-zinc-500 transition-all rounded-t-sm"
                   style={{ height: `${20 + ((i * 17) % 80)}%` }}
                 />
               ))}
@@ -508,29 +522,29 @@ export function NetworkGraph({
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono border-b border-zinc-800 pb-2">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono border-b border-zinc-600 pb-2">
               Entity Details
             </p>
             <div className="grid grid-cols-[80px_1fr] gap-y-2 md:gap-y-3 text-sm">
-              <span className="text-zinc-500">Category</span>
+              <span className="text-zinc-400">Category</span>
               <span className="text-white">{selectedNode.data.category || "General"}</span>
-              <span className="text-zinc-500">Email</span>
-              <span className="text-zinc-300 truncate">{selectedNode.data.email || "N/A"}</span>
-              <span className="text-zinc-500">Contract</span>
-              <span className="text-zinc-300">{selectedNode.data.notes || "Standard Agreement"}</span>
-              <span className="text-zinc-500">Status</span>
-              <span className="flex items-center gap-2 text-emerald-500">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-zinc-400">Email</span>
+              <span className="text-zinc-200 truncate">{selectedNode.data.email || "N/A"}</span>
+              <span className="text-zinc-400">Contract</span>
+              <span className="text-zinc-200">{selectedNode.data.notes || "Standard Agreement"}</span>
+              <span className="text-zinc-400">Status</span>
+              <span className="flex items-center gap-2 text-zinc-200">
+                <div className="w-1.5 h-1.5 rounded-full bg-zinc-200" />
                 Active Contract
               </span>
             </div>
           </div>
         </div>
 
-        <div className="p-4 md:p-6 pt-2 border-t border-zinc-800 pb-safe">
+        <div className="p-4 md:p-6 pt-2 border-t border-zinc-600 pb-safe">
           <button
             onClick={handleInitiateTransfer}
-            className="w-full py-3 bg-white text-black font-medium rounded hover:bg-zinc-200 transition-colors"
+            className="w-full py-3 bg-white text-zinc-900 font-medium rounded hover:bg-zinc-200 transition-colors"
           >
             INITIATE TRANSFER
           </button>
@@ -542,22 +556,22 @@ export function NetworkGraph({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[400px] md:min-h-[800px] bg-[#0a0a0a] rounded-lg overflow-hidden"
+      className="relative w-full h-full min-h-[400px] md:min-h-[800px] rounded-lg overflow-hidden border border-border"
+      style={{ backgroundColor: isDark ? "#0a0a0a" : "#fafafa" }}
     >
       <div className="absolute top-3 md:top-6 left-3 md:left-6 z-20 space-y-1 md:space-y-2">
-        <h3 className="text-lg md:text-2xl font-light tracking-tight text-white">Global Payment Mesh</h3>
-        <div className="flex gap-4 text-xs text-zinc-500 font-mono pt-1 md:pt-2">
+        <h3 className="text-lg md:text-2xl font-light tracking-tight text-foreground">Global Payment Mesh</h3>
+        <div className="flex gap-4 text-xs text-muted-foreground font-mono pt-1 md:pt-2">
           <div>
-            NODES: <span className="text-zinc-300">{nodes.length}</span>
+            NODES: <span className="text-foreground/80">{nodes.length}</span>
           </div>
         </div>
       </div>
 
       <div className="absolute top-3 md:top-6 left-1/2 -translate-x-1/2 z-20 hidden md:block">
-        {/* ... existing search code ... */}
         <div className="relative">
-          <div className="flex items-center bg-zinc-900/90 backdrop-blur-sm border border-zinc-700 rounded-lg px-3 py-2 w-64">
-            <Search className="w-4 h-4 text-zinc-500 mr-2" />
+          <div className={`flex items-center border border-border rounded-lg px-3 py-2 w-64 ${isDark ? "bg-card/90 backdrop-blur-sm" : "bg-white"}`}>
+            <Search className="w-4 h-4 text-muted-foreground mr-2" />
             <input
               type="text"
               placeholder="Search entities..."
@@ -565,20 +579,20 @@ export function NetworkGraph({
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery && setShowSearchResults(true)}
               onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
-              className="bg-transparent text-sm text-white placeholder-zinc-500 outline-none w-full"
+              className="bg-transparent text-sm text-foreground placeholder-muted-foreground outline-none w-full"
             />
           </div>
           {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute top-full mt-2 w-full bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-lg overflow-hidden">
+            <div className={`absolute top-full mt-2 w-full border border-border rounded-lg overflow-hidden ${isDark ? "bg-card/95 backdrop-blur-sm" : "bg-white"}`}>
               {searchResults.map((node) => (
                 <button
                   key={node.id}
                   onClick={() => handleSearchSelect(node)}
-                  className="w-full px-3 py-2 text-left hover:bg-zinc-800 transition-colors flex items-center justify-between"
+                  className="w-full px-3 py-2 text-left hover:bg-secondary transition-colors flex items-center justify-between"
                 >
                   <div>
-                    <div className="text-sm text-white">{node.data?.company_name || node.data?.name || "Unknown"}</div>
-                    <div className="text-xs text-zinc-500 font-mono truncate max-w-[180px]">
+                    <div className="text-sm text-foreground">{node.data?.company_name || node.data?.name || "Unknown"}</div>
+                    <div className="text-xs text-muted-foreground font-mono truncate max-w-[180px]">
                       {node.data?.wallet_address}
                     </div>
                   </div>
@@ -588,7 +602,7 @@ export function NetworkGraph({
                         ? "text-emerald-500 bg-emerald-500/10"
                         : node.type === "partner"
                           ? "text-blue-500 bg-blue-500/10"
-                          : "text-zinc-400 bg-zinc-700/50"
+                          : "text-muted-foreground bg-muted"
                     }`}
                   >
                     {node.type}
@@ -601,12 +615,11 @@ export function NetworkGraph({
       </div>
 
       {showEmptyState ? (
-        // ... existing empty state code ...
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center px-4">
-            <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-6 rounded-full bg-zinc-800 flex items-center justify-center">
+            <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
               <svg
-                className="w-10 h-10 md:w-12 md:h-12 text-zinc-600"
+                className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -619,13 +632,13 @@ export function NetworkGraph({
                 />
               </svg>
             </div>
-            <h3 className="text-lg md:text-xl font-semibold text-white mb-2">No Contacts Yet</h3>
-            <p className="text-zinc-400 mb-6 max-w-sm text-sm md:text-base">
+            <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2">No Contacts Yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm text-sm md:text-base">
               Add your first vendor, partner, or subsidiary to start visualizing your payment network.
             </p>
             <button
               onClick={() => onAddContact?.()}
-              className="px-5 py-2.5 md:px-6 md:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors text-sm md:text-base"
+              className="px-5 py-2.5 md:px-6 md:py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors text-sm md:text-base"
             >
               + Add First Contact
             </button>
@@ -646,18 +659,25 @@ export function NetworkGraph({
           {/* ... existing SVG content (defs, edges, nodes) ... */}
           <defs>
             <radialGradient id="node-glow">
-              <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+              <stop offset="0%" stopColor={isDark ? "#fff" : "#27272a"} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={isDark ? "#fff" : "#27272a"} stopOpacity="0" />
             </radialGradient>
             <radialGradient id="green-glow">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+              <stop offset="0%" stopColor={isDark ? "#10b981" : "#52525b"} stopOpacity={isDark ? 0.6 : 0.4} />
+              <stop offset="100%" stopColor={isDark ? "#10b981" : "#52525b"} stopOpacity="0" />
             </radialGradient>
             <radialGradient id="blue-glow">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+              <stop offset="0%" stopColor={isDark ? "#3b82f6" : "#71717a"} stopOpacity={isDark ? 0.6 : 0.4} />
+              <stop offset="100%" stopColor={isDark ? "#3b82f6" : "#71717a"} stopOpacity="0" />
+            </radialGradient>
+            {/* Background gradient - subtle gray gradient for light mode */}
+            <radialGradient id="bg-gradient" cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stopColor={isDark ? "#0a0a0a" : "#ffffff"} />
+              <stop offset="100%" stopColor={isDark ? "#0a0a0a" : "#f4f4f5"} />
             </radialGradient>
           </defs>
+          {/* Background rect with gradient */}
+          <rect width="100%" height="100%" fill="url(#bg-gradient)" />
           <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
             {/* Edges - optimized with node map lookup */}
             {edges.map((edge, index) => {
@@ -678,11 +698,11 @@ export function NetworkGraph({
                     y1={sourceNode.y}
                     x2={targetNode.x}
                     y2={targetNode.y}
-                    stroke={active ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.15)"}
+                    stroke={active ? colors.lineActive : colors.line}
                     strokeWidth={active ? 1.5 : 0.5}
                   />
                   {showAnimation && (
-                    <circle r="1.5" fill={active ? "#fff" : "rgba(255,255,255,0.5)"}>
+                    <circle r="1.5" fill={active ? colors.text : `${colors.text}80`}>
                       <animateMotion
                         dur={`${2 + (index % 5)}s`}
                         repeatCount="indefinite"
@@ -691,7 +711,7 @@ export function NetworkGraph({
                     </circle>
                   )}
                   {showAnimation && edge.weight > 1 && (
-                    <circle r="1" fill="rgba(255,255,255,0.4)">
+                    <circle r="1" fill={`${colors.text}66`}>
                       <animateMotion
                         dur={`${3 + (index % 5)}s`}
                         begin="1s"
@@ -720,11 +740,11 @@ export function NetworkGraph({
                   onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                   className={node.id === "root" ? "cursor-pointer" : "cursor-move"}
                 >
-                  {node.type === "subsidiary" && (
+                  {isDark && node.type === "subsidiary" && (
                     <circle cx={0} cy={0} r={node.r * 2.5} fill="url(#green-glow)" opacity="0.5" />
                   )}
 
-                  {(isSelected || isHovered) && (
+                  {isDark && (isSelected || isHovered) && (
                     <circle cx={0} cy={0} r={node.r * 2} fill="url(#node-glow)" opacity="0.4" />
                   )}
 
@@ -732,7 +752,7 @@ export function NetworkGraph({
                     cx={0}
                     cy={0}
                     r={node.r}
-                    fill="#0a0a0a"
+                    fill={colors.nodeFill}
                     stroke={node.color}
                     strokeWidth={isSelected ? 3 : node.type === "vendor" ? 1 : 2}
                     className="transition-all duration-300"
@@ -755,7 +775,7 @@ export function NetworkGraph({
                       x={0}
                       y={node.r + 14}
                       textAnchor="middle"
-                      fill={isSelected || isHovered ? "#fff" : "#71717a"}
+                      fill={isSelected || isHovered ? colors.text : colors.textMuted}
                       className="text-[10px] font-mono tracking-wider font-medium pointer-events-none select-none uppercase"
                     >
                       {node.data?.company_name || node.data?.name || "Unknown"}
@@ -775,38 +795,50 @@ export function NetworkGraph({
       <div className="absolute bottom-20 md:bottom-4 left-3 md:left-4 flex flex-col gap-1.5 md:gap-2">
         <button
           onClick={() => setTransform((prev) => ({ ...prev, k: Math.min(prev.k + 0.2, 4) }))}
-          className="p-1.5 md:p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="p-1.5 md:p-2 bg-card/80 border border-border rounded-lg hover:bg-secondary transition-colors"
           title="Zoom In"
         >
-          <ZoomIn className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400" />
+          <ZoomIn className="w-3.5 h-3.5 md:w-4 md:h-4 text-muted-foreground" />
         </button>
         <button
           onClick={() => setTransform((prev) => ({ ...prev, k: Math.max(prev.k - 0.2, 0.5) }))}
-          className="p-1.5 md:p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="p-1.5 md:p-2 bg-card/80 border border-border rounded-lg hover:bg-secondary transition-colors"
           title="Zoom Out"
         >
-          <ZoomOut className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400" />
+          <ZoomOut className="w-3.5 h-3.5 md:w-4 md:h-4 text-muted-foreground" />
         </button>
         <button
           onClick={handleResetLayout}
-          className="p-1.5 md:p-2 bg-zinc-900/80 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="p-1.5 md:p-2 bg-card/80 border border-border rounded-lg hover:bg-secondary transition-colors"
           title="Reset Layout"
         >
-          <RotateCcw className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400" />
+          <RotateCcw className="w-3.5 h-3.5 md:w-4 md:h-4 text-muted-foreground" />
         </button>
       </div>
 
       {isMobile ? (
         <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-          <DrawerContent className="max-h-[80vh] bg-zinc-900 border-zinc-800">
+          <DrawerContent 
+            className="max-h-[80vh] border-border"
+            style={{ backgroundColor: isDark ? "rgba(24, 24, 27, 0.95)" : "rgb(63, 63, 70)" }}
+          >
             <DrawerHeader className="sr-only">
               <DrawerTitle>Entity Details</DrawerTitle>
             </DrawerHeader>
-            <DetailPanelContent />
+            <div style={{ color: "#ffffff" }}>
+              <DetailPanelContent />
+            </div>
           </DrawerContent>
         </Drawer>
       ) : (
-        <div className="absolute top-6 right-6 bottom-6 z-20 w-80 bg-zinc-900/90 backdrop-blur-sm rounded-lg border border-zinc-800 overflow-hidden">
+        <div 
+          className={`absolute top-6 right-6 bottom-6 z-20 w-80 rounded-lg border overflow-hidden ${isDark ? "backdrop-blur-sm" : ""}`}
+          style={{ 
+            backgroundColor: isDark ? "rgba(24, 24, 27, 0.95)" : "rgb(63, 63, 70)",
+            borderColor: isDark ? "#27272a" : "#52525b",
+            color: "#ffffff"
+          }}
+        >
           <DetailPanelContent />
         </div>
       )}
