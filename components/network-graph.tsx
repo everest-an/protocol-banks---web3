@@ -570,7 +570,7 @@ export function NetworkGraph({
 
       <div className="absolute top-3 md:top-6 left-1/2 -translate-x-1/2 z-20 hidden md:block">
         <div className="relative">
-          <div className="flex items-center bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 w-64">
+          <div className={`flex items-center border border-border rounded-lg px-3 py-2 w-64 ${isDark ? "bg-card/90 backdrop-blur-sm" : "bg-white"}`}>
             <Search className="w-4 h-4 text-muted-foreground mr-2" />
             <input
               type="text"
@@ -583,7 +583,7 @@ export function NetworkGraph({
             />
           </div>
           {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute top-full mt-2 w-full bg-card/95 backdrop-blur-sm border border-border rounded-lg overflow-hidden">
+            <div className={`absolute top-full mt-2 w-full border border-border rounded-lg overflow-hidden ${isDark ? "bg-card/95 backdrop-blur-sm" : "bg-white"}`}>
               {searchResults.map((node) => (
                 <button
                   key={node.id}
@@ -740,11 +740,11 @@ export function NetworkGraph({
                   onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                   className={node.id === "root" ? "cursor-pointer" : "cursor-move"}
                 >
-                  {node.type === "subsidiary" && (
+                  {isDark && node.type === "subsidiary" && (
                     <circle cx={0} cy={0} r={node.r * 2.5} fill="url(#green-glow)" opacity="0.5" />
                   )}
 
-                  {(isSelected || isHovered) && (
+                  {isDark && (isSelected || isHovered) && (
                     <circle cx={0} cy={0} r={node.r * 2} fill="url(#node-glow)" opacity="0.4" />
                   )}
 
@@ -820,7 +820,7 @@ export function NetworkGraph({
         <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
           <DrawerContent 
             className="max-h-[80vh] border-border"
-            style={{ backgroundColor: isDark ? "rgba(24, 24, 27, 0.95)" : "rgba(63, 63, 70, 0.95)" }}
+            style={{ backgroundColor: isDark ? "rgba(24, 24, 27, 0.95)" : "rgb(63, 63, 70)" }}
           >
             <DrawerHeader className="sr-only">
               <DrawerTitle>Entity Details</DrawerTitle>
@@ -832,9 +832,9 @@ export function NetworkGraph({
         </Drawer>
       ) : (
         <div 
-          className="absolute top-6 right-6 bottom-6 z-20 w-80 backdrop-blur-sm rounded-lg border overflow-hidden"
+          className={`absolute top-6 right-6 bottom-6 z-20 w-80 rounded-lg border overflow-hidden ${isDark ? "backdrop-blur-sm" : ""}`}
           style={{ 
-            backgroundColor: isDark ? "rgba(24, 24, 27, 0.95)" : "rgba(63, 63, 70, 0.95)",
+            backgroundColor: isDark ? "rgba(24, 24, 27, 0.95)" : "rgb(63, 63, 70)",
             borderColor: isDark ? "#27272a" : "#52525b",
             color: "#ffffff"
           }}
