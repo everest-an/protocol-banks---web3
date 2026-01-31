@@ -9,14 +9,14 @@
 - `webhook.proto` - Webhook 服务
 
 生成 Go 代码:
-```bash
+\`\`\`bash
 protoc --go_out=. --go-grpc_out=. proto/*.proto
-```
+\`\`\`
 
 生成 TypeScript 代码 (供 Next.js 使用):
-```bash
+\`\`\`bash
 npx protoc --ts_out=./lib/proto proto/*.proto
-```
+\`\`\`
 
 // <CHANGE> 添加新章节：安全、监控、商用就绪检查清单
 
@@ -24,7 +24,7 @@ npx protoc --ts_out=./lib/proto proto/*.proto
 
 ### 密钥管理 (HashiCorp Vault)
 
-```go
+\`\`\`go
 // 从 Vault 获取私钥
 vaultClient, _ := vault.NewClient(vault.Config{
     Address:   "https://vault.example.com",
@@ -34,7 +34,7 @@ vaultClient, _ := vault.NewClient(vault.Config{
 })
 
 privateKey, _ := vaultClient.GetPrivateKey(ctx, "main-wallet")
-```
+\`\`\`
 
 **密钥轮换策略：**
 - 自动备份旧密钥
@@ -51,7 +51,7 @@ privateKey, _ := vaultClient.GetPrivateKey(ctx, "main-wallet")
 
 ### 输入验证
 
-```go
+\`\`\`go
 // 地址验证
 func ValidateEthAddress(address string) error {
     if !common.IsHexAddress(address) {
@@ -75,11 +75,11 @@ func ValidateAmount(amount string, maxAmount *big.Int) error {
     }
     return nil
 }
-```
+\`\`\`
 
 ### 限流 (Per-User)
 
-```go
+\`\`\`go
 // 每用户限流
 rateLimiter := security.NewRateLimiter(redis, security.RateLimiterConfig{
     RequestsPerMinute:     100,
@@ -92,7 +92,7 @@ rateLimiter := security.NewRateLimiter(redis, security.RateLimiterConfig{
 if !rateLimiter.Allow(ctx, userID) {
     return errors.New("rate limit exceeded")
 }
-```
+\`\`\`
 
 ## 监控与告警
 
@@ -155,7 +155,7 @@ if !rateLimiter.Allow(ctx, userID) {
 
 ### 部署前检查
 
-```bash
+\`\`\`bash
 # 1. 运行所有测试
 cd services && make test
 
@@ -175,25 +175,25 @@ kubectl apply -f k8s/ --namespace=protocol-bank-staging
 kubectl set image deployment/payout-engine \
   payout-engine=protocol-bank/payout-engine:$TAG \
   --namespace=protocol-bank
-```
+\`\`\`
 
 ## 特性开关
 
 通过环境变量控制 Go 服务启用：
 
-```bash
+\`\`\`bash
 # Next.js 环境变量
 ENABLE_GO_SERVICES=true    # 启用 Go 服务
 ENABLE_GO_SERVICES=false   # 回退到 TypeScript
 
 # 可以在 v0 侧边栏的 Vars 中设置
-```
+\`\`\`
 
 **降级机制：**
 - Go 服务失败时自动回退到 TypeScript 实现
 - 记录降级事件到日志和监控
 
-```typescript
+\`\`\`typescript
 // lib/grpc/client.ts
 export async function withGoServicesFallback<T>(
   goOperation: () => Promise<T>,

@@ -111,15 +111,15 @@
 **主要改动**:
 
 #### a) 新增导入
-```typescript
+\`\`\`typescript
 import { publicBatchTransferService } from "@/lib/services/public-batch-transfer-service"
 import { BatchTransferProgress, type BatchTransferStep } from "@/components/batch-transfer-progress"
 import { createWalletClient, createPublicClient, http, custom } from "viem"
 import { arbitrum } from "viem/chains"
-```
+\`\`\`
 
 #### b) 新增状态管理
-```typescript
+\`\`\`typescript
 // 批量转账进度状态
 const [batchProgressOpen, setBatchProgressOpen] = useState(false)
 const [batchTransferStep, setBatchTransferStep] = useState<BatchTransferStep>('idle')
@@ -128,7 +128,7 @@ const [batchErrorMessage, setBatchErrorMessage] = useState<string | undefined>(u
 const [batchTotalRecipients, setBatchTotalRecipients] = useState(0)
 const [isBatchTransferProcessing, setIsBatchTransferProcessing] = useState(false)
 const [isApproving, setIsApproving] = useState(false)
-```
+\`\`\`
 
 #### c) 新增函数
 - **`processIndividualPayments()`** - 逐笔转账功能（旧方式）
@@ -153,7 +153,7 @@ const [isApproving, setIsApproving] = useState(false)
   - 使用批量转账（新方式，一次签名）
 
 - **新增进度对话框**:
-  ```tsx
+  \`\`\`tsx
   <BatchTransferProgress
     open={batchProgressOpen}
     onOpenChange={setBatchProgressOpen}
@@ -163,7 +163,7 @@ const [isApproving, setIsApproving] = useState(false)
     errorMessage={batchErrorMessage}
     chainId={42161}
   />
-  ```
+  \`\`\`
 
 ---
 
@@ -171,7 +171,7 @@ const [isApproving, setIsApproving] = useState(false)
 **主要改动**:
 
 #### 实现 `sendToken` 函数（之前是占位符）
-```typescript
+\`\`\`typescript
 const sendToken = useCallback(async (to: string, amount: string, token: string): Promise<string> => {
   // ✅ 真实转账实现
   if (!wallets.EVM) throw new Error('Wallet not connected')
@@ -196,7 +196,7 @@ const sendToken = useCallback(async (to: string, amount: string, token: string):
 
   return receipt.hash
 }, [wallets.EVM])
-```
+\`\`\`
 
 **功能**:
 - ✅ 真正的 ERC20 代币转账
@@ -211,7 +211,7 @@ const sendToken = useCallback(async (to: string, amount: string, token: string):
 **问题**: PostgreSQL 不支持 `CREATE POLICY IF NOT EXISTS`
 
 **修复**:
-```sql
+\`\`\`sql
 -- 先删除旧策略
 DROP POLICY IF EXISTS "Enable insert for all users" ON vendors;
 DROP POLICY IF EXISTS "Enable select for all users" ON vendors;
@@ -223,7 +223,7 @@ CREATE POLICY "Enable insert for all users" ON vendors FOR INSERT WITH CHECK (tr
 CREATE POLICY "Enable select for all users" ON vendors FOR SELECT USING (true);
 CREATE POLICY "Enable update for all users" ON vendors FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Enable delete for all users" ON vendors FOR DELETE USING (true);
-```
+\`\`\`
 
 ---
 
@@ -231,7 +231,7 @@ CREATE POLICY "Enable delete for all users" ON vendors FOR DELETE USING (true);
 **功能**: 为 `payments` 表添加 RLS 策略
 
 **内容**:
-```sql
+\`\`\`sql
 -- Drop existing policies
 DROP POLICY IF EXISTS "Enable insert for all users" ON payments;
 DROP POLICY IF EXISTS "Enable select for all users" ON payments;
@@ -243,7 +243,7 @@ CREATE POLICY "Enable insert for all users" ON payments FOR INSERT WITH CHECK (t
 CREATE POLICY "Enable select for all users" ON payments FOR SELECT USING (true);
 CREATE POLICY "Enable update for all users" ON payments FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Enable delete for all users" ON payments FOR DELETE USING (true);
-```
+\`\`\`
 
 ---
 
@@ -251,9 +251,9 @@ CREATE POLICY "Enable delete for all users" ON payments FOR DELETE USING (true);
 
 ### 1. PostgreSQL 语法错误
 **问题**: `CREATE POLICY IF NOT EXISTS` 不被支持
-```
+\`\`\`
 ERROR: syntax error at or near "NOT"
-```
+\`\`\`
 
 **解决**: 改用 `DROP POLICY IF EXISTS` + `CREATE POLICY`
 
@@ -261,9 +261,9 @@ ERROR: syntax error at or near "NOT"
 
 ### 2. WagmiProvider 依赖错误
 **问题**:
-```
+\`\`\`
 WagmiProviderNotFoundError: `useConfig` must be used within `WagmiProvider`
-```
+\`\`\`
 
 **原因**: 项目使用自定义 `Web3Context`，不是 `WagmiProvider`
 
@@ -276,21 +276,21 @@ WagmiProviderNotFoundError: `useConfig` must be used within `WagmiProvider`
 
 ### 3. HMR 模块实例化错误
 **问题**:
-```
+\`\`\`
 Module was instantiated but the module factory is not available.
 It might have been deleted in an HMR update.
-```
+\`\`\`
 
 **原因**: 动态导入 (`await import()`) 在 HMR 时出错
 
 **解决**: 改为静态导入
-```typescript
+\`\`\`typescript
 // ❌ 动态导入
 const { publicBatchTransferService } = await import('@/lib/services/public-batch-transfer-service')
 
 // ✅ 静态导入
 import { publicBatchTransferService } from "@/lib/services/public-batch-transfer-service"
-```
+\`\`\`
 
 ---
 
@@ -298,14 +298,14 @@ import { publicBatchTransferService } from "@/lib/services/public-batch-transfer
 **问题**: 表单重置后才获取收款人数量，导致显示为 0
 
 **解决**: 在表单重置前保存收款人数量
-```typescript
+\`\`\`typescript
 // 保存收款人数量（在表单重置前）
 const recipientCount = validRecipients.length
 setBatchTotalRecipients(recipientCount)
 
 // 后续可以安全重置表单
 setRecipients([...])
-```
+\`\`\`
 
 ---
 
@@ -313,13 +313,13 @@ setRecipients([...])
 **问题**: 为了避免频繁授权，授权了 2 倍数量
 
 **解决**: 改为只授权实际需要的数量（更安全）
-```typescript
+\`\`\`typescript
 // ❌ 授权 2 倍
 args: [spender, requiredAmount * 2n]
 
 // ✅ 只授权实际需要的数量
 args: [spender, requiredAmount]
-```
+\`\`\`
 
 ---
 
@@ -377,22 +377,22 @@ args: [spender, requiredAmount]
 ## 🚀 使用方式
 
 ### 方案 1: 逐笔转账（1-2 笔）
-```
+\`\`\`
 1. 添加收款地址和金额
 2. 点击右侧"转账"按钮
 3. 每笔单独签名确认
 4. 适合少量转账
-```
+\`\`\`
 
 ### 方案 2: 批量转账（3 笔以上）
-```
+\`\`\`
 1. 添加多个收款地址和金额
 2. 点击底部"执行批量转账"按钮
 3. 第 1 次签名：授权代币
 4. 第 2 次签名：执行批量转账
 5. 一次性完成所有转账 ✅
 6. 节省 60% Gas 费用
-```
+\`\`\`
 
 ---
 

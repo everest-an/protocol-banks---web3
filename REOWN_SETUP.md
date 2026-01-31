@@ -35,9 +35,9 @@ Reown (formerly WalletConnect) AppKit is an all-in-one SDK that enables:
 
 Add this to your `.env` or Vars section:
 
-```env
+\`\`\`env
 NEXT_PUBLIC_REOWN_PROJECT_ID=your_project_id_here
-```
+\`\`\`
 
 Get your Project ID from: https://cloud.reown.com
 
@@ -45,9 +45,9 @@ Get your Project ID from: https://cloud.reown.com
 
 **Note**: You may see this notice in the browser console:
 
-```env
+\`\`\`env
 [Reown Config Notice] Your local configuration for "features.email", "features.socials", "features.onramp" was ignored because a remote configuration was successfully fetched.
-```
+\`\`\`
 
 **This is expected behavior.** Reown AppKit manages features (email login, social logins, fiat on-ramp) through the remote dashboard at https://dashboard.reown.com, not through local code configuration. This provides centralized control over features across all deployments.
 
@@ -77,14 +77,14 @@ Currently configured for:
 
 Users can create wallets with just an email:
 
-```
+\`\`\`
 User Flow:
 1. Click "Email / Social Login"
 2. Enter email: user@example.com
 3. Receive verification code via email
 4. Enter code
 5. Wallet address generated: 0xabc...123
-```
+\`\`\`
 
 **Benefits**:
 - No browser extension required
@@ -108,13 +108,13 @@ Users can sign in with their existing social accounts.
 
 Users can buy crypto without leaving the app:
 
-```
+\`\`\`
 Supported Payment Methods:
 - Credit/Debit cards (Visa, Mastercard)
 - Bank transfers (ACH, SEPA)
 - Apple Pay
 - Google Pay
-```
+\`\`\`
 
 **Supported Providers**:
 - Coinbase Pay
@@ -142,7 +142,7 @@ Connect with any wallet:
 
 ### Open Connection Modal
 
-```typescript
+\`\`\`typescript
 import { useAppKit } from '@reown/appkit/react'
 
 function MyComponent() {
@@ -156,11 +156,11 @@ function MyComponent() {
   open({ view: 'Account' })        // Account details
   open({ view: 'OnRampProviders' }) // Buy crypto
 }
-```
+\`\`\`
 
 ### Access User Account
 
-```typescript
+\`\`\`typescript
 import { useAppKitAccount } from '@reown/appkit/react'
 
 function MyComponent() {
@@ -170,11 +170,11 @@ function MyComponent() {
     console.log('User address:', address)
   }
 }
-```
+\`\`\`
 
 ### Access Wallet Provider
 
-```typescript
+\`\`\`typescript
 import { useAppKitProvider } from '@reown/appkit/react'
 
 function MyComponent() {
@@ -183,7 +183,7 @@ function MyComponent() {
   // Use provider to send transactions
   const signer = await walletProvider.getSigner()
 }
-```
+\`\`\`
 
 ## Security
 

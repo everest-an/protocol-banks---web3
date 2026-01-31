@@ -80,9 +80,9 @@ Protocol Banks is an enterprise-grade crypto payment infrastructure providing no
 - Audit trail
 
 **Workflow:**
-```
+\`\`\`
 Finance creates payment → CEO approves on mobile → Threshold reached → Execute
-```
+\`\`\`
 
 ### 4. Cross-Chain Operations
 
@@ -220,17 +220,17 @@ Finance creates payment → CEO approves on mobile → Threshold reached → Exe
 - Environment variables via Vercel dashboard
 
 ### Go Services (Kubernetes)
-```bash
+\`\`\`bash
 # Deploy to production
 kubectl apply -f k8s/
 helm upgrade --install protocol-banks ./helm-chart
-```
+\`\`\`
 
 ### Database Migrations
-```bash
+\`\`\`bash
 # Run migrations
 psql $DATABASE_URL -f scripts/001-*.sql
-```
+\`\`\`
 
 ---
 

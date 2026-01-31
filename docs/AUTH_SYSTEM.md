@@ -10,7 +10,7 @@ Protocol Banks uses a custom authentication system that provides Privy-like func
 
 Private keys are never stored in their entirety. Instead, they are split into 3 shares using Shamir's Secret Sharing with a 2-of-3 threshold:
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Private Key Split (3 shares)                  │
 │                                                                 │
@@ -25,7 +25,7 @@ Share Distribution:
 │   Device     │  │   Server     │  │ (User Backup)│
 │  (IndexedDB) │  │  (Supabase)  │  │              │
 └──────────────┘  └──────────────┘  └──────────────┘
-```
+\`\`\`
 
 ### Security Guarantees
 
@@ -48,18 +48,18 @@ Share Distribution:
 
 ### Email Magic Link Login
 
-```
+\`\`\`
 1. User enters email
 2. Server generates secure token, stores hash
 3. Email sent with magic link
 4. User clicks link → token verified
 5. Session created (30-day HTTP-only cookie)
 6. First login → PIN setup → Wallet creation
-```
+\`\`\`
 
 ### Signing Flow
 
-```
+\`\`\`
 1. User initiates transaction
 2. Enter 6-digit PIN
 3. Device share retrieved from IndexedDB
@@ -68,18 +68,18 @@ Share Distribution:
 6. Private key reconstructed
 7. Transaction signed
 8. Private key immediately destroyed
-```
+\`\`\`
 
 ### Recovery Flow
 
-```
+\`\`\`
 1. User logs in on new device
 2. Enter recovery phrase (Share C)
 3. Server provides Share B
 4. Private key reconstructed
 5. New device share generated
 6. Share A stored in new device
-```
+\`\`\`
 
 ## Database Schema
 
@@ -121,7 +121,7 @@ All tables have RLS enabled. Users can only access their own data.
 
 ### AuthProvider
 
-```tsx
+\`\`\`tsx
 import { AuthProvider, useAuth } from '@/contexts/auth-provider'
 
 // Wrap your app
@@ -146,11 +146,11 @@ function MyComponent() {
   
   // ...
 }
-```
+\`\`\`
 
 ### Sign a Message
 
-```tsx
+\`\`\`tsx
 const { signMessage } = useAuth()
 
 const handleSign = async () => {
@@ -163,11 +163,11 @@ const handleSign = async () => {
     console.error("Error:", result.error)
   }
 }
-```
+\`\`\`
 
 ### Sign a Transaction
 
-```tsx
+\`\`\`tsx
 const { signTransaction } = useAuth()
 
 const handleSend = async () => {
@@ -184,11 +184,11 @@ const handleSend = async () => {
     // Broadcast result.signedTx
   }
 }
-```
+\`\`\`
 
 ## File Structure
 
-```
+\`\`\`
 lib/auth/
 ├── config.ts              # Configuration constants
 ├── crypto.ts              # AES-256-GCM, PBKDF2, hashing
@@ -225,7 +225,7 @@ components/auth/
 
 contexts/
 └── auth-provider.tsx      # Auth context & hooks
-```
+\`\`\`
 
 ## Security Best Practices
 

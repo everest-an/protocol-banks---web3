@@ -36,7 +36,7 @@ Download templates from the Import dropdown:
 
 For enhanced security, batch payments can require multi-sig approval:
 
-```
+\`\`\`
 Financial Controller creates batch payment
     ↓
 Payment is submitted as multi-sig proposal
@@ -46,7 +46,7 @@ CFO receives notification, signs transaction
 CEO receives notification, signs transaction
     ↓
 Threshold reached (2 of 3), payment executes
-```
+\`\`\`
 
 #### Configuration
 
@@ -75,7 +75,7 @@ All batch payment data is protected by Row Level Security (RLS):
 
 ### Import File
 
-```typescript
+\`\`\`typescript
 import { parsePaymentFile } from "@/lib/excel-parser"
 
 const result = await parsePaymentFile(file)
@@ -83,11 +83,11 @@ const result = await parsePaymentFile(file)
 // result.recipients: ParsedRecipient[]
 // result.errors: string[]
 // result.warnings: string[]
-```
+\`\`\`
 
 ### Create Multi-sig Transaction
 
-```typescript
+\`\`\`typescript
 import { multisigService } from "@/lib/multisig"
 
 await multisigService.createTransaction({
@@ -99,7 +99,7 @@ await multisigService.createTransaction({
   amountUsd: 1000,
   createdBy: currentWallet,
 })
-```
+\`\`\`
 
 ## Best Practices
 

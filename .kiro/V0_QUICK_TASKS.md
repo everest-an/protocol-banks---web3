@@ -56,7 +56,7 @@
 ## Key Implementation Details
 
 ### CDP vs Relayer Settlement
-```typescript
+\`\`\`typescript
 // Base chain (8453) - CDP settlement, 0 fee
 if (chainId === 8453) {
   // Use CDP
@@ -67,7 +67,7 @@ if (chainId === 8453) {
   settlementMethod = "Relayer"
   fee = calculateRelayerFee(amount)
 }
-```
+\`\`\`
 
 ### Chain Configuration
 - Base (8453): CDP settlement, 0 fee, recommended

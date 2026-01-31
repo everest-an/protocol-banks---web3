@@ -13,13 +13,13 @@ ProtocolBanks implements a **Non-Custodial** architecture where:
 
 Every database table has RLS policies ensuring:
 
-```sql
+\`\`\`sql
 -- Users can only see their own data
 CREATE POLICY "View own data" ON table_name
   FOR SELECT USING (
     owner_address = current_setting('app.current_user_address', true)
   );
-```
+\`\`\`
 
 ### Customer Routing Isolation
 
@@ -43,7 +43,7 @@ CREATE POLICY "View own data" ON table_name
 
 ### Non-Custodial Multi-sig
 
-```
+\`\`\`
 ┌────────────────────────────────────────────────────┐
 │                 Safe (Gnosis Safe)                  │
 │                                                    │
@@ -53,7 +53,7 @@ CREATE POLICY "View own data" ON table_name
 │  ProtocolBanks: NOT A SIGNER                       │
 │  ProtocolBanks cannot execute transactions         │
 └────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### Approval Flow
 
@@ -67,14 +67,14 @@ CREATE POLICY "View own data" ON table_name
 
 ### Key Splitting (Shamir's Secret Sharing)
 
-```
+\`\`\`
 Private Key → Split into 3 shares
              ├─ Share A: Device (encrypted, never leaves browser)
              ├─ Share B: Server (encrypted with user PIN)
              └─ Share C: Recovery (user-stored backup)
 
 Threshold: 2 of 3 shares required to reconstruct
-```
+\`\`\`
 
 ### Security Guarantees
 
@@ -89,7 +89,7 @@ Threshold: 2 of 3 shares required to reconstruct
 
 All sensitive actions are logged:
 
-```sql
+\`\`\`sql
 INSERT INTO audit_logs (
   actor,
   action,
@@ -105,7 +105,7 @@ INSERT INTO audit_logs (
   '{"amount": 10000, "recipients": 5}',
   'xxx.xxx.xxx.xxx'
 );
-```
+\`\`\`
 
 Audit logs are **immutable** - no updates or deletes allowed.
 

@@ -13,7 +13,7 @@
 
 ## 一、角色定义
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           角色关系图                                         │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -37,7 +37,7 @@
 │  • 支付链接生成    • 二维码生成    • 交易处理    • 收单管理                  │
 │  • Webhook 通知   • 数据分析      • 安全验证    • 报表导出                  │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ---
 
@@ -47,7 +47,7 @@
 
 **路径:** `/receive` 页面
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        收款页面 (/receive)                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -89,7 +89,7 @@
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **操作步骤:**
 1. 登录 Protocol Banks 平台
@@ -105,7 +105,7 @@
 
 **嵌入式支付按钮:**
 
-```html
+\`\`\`html
 <!-- 在企业客户网站中嵌入 -->
 <script src="https://protocol-banks.vercel.app/sdk/protocol-banks.js"></script>
 <script>
@@ -126,11 +126,11 @@
 </script>
 
 <div id="pay-button"></div>
-```
+\`\`\`
 
 **生成支付链接 (API):**
 
-```javascript
+\`\`\`javascript
 // 通过 SDK 生成支付链接
 const paymentLink = ProtocolBanks.createPaymentLink({
   to: '0x1234567890abcdef...',
@@ -142,11 +142,11 @@ const paymentLink = ProtocolBanks.createPaymentLink({
 
 console.log(paymentLink);
 // https://protocol-banks.vercel.app/pay?to=0x...&amount=100&token=USDC&merchant=My%20Store
-```
+\`\`\`
 
 **弹出支付模态框:**
 
-```javascript
+\`\`\`javascript
 // 打开支付弹窗
 ProtocolBanks.openPayment({
   to: '0x1234567890abcdef...',
@@ -165,11 +165,11 @@ window.addEventListener('protocolbanks:payment:success', (event) => {
 window.addEventListener('protocolbanks:payment:error', (event) => {
   console.log('Payment failed:', event.detail);
 });
-```
+\`\`\`
 
 ### 2.3 方式三：通过 API 创建 Invoice
 
-```bash
+\`\`\`bash
 # 创建 Invoice
 curl -X POST https://protocol-banks.com/api/invoice \
   -H "Authorization: Bearer pb_live_xxx" \
@@ -198,7 +198,7 @@ curl -X POST https://protocol-banks.com/api/invoice \
   "paymentLink": "https://protocol-banks.com/pay?invoice=inv_abc123&sig=a1b2c3d4",
   "qrCodeData": "data:image/png;base64,..."
 }
-```
+\`\`\`
 
 ---
 
@@ -208,7 +208,7 @@ curl -X POST https://protocol-banks.com/api/invoice \
 
 当 C端用户点击支付链接或扫描二维码后，会看到以下界面：
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        支付页面 (/pay)                                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -249,11 +249,11 @@ curl -X POST https://protocol-banks.com/api/invoice \
 │                      Powered by x402 Protocol                               │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 3.2 支付流程步骤
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        C端用户支付流程                                       │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -309,7 +309,7 @@ Step 5: 支付完成
 │                                                                  │
 │ [Close Window]                                                   │
 └──────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 3.3 支付方式说明
 
@@ -325,7 +325,7 @@ Step 5: 支付完成
 
 ### 4.1 交易历史页面 (`/history`)
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        Transaction History                                   │
 │                    View all your payments and receipts                       │
@@ -358,11 +358,11 @@ Step 5: 支付完成
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 4.2 数据分析页面 (`/analytics`)
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        Financial Intelligence                                │
 │              Advanced analytics and network topology analysis                │
@@ -409,14 +409,14 @@ Step 5: 支付完成
 │  └─────────────────────────────┘ └─────────────────────────────┘          │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 
 ### 4.3 管理后台 (`/admin`)
 
 企业客户可以通过管理后台监控系统状态和配置：
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        Admin Dashboard                                       │
 │              System configuration and production readiness                   │
@@ -454,13 +454,13 @@ Step 5: 支付完成
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 4.4 Invoice 管理
 
 企业客户可以通过 API 或 Hook 管理 Invoice：
 
-```typescript
+\`\`\`typescript
 // 使用 useInvoice Hook 管理 Invoice
 import { useInvoice } from '@/hooks/use-invoice';
 
@@ -501,11 +501,11 @@ function InvoiceManager() {
     await cancelInvoice(invoiceId);
   };
 }
-```
+\`\`\`
 
 **Invoice 状态流转:**
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        Invoice 状态机                                        │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -521,7 +521,7 @@ function InvoiceManager() {
     │    paid     │ │   expired   │ │  cancelled  │
     │  (已支付)   │ │  (已过期)   │ │  (已取消)   │
     └─────────────┘ └─────────────┘ └─────────────┘
-```
+\`\`\`
 
 ---
 
@@ -545,7 +545,7 @@ function InvoiceManager() {
 
 ### 5.2 创建 Webhook
 
-```bash
+\`\`\`bash
 # 创建 Webhook 订阅
 curl -X POST https://protocol-banks.com/api/webhooks \
   -H "Authorization: Bearer pb_live_xxx" \
@@ -574,13 +574,13 @@ curl -X POST https://protocol-banks.com/api/webhooks \
   "secret": "whsec_a1b2c3d4e5f6...",
   "message": "Webhook created successfully. Save the secret now - it will not be shown again."
 }
-```
+\`\`\`
 
 ### 5.3 Webhook 请求格式
 
 当事件触发时，Protocol Banks 会向您的服务器发送 POST 请求：
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        Webhook 请求示例                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -609,11 +609,11 @@ Body:
     "created_at": "2025-01-23T10:29:00Z"
   }
 }
-```
+\`\`\`
 
 ### 5.4 验证 Webhook 签名
 
-```javascript
+\`\`\`javascript
 // Node.js 示例
 const crypto = require('crypto');
 
@@ -664,11 +664,11 @@ app.post('/webhooks/protocol-banks', (req, res) => {
   
   res.status(200).json({ received: true });
 });
-```
+\`\`\`
 
 ### 5.5 重试机制
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        Webhook 重试策略                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -682,13 +682,13 @@ app.post('/webhooks/protocol-banks', (req, res) => {
   pending → delivered (成功)
           → retrying (失败，还有重试次数)
           → failed (失败，重试次数用尽)
-```
+\`\`\`
 
 ---
 
 ## 六、完整支付生命周期
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        完整支付生命周期                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -770,7 +770,7 @@ app.post('/webhooks/protocol-banks', (req, res) => {
 │  └─────────────┘                                                            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ---
 
@@ -778,7 +778,7 @@ app.post('/webhooks/protocol-banks', (req, res) => {
 
 ### 7.1 支付链接安全
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        支付链接安全机制                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -810,7 +810,7 @@ app.post('/webhooks/protocol-banks', (req, res) => {
    │  • 单次使用授权 (防止重放)                                          │
    │  • 链上验证                                                          │
    └─────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 7.2 Webhook 安全
 
@@ -825,7 +825,7 @@ app.post('/webhooks/protocol-banks', (req, res) => {
 
 ### 8.1 电商平台集成
 
-```javascript
+\`\`\`javascript
 // 订单创建时生成支付链接
 async function createOrderPayment(order) {
   const response = await fetch('https://protocol-banks.com/api/invoice', {
@@ -890,11 +890,11 @@ app.post('/webhooks/protocol-banks', async (req, res) => {
   
   res.status(200).json({ received: true });
 });
-```
+\`\`\`
 
 ### 8.2 SaaS 订阅集成
 
-```javascript
+\`\`\`javascript
 // 创建订阅支付
 async function createSubscriptionPayment(user, plan) {
   const response = await fetch('https://protocol-banks.com/api/invoice', {
@@ -930,7 +930,7 @@ if (event === 'payment.completed' && data.metadata?.type === 'subscription') {
   // 设置下次扣款提醒
   await scheduleNextPaymentReminder(user_id, plan_id);
 }
-```
+\`\`\`
 
 ---
 
@@ -940,7 +940,7 @@ if (event === 'payment.completed' && data.metadata?.type === 'subscription') {
 
 当企业客户 (收款方) 希望收取 Base 链上的 USDT，但 C端用户 (付款方) 钱包中只有 Ethereum 链上的 USDT 时，Protocol Banks 提供自动跨链支付能力。
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        跨链支付场景                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -968,11 +968,11 @@ if (event === 'payment.completed' && data.metadata?.type === 'subscription') {
 │                                                                             │
 │  自动选择最优路由 → 最低费用 + 最快速度 + 最佳汇率                          │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 9.2 跨链支付技术架构
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        跨链支付技术栈                                        │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -1012,7 +1012,7 @@ if (event === 'payment.completed' && data.metadata?.type === 'subscription') {
                     │  Base / Ethereum / Polygon / etc.  │
                     │  收款方钱包收到目标代币              │
                     └─────────────────────────────────────┘
-```
+\`\`\`
 
 ### 9.3 支持的跨链路径
 
@@ -1029,7 +1029,7 @@ if (event === 'payment.completed' && data.metadata?.type === 'subscription') {
 
 ### 9.4 跨链支付用户流程
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        C端用户跨链支付流程                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -1133,13 +1133,13 @@ Step 7: 支付完成
 │                                                                  │
 │ [Close Window]                                                   │
 └──────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 9.5 Rango Exchange 集成详解
 
 Rango 是一个 DEX 聚合器，支持 70+ 区块链和 100+ DEX：
 
-```typescript
+\`\`\`typescript
 // lib/rango.ts - 核心功能
 
 // 1. 获取所有可用路由
@@ -1176,13 +1176,13 @@ const SUPPORTED_CHAINS = [
   'SOLANA',     // Solana
   // ... 70+ 更多链
 ];
-```
+\`\`\`
 
 ### 9.6 ZetaChain 全链集成详解
 
 ZetaChain 提供原生全链互操作性，特别适合 BTC 跨链：
 
-```typescript
+\`\`\`typescript
 // lib/zetachain.ts - 核心功能
 
 // 1. 获取全链资产余额 (一个地址管理所有链)
@@ -1208,13 +1208,13 @@ const memo = zetachain.getBTCDepositMemo('0x...');
 // 4. 追踪跨链交易状态
 const status = await zetachain.trackCrossChainTx(cctxHash);
 // { status: 'processing', progress: 60, currentStep: 'Bridge processing' }
-```
+\`\`\`
 
 ### 9.7 跨链支付 API
 
 企业客户可以通过 API 创建指定收款链的 Invoice：
 
-```bash
+\`\`\`bash
 # 创建跨链支付 Invoice
 curl -X POST https://protocol-banks.com/api/invoice \
   -H "Authorization: Bearer pb_live_xxx" \
@@ -1243,11 +1243,11 @@ curl -X POST https://protocol-banks.com/api/invoice \
   },
   "paymentLink": "https://protocol-banks.com/pay?invoice=inv_abc123&chain=base&crosschain=true"
 }
-```
+\`\`\`
 
 ### 9.8 跨链费用说明
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        跨链费用构成                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -1273,11 +1273,11 @@ curl -X POST https://protocol-banks.com/api/invoice \
 │ ─────────────────────────────────────────────────────────────────────────  │
 │ 收款方收到:   99.60 USDT (Base 链)                                         │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 9.9 跨链支付安全机制
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        跨链安全保障                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -1309,7 +1309,7 @@ curl -X POST https://protocol-banks.com/api/invoice \
    │  • 检测异常汇率波动                                                 │
    │  • 防止 MEV 攻击                                                    │
    └─────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ---
 

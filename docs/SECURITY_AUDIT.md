@@ -54,7 +54,7 @@ and identifies remaining items that need attention before production deployment.
 **Current State:** Private keys stored in K8s secrets
 **Risk:** Secrets visible to cluster admins, not encrypted in etcd by default
 **Remediation:**
-```yaml
+\`\`\`yaml
 # Use External Secrets Operator with Vault
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -72,7 +72,7 @@ spec:
       remoteRef:
         key: secret/data/protocolbanks/signer
         property: private_key
-```
+\`\`\`
 
 **Action Items:**
 1. Deploy HashiCorp Vault
@@ -86,7 +86,7 @@ spec:
 **Risk:** Cannot trace unauthorized access or fraud
 **Remediation:**
 
-```go
+\`\`\`go
 // Add to services/shared/audit/audit.go
 package audit
 
@@ -118,7 +118,7 @@ func LogAuditEvent(ctx context.Context, event AuditEvent) error {
     // Immutable audit log - write to append-only storage
     return writeToAuditLog(ctx, data)
 }
-```
+\`\`\`
 
 ### 2.3 HIGH - Missing HSM Integration
 
@@ -126,7 +126,7 @@ func LogAuditEvent(ctx context.Context, event AuditEvent) error {
 **Risk:** Private keys exposed in memory
 **Remediation:**
 
-```go
+\`\`\`go
 // Add to services/payout-engine/internal/signer/hsm.go
 package signer
 
@@ -175,7 +175,7 @@ func (s *HSMSigner) Sign(hash []byte) ([]byte, error) {
     s.ctx.SignInit(s.session, mechanism, s.keyHandle)
     return s.ctx.Sign(s.session, hash)
 }
-```
+\`\`\`
 
 ### 2.4 MEDIUM - Rate Limiting Enhancement
 
@@ -183,7 +183,7 @@ func (s *HSMSigner) Sign(hash []byte) ([]byte, error) {
 **Risk:** Single user can exhaust rate limit for all
 **Remediation:**
 
-```go
+\`\`\`go
 // Add per-user rate limiting
 package middleware
 
@@ -245,7 +245,7 @@ func (l *UserRateLimiter) RateLimitMiddleware(next http.Handler) http.Handler {
         next.ServeHTTP(w, r)
     })
 }
-```
+\`\`\`
 
 ### 2.5 MEDIUM - Insufficient Error Handling
 
@@ -253,7 +253,7 @@ func (l *UserRateLimiter) RateLimitMiddleware(next http.Handler) http.Handler {
 **Risk:** Information leakage, poor debugging
 **Remediation:**
 
-```go
+\`\`\`go
 // Standardized error responses
 package errors
 
@@ -290,7 +290,7 @@ func (e *APIError) Write(w http.ResponseWriter) {
     w.WriteHeader(e.StatusCode)
     json.NewEncoder(w).Encode(e)
 }
-```
+\`\`\`
 
 ---
 

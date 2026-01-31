@@ -12,7 +12,7 @@ The implementation follows a layered architecture:
 
 ## Architecture
 
-```mermaid
+\`\`\`mermaid
 graph TB
     subgraph "Client Layer"
         WEB[Web App]
@@ -75,7 +75,7 @@ graph TB
     GRPC --> PAYOUT
     GRPC --> INDEXER
     GRPC --> WEBHOOK
-```
+\`\`\`
 
 ## Components and Interfaces
 
@@ -83,7 +83,7 @@ graph TB
 
 Manages programmatic access credentials with secure hashing and validation.
 
-```typescript
+\`\`\`typescript
 interface APIKey {
   id: string;
   name: string;
@@ -112,13 +112,13 @@ interface APIKeyService {
   validate(secret: string): Promise<{ valid: boolean; key?: APIKey }>;
   logUsage(keyId: string, endpoint: string, method: string, statusCode: number, responseTimeMs: number): Promise<void>;
 }
-```
+\`\`\`
 
 ### 2. Webhook Service
 
 Handles webhook configuration and event delivery with retry logic.
 
-```typescript
+\`\`\`typescript
 interface Webhook {
   id: string;
   name: string;
@@ -169,13 +169,13 @@ interface WebhookService {
   trigger(event: WebhookEvent, payload: object, ownerAddress: string): Promise<void>;
   processDelivery(deliveryId: string): Promise<void>;
 }
-```
+\`\`\`
 
 ### 3. Subscription Service
 
 Manages recurring payments with automatic execution.
 
-```typescript
+\`\`\`typescript
 interface Subscription {
   id: string;
   owner_address: string;
@@ -207,13 +207,13 @@ interface SubscriptionService {
   executePayment(subscriptionId: string): Promise<{ success: boolean; txHash?: string; error?: string }>;
   calculateNextPaymentDate(frequency: string, fromDate: Date): Date;
 }
-```
+\`\`\`
 
 ### 4. Rate Limiter
 
 Enforces per-user and per-API-key rate limits using Redis.
 
-```typescript
+\`\`\`typescript
 interface RateLimitConfig {
   perMinute: number;
   perDay: number;
@@ -231,13 +231,13 @@ interface RateLimiter {
   increment(identifier: string): Promise<void>;
   getRemainingQuota(identifier: string): Promise<{ minute: number; day: number }>;
 }
-```
+\`\`\`
 
 ### 5. Health Monitor
 
 Provides system health status and component checks.
 
-```typescript
+\`\`\`typescript
 interface HealthStatus {
   status: 'ok' | 'degraded' | 'unhealthy';
   timestamp: Date;
@@ -258,13 +258,13 @@ interface HealthMonitor {
   checkRedis(): Promise<ComponentHealth>;
   checkGoServices(): Promise<ComponentHealth>;
 }
-```
+\`\`\`
 
 ### 6. Analytics Service
 
 Provides aggregated payment data and metrics.
 
-```typescript
+\`\`\`typescript
 interface AnalyticsSummary {
   total_volume_usd: number;
   transaction_count: number;
@@ -295,13 +295,13 @@ interface AnalyticsService {
   getByVendor(ownerAddress: string): Promise<VendorAnalytics[]>;
   getByChain(ownerAddress: string): Promise<{ chain: string; volume_usd: number; count: number }[]>;
 }
-```
+\`\`\`
 
 ### 7. Notification Service
 
 Handles push notifications for payment events.
 
-```typescript
+\`\`\`typescript
 interface PushSubscription {
   id: string;
   owner_address: string;
@@ -325,13 +325,13 @@ interface NotificationService {
   updatePreferences(ownerAddress: string, prefs: Partial<NotificationPreferences>): Promise<void>;
   send(ownerAddress: string, notification: NotificationPayload): Promise<void>;
 }
-```
+\`\`\`
 
 ### 8. Go Services Bridge
 
 Circuit breaker pattern for Go service integration.
 
-```typescript
+\`\`\`typescript
 interface CircuitBreakerConfig {
   timeout_ms: number;
   failure_threshold: number;
@@ -344,7 +344,7 @@ interface GoServicesBridge {
   fallbackToTypeScript<T>(operation: () => Promise<T>): Promise<T>;
   getHealthStatus(): Promise<{ payout: boolean; indexer: boolean; webhook: boolean }>;
 }
-```
+\`\`\`
 
 
 
@@ -368,7 +368,7 @@ The following tables are already defined in the database (from SQL scripts 014 a
 
 **New Tables Required:**
 
-```sql
+\`\`\`sql
 -- Push notification subscriptions
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -401,13 +401,13 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   count INTEGER DEFAULT 0,
   UNIQUE(identifier, window_type, window_start)
 );
-```
+\`\`\`
 
 ### Payment-Vendor Relationship
 
 The existing `payments` table needs a `vendor_id` column to link payments to vendors:
 
-```sql
+\`\`\`sql
 -- Add vendor_id to payments table
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS vendor_id UUID REFERENCES vendors(id);
 
@@ -434,7 +434,7 @@ CREATE TRIGGER payment_vendor_link
   BEFORE INSERT ON payments
   FOR EACH ROW
   EXECUTE FUNCTION link_payment_to_vendor();
-```
+\`\`\`
 
 ## API Endpoints
 
@@ -497,7 +497,7 @@ CREATE TRIGGER payment_vendor_link
 
 ## Middleware Stack
 
-```typescript
+\`\`\`typescript
 // Middleware execution order
 const middlewareStack = [
   securityHeaders,      // Add security headers (CSP, CORS, etc.)
@@ -538,11 +538,11 @@ async function authenticateRequest(req: NextRequest) {
   
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
-```
+\`\`\`
 
 ## Webhook Delivery Flow
 
-```mermaid
+\`\`\`mermaid
 sequenceDiagram
     participant App as Application
     participant WS as Webhook Service
@@ -576,11 +576,11 @@ sequenceDiagram
             WH->>DB: Update status = failed
         end
     end
-```
+\`\`\`
 
 ## Circuit Breaker Pattern
 
-```typescript
+\`\`\`typescript
 class CircuitBreaker {
   private state: 'closed' | 'open' | 'half-open' = 'closed';
   private failures = 0;
@@ -648,7 +648,7 @@ class CircuitBreaker {
     });
   }
 }
-```
+\`\`\`
 
 
 
@@ -808,7 +808,7 @@ Based on the prework analysis, the following correctness properties have been id
 
 All API endpoints SHALL return consistent error responses:
 
-```typescript
+\`\`\`typescript
 interface APIError {
   error: string;
   code?: string;
@@ -823,11 +823,11 @@ interface APIError {
 // 429 - Too Many Requests (rate limited)
 // 500 - Internal Server Error (unexpected error)
 // 503 - Service Unavailable (Go services down, using fallback)
-```
+\`\`\`
 
 ### Webhook Delivery Errors
 
-```typescript
+\`\`\`typescript
 interface WebhookDeliveryError {
   type: 'timeout' | 'connection_refused' | 'invalid_response' | 'server_error';
   message: string;
@@ -840,11 +840,11 @@ interface WebhookDeliveryError {
 // Attempt 2: 1 minute delay
 // Attempt 3: 5 minutes delay
 // After 3 failures: Mark as failed, no more retries
-```
+\`\`\`
 
 ### Circuit Breaker States
 
-```typescript
+\`\`\`typescript
 // Closed: Normal operation, requests go to Go services
 // Open: Go services unavailable, all requests go to TypeScript fallback
 // Half-Open: Testing recovery, single request goes to Go services
@@ -854,7 +854,7 @@ interface WebhookDeliveryError {
 // Open → Half-Open: After 30 seconds
 // Half-Open → Closed: On successful request
 // Half-Open → Open: On failed request
-```
+\`\`\`
 
 ## Testing Strategy
 
@@ -873,7 +873,7 @@ Unit tests focus on specific examples and edge cases:
 
 Property-based tests verify universal properties across many generated inputs using **fast-check** library:
 
-```typescript
+\`\`\`typescript
 import fc from 'fast-check';
 
 // Example: API Key Round-Trip Property
@@ -913,7 +913,7 @@ describe('API Key Service', () => {
     );
   });
 });
-```
+\`\`\`
 
 ### Integration Tests
 
@@ -930,4 +930,3 @@ Integration tests verify end-to-end flows:
 - Each property test references its design document property number
 - Tag format: `Feature: production-readiness, Property N: [property_text]`
 - Testing framework: Jest with fast-check for property-based testing
-

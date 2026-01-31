@@ -111,12 +111,12 @@ Complete guide to all platform features.
 ### Excel Import
 
 **File Format:**
-```csv
+\`\`\`csv
 address,amount,token
 0x1234...,100,USDC
 alice.eth,50,USDT
 0x5678...,25,DAI
-```
+\`\`\`
 
 **Supported Columns:**
 - `address` / `wallet` / `recipient` (required)
@@ -162,14 +162,14 @@ alice.eth,50,USDT
 7. Click "Deploy"
 
 **Example Configuration:**
-```
+\`\`\`
 Signers:
 - 0xabc... (Finance) - Can propose
 - 0xdef... (CEO) - Can approve
 - 0x123... (CFO) - Can approve
 
 Threshold: 2
-```
+\`\`\`
 
 ### Transaction Approval
 
@@ -341,7 +341,7 @@ Threshold: 2
 6. Save
 
 **Payload Example:**
-```json
+\`\`\`json
 {
   "event": "payment.confirmed",
   "timestamp": 1704844800,
@@ -356,10 +356,10 @@ Threshold: 2
   },
   "signature": "sha256=..."
 }
-```
+\`\`\`
 
 **Verify Signature:**
-```typescript
+\`\`\`typescript
 import crypto from 'crypto'
 
 const signature = request.headers['x-webhook-signature']
@@ -374,7 +374,7 @@ const expectedSignature = crypto
 if (signature !== `sha256=${expectedSignature}`) {
   throw new Error('Invalid signature')
 }
-```
+\`\`\`
 
 ### API Keys
 
@@ -386,11 +386,11 @@ if (signature !== `sha256=${expectedSignature}`) {
 5. Copy key (shown once)
 
 **Authentication:**
-```bash
+\`\`\`bash
 curl https://api.protocolbanks.com/v1/payments \
   -H "Authorization: Bearer pb_live_..." \
   -H "Content-Type: application/json"
-```
+\`\`\`
 
 ---
 

@@ -12,7 +12,7 @@ The implementation follows a layered architecture:
 
 ## Architecture
 
-```mermaid
+\`\`\`mermaid
 graph TB
     subgraph "AI Agents"
         AGENT1[Trading Agent]
@@ -70,7 +70,7 @@ graph TB
     NOTIFY --> MOBILE
     DASH --> PRS
     MOBILE --> PRS
-```
+\`\`\`
 
 ## Components and Interfaces
 
@@ -78,7 +78,7 @@ graph TB
 
 Manages agent registration, authentication, and lifecycle.
 
-```typescript
+\`\`\`typescript
 interface Agent {
   id: string;
   owner_address: string;
@@ -119,13 +119,13 @@ interface AgentService {
   pauseAll(ownerAddress: string): Promise<void>;
   resumeAll(ownerAddress: string): Promise<void>;
 }
-```
+\`\`\`
 
 ### 2. Budget Service
 
 Manages budget allocation and tracking for agents.
 
-```typescript
+\`\`\`typescript
 interface AgentBudget {
   id: string;
   agent_id: string;
@@ -160,13 +160,13 @@ interface BudgetUtilization {
   utilization_percent: number;
   budgets: AgentBudget[];
 }
-```
+\`\`\`
 
 ### 3. Proposal Service
 
 Handles payment proposals from agents.
 
-```typescript
+\`\`\`typescript
 interface PaymentProposal {
   id: string;
   agent_id: string;
@@ -210,13 +210,13 @@ interface ProposalFilters {
   limit?: number;
   offset?: number;
 }
-```
+\`\`\`
 
 ### 4. Auto-Execute Service
 
 Handles automatic approval and execution of proposals within budget.
 
-```typescript
+\`\`\`typescript
 interface AutoExecuteService {
   processProposal(proposal: PaymentProposal): Promise<AutoExecuteResult>;
   checkRules(agent: Agent, proposal: PaymentProposal): Promise<RuleCheckResult>;
@@ -233,13 +233,13 @@ interface RuleCheckResult {
   passed: boolean;
   violations: string[];
 }
-```
+\`\`\`
 
 ### 5. Agent Webhook Service
 
 Delivers webhook events to agents.
 
-```typescript
+\`\`\`typescript
 type AgentWebhookEvent = 
   | 'proposal.created'
   | 'proposal.approved'
@@ -272,13 +272,13 @@ interface AgentWebhookService {
   processDelivery(deliveryId: string): Promise<void>;
   getDeliveries(agentId: string, limit?: number): Promise<AgentWebhookDelivery[]>;
 }
-```
+\`\`\`
 
 ### 6. Agent Activity Service
 
 Tracks and reports agent activities.
 
-```typescript
+\`\`\`typescript
 interface AgentActivity {
   id: string;
   agent_id: string;
@@ -316,13 +316,13 @@ interface AgentAnalytics {
   spending_by_agent: { agent_id: string; agent_name: string; amount: string }[];
   top_recipients: { address: string; amount: string; count: number }[];
 }
-```
+\`\`\`
 
 ## Data Models
 
 ### Database Schema
 
-```sql
+\`\`\`sql
 -- Agents table
 CREATE TABLE IF NOT EXISTS agents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -447,7 +447,7 @@ CREATE POLICY webhook_deliveries_owner_policy ON agent_webhook_deliveries
 -- Activities: Owner can view activities for their agents
 CREATE POLICY activities_owner_policy ON agent_activities
   FOR ALL USING (owner_address = current_setting('app.current_user_address', true));
-```
+\`\`\`
 
 ## API Endpoints
 
@@ -501,7 +501,7 @@ CREATE POLICY activities_owner_policy ON agent_activities
 
 ## Agent Authentication Middleware
 
-```typescript
+\`\`\`typescript
 // lib/middleware/agent-auth.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { agentService } from '@/lib/services/agent-service';
@@ -535,11 +535,11 @@ export async function agentAuthMiddleware(req: NextRequest) {
   
   return null; // Continue to handler
 }
-```
+\`\`\`
 
 ## Auto-Execute Flow
 
-```mermaid
+\`\`\`mermaid
 sequenceDiagram
     participant Agent as AI Agent
     participant API as Agent API
@@ -577,7 +577,7 @@ sequenceDiagram
     end
     
     API-->>Agent: ProposalResponse
-```
+\`\`\`
 
 ## Correctness Properties
 
@@ -701,7 +701,7 @@ sequenceDiagram
 
 ### API Error Responses
 
-```typescript
+\`\`\`typescript
 interface AgentAPIError {
   error: string;
   code: AgentErrorCode;
@@ -727,17 +727,17 @@ type AgentErrorCode =
 // 429 - Too Many Requests (rate limited)
 // 500 - Internal Server Error
 // 503 - Service Unavailable (x402 relayer down)
-```
+\`\`\`
 
 ### Webhook Delivery Errors
 
-```typescript
+\`\`\`typescript
 // Retry schedule (exponential backoff)
 // Attempt 1: Immediate
 // Attempt 2: 1 minute delay
 // Attempt 3: 5 minutes delay
 // After 3 failures: Mark as failed, notify owner
-```
+\`\`\`
 
 ## Testing Strategy
 
@@ -753,7 +753,7 @@ type AgentErrorCode =
 
 Property-based tests verify universal properties using **fast-check** library:
 
-```typescript
+\`\`\`typescript
 import fc from 'fast-check';
 
 // Example: Budget Tracking Accuracy
@@ -788,7 +788,7 @@ describe('Budget Service', () => {
     );
   });
 });
-```
+\`\`\`
 
 ### Integration Tests
 
