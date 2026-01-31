@@ -560,7 +560,8 @@ export function NetworkGraph({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[400px] md:min-h-[800px] bg-card rounded-lg overflow-hidden border border-border"
+      className="relative w-full h-full min-h-[400px] md:min-h-[800px] rounded-lg overflow-hidden border border-border"
+      style={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}
     >
       <div className="absolute top-3 md:top-6 left-3 md:left-6 z-20 space-y-1 md:space-y-2">
         <h3 className="text-lg md:text-2xl font-light tracking-tight text-foreground">Global Payment Mesh</h3>
