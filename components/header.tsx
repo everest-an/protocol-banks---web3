@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { Wallet, Send, QrCode, Menu, Play, StopCircle, Loader2, ArrowLeftRight, CreditCard, ShoppingBag } from "lucide-react"
+import { Wallet, Send, QrCode, Menu, Play, StopCircle, Loader2, ArrowLeftRight, CreditCard, ShoppingBag, FileText } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 import { useDemo } from "@/contexts/demo-context"
@@ -32,6 +32,7 @@ export function Header() {
     { href: "/subscriptions", label: "Subscriptions", icon: Send },
     { href: "/batch-payment", label: "Pay", icon: Send },
     { href: "/receive", label: "Receive", icon: QrCode },
+    { href: "/invoices", label: "Invoices", icon: FileText },
     { href: "/swap", label: "Swap", icon: ArrowLeftRight },
     { href: "/acquiring", label: "Acquiring", icon: ShoppingBag },
     { href: "/card", label: "Card", icon: CreditCard },
