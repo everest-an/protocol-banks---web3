@@ -73,6 +73,9 @@ export function NetworkGraph({
   const [showSearchResults, setShowSearchResults] = useState(false)
 
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
+  const [paymentFlowData, setPaymentFlowData] = useState<{ month: string; amount: number }[]>([])
+  const [paymentFlowLoading, setPaymentFlowLoading] = useState(false)
+  const [ytdChange, setYtdChange] = useState<number | null>(null)
 
   const initialSetupDone = useRef(false)
 
@@ -454,6 +457,82 @@ export function NetworkGraph({
 
   const showEmptyState = !isDemoMode && vendors.length === 0
 
+  // Fetch payment flow data for selected vendor
+  useEffect(() => {
+    if (!selectedNode?.data?.wallet_address || isDemoMode) {
+      setPaymentFlowData([])
+      setYtdChange(null)
+      return
+    }
+
+    const fetchPaymentFlow = async () => {
+      setPaymentFlowLoading(true)
+      try {
+        const vendorAddress = selectedNode.data?.wallet_address
+        const currentYear = new Date().getFullYear()
+        const startOfYear = `${currentYear}-01-01`
+        const startOfPrevYear = `${currentYear - 1}-01-01`
+        const endOfPrevYear = `${currentYear - 1}-12-31`
+
+        // Fetch this year's monthly payments
+        const { data: payments, error } = await supabase
+          .from("payments")
+          .select("amount_usd, timestamp")
+          .or(`from_address.eq.${vendorAddress},to_address.eq.${vendorAddress}`)
+          .gte("timestamp", startOfYear)
+          .order("timestamp", { ascending: true })
+
+        if (error) throw error
+
+        // Group payments by month
+        const monthlyData: Record<string, number> = {}
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        months.forEach((m) => (monthlyData[m] = 0))
+
+        payments?.forEach((p) => {
+          if (p.timestamp && p.amount_usd) {
+            const month = new Date(p.timestamp).getMonth()
+            monthlyData[months[month]] += Number(p.amount_usd)
+          }
+        })
+
+        const flowData = months.map((month) => ({
+          month,
+          amount: monthlyData[month],
+        }))
+        setPaymentFlowData(flowData)
+
+        // Calculate YTD change vs previous year
+        const { data: prevYearPayments } = await supabase
+          .from("payments")
+          .select("amount_usd")
+          .or(`from_address.eq.${vendorAddress},to_address.eq.${vendorAddress}`)
+          .gte("timestamp", startOfPrevYear)
+          .lte("timestamp", endOfPrevYear)
+
+        const thisYearTotal = payments?.reduce((sum, p) => sum + Number(p.amount_usd || 0), 0) || 0
+        const prevYearTotal = prevYearPayments?.reduce((sum, p) => sum + Number(p.amount_usd || 0), 0) || 0
+
+        if (prevYearTotal > 0) {
+          const change = ((thisYearTotal - prevYearTotal) / prevYearTotal) * 100
+          setYtdChange(change)
+        } else if (thisYearTotal > 0) {
+          setYtdChange(100)
+        } else {
+          setYtdChange(null)
+        }
+      } catch (err) {
+        console.error("Failed to fetch payment flow:", err)
+        setPaymentFlowData([])
+        setYtdChange(null)
+      } finally {
+        setPaymentFlowLoading(false)
+      }
+    }
+
+    fetchPaymentFlow()
+  }, [selectedNode?.data?.wallet_address, isDemoMode, supabase])
+
   const DetailPanelContent = () => {
     if (!selectedNode || !selectedNode.data) {
       return (
@@ -508,17 +587,50 @@ export function NetworkGraph({
           <div className="space-y-2">
             <div className="flex justify-between items-end">
               <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Payment Flow (YTD)</p>
-              <p className="text-xs text-zinc-300">+12.4% vs prev</p>
+              {ytdChange !== null && (
+                <p className={`text-xs ${ytdChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {ytdChange >= 0 ? "+" : ""}
+                  {ytdChange.toFixed(1)}% vs prev
+                </p>
+              )}
+              {ytdChange === null && !paymentFlowLoading && (
+                <p className="text-xs text-zinc-500">No prior data</p>
+              )}
             </div>
             <div className="h-12 md:h-16 flex items-end gap-0.5">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-1 bg-zinc-600 hover:bg-zinc-500 transition-all rounded-t-sm"
-                  style={{ height: `${20 + ((i * 17) % 80)}%` }}
-                />
-              ))}
+              {paymentFlowLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-zinc-500 border-t-zinc-300 rounded-full animate-spin" />
+                </div>
+              ) : paymentFlowData.length > 0 ? (
+                (() => {
+                  const maxAmount = Math.max(...paymentFlowData.map((d) => d.amount), 1)
+                  return paymentFlowData.map((data, i) => (
+                    <div key={data.month} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+                      <div
+                        className={`w-full rounded-t-sm transition-all ${
+                          data.amount > 0 ? "bg-zinc-600 hover:bg-zinc-500" : "bg-zinc-700/50"
+                        }`}
+                        style={{ height: data.amount > 0 ? `${Math.max((data.amount / maxAmount) * 100, 10)}%` : "4px" }}
+                      />
+                      <div className="absolute bottom-full mb-1 px-1.5 py-0.5 bg-zinc-800 text-[9px] text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                        {data.month}: ${data.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </div>
+                    </div>
+                  ))
+                })()
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-zinc-500 text-xs">
+                  No payment data
+                </div>
+              )}
             </div>
+            {paymentFlowData.length > 0 && (
+              <div className="flex justify-between text-[8px] text-zinc-500 font-mono px-0.5">
+                <span>Jan</span>
+                <span>Dec</span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
