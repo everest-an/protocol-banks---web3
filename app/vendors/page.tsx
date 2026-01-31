@@ -1,17 +1,16 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useDemo } from "@/contexts/demo-context"
+import { useVendors } from "@/hooks/use-vendors"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { Search, LayoutGrid, ListIcon, Download, Calendar, Filter, Plus, Edit, Trash2 } from "lucide-react"
+import { Search, LayoutGrid, ListIcon, Calendar, Plus, Edit, Trash2, Loader2, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { getSupabase } from "@/lib/supabase"
 import { NetworkGraph } from "@/components/network-graph"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
@@ -39,99 +38,32 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { generateIntegrityHash } from "@/lib/encryption"
 import { VendorSidebar } from "@/components/vendor-sidebar"
-import { secureCreateVendor, secureUpdateVendor, secureDeleteVendor } from "@/lib/supabase-secure"
+import { Skeleton } from "@/components/ui/skeleton"
 
-// Mock categories for categorization logic
+// Categories for vendor classification
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
 
-interface Vendor {
-  id: string
-  wallet_address: string
-  name: string
-  email: string
-  notes: string
-  created_at: string
-  totalReceived?: number
-  transactionCount?: number
-  category?: string
-  tier?: "subsidiary" | "partner" | "vendor" // Added tier for hierarchy
-  parentId?: string // For connection logic
-  integrity_hash?: string
-  updated_at?: string
-}
-
-// Generate 50+ realistic enterprise nodes
-const generateEnterpriseDemoData = (): Vendor[] => {
-  const vendors: Vendor[] = []
-
-  // 1. Subsidiaries (Tier 1)
-  const subsidiaries = ["APAC Division", "EMEA Operations", "North America HQ", "Ventures Lab"]
-  subsidiaries.forEach((name, i) => {
-    vendors.push({
-      id: `sub-${i}`,
-      name,
-      wallet_address: `0x${Math.random().toString(16).substr(2, 40)}`,
-      email: `finance@${name.toLowerCase().replace(/\s/g, "")}.com`,
-      notes: "Internal Transfer",
-      created_at: new Date().toISOString(),
-      totalReceived: 500000 + Math.random() * 1000000,
-      transactionCount: 120 + Math.floor(Math.random() * 50),
-      category: "Internal",
-      tier: "subsidiary",
-    })
-  })
-
-  // 2. Key Partners (Tier 2) - Connected to Subsidiaries
-  const partners = ["Cloudflare", "AWS", "Google Cloud", "Salesforce", "Stripe", "Deel", "WeWork", "Slack"]
-  partners.forEach((name, i) => {
-    vendors.push({
-      id: `partner-${i}`,
-      name,
-      wallet_address: `0x${Math.random().toString(16).substr(2, 40)}`,
-      email: `billing@${name.toLowerCase().replace(/\s/g, "")}.com`,
-      notes: "Annual Contract",
-      created_at: new Date().toISOString(),
-      totalReceived: 100000 + Math.random() * 300000,
-      transactionCount: 12,
-      category: "Infrastructure",
-      tier: "partner",
-      parentId: `sub-${i % subsidiaries.length}`, // Link to a subsidiary
-    })
-  })
-
-  // 3. Regular Vendors (Tier 3)
-  for (let i = 0; i < 40; i++) {
-    const category = categories[Math.floor(Math.random() * categories.length)]
-    vendors.push({
-      id: `vendor-${i}`,
-      name: `Vendor ${Math.random().toString(36).substr(2, 5).toUpperCase()} Ltd`,
-      wallet_address: `0x${Math.random().toString(16).substr(2, 40)}`,
-      email: `invoices@vendor${i}.com`,
-      notes: `Invoice #${1000 + i}`,
-      created_at: new Date().toISOString(),
-      totalReceived: 5000 + Math.random() * 50000,
-      transactionCount: 1 + Math.floor(Math.random() * 20),
-      category,
-      tier: "vendor",
-      parentId: Math.random() > 0.3 ? `partner-${i % partners.length}` : undefined, // Mixed connections
-    })
-  }
-
-  return vendors
-}
-
-const demoVendors = generateEnterpriseDemoData()
-
 export default function VendorsPage() {
-  const { wallet, isConnected, chainId } = useWeb3()
+  const { wallet, isConnected } = useWeb3()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const router = useRouter()
 
-  const [vendors, setVendors] = useState<Vendor[]>([])
-  const [loading, setLoading] = useState(true)
+  // Use the vendors hook for data management
+  const {
+    vendors,
+    loading,
+    error,
+    refresh,
+    addVendor,
+    updateVendor,
+    deleteVendor,
+  } = useVendors({
+    isDemoMode,
+    walletAddress: wallet || undefined,
+  })
+
   const [viewMode, setViewMode] = useState<"graph" | "list">("graph")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
 
@@ -143,135 +75,41 @@ export default function VendorsPage() {
   // Dialog States
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
-  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
+  const [editingVendor, setEditingVendor] = useState<any | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null)
+  const [vendorToDelete, setVendorToDelete] = useState<any | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: "",
+    company_name: "",
     wallet_address: "",
     email: "",
     notes: "",
     category: "",
-    tier: "vendor",
+    tier: "vendor" as "vendor" | "partner" | "subsidiary",
   })
 
-  const displayVendors = isDemoMode ? demoVendors : vendors
-
   const filteredVendors = useMemo(() => {
-    return displayVendors.filter((v) => {
+    return vendors.filter((v) => {
+      const name = v.company_name || ""
+      const address = v.wallet_address || ""
       const matchesSearch =
-        v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.wallet_address.toLowerCase().includes(searchQuery.toLowerCase())
-
-      // Assign category for demo visualization
-      if (!v.category) {
-        v.category = categories[v.id.charCodeAt(0) % categories.length]
-      }
+        name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        address.toLowerCase().includes(searchQuery.toLowerCase())
 
       return matchesSearch && (selectedCategories.length === 0 || selectedCategories.includes(v.category || "All"))
     })
-  }, [displayVendors, searchQuery, selectedCategories])
+  }, [vendors, searchQuery, selectedCategories])
 
-  useEffect(() => {
-    if (isConnected && wallet) {
-      loadVendors()
-    } else {
-      setLoading(false)
-    }
-  }, [isConnected, wallet, isDemoMode])
-
-  const loadVendors = async () => {
-    try {
-      const supabase = getSupabase()
-      if (!supabase) {
-        setLoading(false)
-        return
-      }
-
-      const { data: vendorsData, error } = await supabase
-        .from("vendors")
-        .select("*")
-        .eq("created_by", wallet)
-        .order("name")
-
-      if (error) throw error
-
-      let allPayments: any[] = []
-
-      // 1. Fetch internal payments from Supabase
-      const { data: paymentsData } = await supabase
-        .from("payments")
-        .select("amount_usd, to_address, vendor_id, tx_hash")
-        .eq("from_address", wallet)
-
-      if (paymentsData) {
-        allPayments = [...paymentsData]
-      }
-
-      // 2. Fetch external transactions if wallet is connected
-      if (wallet) {
-        try {
-          const currentChainId = chainId || "1"
-          const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
-          const data = await response.json()
-
-          if (data.transactions) {
-            const externalTxs = data.transactions
-
-            // Avoid duplicates using tx_hash
-            const existingHashes = new Set(allPayments.map((p) => p.tx_hash?.toLowerCase()).filter(Boolean))
-
-            const newExternalTxs = externalTxs.filter(
-              (tx: any) =>
-                !existingHashes.has(tx.tx_hash.toLowerCase()) && tx.from_address.toLowerCase() === wallet.toLowerCase(),
-            )
-
-            allPayments = [...allPayments, ...newExternalTxs]
-          }
-        } catch (err) {
-          console.error("Failed to fetch external transactions for vendors:", err)
-        }
-      }
-
-      const vendorsWithStats = (vendorsData || []).map((vendor) => {
-        const vendorPayments = allPayments.filter(
-          (p) =>
-            p.vendor_id === vendor.id ||
-            (p.to_address &&
-              vendor.wallet_address &&
-              p.to_address.toLowerCase() === vendor.wallet_address.toLowerCase()),
-        )
-
-        const totalReceived = vendorPayments.reduce((sum, p) => sum + (Number(p.amount_usd) || 0), 0)
-
-        return {
-          ...vendor,
-          totalReceived,
-          transactionCount: vendorPayments.length,
-          category: vendor.category || categories[vendor.id.charCodeAt(0) % categories.length], // Use real category if available
-          tier: vendor.tier || "vendor",
-        }
-      })
-
-      setVendors(vendorsWithStats)
-    } catch (error) {
-      console.error("Failed to load vendors", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePaymentRequest = (vendor: Vendor) => {
-    // Navigate to batch payment with pre-filled info
-    const url = `/batch-payment?recipient=${vendor.wallet_address}&name=${encodeURIComponent(vendor.name)}`
+  const handlePaymentRequest = (vendor: any) => {
+    const url = `/batch-payment?recipient=${vendor.wallet_address}&name=${encodeURIComponent(vendor.company_name || vendor.name || "")}`
     router.push(url)
   }
 
-  const handleEditVendor = (vendor: Vendor) => {
+  const handleEditVendor = (vendor: any) => {
     setEditingVendor(vendor)
     setFormData({
-      name: vendor.name,
+      company_name: vendor.company_name || vendor.name || "",
       wallet_address: vendor.wallet_address,
       email: vendor.email || "",
       notes: vendor.notes || "",
@@ -282,26 +120,19 @@ export default function VendorsPage() {
     setDialogOpen(true)
   }
 
-  const handleDeleteVendor = (vendor: Vendor) => {
+  const handleDeleteVendor = (vendor: any) => {
     setVendorToDelete(vendor)
     setDeleteDialogOpen(true)
   }
 
   const confirmDeleteVendor = async () => {
-    if (!vendorToDelete || !wallet) return
+    if (!vendorToDelete) return
 
     try {
-      const supabase = getSupabase()
-      if (!supabase) return
-
-      const { error } = await supabase.from("vendors").delete().eq("id", vendorToDelete.id).eq("created_by", wallet)
-
-      if (error) throw error
-
+      await deleteVendor(vendorToDelete.id)
       toast({ title: "Success", description: "Vendor deleted successfully" })
       setDeleteDialogOpen(false)
       setVendorToDelete(null)
-      loadVendors()
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" })
     }
@@ -310,7 +141,7 @@ export default function VendorsPage() {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!wallet) {
+    if (!wallet && !isDemoMode) {
       toast({
         title: "Wallet Required",
         description: "Please connect your wallet to add vendors",
@@ -319,64 +150,41 @@ export default function VendorsPage() {
       return
     }
 
+    setIsSubmitting(true)
+
     try {
-      const supabase = getSupabase()
-      if (!supabase) {
-        toast({
-          title: "Error",
-          description: "Database connection not available",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const integrityHash = generateIntegrityHash(wallet, {
-        name: formData.name,
-        wallet_address: formData.wallet_address,
-      })
-
       if (editMode && editingVendor) {
-        const { error } = await supabase
-          .from("vendors")
-          .update({
-            name: formData.name,
-            wallet_address: formData.wallet_address,
-            email: formData.email,
-            notes: formData.notes,
-            category: formData.category,
-            tier: formData.tier,
-            integrity_hash: integrityHash,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editingVendor.id)
-          .eq("created_by", wallet)
-
-        if (error) throw error
-        toast({ title: "Success", description: "Vendor updated successfully" })
-      } else {
-        const { error } = await supabase.from("vendors").insert({
-          name: formData.name,
+        await updateVendor(editingVendor.id, {
+          company_name: formData.company_name,
           wallet_address: formData.wallet_address,
           email: formData.email,
           notes: formData.notes,
-          category: formData.category,
+          category: formData.category as any,
           tier: formData.tier,
-          created_by: wallet,
-          integrity_hash: integrityHash,
         })
-
-        if (error) throw error
+        toast({ title: "Success", description: "Vendor updated successfully" })
+      } else {
+        await addVendor({
+          company_name: formData.company_name,
+          wallet_address: formData.wallet_address,
+          email: formData.email,
+          notes: formData.notes,
+          category: formData.category as any,
+          tier: formData.tier,
+          chain: "Ethereum",
+          created_by: wallet || "demo",
+        })
         toast({ title: "Success", description: "Vendor added successfully" })
       }
 
       setDialogOpen(false)
       setEditMode(false)
       setEditingVendor(null)
-      setFormData({ name: "", wallet_address: "", email: "", notes: "", category: "", tier: "vendor" })
-      loadVendors()
+      setFormData({ company_name: "", wallet_address: "", email: "", notes: "", category: "", tier: "vendor" })
     } catch (err: any) {
-      console.error("[v0] Failed to save vendor:", err)
       toast({ title: "Error", description: err.message, variant: "destructive" })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -385,28 +193,49 @@ export default function VendorsPage() {
     if (!open) {
       setEditMode(false)
       setEditingVendor(null)
-      setFormData({ name: "", wallet_address: "", email: "", notes: "", category: "", tier: "vendor" })
+      setFormData({ company_name: "", wallet_address: "", email: "", notes: "", category: "", tier: "vendor" })
     }
   }
 
+  // Transform vendors for NetworkGraph component
+  const networkVendors = useMemo(() => {
+    return filteredVendors.map((v) => ({
+      id: v.id,
+      name: v.company_name || "Unknown",
+      wallet_address: v.wallet_address,
+      email: v.email,
+      notes: v.notes,
+      created_at: v.created_at,
+      totalReceived: v.monthly_volume || 0,
+      transactionCount: v.transaction_count || 0,
+      category: v.category || "vendor",
+      tier: v.tier || "vendor",
+      parentId: v.parentId,
+    }))
+  }, [filteredVendors])
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      {!isConnected && (
+      {!isConnected && !isDemoMode && (
         <div className="bg-indigo-600 text-white px-4 py-2 text-center text-sm font-medium animate-in slide-in-from-top">
           You are viewing a live demo. Connect your wallet to visualize your own payment network.
         </div>
       )}
+      
       {/* Enterprise Header Toolbar */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto py-3 px-3 sm:px-4 flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
               <h1 className="text-lg sm:text-xl font-bold tracking-tight whitespace-nowrap">Wallet Tags</h1>
-              <div className="h-4 w-px bg-border hidden sm:block"></div>
+              <div className="h-4 w-px bg-border hidden sm:block" />
               <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                 <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="text-xs">FY: {allowRange ? `${yearRange[0]}-${yearRange[1]}` : yearRange[0]}</span>
               </div>
+              <Badge variant="secondary" className="text-xs">
+                {filteredVendors.length} vendors
+              </Badge>
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -441,8 +270,8 @@ export default function VendorsPage() {
                       <Input
                         id="name"
                         placeholder="e.g. Acme Corp"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        value={formData.company_name}
+                        onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
                         required
                       />
                     </div>
@@ -467,7 +296,12 @@ export default function VendorsPage() {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="tier">Tier / Attribute</Label>
-                        <Select value={formData.tier} onValueChange={(val) => setFormData({ ...formData, tier: val })}>
+                        <Select
+                          value={formData.tier}
+                          onValueChange={(val: "vendor" | "partner" | "subsidiary") =>
+                            setFormData({ ...formData, tier: val })
+                          }
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select..." />
                           </SelectTrigger>
@@ -480,6 +314,16 @@ export default function VendorsPage() {
                       </div>
                     </div>
                     <div className="grid gap-2">
+                      <Label htmlFor="email">Email (optional)</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="billing@company.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
                       <Label htmlFor="notes">Notes</Label>
                       <Textarea
                         id="notes"
@@ -489,16 +333,32 @@ export default function VendorsPage() {
                       />
                     </div>
                     <DialogFooter>
-                      <Button type="submit">{editMode ? "Update Tag" : "Save Tag"}</Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : editMode ? (
+                          "Update Tag"
+                        ) : (
+                          "Save Tag"
+                        )}
+                      </Button>
                     </DialogFooter>
                   </form>
                 </DialogContent>
               </Dialog>
+              
               <div className="sm:hidden fixed bottom-20 right-4 z-50">
                 <Button size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setDialogOpen(true)}>
                   <Plus className="w-6 h-6" />
                 </Button>
               </div>
+
+              <Button variant="ghost" size="icon" onClick={refresh} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
 
               <div className="relative flex-1 sm:flex-none sm:w-48 lg:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
@@ -530,223 +390,141 @@ export default function VendorsPage() {
             </div>
           </div>
 
+          {/* Category filters */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0">
-            <div className="flex items-center gap-2 text-xs shrink-0">
-              <Filter className="w-3 h-3 text-muted-foreground" />
-              <span className="text-muted-foreground whitespace-nowrap">Filters:</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {["All", "Suppliers", "Partners", "Subsidiaries"].map((cat) => (
-                <Button
-                  key={cat}
-                  variant={selectedCategories.includes(cat) ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 px-3 text-xs whitespace-nowrap"
-                  onClick={() => {
-                    if (cat === "All") {
-                      setSelectedCategories([])
+            {categories.map((cat) => (
+              <div key={cat} className="flex items-center space-x-1.5 shrink-0">
+                <Checkbox
+                  id={cat}
+                  checked={selectedCategories.includes(cat)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedCategories([...selectedCategories, cat])
                     } else {
-                      setSelectedCategories((prev) =>
-                        prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-                      )
+                      setSelectedCategories(selectedCategories.filter((c) => c !== cat))
                     }
                   }}
-                >
+                />
+                <Label htmlFor={cat} className="text-xs cursor-pointer whitespace-nowrap">
                   {cat}
-                </Button>
-              ))}
-            </div>
+                </Label>
+              </div>
+            ))}
           </div>
         </div>
       </header>
 
-      {/* Secondary Filters Bar */}
-      <div className="border-b border-border bg-background py-3 px-4 overflow-x-auto">
-        <div className="container mx-auto flex items-center justify-between min-w-[600px]">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                Time Range
-              </span>
-              <div className="w-48 px-2">
-                <Slider
-                  defaultValue={[2024]}
-                  max={2025}
-                  min={2020}
-                  step={1}
-                  value={yearRange}
-                  onValueChange={setYearRange}
-                  className="py-1"
-                />
-              </div>
-              <div className="flex items-center gap-2 ml-2">
-                <Checkbox
-                  id="range-mode"
-                  checked={allowRange}
-                  onCheckedChange={(c) => {
-                    setAllowRange(!!c)
-                    setYearRange(!!c ? [2023, 2024] : [2024])
-                  }}
-                />
-                <Label htmlFor="range-mode" className="text-xs font-normal text-muted-foreground">
-                  Range
-                </Label>
-              </div>
-            </div>
-
-            <div className="h-4 w-px bg-border"></div>
-
-            <div className="flex items-center gap-2">
-              <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Active Filter:</span>
-              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
-                {selectedCategories.length > 0 ? selectedCategories.join(", ") : "All Categories"}
-              </Badge>
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto p-4">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-muted-foreground">Loading vendors...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+            <p className="text-destructive">{error}</p>
+            <Button onClick={refresh}>Retry</Button>
+          </div>
+        ) : filteredVendors.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">No vendors found</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchQuery
+                  ? "Try adjusting your search query"
+                  : "Add your first vendor to start building your payment network"}
+              </p>
+              {!searchQuery && (
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Vendor
+                </Button>
+              )}
             </div>
           </div>
-
-          <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
-            <Download className="w-3.5 h-3.5 mr-2" /> Export Data
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <main className="flex-1 container mx-auto p-3 sm:p-4 md:p-6">
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="space-y-4">
-          <TabsContent value="graph" className="m-0 border-none p-0 outline-none">
-            <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
-              <NetworkGraph
-                vendors={filteredVendors}
-                userAddress={wallet || undefined}
-                onAddContact={() => setDialogOpen(true)}
-                onPaymentRequest={handlePaymentRequest}
-              />
-            </div>
-
-            {/* Stats Cards Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6">
-              <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
-                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Network Volume
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-                  <div className="text-lg sm:text-2xl font-mono font-medium">
-                    ${filteredVendors.reduce((sum, v) => sum + (v.totalReceived || 0), 0).toLocaleString()}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
-                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Active Entities
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-                  <div className="text-lg sm:text-2xl font-mono font-medium">{filteredVendors.length}</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
-                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Avg. Transaction
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-                  <div className="text-lg sm:text-2xl font-mono font-medium">$1,240</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
-                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Health Score
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-                  <div className="text-lg sm:text-2xl font-mono font-medium text-emerald-500">98.2%</div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="list" className="m-0 border-none p-0 outline-none">
-            <Card className="border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead>Entity Name</TableHead>
-                    <TableHead>Wallet Address</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Volume</TableHead>
-                    <TableHead className="text-right">Tx Count</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+        ) : viewMode === "graph" ? (
+          <div className="h-[calc(100vh-200px)]">
+            <NetworkGraph
+              vendors={networkVendors}
+              onVendorClick={(vendor) => handlePaymentRequest(vendor)}
+            />
+          </div>
+        ) : (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Wallet Address</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead className="text-right">Volume</TableHead>
+                  <TableHead className="text-right">Transactions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredVendors.map((vendor) => (
+                  <TableRow key={vendor.id}>
+                    <TableCell className="font-medium">{vendor.company_name || "Unknown"}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {vendor.wallet_address?.slice(0, 6)}...{vendor.wallet_address?.slice(-4)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{vendor.category || "N/A"}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          vendor.tier === "subsidiary"
+                            ? "default"
+                            : vendor.tier === "partner"
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
+                        {vendor.tier || "vendor"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      ${(vendor.monthly_volume || 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">{vendor.transaction_count || 0}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => handlePaymentRequest(vendor)}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEditVendor(vendor)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteVendor(vendor)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredVendors.map((vendor) => (
-                    <TableRow key={vendor.id} className="border-border hover:bg-muted/50">
-                      <TableCell className="font-medium">{vendor.name}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{vendor.wallet_address}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-normal text-xs">
-                          {vendor.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        ${vendor.totalReceived?.toLocaleString() ?? "0"}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">{vendor.transactionCount ?? 0}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEditVendor(vendor)}
-                            disabled={isDemoMode || !isConnected}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteVendor(vendor)}
-                            disabled={isDemoMode || !isConnected}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handlePaymentRequest(vendor)}>
-                            Pay
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </main>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Wallet Tag</AlertDialogTitle>
+            <AlertDialogTitle>Delete Vendor</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{vendorToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{vendorToDelete?.company_name || vendorToDelete?.name}"? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteVendor}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={confirmDeleteVendor} className="bg-destructive text-destructive-foreground">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

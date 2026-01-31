@@ -512,6 +512,27 @@ function PaymentContent() {
 
       setTxHash(hash)
       setCompleted(true)
+
+      // Update invoice status to paid if this was an invoice payment
+      if (invoiceId && invoice) {
+        try {
+          await fetch('/api/invoice', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              invoiceId: invoiceId,
+              status: 'paid',
+              txHash: hash,
+              paidBy: wallets.EVM,
+            }),
+          })
+          console.log("[Pay] Invoice status updated to paid")
+        } catch (invoiceUpdateError) {
+          console.error("[Pay] Failed to update invoice status:", invoiceUpdateError)
+          // Non-blocking - payment already succeeded
+        }
+      }
+
       toast({
         title: "Payment Successful",
         description: "Your payment has been processed securely.",
