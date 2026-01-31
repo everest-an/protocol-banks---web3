@@ -31,7 +31,7 @@ export const AUTH_CONFIG = {
 
   // Email settings
   email: {
-    fromAddress: "noreply@voriegi.resend.app",
+    fromAddress: "noreply@e.protocolbanks.com",
     fromName: "Protocol Banks",
   },
 }
