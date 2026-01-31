@@ -110,6 +110,24 @@ export function NetworkGraph({
   }
 
   const { nodes, edges } = useMemo(() => {
+    // Calculate aggregated stats from all vendors
+    const totalVolume = vendors.reduce((sum, v) => sum + (v.monthly_volume || v.totalReceived || 0), 0)
+    const totalTxCount = vendors.reduce((sum, v) => sum + (v.transaction_count || 0), 0)
+    
+    // For demo mode, generate meaningful stats if no real data
+    const demoVolume = isDemoMode && totalVolume === 0 ? 2450000 : totalVolume
+    const demoTxCount = isDemoMode && totalTxCount === 0 ? 156 : totalTxCount
+
+    const rootData = {
+      company_name: "MY ORGANIZATION",
+      wallet_address: userAddress || "0x...",
+      monthly_volume: demoVolume,
+      transaction_count: demoTxCount,
+      category: "Organization",
+      email: userAddress ? `admin@${userAddress.slice(2, 8).toLowerCase()}.eth` : "N/A",
+      notes: "Parent Organization",
+    } as Vendor
+
     if (!vendors.length) {
       const width = dimensions.width || 1200
       const height = dimensions.height || 800
@@ -121,7 +139,7 @@ export function NetworkGraph({
         x: centerX,
         y: centerY,
         r: 40,
-        data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
+        data: rootData,
         type: "root",
         color: colors.nodeColor,
       }
@@ -138,7 +156,7 @@ export function NetworkGraph({
       x: centerX,
       y: centerY,
       r: 40,
-      data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
+      data: rootData,
       type: "root",
       color: colors.nodeColor,
     }
@@ -222,7 +240,7 @@ export function NetworkGraph({
     })
 
     return { nodes: processedNodes, edges: processedEdges }
-  }, [vendors, dimensions, userAddress, customPositions, isDark])
+  }, [vendors, dimensions, userAddress, customPositions, isDark, isDemoMode])
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -457,14 +475,44 @@ export function NetworkGraph({
 
   const showEmptyState = !isDemoMode && vendors.length === 0
 
+  // Generate deterministic demo data based on node id
+  const generateDemoPaymentFlow = useCallback((nodeId: string) => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    const seed = nodeId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    
+    // Generate realistic monthly payment data with seasonal variation
+    const baseAmount = ((seed % 50) + 20) * 1000 // Base amount between $20k-$70k
+    const flowData = months.map((month, i) => {
+      // Add seasonal variation and some randomness based on seed
+      const seasonalMultiplier = 1 + Math.sin((i / 12) * Math.PI * 2) * 0.3
+      const variation = ((seed * (i + 1)) % 40) / 100 - 0.2 // -20% to +20%
+      const amount = Math.round(baseAmount * seasonalMultiplier * (1 + variation))
+      return { month, amount: Math.max(amount, 0) }
+    })
+    
+    // Calculate YTD change (simulated)
+    const change = ((seed % 30) - 10) + (seed % 10) / 10 // Range: -10% to +20%
+    
+    return { flowData, change }
+  }, [])
+
   // Fetch payment flow data for selected vendor
   useEffect(() => {
-    if (!selectedNode?.data?.wallet_address || isDemoMode) {
+    if (!selectedNode?.data?.wallet_address) {
       setPaymentFlowData([])
       setYtdChange(null)
       return
     }
 
+    // Demo mode: generate simulated data
+    if (isDemoMode) {
+      const { flowData, change } = generateDemoPaymentFlow(selectedNode.id)
+      setPaymentFlowData(flowData)
+      setYtdChange(change)
+      return
+    }
+
+    // Real mode: fetch from database
     const fetchPaymentFlow = async () => {
       setPaymentFlowLoading(true)
       try {
@@ -531,7 +579,7 @@ export function NetworkGraph({
     }
 
     fetchPaymentFlow()
-  }, [selectedNode?.data?.wallet_address, isDemoMode, supabase])
+  }, [selectedNode?.data?.wallet_address, selectedNode?.id, isDemoMode, supabase, generateDemoPaymentFlow])
 
   const DetailPanelContent = () => {
     if (!selectedNode || !selectedNode.data) {
