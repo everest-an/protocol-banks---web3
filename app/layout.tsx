@@ -78,6 +78,7 @@ export default function RootLayout({
       </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
+        suppressHydrationWarning
       >
         <UserTypeProvider>
           <AuthProvider>

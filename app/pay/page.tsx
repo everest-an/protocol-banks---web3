@@ -510,6 +510,31 @@ function PaymentContent() {
         }
       }
 
+      // Update invoice status if this was an invoice payment
+      if (invoiceId && invoice) {
+        try {
+          const updateResponse = await fetch('/api/invoice', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              invoiceId: invoice.invoice_id,
+              status: 'paid',
+              txHash: hash,
+              paidBy: wallets.EVM,
+            }),
+          })
+          
+          if (updateResponse.ok) {
+            console.log("[Pay] Invoice status updated to paid")
+          } else {
+            console.error("[Pay] Failed to update invoice status")
+          }
+        } catch (invoiceUpdateError) {
+          console.error("[Pay] Invoice update error:", invoiceUpdateError)
+          // Non-blocking - payment already succeeded
+        }
+      }
+
       setTxHash(hash)
       setCompleted(true)
       toast({

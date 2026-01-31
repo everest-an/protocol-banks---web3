@@ -44,13 +44,11 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
-
 import type { Vendor, VendorInput, VendorCategory } from "@/types"
 import { useVendors } from "@/hooks/use-vendors"
 import { useBalance } from "@/hooks/use-balance"
 import { calculateNetworkStats } from "@/lib/services/vendor-service"
 import { BalanceDistribution } from "@/components/balance-distribution"
-import { QuantumReadinessCard } from "@/components/quantum-readiness-card"
 import { DashboardActivity } from "@/components/dashboard-activity"
 
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
@@ -597,19 +595,12 @@ export default function HomePage() {
         {/* Dashboard Activity Section */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <DashboardActivity walletAddress={wallet || undefined} limit={10} showTabs={true} />
-          <div className="space-y-6">
-            {balance?.chainDistribution && balance.chainDistribution.length > 0 && (
-              <BalanceDistribution
-                distribution={balance.chainDistribution}
-                totalUSD={balance.totalUSD}
-              />
-            )}
-            <QuantumReadinessCard 
-              addressAge={30} 
-              totalValue={balance?.totalUSD || 0} 
-              transactionCount={vendors.length} 
+          {balance?.chainDistribution && balance.chainDistribution.length > 0 && (
+            <BalanceDistribution
+              distribution={balance.chainDistribution}
+              totalUSD={balance.totalUSD}
             />
-          </div>
+          )}
         </div>
       </main>
 

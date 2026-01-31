@@ -16,9 +16,9 @@
 
 访问您的 Supabase 项目 SQL 编辑器：
 
-```
+\`\`\`
 https://uasxfshglutvtcovpmej.supabase.co/project/_/sql
-```
+\`\`\`
 
 或者：
 1. 访问 https://supabase.com/dashboard
@@ -37,7 +37,7 @@ https://uasxfshglutvtcovpmej.supabase.co/project/_/sql
 
 复制以下完整脚本并粘贴到编辑器中：
 
-```sql
+\`\`\`sql
 -- ============================================
 -- Payment Retry Queue Migration
 -- Protocol Banks P0 Improvement
@@ -100,7 +100,7 @@ GRANT SELECT, INSERT, UPDATE ON payment_retry_queue TO service_role;
 
 -- Verify creation
 SELECT 'Migration completed successfully!' as status;
-```
+\`\`\`
 
 ---
 
@@ -127,7 +127,7 @@ SELECT 'Migration completed successfully!' as status;
 
 在 SQL 编辑器中运行以下查询验证：
 
-```sql
+\`\`\`sql
 -- 检查表是否存在
 SELECT table_name, table_type
 FROM information_schema.tables
@@ -148,7 +148,7 @@ WHERE tablename = 'payment_retry_queue';
 SELECT schemaname, tablename, policyname, cmd
 FROM pg_policies
 WHERE tablename = 'payment_retry_queue';
-```
+\`\`\`
 
 **预期结果**：
 - ✅ 1 个表
@@ -162,7 +162,7 @@ WHERE tablename = 'payment_retry_queue';
 
 如果您安装了 `psql`：
 
-```bash
+\`\`\`bash
 cd /home/kevin/web3/protocol-banks---web3
 
 # 执行迁移
@@ -171,7 +171,7 @@ psql "$POSTGRES_URL_NON_POOLING" -f scripts/020_create_payment_retry_queue.sql
 # 或使用完整连接串
 psql "postgres://postgres.uasxfshglutvtcovpmej:a7GGOT1qG5wyhTJl@aws-1-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require" \
   -f scripts/020_create_payment_retry_queue.sql
-```
+\`\`\`
 
 ---
 
@@ -179,7 +179,7 @@ psql "postgres://postgres.uasxfshglutvtcovpmej:a7GGOT1qG5wyhTJl@aws-1-us-east-1.
 
 ### 测试 1: API 端点测试
 
-```bash
+\`\`\`bash
 # 启动开发服务器
 npm run dev
 
@@ -202,18 +202,18 @@ curl -X POST http://localhost:3000/api/payment/retry-queue \
 
 # 预期响应:
 # {"success":true,"message":"Payment queued for retry","queueId":"..."}
-```
+\`\`\`
 
 ### 测试 2: 数据库查询
 
 在 Supabase SQL 编辑器中运行：
 
-```sql
+\`\`\`sql
 -- 查看重试队列
 SELECT * FROM payment_retry_queue ORDER BY created_at DESC;
 
 -- 应该看到刚才测试插入的记录
-```
+\`\`\`
 
 ---
 
@@ -221,13 +221,13 @@ SELECT * FROM payment_retry_queue ORDER BY created_at DESC;
 
 如果需要回滚此次迁移：
 
-```sql
+\`\`\`sql
 -- 删除表（会级联删除所有相关对象）
 DROP TABLE IF EXISTS payment_retry_queue CASCADE;
 
 -- 删除函数
 DROP FUNCTION IF EXISTS update_payment_retry_queue_timestamp() CASCADE;
-```
+\`\`\`
 
 ---
 
@@ -240,7 +240,7 @@ DROP FUNCTION IF EXISTS update_payment_retry_queue_timestamp() CASCADE;
    - 重试队列记录包含完整支付数据
 
 2. **监控能力**
-   ```sql
+   \`\`\`sql
    -- 查看待重试的支付
    SELECT tx_hash, retry_count, next_retry_at
    FROM payment_retry_queue
@@ -251,7 +251,7 @@ DROP FUNCTION IF EXISTS update_payment_retry_queue_timestamp() CASCADE;
    SELECT tx_hash, retry_count, error_message
    FROM payment_retry_queue
    WHERE status = 'failed';
-   ```
+   \`\`\`
 
 3. **自动化能力**
    - 可通过 Vercel Cron Job 自动处理重试队列

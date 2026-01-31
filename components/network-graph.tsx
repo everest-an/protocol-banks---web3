@@ -79,6 +79,9 @@ export function NetworkGraph({
     return createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   }, [])
 
+  const isMobile = useMediaQuery("(max-width: 768px)")
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+
   const { nodes, edges } = useMemo(() => {
     if (!vendors.length) {
       const width = dimensions.width || 1200
@@ -362,22 +365,28 @@ export function NetworkGraph({
     }
   }
 
-  // Handle search query
+  // Handle search query with debounce for performance
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setSearchResults([])
       setShowSearchResults(false)
       return
     }
-    const query = searchQuery.toLowerCase()
-    const results = nodes.filter((node) => {
-      const name = (node.data?.company_name || node.data?.name || "").toLowerCase()
-      const wallet = (node.data?.wallet_address || "").toLowerCase()
-      return name.includes(query) || wallet.includes(query)
-    })
-    setSearchResults(results.slice(0, 5)) // Limit to 5 results
-    setShowSearchResults(true)
-  }, [searchQuery])
+    
+    // Debounce search for better performance
+    const timeoutId = setTimeout(() => {
+      const query = searchQuery.toLowerCase()
+      const results = nodes.filter((node) => {
+        const name = (node.data?.company_name || node.data?.name || "").toLowerCase()
+        const wallet = (node.data?.wallet_address || "").toLowerCase()
+        return name.includes(query) || wallet.includes(query)
+      })
+      setSearchResults(results.slice(0, 5)) // Limit to 5 results
+      setShowSearchResults(true)
+    }, 150)
+    
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, nodes])
 
   const handleSearchSelect = (node: Node) => {
     setSelectedNode(node)
@@ -420,9 +429,6 @@ export function NetworkGraph({
   }, [userAddress, supabase])
 
   const showEmptyState = !isDemoMode && vendors.length === 0
-
-  const isMobile = useMediaQuery("(max-width: 768px)")
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
 
   const DetailPanelContent = () => {
     if (!selectedNode || !selectedNode.data) {
@@ -653,15 +659,17 @@ export function NetworkGraph({
             </radialGradient>
           </defs>
           <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
-            {/* Edges */}
+            {/* Edges - optimized with node map lookup */}
             {edges.map((edge, index) => {
-              const sourceNode = nodes.find((n) => n.id === edge.source.id) || edge.source
-              const targetNode = nodes.find((n) => n.id === edge.target.id) || edge.target
+              const nodeMap = new Map(nodes.map(n => [n.id, n]))
+              const sourceNode = nodeMap.get(edge.source.id) || edge.source
+              const targetNode = nodeMap.get(edge.target.id) || edge.target
 
               const isHovered = hoveredNode && (hoveredNode.id === edge.source.id || hoveredNode.id === edge.target.id)
               const isSelected =
                 selectedNode && (selectedNode.id === edge.source.id || selectedNode.id === edge.target.id)
               const active = isHovered || isSelected
+              const showAnimation = index < 20 // Limit animations to first 20 edges for performance
 
               return (
                 <g key={`edge-${index}`} className="pointer-events-none">
@@ -672,16 +680,17 @@ export function NetworkGraph({
                     y2={targetNode.y}
                     stroke={active ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.15)"}
                     strokeWidth={active ? 1.5 : 0.5}
-                    className="transition-all duration-300"
                   />
-                  <circle r="1.5" fill={active ? "#fff" : "rgba(255,255,255,0.5)"}>
-                    <animateMotion
-                      dur={`${2 + (index % 5)}s`}
-                      repeatCount="indefinite"
-                      path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
-                    />
-                  </circle>
-                  {edge.weight > 1 && (
+                  {showAnimation && (
+                    <circle r="1.5" fill={active ? "#fff" : "rgba(255,255,255,0.5)"}>
+                      <animateMotion
+                        dur={`${2 + (index % 5)}s`}
+                        repeatCount="indefinite"
+                        path={`M${sourceNode.x},${sourceNode.y} L${targetNode.x},${targetNode.y}`}
+                      />
+                    </circle>
+                  )}
+                  {showAnimation && edge.weight > 1 && (
                     <circle r="1" fill="rgba(255,255,255,0.4)">
                       <animateMotion
                         dur={`${3 + (index % 5)}s`}

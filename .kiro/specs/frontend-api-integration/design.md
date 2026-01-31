@@ -13,7 +13,7 @@
 
 ## Architecture
 
-```mermaid
+\`\`\`mermaid
 graph TB
     subgraph Frontend
         AKP[API Keys Page]
@@ -59,7 +59,7 @@ graph TB
     
     PS --> WTS --> WS
     SS --> SE
-```
+\`\`\`
 
 ## Components and Interfaces
 
@@ -67,7 +67,7 @@ graph TB
 
 新建 Hook 用于 API Keys 页面的数据管理。
 
-```typescript
+\`\`\`typescript
 // hooks/use-api-keys.ts
 interface UseApiKeysReturn {
   apiKeys: ApiKey[];
@@ -89,13 +89,13 @@ interface CreateKeyParams {
 export function useApiKeys(): UseApiKeysReturn {
   // 实现通过 fetch 调用 REST API
 }
-```
+\`\`\`
 
 ### 2. useSubscriptions Hook 更新
 
 修改现有 Hook，将 Supabase 直接调用替换为 REST API 调用。
 
-```typescript
+\`\`\`typescript
 // hooks/use-subscriptions.ts (更新)
 const loadSubscriptions = async () => {
   if (isDemoMode) {
@@ -109,13 +109,13 @@ const loadSubscriptions = async () => {
   const data = await response.json();
   setSubscriptions(data.subscriptions);
 };
-```
+\`\`\`
 
 ### 3. useWebhooks Hook
 
 新建 Hook 用于 Webhooks 页面的数据管理。
 
-```typescript
+\`\`\`typescript
 // hooks/use-webhooks.ts
 interface UseWebhooksReturn {
   webhooks: Webhook[];
@@ -128,13 +128,13 @@ interface UseWebhooksReturn {
   getDeliveries: (id: string) => Promise<Delivery[]>;
   refresh: () => Promise<void>;
 }
-```
+\`\`\`
 
 ### 4. useDashboardActivity Hook
 
 新建 Hook 用于 Dashboard 活动组件。
 
-```typescript
+\`\`\`typescript
 // hooks/use-dashboard-activity.ts
 interface UseDashboardActivityReturn {
   activities: Activity[];
@@ -153,13 +153,13 @@ interface Activity {
   timestamp: string;
   txHash?: string;
 }
-```
+\`\`\`
 
 ### 5. Payment Service Webhook 集成
 
 在 PaymentService 中集成 WebhookTriggerService。
 
-```typescript
+\`\`\`typescript
 // lib/services/payment-service.ts (更新)
 import { webhookTriggerService } from './webhook-trigger-service';
 
@@ -193,13 +193,13 @@ class PaymentService {
     }
   }
 }
-```
+\`\`\`
 
 ### 6. Subscription Execution API
 
 新建 API 端点供 Cron 作业调用。
 
-```typescript
+\`\`\`typescript
 // app/api/subscriptions/execute/route.ts
 export async function POST(request: NextRequest) {
   // 验证 Cron 作业密钥
@@ -218,13 +218,13 @@ export async function POST(request: NextRequest) {
     skipped: results.skipped,
   });
 }
-```
+\`\`\`
 
 ## Data Models
 
 ### push_subscriptions 表
 
-```sql
+\`\`\`sql
 -- scripts/018_create_push_subscriptions.sql
 CREATE TABLE push_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -255,11 +255,11 @@ CREATE POLICY "Users can insert own push subscriptions"
 CREATE POLICY "Users can delete own push subscriptions"
   ON push_subscriptions FOR DELETE
   USING (user_address = current_setting('app.current_user_address', true));
-```
+\`\`\`
 
 ### payments 表 vendor_id 列
 
-```sql
+\`\`\`sql
 -- scripts/019_add_vendor_id_to_payments.sql
 ALTER TABLE payments ADD COLUMN vendor_id UUID REFERENCES vendors(id) ON DELETE SET NULL;
 
@@ -272,7 +272,7 @@ SET vendor_id = v.id
 FROM vendors v
 WHERE LOWER(p.to_address) = LOWER(v.wallet_address)
   AND p.vendor_id IS NULL;
-```
+\`\`\`
 
 ## Correctness Properties
 
@@ -330,7 +330,7 @@ WHERE LOWER(p.to_address) = LOWER(v.wallet_address)
 
 ### API 请求错误处理
 
-```typescript
+\`\`\`typescript
 // 统一的 API 错误处理
 async function apiRequest<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -355,11 +355,11 @@ class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
-```
+\`\`\`
 
 ### Webhook 触发错误隔离
 
-```typescript
+\`\`\`typescript
 // Webhook 触发不应该影响主业务流程
 private async triggerWebhookSafe(event: string, data: any): Promise<void> {
   try {
@@ -370,11 +370,11 @@ private async triggerWebhookSafe(event: string, data: any): Promise<void> {
     // 可选：发送到监控系统
   }
 }
-```
+\`\`\`
 
 ### 订阅执行错误处理
 
-```typescript
+\`\`\`typescript
 // 单个订阅执行失败不应该影响其他订阅
 async executeDueSubscriptions(): Promise<ExecutionResults> {
   const dueSubscriptions = await this.getDueSubscriptions();
@@ -393,7 +393,7 @@ async executeDueSubscriptions(): Promise<ExecutionResults> {
   
   return results;
 }
-```
+\`\`\`
 
 ## Testing Strategy
 
@@ -407,7 +407,7 @@ async executeDueSubscriptions(): Promise<ExecutionResults> {
 
 使用 fast-check 进行属性测试，每个属性测试至少运行 100 次迭代。
 
-```typescript
+\`\`\`typescript
 // 示例：订阅日期计算属性测试
 import fc from 'fast-check';
 
@@ -426,11 +426,10 @@ describe('Subscription date calculation', () => {
     );
   });
 });
-```
+\`\`\`
 
 ### 测试配置
 
 - 属性测试最少 100 次迭代
 - 每个属性测试标注对应的设计文档属性编号
 - 标签格式: **Feature: frontend-api-integration, Property {number}: {property_text}**
-

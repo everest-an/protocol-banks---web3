@@ -16,7 +16,7 @@ Protocol Banks is an enterprise-grade crypto payment infrastructure providing no
 ## Common Commands
 
 ### Next.js Development
-```bash
+\`\`\`bash
 # Install dependencies
 npm install
 
@@ -43,10 +43,10 @@ npm run test:coverage
 
 # Run tests in CI mode
 npm run test:ci
-```
+\`\`\`
 
 ### Go Services Development
-```bash
+\`\`\`bash
 # Navigate to services directory first
 cd services
 
@@ -91,16 +91,16 @@ make deps
 
 # Tidy dependencies
 make tidy
-```
+\`\`\`
 
 ### Running a Single Test
-```bash
+\`\`\`bash
 # Next.js/TypeScript tests
 npm test -- path/to/test-file.test.ts
 
 # Go service tests
 cd services/payout-engine && go test -v ./internal/processor
-```
+\`\`\`
 
 ## Architecture
 
@@ -127,11 +127,11 @@ cd services/payout-engine && go test -v ./internal/processor
 
 The codebase uses **feature flags** to enable/disable Go microservices:
 
-```bash
+\`\`\`bash
 # Environment variable
 ENABLE_GO_SERVICES=true   # Use Go services (high performance)
 ENABLE_GO_SERVICES=false  # Fallback to TypeScript implementations
-```
+\`\`\`
 
 **Go Services (Production-Grade):**
 - `payout-engine`: Concurrent transaction processing (500+ TPS)
@@ -195,7 +195,7 @@ ENABLE_GO_SERVICES=false  # Fallback to TypeScript implementations
 
 ### File Structure Patterns
 
-```
+\`\`\`
 app/                          # Next.js App Router pages
 ├── [feature]/page.tsx        # Feature pages
 ├── api/[feature]/route.ts    # API routes
@@ -222,7 +222,7 @@ services/                     # Go microservices
 contexts/                     # React contexts
 k8s/                          # Kubernetes manifests
 docs/                         # Documentation
-```
+\`\`\`
 
 ## Key Integration Points
 

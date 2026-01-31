@@ -62,6 +62,10 @@ interface AddressChange {
   created_at: string
 }
 
+const demoAuditLogs: AuditLog[] = []
+const demoSecurityAlerts: SecurityAlert[] = []
+const demoAddressChanges: AddressChange[] = []
+
 export default function SecurityPage() {
   const { wallets, activeChain, isConnected } = useWeb3()
   const currentWallet = wallets[activeChain]
@@ -72,76 +76,12 @@ export default function SecurityPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Demo data for non-connected state
-  const demoAuditLogs: AuditLog[] = [
-    {
-      id: "1",
-      action: "PAYMENT_COMPLETED",
-      actor: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-      target_type: "payment",
-      target_id: "pay_001",
-      details: { amount: "1500.00", token: "USDC", to: "0x123..." },
-      ip_address: "192.168.1.1",
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: "2",
-      action: "VENDOR_UPDATED",
-      actor: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-      target_type: "vendor",
-      target_id: "vnd_001",
-      details: { name: "Cloud Services Inc", field_changed: "email" },
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-    },
-    {
-      id: "3",
-      action: "BATCH_COMPLETED",
-      actor: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-      target_type: "batch",
-      target_id: "batch_001",
-      details: { total_recipients: 5, total_amount: "10000.00" },
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: "4",
-      action: "ADDRESS_CHANGED",
-      actor: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-      target_type: "vendor",
-      target_id: "vnd_002",
-      details: { previous: "0xold...", new: "0xnew..." },
-      created_at: new Date(Date.now() - 172800000).toISOString(),
-    },
-  ]
-
-  const demoSecurityAlerts: SecurityAlert[] = [
-    {
-      id: "1",
-      alert_type: "RATE_LIMIT",
-      severity: "medium",
-      actor: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-      description: "Rate limit exceeded for batch payments",
-      details: { attempts: 5, window: "1 hour" },
-      resolved: true,
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ]
-
-  const demoAddressChanges: AddressChange[] = [
-    {
-      id: "1",
-      vendor_id: "vnd_002",
-      previous_address: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7",
-      new_address: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-      changed_by: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-      created_at: new Date(Date.now() - 172800000).toISOString(),
-    },
-  ]
-
   useEffect(() => {
     if (!isConnected) {
-      setAuditLogs(demoAuditLogs)
-      setSecurityAlerts(demoSecurityAlerts)
-      setAddressChanges(demoAddressChanges)
+      // Show empty state when not connected
+      setAuditLogs([])
+      setSecurityAlerts([])
+      setAddressChanges([])
       setIsLoading(false)
       return
     }
@@ -156,9 +96,11 @@ export default function SecurityPage() {
     try {
       const supabase = getSupabase()
       if (!supabase) {
-        setAuditLogs(demoAuditLogs)
-        setSecurityAlerts(demoSecurityAlerts)
-        setAddressChanges(demoAddressChanges)
+        // Show empty state when Supabase is not available
+        setAuditLogs([])
+        setSecurityAlerts([])
+        setAddressChanges([])
+        setIsLoading(false)
         return
       }
 
@@ -192,10 +134,10 @@ export default function SecurityPage() {
       if (changes) setAddressChanges(changes)
     } catch (error) {
       console.error("[Security] Failed to load data:", error)
-      // Fall back to demo data
-      setAuditLogs(demoAuditLogs)
-      setSecurityAlerts(demoSecurityAlerts)
-      setAddressChanges(demoAddressChanges)
+      // Show empty state on error
+      setAuditLogs([])
+      setSecurityAlerts([])
+      setAddressChanges([])
     } finally {
       setIsLoading(false)
     }

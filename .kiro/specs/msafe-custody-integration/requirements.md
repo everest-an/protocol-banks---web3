@@ -10,7 +10,7 @@ MSafe 是基于 Aptos 区块链的多签钱包解决方案，通过 Move 模块�
 
 ### 整体架构图
 
-```mermaid
+\`\`\`mermaid
 graph TB
     subgraph 接入层
         A[API Gateway] --> B[负载均衡]
@@ -53,11 +53,11 @@ graph TB
         U[日志收集] --> V[ELK Stack]
         W[链路追踪] --> X[Jaeger]
     end
-```
+\`\`\`
 
 ### 支付收单流程
 
-```mermaid
+\`\`\`mermaid
 sequenceDiagram
     participant C as 客户
     participant GW as 支付网关
@@ -84,7 +84,7 @@ sequenceDiagram
     CS->>MQ: 12. 发布支付成功事件
     MQ->>WH: 13. 触发 Webhook
     WH->>M: 14. 通知商户
-```
+\`\`\`
 
 ## 术语表
 
@@ -107,7 +107,7 @@ sequenceDiagram
 
 **用户故事:** 作为商户，我希望创建一个 MSafe 托管钱包，以便安全地接收和持有客户支付的稳定币。
 
-```mermaid
+\`\`\`mermaid
 sequenceDiagram
     participant M as 商户
     participant API as API Gateway
@@ -135,7 +135,7 @@ sequenceDiagram
     SVC->>MQ: 发布钱包创建事件
     SVC-->>API: 返回托管账户 ID
     API-->>M: 返回成功响应
-```
+\`\`\`
 
 #### 验收标准
 
@@ -150,7 +150,7 @@ sequenceDiagram
 
 **用户故事:** 作为商户，我希望客户支付自动路由到我的托管钱包，以便资金在收到后立即得到保护。
 
-```mermaid
+\`\`\`mermaid
 flowchart TD
     A[收到支付请求] --> B{幂等检查}
     B -->|已处理| C[返回缓存结果]
@@ -169,7 +169,7 @@ flowchart TD
     M --> O[发布支付事件]
     O --> P[触发 Webhook]
     N --> Q[人工审核队列]
-```
+\`\`\`
 
 #### 验收标准
 
@@ -184,7 +184,7 @@ flowchart TD
 
 **用户故事:** 作为商户，我希望查看我的托管钱包余额，以便实时监控我的托管资金。
 
-```mermaid
+\`\`\`mermaid
 flowchart LR
     A[余额查询请求] --> B{缓存命中?}
     B -->|是| C{缓存过期?}
@@ -198,7 +198,7 @@ flowchart LR
     G -->|否| J{有历史缓存?}
     J -->|是| K[返回过期余额+告警]
     J -->|否| L[返回错误]
-```
+\`\`\`
 
 #### 验收标准
 
@@ -212,7 +212,7 @@ flowchart LR
 
 **用户故事:** 作为商户签名者，我希望创建提款提案，以便启动从托管中转移资金的流程。
 
-```mermaid
+\`\`\`mermaid
 stateDiagram-v2
     [*] --> 待审批: 创建提案
     待审批 --> 待审批: 收到批准 (未达阈值)
@@ -228,7 +228,7 @@ stateDiagram-v2
     已过期 --> [*]
     已完成 --> [*]
     已终止 --> [*]
-```
+\`\`\`
 
 #### 验收标准
 
@@ -243,7 +243,7 @@ stateDiagram-v2
 
 **用户故事:** 作为托管钱包签名者，我希望批准或拒绝提款提案，以便资金只能在适当授权下转移。
 
-```mermaid
+\`\`\`mermaid
 sequenceDiagram
     participant S1 as 签名者 1
     participant S2 as 签名者 2
@@ -278,7 +278,7 @@ sequenceDiagram
     SVC->>SVC: 检测达到阈值
     SVC->>DB: 更新状态为"待执行"
     SVC->>MQ: 发布阈值达成事件
-```
+\`\`\`
 
 #### 验收标准
 
@@ -293,7 +293,7 @@ sequenceDiagram
 
 **用户故事:** 作为商户，我希望已批准的提款自动执行，以便资金无需人工干预即可转移。
 
-```mermaid
+\`\`\`mermaid
 flowchart TD
     A[提案达到阈值] --> B[加入执行队列]
     B --> C{检查提款延迟}
@@ -314,7 +314,7 @@ flowchart TD
     O --> M
     N --> P[发布执行完成事件]
     P --> Q[触发 Webhook]
-```
+\`\`\`
 
 #### 验收标准
 
@@ -329,7 +329,7 @@ flowchart TD
 
 **用户故事:** 作为合规官员，我希望所有托管操作都被记录，以便审计资金流动和进行对账。
 
-```mermaid
+\`\`\`mermaid
 erDiagram
     AUDIT_LOG {
         uuid id PK
@@ -361,7 +361,7 @@ erDiagram
     CUSTODY_WALLET ||--o{ RECONCILIATION_RECORD : reconciles
     ESCROW_TRANSACTION ||--o{ AUDIT_LOG : generates
     WITHDRAWAL_PROPOSAL ||--o{ AUDIT_LOG : generates
-```
+\`\`\`
 
 #### 验收标准
 
@@ -376,7 +376,7 @@ erDiagram
 
 **用户故事:** 作为商户，我希望为我的托管钱包配置安全设置，以便自定义资金的保护级别。
 
-```mermaid
+\`\`\`mermaid
 graph TD
     subgraph 安全配置
         A[提款延迟] --> A1[默认 24 小时]
@@ -400,7 +400,7 @@ graph TD
         F --> F2[频繁交易告警]
         G[熔断机制] --> G1[异常时暂停提款]
     end
-```
+\`\`\`
 
 #### 验收标准
 
@@ -415,7 +415,7 @@ graph TD
 
 **用户故事:** 作为系统管理员，我希望系统具备高可用性和容错能力，以便托管服务持续稳定运行。
 
-```mermaid
+\`\`\`mermaid
 flowchart TD
     subgraph 请求处理
         A[API 请求] --> B{熔断器状态}
@@ -446,7 +446,7 @@ flowchart TD
         U -->|否| W[本地持久化]
         W --> X[定时重试]
     end
-```
+\`\`\`
 
 #### 验收标准
 
@@ -461,7 +461,7 @@ flowchart TD
 
 **用户故事:** 作为开发者，我希望托管数据被正确序列化和存储，以便可以可靠地检索和处理。
 
-```mermaid
+\`\`\`mermaid
 graph LR
     subgraph 数据流
         A[业务对象] --> B[JSON 序列化]
@@ -480,7 +480,7 @@ graph LR
         L -->|是| M[返回对象]
         L -->|否| N[数据修复流程]
     end
-```
+\`\`\`
 
 #### 验收标准
 

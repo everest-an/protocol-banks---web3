@@ -5,17 +5,17 @@
 以下文件和目录是后端核心代码，**绝对不能删除、修改或覆盖**：
 
 ### 1. 后端 API 路由 (禁止删除)
-```
+\`\`\`
 app/api/x402/                    # x402 协议 API
 app/api/mcp/                     # MCP 订阅 API
 app/api/monetize/                # API 变现 API
 app/api/batch-payment/           # 批量支付 API
 app/api/auth/                    # 认证 API
 app/api/csrf/                    # CSRF 保护
-```
+\`\`\`
 
 ### 2. 服务层 (禁止删除)
-```
+\`\`\`
 services/                        # 所有服务文件
   - cdp-facilitator.service.ts
   - usage-tracker.service.ts
@@ -27,52 +27,52 @@ services/                        # 所有服务文件
   - batch-validator.service.ts
   - file-parser.service.ts
   - 等等...
-```
+\`\`\`
 
 ### 3. SDK 包 (禁止删除)
-```
+\`\`\`
 packages/sdk/                    # SDK 核心
 packages/mcp-server/             # MCP Server 包
 packages/python/                 # Python SDK
-```
+\`\`\`
 
 ### 4. 数据库迁移 (禁止删除)
-```
+\`\`\`
 migrations/                      # 所有迁移脚本
   - 001_email_login_schema.sql
   - 002_batch_payment_schema.sql
   - 003_x402_schema.sql
   - 004_mcp_subscription_schema.sql
   - 005_usage_tracking_schema.sql
-```
+\`\`\`
 
 ### 5. 测试文件 (禁止删除)
-```
+\`\`\`
 tests/                           # 所有测试
 jest.config.js                   # Jest 配置
-```
+\`\`\`
 
 ### 6. 配置和文档 (禁止删除)
-```
+\`\`\`
 .kiro/                           # Kiro 配置和文档
 lib/                             # 库文件
 middleware.ts                    # 中间件
-```
+\`\`\`
 
 ---
 
 ## ✅ 允许 v0 操作的范围
 
 ### 1. 可以修改的前端页面
-```
+\`\`\`
 app/pay/page.tsx                 # 支付页面 - 接入 x402 API
 app/batch-payment/page.tsx       # 批量支付页面 - 接入后端 API
 app/subscriptions/mcp/page.tsx   # MCP 订阅页面 - 使用 useMCPSubscriptions
 app/vendors/monetize/page.tsx    # API 变现页面 - 使用 useMonetizeConfig
-```
+\`\`\`
 
 ### 2. 可以创建的新文件
-```
+\`\`\`
 components/                      # 新 UI 组件
   - settlement-method-badge.tsx  # 结算方式标识
   - fee-breakdown.tsx            # 费用明细
@@ -82,13 +82,13 @@ components/                      # 新 UI 组件
 
 hooks/                           # 新 Hooks (如果需要)
   - use-xxx.ts                   # 新的自定义 Hook
-```
+\`\`\`
 
 ### 3. 可以修改的样式文件
-```
+\`\`\`
 app/globals.css                  # 全局样式
 styles/                          # 样式目录
-```
+\`\`\`
 
 ---
 
@@ -142,13 +142,13 @@ styles/                          # 样式目录
 
 ## 🔧 已有的 Hooks (直接使用，不要重写)
 
-```typescript
+\`\`\`typescript
 // 这些 hooks 已经存在，直接 import 使用
 import { useBatchPayment } from '@/hooks/use-batch-payment';
 import { useX402 } from '@/hooks/use-x402';
 import { useMCPSubscriptions } from '@/hooks/use-mcp-subscriptions';
 import { useMonetizeConfig } from '@/hooks/use-monetizer-config';
-```
+\`\`\`
 
 ---
 
@@ -161,9 +161,9 @@ import { useMonetizeConfig } from '@/hooks/use-monetizer-config';
 4. ✅ 使用了现有的 hooks，没有重写
 
 提交信息格式：
-```
+\`\`\`
 feat(frontend): 描述你做了什么
-```
+\`\`\`
 
 ---
 

@@ -6,7 +6,7 @@
 
 ### 与现有系统的关系
 
-```mermaid
+\`\`\`mermaid
 graph TB
     subgraph Protocol Banks 平台
         A[支付网关] --> B{收款模式选择}
@@ -24,13 +24,13 @@ graph TB
         F --> H
         G --> I[Aptos]
     end
-```
+\`\`\`
 
 ## 架构
 
 ### 系统架构图
 
-```mermaid
+\`\`\`mermaid
 graph TB
     subgraph 接入层
         A[API Gateway] --> B[认证中间件]
@@ -70,7 +70,7 @@ graph TB
         T --> U[Aptos RPC Primary]
         T --> V[Aptos RPC Backup]
     end
-```
+\`\`\`
 
 ### 服务分层
 
@@ -86,7 +86,7 @@ graph TB
 
 ### 核心服务接口
 
-```typescript
+\`\`\`typescript
 // MSafe 托管服务主接口
 interface IMSafeCustodyService {
   // 钱包管理
@@ -138,11 +138,11 @@ interface IExecutionEngine {
   assembleSignatures(proposalId: string): Promise<MultiEd25519Signature>;
   submitTransaction(proposal: WithdrawalProposal, signature: MultiEd25519Signature): Promise<string>;
 }
-```
+\`\`\`
 
 ### MSafe SDK 适配器
 
-```typescript
+\`\`\`typescript
 // MSafe SDK 适配器 - 封装与 MSafe 的交互
 interface IMSafeAdapter {
   // 钱包操作
@@ -169,13 +169,13 @@ interface IRpcManager {
   switchToBackup(): void;
   healthCheck(): Promise<boolean>;
 }
-```
+\`\`\`
 
 ## 数据模型
 
 ### 数据库表结构
 
-```mermaid
+\`\`\`mermaid
 erDiagram
     CUSTODY_WALLETS {
         uuid id PK
@@ -257,11 +257,11 @@ erDiagram
     CUSTODY_WALLETS ||--|| WALLET_CONFIGS : has
     WITHDRAWAL_PROPOSALS ||--o{ PROPOSAL_APPROVALS : has
     CUSTODY_WALLETS ||--o{ CUSTODY_AUDIT_LOGS : generates
-```
+\`\`\`
 
 ### 核心数据类型
 
-```typescript
+\`\`\`typescript
 // 托管钱包
 interface CustodyWallet {
   id: string;
@@ -348,7 +348,7 @@ interface TokenBalance {
   amount: string;
   amountUsd: string;
 }
-```
+\`\`\`
 
 ## 正确性属性
 
@@ -442,7 +442,7 @@ interface TokenBalance {
 
 ### 错误响应格式
 
-```typescript
+\`\`\`typescript
 interface ErrorResponse {
   error: {
     code: string;
@@ -464,11 +464,11 @@ interface ErrorResponse {
     "traceId": "abc123"
   }
 }
-```
+\`\`\`
 
 ### 重试策略
 
-```typescript
+\`\`\`typescript
 interface RetryConfig {
   maxAttempts: number;
   initialDelayMs: number;
@@ -484,7 +484,7 @@ const defaultRetryConfig: RetryConfig = {
 };
 
 // 计算延迟: delay = min(initialDelay * (multiplier ^ attempt), maxDelay)
-```
+\`\`\`
 
 ## 测试策略
 
@@ -499,18 +499,18 @@ const defaultRetryConfig: RetryConfig = {
 
 ### 属性测试配置
 
-```typescript
+\`\`\`typescript
 // 属性测试配置
 const propertyTestConfig = {
   numRuns: 100,  // 每个属性至少运行 100 次
   seed: Date.now(),
   verbose: true,
 };
-```
+\`\`\`
 
 ### 测试数据生成器
 
-```typescript
+\`\`\`typescript
 import * as fc from 'fast-check';
 
 // 钱包创建输入生成器
@@ -526,7 +526,7 @@ const proposalInputArb = fc.record({
   amount: fc.bigInt({ min: 1n, max: 1000000000000n }).map(String),
   tokenType: fc.constantFrom('USDC', 'USDT', 'DAI'),
 });
-```
+\`\`\`
 
 ### 关键测试场景
 

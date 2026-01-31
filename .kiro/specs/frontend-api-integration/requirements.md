@@ -125,4 +125,3 @@
 6. WHEN 计算月度订阅的下次支付日期时，THE Subscription_Engine SHALL 处理月末边界情况（如 1月31日 → 2月28日）
 7. THE Subscription_Engine SHALL 不执行已暂停或已取消订阅的支付
 8. THE Subscription_Engine SHALL 提供 API 端点 `POST /api/subscriptions/execute` 供 Cron 作业调用
-

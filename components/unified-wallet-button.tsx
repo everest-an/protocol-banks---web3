@@ -2,8 +2,8 @@
 
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
-import { useAppKit, useAppKitAccount, useDisconnect } from "@reown/appkit/react"
 import { useAuth } from "@/contexts/auth-provider"
+import { useSafeAppKit } from "@/hooks/use-safe-appkit"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -17,14 +17,19 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { User, Wallet, LogOut, Copy, Check, ChevronDown, Sparkles, Plus, ArrowUpRight, CreditCard } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { isMobileDevice } from "@/lib/web3"
 import { AuthGateway } from "@/components/auth"
+
+// Check if we're in v0 preview environment
+function isV0Preview() {
+  if (typeof window === "undefined") return false
+  return window.location.hostname.includes("vusercontent.net")
+}
 
 export function UnifiedWalletButton() {
   const {
     isConnected: isWeb3Connected,
-    connectWallet,
     disconnectWallet,
     activeChain,
     wallets,
@@ -33,11 +38,10 @@ export function UnifiedWalletButton() {
     usdcBalance,
   } = useWeb3()
 
-  const { userType, setUserType, isWeb2User, getLabel } = useUserType()
-  const { open: openAppKit } = useAppKit()
-  const { address: reownAddress, isConnected: isReownConnected } = useAppKitAccount()
-  const { disconnect: reownDisconnect } = useDisconnect()
-  const { isAuthenticated, user, logout: authLogout, hasWallet } = useAuth()
+  const { setUserType, isWeb2User, getLabel } = useUserType()
+  const { isAuthenticated, user, logout: authLogout } = useAuth()
+  const { open: safeAppKitOpen, disconnect: safeAppKitDisconnect, address: reownAddress, isConnected: isReownConnected } = useSafeAppKit()
+  
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showAuthGateway, setShowAuthGateway] = useState(false)
@@ -77,46 +81,31 @@ export function UnifiedWalletButton() {
   const totalBalance = Number.parseFloat(usdtBalance) + Number.parseFloat(usdcBalance)
   const hasZeroBalance = totalBalance === 0
 
-  const handleDisconnect = async () => {
-    console.log(
-      "[v0] Disconnect clicked, isReownConnected:",
-      isReownConnected,
-      "isWeb3Connected:",
-      isWeb3Connected,
-      "isAuthenticated:",
-      isAuthenticated,
-    )
-
+  const handleDisconnect = useCallback(async () => {
     if (isAuthenticated) {
       try {
         await authLogout()
-        console.log("[v0] Auth logged out")
       } catch (error) {
-        console.error("[v0] Failed to logout:", error)
+        console.error("[UnifiedWalletButton] Failed to logout:", error)
       }
     }
 
     if (isReownConnected) {
       try {
-        await reownDisconnect()
-        console.log("[v0] Reown disconnected")
+        await safeAppKitDisconnect()
       } catch (error) {
-        console.error("[v0] Failed to disconnect Reown:", error)
+        console.error("[UnifiedWalletButton] Failed to disconnect Reown:", error)
       }
     }
 
     disconnectWallet()
-    console.log("[v0] Web3 disconnected")
-  }
+  }, [isAuthenticated, isReownConnected, authLogout, safeAppKitDisconnect, disconnectWallet])
 
   if (!isConnected) {
     return (
       <>
         <Button
-          onClick={() => {
-            console.log("[v0] Sign In button clicked, setting showAuthGateway to true")
-            setShowAuthGateway(true)
-          }}
+          onClick={() => setShowAuthGateway(true)}
           disabled={isConnecting}
           size="sm"
           className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm px-3 sm:px-4"
@@ -129,14 +118,8 @@ export function UnifiedWalletButton() {
         {showAuthGateway && (
           <AuthGateway
             isOpen={showAuthGateway}
-            onClose={() => {
-              console.log("[v0] AuthGateway onClose called")
-              setShowAuthGateway(false)
-            }}
-            onSuccess={() => {
-              console.log("[v0] AuthGateway onSuccess called")
-              setShowAuthGateway(false)
-            }}
+            onClose={() => setShowAuthGateway(false)}
+            onSuccess={() => setShowAuthGateway(false)}
           />
         )}
       </>
@@ -182,7 +165,7 @@ export function UnifiedWalletButton() {
               </>
             )}
 
-            <DropdownMenuItem onClick={() => openAppKit({ view: "OnRampProviders" })} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => safeAppKitOpen({ view: "OnRampProviders" })} className="cursor-pointer">
               <Plus className="mr-2 h-4 w-4 text-green-500" />
               <span>{getLabel("Add Funds")}</span>
               <Badge variant="secondary" className="ml-auto text-xs">
@@ -226,7 +209,7 @@ export function UnifiedWalletButton() {
                 variant="outline"
                 onClick={() => {
                   setShowOffRampModal(false)
-                  openAppKit({ view: "OnRampProviders" })
+                  safeAppKitOpen({ view: "OnRampProviders" })
                 }}
               >
                 <CreditCard className="mr-3 h-5 w-5" />
@@ -269,7 +252,7 @@ export function UnifiedWalletButton() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={() => openAppKit({ view: "OnRampProviders" })} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => safeAppKitOpen({ view: "OnRampProviders" })} className="cursor-pointer">
           <CreditCard className="mr-2 h-4 w-4 text-green-500" />
           <span>Buy Crypto</span>
           <Badge variant="secondary" className="ml-auto text-xs">

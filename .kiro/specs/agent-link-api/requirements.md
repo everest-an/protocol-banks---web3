@@ -121,4 +121,3 @@ This document defines the requirements for the Agent Link API feature, enabling 
 3. WHEN executing a payment, THE Agent_Service SHALL submit the authorization to the x402 relayer
 4. THE Agent_Service SHALL support pre-signed authorizations for recurring agent payments
 5. WHEN an authorization expires before execution, THE Agent_Service SHALL request a new authorization from the owner
-

@@ -83,6 +83,14 @@ export const CCTP_ABI = [
   "function depositForBurn(uint256 amount, uint32 destinationDomain, bytes32 mintRecipient, address burnToken) external returns (uint64)",
 ]
 
+// RPC URLs for different chains
+export const RPC_URLS = {
+  [CHAIN_IDS.MAINNET]: "https://eth.llamarpc.com",
+  [CHAIN_IDS.SEPOLIA]: "https://rpc.sepolia.org",
+  [CHAIN_IDS.BASE]: "https://mainnet.base.org",
+  [CHAIN_IDS.ARBITRUM]: "https://arb1.arbitrum.io/rpc",
+} as const
+
 declare global {
   interface Window {
     ethereum?: any

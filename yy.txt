@@ -166,4 +166,3 @@ Active Policies:
 ✅ Vendors data fetching completed!
 
 🔌 Database connection closed
-

@@ -10,9 +10,9 @@ Add these variables in the **Vars** section of your v0 project or in your deploy
 
 **Get your Project ID from:** https://cloud.reown.com
 
-```env
+\`\`\`env
 NEXT_PUBLIC_REOWN_PROJECT_ID=your_reown_project_id
-```
+\`\`\`
 
 This enables:
 - Email login (passwordless authentication)
@@ -59,10 +59,10 @@ This enables:
 
 **Get your keys from:** https://www.google.com/recaptcha/admin
 
-```env
+\`\`\`env
 RECAPTCHA_SITE_KEY=6Lcy2S4sAAAAAPvp87hb-Fd6Ilt5JKOEtDCP_Jdk
 RECAPTCHA_SECRET_KEY=6Lcy2S4sAAAAAH06AlrmdD_mCEK5Q8xM_L09GOv6
-```
+\`\`\`
 
 - `RECAPTCHA_SITE_KEY`: Site key for reCAPTCHA (fetched via server action)
 - `RECAPTCHA_SECRET_KEY`: Private key used for server-side verification (keep secure)
@@ -71,9 +71,9 @@ RECAPTCHA_SECRET_KEY=6Lcy2S4sAAAAAH06AlrmdD_mCEK5Q8xM_L09GOv6
 
 **Get your key from:** https://resend.com/api-keys
 
-```env
+\`\`\`env
 RESEND_API_KEY=re_7BVLS4Jr_FMx1W2TVUgX7dCskj1dnkm3s
-```
+\`\`\`
 
 This enables the contact form to send emails to `everest9812@gmail.com`.
 
@@ -89,7 +89,7 @@ To use `contact@e.protocolbanks.com` as the sender address:
 2. **Configure DNS Records**:
    Add these records to your DNS provider (Cloudflare, GoDaddy, etc.):
    
-   ```
+   \`\`\`
    Type: TXT
    Name: e.protocolbanks.com
    Value: [Resend will provide this value]
@@ -102,7 +102,7 @@ To use `contact@e.protocolbanks.com` as the sender address:
    Name: e.protocolbanks.com
    Priority: 10
    Value: feedback-smtp.us-east-1.amazonses.com
-   ```
+   \`\`\`
 
 3. **Verify Domain**:
    - Wait 24-48 hours for DNS propagation
@@ -119,18 +119,18 @@ To use `contact@e.protocolbanks.com` as the sender address:
 
 These should already be set up in your project:
 
-```env
+\`\`\`env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-```
+\`\`\`
 
 ### 5. Ethereum Configuration (Already Configured)
 
-```env
+\`\`\`env
 ETHERSCAN_API_KEY=your_etherscan_api_key
 NEXT_PUBLIC_ALLOW_DEMO_MODE=true
-```
+\`\`\`
 
 **Note:** `ETHERSCAN_API_KEY` is used server-side only in API routes, so it does not need the `NEXT_PUBLIC_` prefix.
 

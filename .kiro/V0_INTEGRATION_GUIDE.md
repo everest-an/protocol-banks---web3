@@ -24,7 +24,7 @@ This guide documents the integration patterns and APIs available in Protocol Ban
 #### POST /api/x402/authorize
 Create a payment authorization.
 
-```typescript
+\`\`\`typescript
 interface AuthorizeRequest {
   from: string       // Payer address
   to: string         // Payee address
@@ -42,12 +42,12 @@ interface AuthorizeResponse {
   validAfter: number
   validBefore: number
 }
-```
+\`\`\`
 
 #### POST /api/x402/settle
 Settle a payment via CDP or Relayer.
 
-```typescript
+\`\`\`typescript
 interface SettleRequest {
   authorizationId: string
   transactionHash?: string
@@ -65,14 +65,14 @@ interface SettleResponse {
   fee: number
   transactionHash?: string
 }
-```
+\`\`\`
 
 ### Batch Payment APIs
 
 #### POST /api/batch-payment
 Create a batch payment job.
 
-```typescript
+\`\`\`typescript
 interface BatchCreateRequest {
   recipients: Array<{
     address: string
@@ -92,12 +92,12 @@ interface BatchCreateResponse {
   estimatedFee: number
   settlementMethod: "CDP" | "Relayer"
 }
-```
+\`\`\`
 
 #### POST /api/batch-payment/execute
 Execute a batch payment.
 
-```typescript
+\`\`\`typescript
 interface BatchExecuteRequest {
   batchId: string
   chainId?: number
@@ -122,13 +122,13 @@ interface BatchExecuteResponse {
     error?: string
   }>
 }
-```
+\`\`\`
 
 ## Hooks Reference
 
 ### useBatchPayment
 
-```typescript
+\`\`\`typescript
 const {
   isProcessing,
   isRetrying,
@@ -143,11 +143,11 @@ const {
   reset,
   downloadReport,
 } = useBatchPayment()
-```
+\`\`\`
 
 ### useX402
 
-```typescript
+\`\`\`typescript
 const {
   client,
   isReady,
@@ -157,11 +157,11 @@ const {
   approvePayment,
   rejectPayment,
 } = useX402({ autoSign: false, maxAutoAmount: 1 })
-```
+\`\`\`
 
 ### useMCPSubscriptions
 
-```typescript
+\`\`\`typescript
 const {
   subscriptions,
   providers,
@@ -172,11 +172,11 @@ const {
   changePlan,
   refresh,
 } = useMCPSubscriptions()
-```
+\`\`\`
 
 ### useMonetizeConfig
 
-```typescript
+\`\`\`typescript
 const {
   config,
   apiKeys,
@@ -193,12 +193,12 @@ const {
   deleteTier,
   refresh,
 } = useMonetizeConfig()
-```
+\`\`\`
 
 ## Database Schema
 
 ### mcp_subscriptions
-```sql
+\`\`\`sql
 CREATE TABLE mcp_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address TEXT NOT NULL,
@@ -212,10 +212,10 @@ CREATE TABLE mcp_subscriptions (
   current_period_end TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-```
+\`\`\`
 
 ### monetize_configs
-```sql
+\`\`\`sql
 CREATE TABLE monetize_configs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address TEXT UNIQUE NOT NULL,
@@ -227,10 +227,10 @@ CREATE TABLE monetize_configs (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-```
+\`\`\`
 
 ### api_keys
-```sql
+\`\`\`sql
 CREATE TABLE api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address TEXT NOT NULL,
@@ -243,7 +243,7 @@ CREATE TABLE api_keys (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   last_used_at TIMESTAMPTZ
 );
-```
+\`\`\`
 
 ## Environment Variables
 

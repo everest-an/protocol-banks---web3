@@ -23,7 +23,7 @@ Protocol Banks is a non-custodial, multi-chain payment solution designed for DAO
 
 ## System Architecture
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              User Layer                                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -70,7 +70,7 @@ Protocol Banks is a non-custodial, multi-chain payment solution designed for DAO
 │  │ (PostgreSQL)│  │  (Queue)    │  │  (Secrets)  │  │  (Multi)    │        │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ## Core Features
 
@@ -92,7 +92,7 @@ Protocol Banks provides a comprehensive API for AI agents to interact with the t
 
 ### AI Agent Architecture
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         AI Agent Integration                                 │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -125,7 +125,7 @@ Protocol Banks provides a comprehensive API for AI agents to interact with the t
          │   Auto-Execute      │      │   Human Approval    │      │   x402 Protocol     │
          │   (Within Budget)   │      │   (Over Budget)     │      │   (Gasless)         │
          └─────────────────────┘      └─────────────────────┘      └─────────────────────┘
-```
+\`\`\`
 
 ### AI Agent Features
 
@@ -150,7 +150,7 @@ Protocol Banks provides a comprehensive API for AI agents to interact with the t
 
 ### Agent API Example
 
-```typescript
+\`\`\`typescript
 // Create payment proposal
 const response = await fetch('/api/agents/proposals', {
   method: 'POST',
@@ -173,7 +173,7 @@ const response = await fetch('/api/agents/proposals', {
   "status": "pending",  // or "executed" if auto-execute enabled
   "auto_executed": false
 }
-```
+\`\`\`
 
 ## Supported Blockchains
 
@@ -216,7 +216,7 @@ const response = await fetch('/api/agents/proposals', {
 
 ## Project Structure
 
-```
+\`\`\`
 protocol-banks/
 ├── app/                    # Next.js pages and API routes
 │   ├── api/               # REST API endpoints
@@ -249,31 +249,31 @@ protocol-banks/
 ├── k8s/                   # Kubernetes configs
 ├── scripts/               # Database migrations
 └── docs/                  # Documentation
-```
+\`\`\`
 
 ## Quick Start
 
 ### 1. Clone Repository
 
-```bash
+\`\`\`bash
 git clone https://github.com/everest-an/protocol-banks---web3.git
 cd protocol-banks---web3
-```
+\`\`\`
 
 ### 2. Install Dependencies
 
-```bash
+\`\`\`bash
 pnpm install
-```
+\`\`\`
 
 ### 3. Configure Environment
 
-```bash
+\`\`\`bash
 cp .env.example .env.local
-```
+\`\`\`
 
 Edit `.env.local`:
-```env
+\`\`\`env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
@@ -284,13 +284,13 @@ NEXT_PUBLIC_REOWN_PROJECT_ID=your_project_id
 
 # Optional: Go Services
 ENABLE_GO_SERVICES=false
-```
+\`\`\`
 
 ### 4. Start Development Server
 
-```bash
+\`\`\`bash
 pnpm dev
-```
+\`\`\`
 
 Visit http://localhost:3000
 
@@ -298,18 +298,18 @@ Visit http://localhost:3000
 
 Go microservices are for high-throughput scenarios. Not required for development.
 
-```bash
+\`\`\`bash
 # Configure environment
 cd services
 cp .env.example .env
 
 # Start services (requires Docker)
 docker-compose up -d
-```
+\`\`\`
 
 ## Security Architecture
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Security Layers                                    │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -344,7 +344,7 @@ Layer 4: Keys
 │  • Key Rotation (90 days)                                                  │
 │  • Zero-Knowledge Architecture                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ## Performance Metrics
 
@@ -409,7 +409,7 @@ Protocol Banks 是一个非托管、多链支付解决方案，专为 DAO、AI A
 
 ### 快速开始
 
-```bash
+\`\`\`bash
 # 克隆
 git clone https://github.com/everest-an/protocol-banks---web3.git
 cd protocol-banks---web3
@@ -423,7 +423,7 @@ cp .env.example .env.local
 
 # 运行
 pnpm dev
-```
+\`\`\`
 
 ### 详细文档
 
