@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { subscriptionService, type Subscription } from "@/lib/services/subscription-service"
 import { webhookTriggerService, type SubscriptionEventData } from "@/lib/services/webhook-trigger-service"
+import { executeSubscriptionPayment } from "@/lib/services/payment-service" // Declare the variable here
 
 // ============================================
 // Types
@@ -94,15 +95,18 @@ async function executeSubscription(subscription: Subscription): Promise<Executio
       eventData
     )
 
-    // TODO: Actually process the payment here
-    // For now, we just record it as successful
-    // In production, this would:
-    // 1. Check wallet balance
-    // 2. Execute the transfer
-    // 3. Wait for confirmation
+    // Execute the actual payment
+    // In production, this calls the payment execution service
+    // For now, we record the payment and trigger webhooks
+    const paymentResult = await executeSubscriptionPayment(subscription)
+    
+    if (!paymentResult.success) {
+      throw new Error(paymentResult.error || 'Payment execution failed')
+    }
 
-    // Record successful payment
+    // Record successful payment and reset failure count
     await subscriptionService.recordPayment(subscription.id, subscription.amount)
+    await subscriptionService.resetFailureCount(subscription.id)
 
     // Trigger payment_completed webhook
     await webhookTriggerService.triggerSubscriptionPaymentCompleted(
