@@ -2,14 +2,16 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
+import { useRainCard } from "@/hooks/use-rain-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   CreditCard,
   Shield,
@@ -25,15 +27,14 @@ import {
   EyeOff,
   Snowflake,
   RefreshCw,
+  Loader2,
 } from "lucide-react"
 
-type CardType = "virtual" | "physical"
-type CardStatus = "none" | "pending" | "active" | "frozen"
-
-interface UserCard {
+// Declare UserCard type here
+type UserCard = {
   id: string
-  type: CardType
-  status: CardStatus
+  type: string
+  status: string
   last4: string
   expiryMonth: string
   expiryYear: string
@@ -42,6 +43,8 @@ interface UserCard {
   spendLimit: number
   cardholderName: string
 }
+
+type CardType = "virtual" | "physical"
 
 function LiquidMetalCard({
   userCard,
@@ -305,23 +308,39 @@ export default function CardPage() {
   const { isConnected, wallet } = useWeb3()
   const [activeTab, setActiveTab] = useState<"overview" | "apply" | "manage">("overview")
   const [cardType, setCardType] = useState<CardType>("virtual")
-  const [isApplying, setIsApplying] = useState(false)
   const [showCardDetails, setShowCardDetails] = useState(false)
   const [isCardFlipped, setIsCardFlipped] = useState(false)
   const [applicationStep, setApplicationStep] = useState(1)
+  const [isApplying, setIsApplying] = useState(false)
 
-  const [userCard, setUserCard] = useState<UserCard | null>({
-    id: "card_demo_001",
-    type: "virtual",
-    status: "active",
-    last4: "4289",
-    expiryMonth: "12",
-    expiryYear: "28",
-    cvv: "742",
-    balance: 2450.0,
-    spendLimit: 10000,
-    cardholderName: "DEMO USER",
-  })
+  // Use the Rain Card hook for real API integration
+  const {
+    cards,
+    transactions,
+    loading,
+    applying,
+    applyForCard,
+    freezeCard,
+    unfreezeCard,
+    refresh,
+  } = useRainCard()
+
+  // Get the primary card (first active or any card)
+  const primaryCard = cards.find(c => c.status === "active") || cards[0]
+  
+  // Transform to UserCard format for the LiquidMetalCard component
+  const userCard: UserCard | null = primaryCard ? {
+    id: primaryCard.id,
+    type: primaryCard.card_type,
+    status: primaryCard.status,
+    last4: primaryCard.card_number_last4,
+    expiryMonth: primaryCard.expiry_month || "12",
+    expiryYear: primaryCard.expiry_year || "28",
+    cvv: "***", // CVV is never stored/shown
+    balance: parseFloat(primaryCard.balance || "0"),
+    spendLimit: parseFloat(primaryCard.spending_limit || "10000"),
+    cardholderName: primaryCard.cardholder_name || "CARDHOLDER",
+  } : null
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -333,31 +352,33 @@ export default function CardPage() {
     postalCode: "",
   })
 
+  // Switch to manage tab when user has a card
+  useEffect(() => {
+    if (primaryCard && activeTab === "apply") {
+      setActiveTab("manage")
+    }
+  }, [primaryCard, activeTab])
+
   const handleApply = async () => {
     setIsApplying(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setUserCard({
-      id: `card_${Date.now()}`,
-      type: cardType,
-      status: "active",
-      last4: Math.floor(1000 + Math.random() * 9000).toString(),
-      expiryMonth: "12",
-      expiryYear: "28",
-      cvv: Math.floor(100 + Math.random() * 900).toString(),
-      balance: 0,
-      spendLimit: cardType === "virtual" ? 5000 : 25000,
-      cardholderName: formData.fullName.toUpperCase() || "CARDHOLDER",
-    })
+    const success = await applyForCard(
+      cardType,
+      "USD",
+      cardType === "virtual" ? "5000" : "25000"
+    )
     setIsApplying(false)
-    setActiveTab("manage")
+    if (success) {
+      setActiveTab("manage")
+      setApplicationStep(1)
+    }
   }
 
-  const toggleCardFreeze = () => {
-    if (userCard) {
-      setUserCard({
-        ...userCard,
-        status: userCard.status === "frozen" ? "active" : "frozen",
-      })
+  const toggleCardFreeze = async () => {
+    if (!primaryCard) return
+    if (primaryCard.status === "frozen") {
+      await unfreezeCard(primaryCard.id)
+    } else {
+      await freezeCard(primaryCard.id)
     }
   }
 
@@ -708,12 +729,12 @@ export default function CardPage() {
                       </Button>
                       <Button
                         onClick={handleApply}
-                        disabled={isApplying}
+                        disabled={applying}
                         className="flex-1 bg-primary hover:bg-primary/90"
                       >
-                        {isApplying ? (
+                        {applying ? (
                           <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Processing...
                           </>
                         ) : (
@@ -752,7 +773,7 @@ export default function CardPage() {
                         <div className="text-sm text-muted-foreground">Available Balance</div>
                         <div className="text-3xl font-bold">${userCard.balance.toLocaleString()}</div>
                         <Button variant="outline" size="sm" className="mt-2 bg-transparent">
-                          <Plus className="mr-2 h-4 w-4" />
+                          <CreditCard className="mr-2 h-4 w-4" />
                           Add Funds
                         </Button>
                       </div>
@@ -815,33 +836,55 @@ export default function CardPage() {
 
                 {/* Recent Transactions */}
                 <Card className="max-w-3xl mx-auto bg-card border-border">
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-lg">Recent Transactions</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={refresh} disabled={loading}>
+                      <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                    </Button>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {[
-                        { merchant: "Amazon", amount: -156.99, date: "Today", category: "Shopping" },
-                        { merchant: "Starbucks", amount: -8.5, date: "Yesterday", category: "Food & Drink" },
-                        { merchant: "Uber", amount: -24.0, date: "Dec 26", category: "Transport" },
-                        { merchant: "Card Top-up", amount: 500.0, date: "Dec 25", category: "Deposit" },
-                      ].map((tx, i) => (
-                        <div
-                          key={i}
-                          className="flex justify-between items-center py-3 border-b border-border last:border-0"
-                        >
-                          <div>
-                            <div className="font-medium">{tx.merchant}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {tx.date} • {tx.category}
+                    {loading ? (
+                      <div className="space-y-4">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex justify-between items-center py-3">
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-24" />
                             </div>
+                            <Skeleton className="h-4 w-16" />
                           </div>
-                          <div className={`font-mono font-medium ${tx.amount > 0 ? "text-emerald-500" : ""}`}>
-                            {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : transactions.length > 0 ? (
+                      <div className="space-y-4">
+                        {transactions.slice(0, 10).map((tx) => {
+                          const amount = parseFloat(tx.amount)
+                          const isCredit = tx.transaction_type === "credit" || amount > 0
+                          return (
+                            <div
+                              key={tx.id}
+                              className="flex justify-between items-center py-3 border-b border-border last:border-0"
+                            >
+                              <div>
+                                <div className="font-medium">{tx.merchant_name || tx.description || "Transaction"}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {new Date(tx.created_at).toLocaleDateString()} • {tx.category || tx.transaction_type}
+                                </div>
+                              </div>
+                              <div className={`font-mono font-medium ${isCredit ? "text-emerald-500" : ""}`}>
+                                {isCredit ? "+" : "-"}${Math.abs(amount).toFixed(2)}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <CreditCard className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>No transactions yet</p>
+                        <p className="text-sm">Start using your card to see transactions here</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </>
@@ -850,26 +893,5 @@ export default function CardPage() {
         </Tabs>
       </div>
     </main>
-  )
-}
-
-// Missing Plus icon import fix
-function Plus(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M5 12h14" />
-      <path d="M12 5v14" />
-    </svg>
   )
 }
