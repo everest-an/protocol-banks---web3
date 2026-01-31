@@ -1,35 +1,17 @@
-import { createBrowserClient } from "@supabase/ssr"
+/**
+ * Unified Supabase Client Exports
+ * 
+ * This file re-exports Supabase clients from the canonical locations:
+ * - Browser client: @/lib/supabase/client
+ * - Server client: @/lib/supabase/server
+ * 
+ * Usage:
+ * - For client components: import { createClient, getSupabase, supabase } from "@/lib/supabase"
+ * - For server components/actions: import { createServerClient } from "@/lib/supabase/server"
+ */
 
-// Singleton instance
-let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null
+// Re-export browser client
+export { createClient, getSupabase, supabase } from "@/lib/supabase/client"
 
-export function createClient() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    // Return a mock client that won't throw but logs warnings
-    return {
-      from: () => ({
-        select: () => ({ data: [], error: { message: "Supabase not configured" } }),
-        insert: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        update: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        delete: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        single: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        eq: () => ({ data: [], error: { message: "Supabase not configured" } }),
-      }),
-      rpc: () => ({ data: null, error: { message: "Supabase not configured" } }),
-    } as any
-  }
-
-  if (!supabaseInstance) {
-    supabaseInstance = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    )
-  }
-  return supabaseInstance
-}
-
-export function getSupabase() {
-  return createClient()
-}
-
-export const supabase = createClient()
+// Re-export server client for convenience
+export { createClient as createServerClient } from "@/lib/supabase/server"
