@@ -96,9 +96,11 @@ export default function SecurityPage() {
     try {
       const supabase = getSupabase()
       if (!supabase) {
-        setAuditLogs(demoAuditLogs)
-        setSecurityAlerts(demoSecurityAlerts)
-        setAddressChanges(demoAddressChanges)
+        // Show empty state when Supabase is not available
+        setAuditLogs([])
+        setSecurityAlerts([])
+        setAddressChanges([])
+        setIsLoading(false)
         return
       }
 
@@ -132,10 +134,10 @@ export default function SecurityPage() {
       if (changes) setAddressChanges(changes)
     } catch (error) {
       console.error("[Security] Failed to load data:", error)
-      // Fall back to demo data
-      setAuditLogs(demoAuditLogs)
-      setSecurityAlerts(demoSecurityAlerts)
-      setAddressChanges(demoAddressChanges)
+      // Show empty state on error
+      setAuditLogs([])
+      setSecurityAlerts([])
+      setAddressChanges([])
     } finally {
       setIsLoading(false)
     }
