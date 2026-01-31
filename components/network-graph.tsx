@@ -85,19 +85,20 @@ export function NetworkGraph({
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === "dark"
   
-  // Theme-aware colors
+  // Theme-aware colors - refined light mode palette
   const colors = {
-    bg: isDark ? "#0a0a0a" : "#f5f5f5",
-    text: isDark ? "#ffffff" : "#171717",
-    textMuted: isDark ? "#71717a" : "#52525b",
-    border: isDark ? "#27272a" : "#e4e4e7",
-    card: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.9)",
-    cardBorder: isDark ? "#27272a" : "#e4e4e7",
-    inputBg: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.9)",
-    hover: isDark ? "#27272a" : "#e4e4e7",
-    line: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)",
-    lineActive: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)",
-    nodeStroke: isDark ? "#0a0a0a" : "#ffffff",
+    bg: isDark ? "#0a0a0a" : "#f8fafc",
+    text: isDark ? "#ffffff" : "#0f172a",
+    textMuted: isDark ? "#71717a" : "#64748b",
+    border: isDark ? "#27272a" : "#cbd5e1",
+    card: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.95)",
+    cardBorder: isDark ? "#27272a" : "#e2e8f0",
+    inputBg: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.95)",
+    hover: isDark ? "#27272a" : "#f1f5f9",
+    line: isDark ? "rgba(255,255,255,0.15)" : "rgba(100,116,139,0.25)",
+    lineActive: isDark ? "rgba(255,255,255,0.6)" : "rgba(59,130,246,0.7)",
+    nodeStroke: isDark ? "#0a0a0a" : "#f8fafc",
+    nodeFill: isDark ? "#0a0a0a" : "#ffffff",
   }
 
   const { nodes, edges } = useMemo(() => {
@@ -114,7 +115,7 @@ export function NetworkGraph({
         r: 40,
         data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
         type: "root",
-        color: isDark ? "#ffffff" : "#171717",
+        color: isDark ? "#ffffff" : "#3b82f6",
       }
       return { nodes: [rootNode], edges: [] }
     }
@@ -131,7 +132,7 @@ export function NetworkGraph({
       r: 40,
       data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
       type: "root",
-      color: isDark ? "#ffffff" : "#171717",
+      color: isDark ? "#ffffff" : "#3b82f6",
     }
 
     const processedNodes: Node[] = [rootNode]
@@ -561,7 +562,7 @@ export function NetworkGraph({
     <div
       ref={containerRef}
       className="relative w-full h-full min-h-[400px] md:min-h-[800px] rounded-lg overflow-hidden border border-border"
-      style={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}
+      style={{ backgroundColor: isDark ? "#0a0a0a" : "#f8fafc" }}
     >
       <div className="absolute top-3 md:top-6 left-3 md:left-6 z-20 space-y-1 md:space-y-2">
         <h3 className="text-lg md:text-2xl font-light tracking-tight text-foreground">Global Payment Mesh</h3>
@@ -663,18 +664,25 @@ export function NetworkGraph({
           {/* ... existing SVG content (defs, edges, nodes) ... */}
           <defs>
             <radialGradient id="node-glow">
-              <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+              <stop offset="0%" stopColor={isDark ? "#fff" : "#3b82f6"} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={isDark ? "#fff" : "#3b82f6"} stopOpacity="0" />
             </radialGradient>
             <radialGradient id="green-glow">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
+              <stop offset="0%" stopColor="#10b981" stopOpacity={isDark ? 0.6 : 0.4} />
               <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
             </radialGradient>
             <radialGradient id="blue-glow">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity={isDark ? 0.6 : 0.4} />
               <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
             </radialGradient>
+            {/* Background gradient for light mode */}
+            <radialGradient id="bg-gradient" cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stopColor={isDark ? "#0a0a0a" : "#ffffff"} />
+              <stop offset="100%" stopColor={isDark ? "#0a0a0a" : "#f1f5f9"} />
+            </radialGradient>
           </defs>
+          {/* Background rect with gradient */}
+          <rect width="100%" height="100%" fill="url(#bg-gradient)" />
           <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
             {/* Edges - optimized with node map lookup */}
             {edges.map((edge, index) => {
@@ -749,7 +757,7 @@ export function NetworkGraph({
                     cx={0}
                     cy={0}
                     r={node.r}
-                    fill={colors.nodeStroke}
+                    fill={colors.nodeFill}
                     stroke={node.color}
                     strokeWidth={isSelected ? 3 : node.type === "vendor" ? 1 : 2}
                     className="transition-all duration-300"
