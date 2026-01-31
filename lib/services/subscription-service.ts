@@ -428,13 +428,38 @@ export class SubscriptionService {
   }
 
   /**
-   * Record a failed payment
+   * Record a failed payment with retry scheduling and user notification
    */
   async recordPaymentFailure(id: string, errorMessage: string): Promise<void> {
+    // First, get the current subscription to check retry count
+    const { data: subscription, error: fetchError } = await this.supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !subscription) {
+      throw new Error(`Failed to fetch subscription: ${fetchError?.message || 'Not found'}`);
+    }
+
+    const retryCount = (subscription.retry_count || 0) + 1;
+    const maxRetries = 3;
+    
+    // Calculate next retry time with exponential backoff (24h, 48h, 72h)
+    const retryDelayHours = 24 * retryCount;
+    const nextRetryAt = new Date();
+    nextRetryAt.setHours(nextRetryAt.getHours() + retryDelayHours);
+
+    // Suspend after max retries, otherwise mark as payment_failed
+    const newStatus = retryCount >= maxRetries ? 'suspended' : 'payment_failed';
+
     const { error } = await this.supabase
       .from('subscriptions')
       .update({
-        status: 'payment_failed',
+        status: newStatus,
+        retry_count: retryCount,
+        next_retry_at: retryCount < maxRetries ? nextRetryAt.toISOString() : null,
+        last_error: errorMessage,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id);
@@ -443,8 +468,46 @@ export class SubscriptionService {
       throw new Error(`Failed to record payment failure: ${error.message}`);
     }
 
-    // TODO: Schedule retry after 24 hours
-    // TODO: Send notification to user
+    // Send user notification about the failure
+    await this.sendPaymentFailureNotification(subscription, errorMessage, retryCount, maxRetries);
+  }
+
+  /**
+   * Send notification to user about payment failure
+   */
+  private async sendPaymentFailureNotification(
+    subscription: Subscription,
+    errorMessage: string,
+    retryCount: number,
+    maxRetries: number
+  ): Promise<void> {
+    try {
+      const isSuspended = retryCount >= maxRetries;
+      const retryDelayHours = 24 * retryCount;
+
+      // Insert notification into database
+      await this.supabase.from('notifications').insert({
+        user_address: subscription.owner_address,
+        type: isSuspended ? 'subscription_suspended' : 'subscription_payment_failed',
+        title: isSuspended 
+          ? `Subscription Suspended: ${subscription.service_name}`
+          : `Payment Failed: ${subscription.service_name}`,
+        message: isSuspended
+          ? `Your subscription has been suspended after ${maxRetries} failed payment attempts. Please update your payment method.`
+          : `Payment failed for ${subscription.service_name}. We'll retry in ${retryDelayHours} hours. (Attempt ${retryCount}/${maxRetries})`,
+        data: {
+          subscription_id: subscription.id,
+          error: errorMessage,
+          retry_count: retryCount,
+          next_retry_at: retryCount < maxRetries ? new Date(Date.now() + retryDelayHours * 60 * 60 * 1000).toISOString() : null
+        },
+        read: false,
+        created_at: new Date().toISOString()
+      });
+    } catch (e) {
+      // Log but don't throw - notification failure shouldn't block the main flow
+      console.error('[SubscriptionService] Failed to send payment failure notification:', e);
+    }
   }
 }
 

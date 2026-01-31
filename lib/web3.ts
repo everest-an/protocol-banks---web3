@@ -1,5 +1,7 @@
 import { ethers } from "ethers"
-import type { ChainType } from "./path-to-chain-type" // Assuming ChainType is declared in another file
+
+// Chain type definition
+export type ChainType = 'ethereum' | 'polygon' | 'arbitrum' | 'base' | 'sepolia' | 'optimism';
 
 // Re-export service layer functions for unified access
 export {

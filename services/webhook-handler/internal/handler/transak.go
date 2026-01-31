@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -127,14 +128,27 @@ func (h *TransakHandler) verifySignature(body []byte, signature string) bool {
 }
 
 func (h *TransakHandler) handleOrderCompleted(ctx interface{}, order TransakOrder) {
+	realCtx, ok := ctx.(context.Context)
+	if !ok {
+		log.Error().Msg("Invalid context type for Transak order handler")
+		return
+	}
+
+	// 保存购买记录到数据库
+	if err := h.store.SaveTransakPurchase(realCtx, order.OrderID, order.WalletAddress,
+		order.FiatAmount, order.FiatCurrency, order.CryptoAmount, order.CryptoCurrency,
+		order.Network, order.TxHash); err != nil {
+		log.Error().Err(err).Str("order_id", order.OrderID).Msg("Failed to save Transak purchase")
+		return
+	}
+
 	log.Info().
 		Str("order_id", order.OrderID).
 		Float64("fiat_amount", order.FiatAmount).
 		Float64("crypto_amount", order.CryptoAmount).
 		Str("wallet", order.WalletAddress).
 		Str("tx_hash", order.TxHash).
-		Msg("Transak order completed")
-	// TODO: 更新用户购买记录
+		Msg("Transak order completed and saved")
 }
 
 func (h *TransakHandler) handleOrderProcessing(ctx interface{}, order TransakOrder) {

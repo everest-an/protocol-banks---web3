@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { subscriptionService, type Subscription } from "@/lib/services/subscription-service"
 import { subscriptionExecutorService } from "@/lib/services/subscription-executor-service"
 import { webhookTriggerService, type SubscriptionEventData } from "@/lib/services/webhook-trigger-service"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger('subscription-execute')
 
 // ============================================
 // Types
@@ -112,7 +115,7 @@ async function executeSubscription(subscription: Subscription): Promise<Executio
         }
       )
 
-      console.log(`[SubscriptionExecute] Successfully processed subscription ${subscription.id}, tx: ${executionResult.txHash}`)
+      logger.info('Successfully processed subscription', { subscriptionId: subscription.id, txHash: executionResult.txHash })
     } else {
       throw new Error(executionResult.error || "Payment execution failed")
     }
@@ -124,10 +127,10 @@ async function executeSubscription(subscription: Subscription): Promise<Executio
     try {
       await subscriptionService.recordPaymentFailure(subscription.id, result.error)
     } catch (recordError) {
-      console.error(`[SubscriptionExecute] Failed to record failure:`, recordError)
+      logger.error('Failed to record failure', { subscriptionId: subscription.id, error: String(recordError) })
     }
 
-    console.error(`[SubscriptionExecute] Failed to process subscription ${subscription.id}:`, error)
+    logger.error('Failed to process subscription', { subscriptionId: subscription.id, error: result.error })
   }
 
   return result
@@ -151,12 +154,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const limit = Math.min(body.limit || 100, 500) // Max 500 per execution
 
-    console.log(`[SubscriptionExecute] Starting execution with limit ${limit}`)
+    logger.info('Starting execution', { limit })
 
     // Get due subscriptions
     const dueSubscriptions = await subscriptionService.getDueSubscriptions(limit)
 
-    console.log(`[SubscriptionExecute] Found ${dueSubscriptions.length} due subscriptions`)
+    logger.info('Found due subscriptions', { count: dueSubscriptions.length })
 
     // Execute each subscription
     const results: ExecutionResult[] = []
@@ -179,11 +182,11 @@ export async function POST(request: NextRequest) {
       results,
     }
 
-    console.log(`[SubscriptionExecute] Completed: ${summary.successful} success, ${summary.failed} failed, ${summary.skipped} skipped`)
+    logger.info('Execution completed', { successful: summary.successful, failed: summary.failed, skipped: summary.skipped })
 
     // Also process retry queue
     const retryResults = await subscriptionExecutorService.processRetryQueue(50)
-    console.log(`[SubscriptionExecute] Retry queue: ${retryResults.processed} processed, ${retryResults.successful} successful`)
+    logger.info('Retry queue processed', { processed: retryResults.processed, successful: retryResults.successful })
 
     return NextResponse.json({
       success: true,

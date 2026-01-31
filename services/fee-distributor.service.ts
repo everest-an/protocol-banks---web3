@@ -3,6 +3,10 @@
  * Handles fee distribution and logging
  */
 
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('fee-distributor')
+
 export interface FeeDistribution {
   totalFee: number
   protocolFee: number
@@ -42,12 +46,11 @@ export function calculateDistribution(
  */
 export async function logFeeDistribution(
   distribution: FeeDistribution,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase?: any
+  supabase?: import('@/types').OptionalSupabaseClient
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!supabase) {
     // Log to console in development
-    console.log('[FeeDistributor] Fee distribution:', distribution)
+    logger.debug('Fee distribution (local mode)', { distribution })
     return { success: true, id: `local-${Date.now()}` }
   }
   
@@ -66,13 +69,13 @@ export async function logFeeDistribution(
       .single()
     
     if (error) {
-      console.error('[FeeDistributor] Failed to log distribution:', error)
+      logger.error('Failed to log distribution', { error: error.message })
       return { success: false, error: error.message }
     }
     
     return { success: true, id: data.id }
   } catch (err) {
-    console.error('[FeeDistributor] Error logging distribution:', err)
+    logger.error('Error logging distribution', { error: String(err) })
     return { success: false, error: String(err) }
   }
 }
@@ -83,8 +86,7 @@ export async function logFeeDistribution(
 export async function getFeeStatistics(
   startDate: Date,
   endDate: Date,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any
+  supabase: import('@/types').SupabaseClientType
 ): Promise<{
   totalFees: number
   protocolFees: number
