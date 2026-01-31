@@ -85,23 +85,25 @@ export function NetworkGraph({
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === "dark"
   
-  // Theme-aware colors - elegant dark gray for light mode
+  // Theme-aware colors - monochrome gray palette
   const colors = {
     bg: isDark ? "#0a0a0a" : "#fafafa",
     text: isDark ? "#ffffff" : "#18181b",
     textMuted: isDark ? "#71717a" : "#71717a",
     border: isDark ? "#27272a" : "#e4e4e7",
-    card: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.95)",
-    cardBorder: isDark ? "#27272a" : "#d4d4d8",
+    card: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(63, 63, 70, 0.95)",
+    cardBorder: isDark ? "#27272a" : "#52525b",
+    cardText: isDark ? "#ffffff" : "#ffffff",
+    cardTextMuted: isDark ? "#71717a" : "#a1a1aa",
     inputBg: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.95)",
-    hover: isDark ? "#27272a" : "#f4f4f5",
-    line: isDark ? "rgba(255,255,255,0.15)" : "rgba(39,39,42,0.2)",
-    lineActive: isDark ? "rgba(255,255,255,0.6)" : "rgba(39,39,42,0.5)",
+    hover: isDark ? "#27272a" : "#52525b",
+    line: isDark ? "rgba(255,255,255,0.15)" : "rgba(39,39,42,0.25)",
+    lineActive: isDark ? "rgba(255,255,255,0.6)" : "rgba(39,39,42,0.6)",
     nodeStroke: isDark ? "#0a0a0a" : "#fafafa",
     nodeFill: isDark ? "#0a0a0a" : "#ffffff",
     nodeColor: isDark ? "#ffffff" : "#27272a",
-    subsidiaryColor: isDark ? "#10b981" : "#059669",
-    partnerColor: isDark ? "#3b82f6" : "#2563eb",
+    subsidiaryColor: isDark ? "#10b981" : "#52525b",
+    partnerColor: isDark ? "#3b82f6" : "#71717a",
   }
 
   const { nodes, edges } = useMemo(() => {
@@ -455,7 +457,7 @@ export function NetworkGraph({
   const DetailPanelContent = () => {
     if (!selectedNode || !selectedNode.data) {
       return (
-        <div className="flex flex-col items-center justify-center h-48 text-center p-6 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center h-48 text-center p-6 text-zinc-400">
           <p className="text-sm">Select an entity to view details</p>
         </div>
       )
@@ -463,33 +465,23 @@ export function NetworkGraph({
 
     return (
       <div className="flex flex-col h-full animate-in slide-in-from-right duration-300">
-        <div className="p-4 md:p-6 border-b border-border">
+        <div className="p-4 md:p-6 border-b border-zinc-600">
           <div className="flex items-center justify-between mb-4">
-            <span
-              className={`font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded border ${
-                selectedNode.type === "subsidiary"
-                  ? "text-emerald-500 border-emerald-500/30"
-                  : selectedNode.type === "partner"
-                    ? "text-blue-500 border-blue-500/30"
-                    : selectedNode.type === "root"
-                      ? "text-foreground border-foreground/30"
-                      : "text-muted-foreground border-border"
-              }`}
-            >
+            <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded border text-white border-white/30">
               {selectedNode.type.toUpperCase()}
             </span>
             <button
-              className="p-2 hover:bg-secondary rounded transition-colors"
+              className="p-2 hover:bg-zinc-600 rounded transition-colors"
               onClick={() => window.open(`/vendors/${selectedNode.id}`, "_blank")}
             >
-              <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              <ExternalLink className="w-4 h-4 text-zinc-400" />
             </button>
           </div>
 
-          <h2 className="text-lg md:text-xl font-light text-foreground mb-2">
+          <h2 className="text-lg md:text-xl font-light text-white mb-2">
             {selectedNode.data?.company_name || selectedNode.data?.name || "Unknown"}
           </h2>
-          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground bg-secondary rounded px-2 py-1 w-fit">
+          <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 bg-zinc-700/50 rounded px-2 py-1 w-fit">
             <span className="truncate max-w-[180px]">{selectedNode.data?.wallet_address}</span>
           </div>
         </div>
@@ -497,8 +489,8 @@ export function NetworkGraph({
         <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Total Volume</p>
-              <p className="text-lg md:text-xl font-light text-foreground">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Total Volume</p>
+              <p className="text-lg md:text-xl font-light text-white">
                 $
                 {(selectedNode.data.monthly_volume || selectedNode.data.totalReceived || 0).toLocaleString(undefined, {
                   maximumFractionDigits: 0,
@@ -506,8 +498,8 @@ export function NetworkGraph({
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Tx Count</p>
-              <p className="text-lg md:text-xl font-light text-foreground">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Tx Count</p>
+              <p className="text-lg md:text-xl font-light text-white">
                 {selectedNode.data.transaction_count || 0}
               </p>
             </div>
@@ -515,14 +507,14 @@ export function NetworkGraph({
 
           <div className="space-y-2">
             <div className="flex justify-between items-end">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Payment Flow (YTD)</p>
-              <p className="text-xs text-emerald-500">+12.4% vs prev</p>
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Payment Flow (YTD)</p>
+              <p className="text-xs text-zinc-300">+12.4% vs prev</p>
             </div>
             <div className="h-12 md:h-16 flex items-end gap-0.5">
               {Array.from({ length: 20 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex-1 bg-muted hover:bg-muted-foreground/30 transition-all rounded-t-sm"
+                  className="flex-1 bg-zinc-600 hover:bg-zinc-500 transition-all rounded-t-sm"
                   style={{ height: `${20 + ((i * 17) % 80)}%` }}
                 />
               ))}
@@ -530,29 +522,29 @@ export function NetworkGraph({
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono border-b border-border pb-2">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono border-b border-zinc-600 pb-2">
               Entity Details
             </p>
             <div className="grid grid-cols-[80px_1fr] gap-y-2 md:gap-y-3 text-sm">
-              <span className="text-muted-foreground">Category</span>
-              <span className="text-foreground">{selectedNode.data.category || "General"}</span>
-              <span className="text-muted-foreground">Email</span>
-              <span className="text-foreground/80 truncate">{selectedNode.data.email || "N/A"}</span>
-              <span className="text-muted-foreground">Contract</span>
-              <span className="text-foreground/80">{selectedNode.data.notes || "Standard Agreement"}</span>
-              <span className="text-muted-foreground">Status</span>
-              <span className="flex items-center gap-2 text-emerald-500">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-zinc-400">Category</span>
+              <span className="text-white">{selectedNode.data.category || "General"}</span>
+              <span className="text-zinc-400">Email</span>
+              <span className="text-zinc-200 truncate">{selectedNode.data.email || "N/A"}</span>
+              <span className="text-zinc-400">Contract</span>
+              <span className="text-zinc-200">{selectedNode.data.notes || "Standard Agreement"}</span>
+              <span className="text-zinc-400">Status</span>
+              <span className="flex items-center gap-2 text-zinc-200">
+                <div className="w-1.5 h-1.5 rounded-full bg-zinc-200" />
                 Active Contract
               </span>
             </div>
           </div>
         </div>
 
-        <div className="p-4 md:p-6 pt-2 border-t border-border pb-safe">
+        <div className="p-4 md:p-6 pt-2 border-t border-zinc-600 pb-safe">
           <button
             onClick={handleInitiateTransfer}
-            className="w-full py-3 bg-primary text-primary-foreground font-medium rounded hover:bg-primary/90 transition-colors"
+            className="w-full py-3 bg-white text-zinc-900 font-medium rounded hover:bg-zinc-200 transition-colors"
           >
             INITIATE TRANSFER
           </button>
@@ -671,12 +663,12 @@ export function NetworkGraph({
               <stop offset="100%" stopColor={isDark ? "#fff" : "#27272a"} stopOpacity="0" />
             </radialGradient>
             <radialGradient id="green-glow">
-              <stop offset="0%" stopColor={colors.subsidiaryColor} stopOpacity={isDark ? 0.6 : 0.35} />
-              <stop offset="100%" stopColor={colors.subsidiaryColor} stopOpacity="0" />
+              <stop offset="0%" stopColor={isDark ? "#10b981" : "#52525b"} stopOpacity={isDark ? 0.6 : 0.4} />
+              <stop offset="100%" stopColor={isDark ? "#10b981" : "#52525b"} stopOpacity="0" />
             </radialGradient>
             <radialGradient id="blue-glow">
-              <stop offset="0%" stopColor={colors.partnerColor} stopOpacity={isDark ? 0.6 : 0.35} />
-              <stop offset="100%" stopColor={colors.partnerColor} stopOpacity="0" />
+              <stop offset="0%" stopColor={isDark ? "#3b82f6" : "#71717a"} stopOpacity={isDark ? 0.6 : 0.4} />
+              <stop offset="100%" stopColor={isDark ? "#3b82f6" : "#71717a"} stopOpacity="0" />
             </radialGradient>
             {/* Background gradient - subtle gray gradient for light mode */}
             <radialGradient id="bg-gradient" cx="50%" cy="50%" r="70%">
@@ -826,15 +818,27 @@ export function NetworkGraph({
 
       {isMobile ? (
         <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-          <DrawerContent className="max-h-[80vh] bg-zinc-900 border-zinc-800">
+          <DrawerContent 
+            className="max-h-[80vh] border-border"
+            style={{ backgroundColor: isDark ? "rgba(24, 24, 27, 0.95)" : "rgba(63, 63, 70, 0.95)" }}
+          >
             <DrawerHeader className="sr-only">
               <DrawerTitle>Entity Details</DrawerTitle>
             </DrawerHeader>
-            <DetailPanelContent />
+            <div style={{ color: "#ffffff" }}>
+              <DetailPanelContent />
+            </div>
           </DrawerContent>
         </Drawer>
       ) : (
-        <div className="absolute top-6 right-6 bottom-6 z-20 w-80 bg-zinc-900/90 backdrop-blur-sm rounded-lg border border-zinc-800 overflow-hidden">
+        <div 
+          className="absolute top-6 right-6 bottom-6 z-20 w-80 backdrop-blur-sm rounded-lg border overflow-hidden"
+          style={{ 
+            backgroundColor: isDark ? "rgba(24, 24, 27, 0.95)" : "rgba(63, 63, 70, 0.95)",
+            borderColor: isDark ? "#27272a" : "#52525b",
+            color: "#ffffff"
+          }}
+        >
           <DetailPanelContent />
         </div>
       )}
