@@ -85,20 +85,23 @@ export function NetworkGraph({
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === "dark"
   
-  // Theme-aware colors - refined light mode palette
+  // Theme-aware colors - elegant dark gray for light mode
   const colors = {
-    bg: isDark ? "#0a0a0a" : "#f8fafc",
-    text: isDark ? "#ffffff" : "#0f172a",
-    textMuted: isDark ? "#71717a" : "#64748b",
-    border: isDark ? "#27272a" : "#cbd5e1",
+    bg: isDark ? "#0a0a0a" : "#fafafa",
+    text: isDark ? "#ffffff" : "#18181b",
+    textMuted: isDark ? "#71717a" : "#71717a",
+    border: isDark ? "#27272a" : "#e4e4e7",
     card: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.95)",
-    cardBorder: isDark ? "#27272a" : "#e2e8f0",
+    cardBorder: isDark ? "#27272a" : "#d4d4d8",
     inputBg: isDark ? "rgba(24, 24, 27, 0.9)" : "rgba(255, 255, 255, 0.95)",
-    hover: isDark ? "#27272a" : "#f1f5f9",
-    line: isDark ? "rgba(255,255,255,0.15)" : "rgba(100,116,139,0.25)",
-    lineActive: isDark ? "rgba(255,255,255,0.6)" : "rgba(59,130,246,0.7)",
-    nodeStroke: isDark ? "#0a0a0a" : "#f8fafc",
+    hover: isDark ? "#27272a" : "#f4f4f5",
+    line: isDark ? "rgba(255,255,255,0.15)" : "rgba(39,39,42,0.2)",
+    lineActive: isDark ? "rgba(255,255,255,0.6)" : "rgba(39,39,42,0.5)",
+    nodeStroke: isDark ? "#0a0a0a" : "#fafafa",
     nodeFill: isDark ? "#0a0a0a" : "#ffffff",
+    nodeColor: isDark ? "#ffffff" : "#27272a",
+    subsidiaryColor: isDark ? "#10b981" : "#059669",
+    partnerColor: isDark ? "#3b82f6" : "#2563eb",
   }
 
   const { nodes, edges } = useMemo(() => {
@@ -115,7 +118,7 @@ export function NetworkGraph({
         r: 40,
         data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
         type: "root",
-        color: isDark ? "#ffffff" : "#3b82f6",
+        color: colors.nodeColor,
       }
       return { nodes: [rootNode], edges: [] }
     }
@@ -132,7 +135,7 @@ export function NetworkGraph({
       r: 40,
       data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
       type: "root",
-      color: isDark ? "#ffffff" : "#3b82f6",
+      color: colors.nodeColor,
     }
 
     const processedNodes: Node[] = [rootNode]
@@ -155,7 +158,7 @@ export function NetworkGraph({
         r: 25,
         data: v,
         type: "subsidiary",
-        color: "#10b981",
+        color: colors.subsidiaryColor,
       }
       processedNodes.push(node)
       processedEdges.push({ source: rootNode, target: node, weight: 3 })
@@ -182,7 +185,7 @@ export function NetworkGraph({
         r: 15,
         data: v,
         type: "partner",
-        color: "#3b82f6",
+        color: colors.partnerColor,
       }
       processedNodes.push(node)
       processedEdges.push({ source: parent, target: node, weight: 2 })
@@ -562,7 +565,7 @@ export function NetworkGraph({
     <div
       ref={containerRef}
       className="relative w-full h-full min-h-[400px] md:min-h-[800px] rounded-lg overflow-hidden border border-border"
-      style={{ backgroundColor: isDark ? "#0a0a0a" : "#f8fafc" }}
+      style={{ backgroundColor: isDark ? "#0a0a0a" : "#fafafa" }}
     >
       <div className="absolute top-3 md:top-6 left-3 md:left-6 z-20 space-y-1 md:space-y-2">
         <h3 className="text-lg md:text-2xl font-light tracking-tight text-foreground">Global Payment Mesh</h3>
@@ -664,21 +667,21 @@ export function NetworkGraph({
           {/* ... existing SVG content (defs, edges, nodes) ... */}
           <defs>
             <radialGradient id="node-glow">
-              <stop offset="0%" stopColor={isDark ? "#fff" : "#3b82f6"} stopOpacity="0.8" />
-              <stop offset="100%" stopColor={isDark ? "#fff" : "#3b82f6"} stopOpacity="0" />
+              <stop offset="0%" stopColor={isDark ? "#fff" : "#27272a"} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={isDark ? "#fff" : "#27272a"} stopOpacity="0" />
             </radialGradient>
             <radialGradient id="green-glow">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={isDark ? 0.6 : 0.4} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+              <stop offset="0%" stopColor={colors.subsidiaryColor} stopOpacity={isDark ? 0.6 : 0.35} />
+              <stop offset="100%" stopColor={colors.subsidiaryColor} stopOpacity="0" />
             </radialGradient>
             <radialGradient id="blue-glow">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity={isDark ? 0.6 : 0.4} />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+              <stop offset="0%" stopColor={colors.partnerColor} stopOpacity={isDark ? 0.6 : 0.35} />
+              <stop offset="100%" stopColor={colors.partnerColor} stopOpacity="0" />
             </radialGradient>
-            {/* Background gradient for light mode */}
+            {/* Background gradient - subtle gray gradient for light mode */}
             <radialGradient id="bg-gradient" cx="50%" cy="50%" r="70%">
               <stop offset="0%" stopColor={isDark ? "#0a0a0a" : "#ffffff"} />
-              <stop offset="100%" stopColor={isDark ? "#0a0a0a" : "#f1f5f9"} />
+              <stop offset="100%" stopColor={isDark ? "#0a0a0a" : "#f4f4f5"} />
             </radialGradient>
           </defs>
           {/* Background rect with gradient */}
