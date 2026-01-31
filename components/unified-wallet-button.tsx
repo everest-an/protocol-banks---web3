@@ -1,9 +1,11 @@
 "use client"
 
+import React from "react"
+
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
-import { useAppKit, useAppKitAccount, useDisconnect } from "@reown/appkit/react"
 import { useAuth } from "@/contexts/auth-provider"
+import { isAppKitInitialized } from "@/contexts/reown-provider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -17,11 +19,82 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { User, Wallet, LogOut, Copy, Check, ChevronDown, Sparkles, Plus, ArrowUpRight, CreditCard } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { isMobileDevice } from "@/lib/web3"
 import { AuthGateway } from "@/components/auth"
 
+// Conditionally import AppKit hooks - they throw if AppKit is not initialized
+let useAppKit: any = null
+let useAppKitAccount: any = null
+let useDisconnect: any = null
+
+if (typeof window !== "undefined" && isAppKitInitialized()) {
+  try {
+    const appkitReact = require("@reown/appkit/react")
+    useAppKit = appkitReact.useAppKit
+    useAppKitAccount = appkitReact.useAppKitAccount
+    useDisconnect = appkitReact.useDisconnect
+  } catch (e) {
+    console.log("[UnifiedWalletButton] AppKit hooks not available")
+  }
+}
+
+// Create a wrapper component that safely uses AppKit hooks
+function AppKitHooksWrapper({ 
+  children 
+}: { 
+  children: (props: {
+    openAppKit: (options?: { view?: string }) => void
+    reownAddress: string | undefined
+    isReownConnected: boolean
+    reownDisconnect: () => Promise<void>
+  }) => React.ReactNode 
+}) {
+  const [appKitProps, setAppKitProps] = useState({
+    openAppKit: () => console.log("[UnifiedWalletButton] AppKit not available"),
+    reownAddress: undefined,
+    isReownConnected: false,
+    reownDisconnect: async () => {},
+  })
+
+  useEffect(() => {
+    // Only use hooks if AppKit is initialized
+    if (useAppKit && useAppKitAccount && useDisconnect) {
+      const open = useAppKit()
+      const { address, isConnected } = useAppKitAccount()
+      const disconnect = useDisconnect()
+      
+      setAppKitProps({
+        openAppKit: open,
+        reownAddress: address,
+        isReownConnected: isConnected,
+        reownDisconnect: disconnect,
+      })
+    }
+  }, [])
+
+  return <>{children(appKitProps)}</>
+}
+
 export function UnifiedWalletButton() {
+  return (
+    <AppKitHooksWrapper>
+      {(appKitProps) => <UnifiedWalletButtonInner {...appKitProps} />}
+    </AppKitHooksWrapper>
+  )
+}
+
+function UnifiedWalletButtonInner({
+  openAppKit,
+  reownAddress,
+  isReownConnected,
+  reownDisconnect,
+}: {
+  openAppKit: (options?: { view?: string }) => void
+  reownAddress: string | undefined
+  isReownConnected: boolean
+  reownDisconnect: () => Promise<void>
+}) {
   const {
     isConnected: isWeb3Connected,
     connectWallet,
@@ -34,9 +107,6 @@ export function UnifiedWalletButton() {
   } = useWeb3()
 
   const { userType, setUserType, isWeb2User, getLabel } = useUserType()
-  const { open: openAppKit } = useAppKit()
-  const { address: reownAddress, isConnected: isReownConnected } = useAppKitAccount()
-  const { disconnect: reownDisconnect } = useDisconnect()
   const { isAuthenticated, user, logout: authLogout, hasWallet } = useAuth()
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -77,46 +147,31 @@ export function UnifiedWalletButton() {
   const totalBalance = Number.parseFloat(usdtBalance) + Number.parseFloat(usdcBalance)
   const hasZeroBalance = totalBalance === 0
 
-  const handleDisconnect = async () => {
-    console.log(
-      "[v0] Disconnect clicked, isReownConnected:",
-      isReownConnected,
-      "isWeb3Connected:",
-      isWeb3Connected,
-      "isAuthenticated:",
-      isAuthenticated,
-    )
-
+  const handleDisconnect = useCallback(async () => {
     if (isAuthenticated) {
       try {
         await authLogout()
-        console.log("[v0] Auth logged out")
       } catch (error) {
-        console.error("[v0] Failed to logout:", error)
+        console.error("[UnifiedWalletButton] Failed to logout:", error)
       }
     }
 
     if (isReownConnected) {
       try {
         await reownDisconnect()
-        console.log("[v0] Reown disconnected")
       } catch (error) {
-        console.error("[v0] Failed to disconnect Reown:", error)
+        console.error("[UnifiedWalletButton] Failed to disconnect Reown:", error)
       }
     }
 
     disconnectWallet()
-    console.log("[v0] Web3 disconnected")
-  }
+  }, [isAuthenticated, isReownConnected, authLogout, reownDisconnect, disconnectWallet])
 
   if (!isConnected) {
     return (
       <>
         <Button
-          onClick={() => {
-            console.log("[v0] Sign In button clicked, setting showAuthGateway to true")
-            setShowAuthGateway(true)
-          }}
+          onClick={() => setShowAuthGateway(true)}
           disabled={isConnecting}
           size="sm"
           className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm px-3 sm:px-4"
@@ -129,14 +184,8 @@ export function UnifiedWalletButton() {
         {showAuthGateway && (
           <AuthGateway
             isOpen={showAuthGateway}
-            onClose={() => {
-              console.log("[v0] AuthGateway onClose called")
-              setShowAuthGateway(false)
-            }}
-            onSuccess={() => {
-              console.log("[v0] AuthGateway onSuccess called")
-              setShowAuthGateway(false)
-            }}
+            onClose={() => setShowAuthGateway(false)}
+            onSuccess={() => setShowAuthGateway(false)}
           />
         )}
       </>
