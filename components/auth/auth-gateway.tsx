@@ -5,7 +5,7 @@ import { AnimatePresence } from "framer-motion"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
 import { useAuth } from "@/contexts/auth-provider"
-import { useAppKit, useAppKitAccount } from "@reown/appkit/react"
+import { useSafeAppKit } from "@/hooks/use-safe-appkit"
 import { useSonicBranding } from "@/lib/sonic-branding"
 import { AuthModal } from "./auth-modal"
 import { AuthModeSwitcher, type AuthMode } from "./auth-mode-switcher"
@@ -35,8 +35,7 @@ export function AuthGateway({ isOpen, onClose, onSuccess }: AuthGatewayProps) {
 
   const { connectWallet, isConnected: isWeb3Connected } = useWeb3()
   const { setUserType } = useUserType()
-  const { open: openAppKit } = useAppKit()
-  const { isConnected: isReownConnected } = useAppKitAccount()
+  const { open: openAppKit, isConnected: isReownConnected } = useSafeAppKit()
   const { isAuthenticated, hasWallet, needsPinSetup, sendMagicLink, createWallet, refreshSession } = useAuth()
 
   const { play } = useSonicBranding()

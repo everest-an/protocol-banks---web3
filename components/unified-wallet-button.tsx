@@ -1,11 +1,9 @@
 "use client"
 
-import React from "react"
-
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
 import { useAuth } from "@/contexts/auth-provider"
-import { isAppKitInitialized } from "@/contexts/reown-provider"
+import { useSafeAppKit } from "@/hooks/use-safe-appkit"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -23,81 +21,15 @@ import { useState, useEffect, useCallback } from "react"
 import { isMobileDevice } from "@/lib/web3"
 import { AuthGateway } from "@/components/auth"
 
-// Conditionally import AppKit hooks - they throw if AppKit is not initialized
-let useAppKit: any = null
-let useAppKitAccount: any = null
-let useDisconnect: any = null
-
-if (typeof window !== "undefined" && isAppKitInitialized()) {
-  try {
-    const appkitReact = require("@reown/appkit/react")
-    useAppKit = appkitReact.useAppKit
-    useAppKitAccount = appkitReact.useAppKitAccount
-    useDisconnect = appkitReact.useDisconnect
-  } catch (e) {
-    console.log("[UnifiedWalletButton] AppKit hooks not available")
-  }
-}
-
-// Create a wrapper component that safely uses AppKit hooks
-function AppKitHooksWrapper({ 
-  children 
-}: { 
-  children: (props: {
-    openAppKit: (options?: { view?: string }) => void
-    reownAddress: string | undefined
-    isReownConnected: boolean
-    reownDisconnect: () => Promise<void>
-  }) => React.ReactNode 
-}) {
-  const [appKitProps, setAppKitProps] = useState({
-    openAppKit: () => console.log("[UnifiedWalletButton] AppKit not available"),
-    reownAddress: undefined,
-    isReownConnected: false,
-    reownDisconnect: async () => {},
-  })
-
-  useEffect(() => {
-    // Only use hooks if AppKit is initialized
-    if (useAppKit && useAppKitAccount && useDisconnect) {
-      const open = useAppKit()
-      const { address, isConnected } = useAppKitAccount()
-      const disconnect = useDisconnect()
-      
-      setAppKitProps({
-        openAppKit: open,
-        reownAddress: address,
-        isReownConnected: isConnected,
-        reownDisconnect: disconnect,
-      })
-    }
-  }, [])
-
-  return <>{children(appKitProps)}</>
+// Check if we're in v0 preview environment
+function isV0Preview() {
+  if (typeof window === "undefined") return false
+  return window.location.hostname.includes("vusercontent.net")
 }
 
 export function UnifiedWalletButton() {
-  return (
-    <AppKitHooksWrapper>
-      {(appKitProps) => <UnifiedWalletButtonInner {...appKitProps} />}
-    </AppKitHooksWrapper>
-  )
-}
-
-function UnifiedWalletButtonInner({
-  openAppKit,
-  reownAddress,
-  isReownConnected,
-  reownDisconnect,
-}: {
-  openAppKit: (options?: { view?: string }) => void
-  reownAddress: string | undefined
-  isReownConnected: boolean
-  reownDisconnect: () => Promise<void>
-}) {
   const {
     isConnected: isWeb3Connected,
-    connectWallet,
     disconnectWallet,
     activeChain,
     wallets,
@@ -106,8 +38,10 @@ function UnifiedWalletButtonInner({
     usdcBalance,
   } = useWeb3()
 
-  const { userType, setUserType, isWeb2User, getLabel } = useUserType()
-  const { isAuthenticated, user, logout: authLogout, hasWallet } = useAuth()
+  const { setUserType, isWeb2User, getLabel } = useUserType()
+  const { isAuthenticated, user, logout: authLogout } = useAuth()
+  const { open: safeAppKitOpen, disconnect: safeAppKitDisconnect, address: reownAddress, isConnected: isReownConnected } = useSafeAppKit()
+  
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showAuthGateway, setShowAuthGateway] = useState(false)
@@ -158,14 +92,14 @@ function UnifiedWalletButtonInner({
 
     if (isReownConnected) {
       try {
-        await reownDisconnect()
+        await safeAppKitDisconnect()
       } catch (error) {
         console.error("[UnifiedWalletButton] Failed to disconnect Reown:", error)
       }
     }
 
     disconnectWallet()
-  }, [isAuthenticated, isReownConnected, authLogout, reownDisconnect, disconnectWallet])
+  }, [isAuthenticated, isReownConnected, authLogout, safeAppKitDisconnect, disconnectWallet])
 
   if (!isConnected) {
     return (
@@ -231,7 +165,7 @@ function UnifiedWalletButtonInner({
               </>
             )}
 
-            <DropdownMenuItem onClick={() => openAppKit({ view: "OnRampProviders" })} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => safeAppKitOpen({ view: "OnRampProviders" })} className="cursor-pointer">
               <Plus className="mr-2 h-4 w-4 text-green-500" />
               <span>{getLabel("Add Funds")}</span>
               <Badge variant="secondary" className="ml-auto text-xs">
@@ -275,7 +209,7 @@ function UnifiedWalletButtonInner({
                 variant="outline"
                 onClick={() => {
                   setShowOffRampModal(false)
-                  openAppKit({ view: "OnRampProviders" })
+                  safeAppKitOpen({ view: "OnRampProviders" })
                 }}
               >
                 <CreditCard className="mr-3 h-5 w-5" />
@@ -318,7 +252,7 @@ function UnifiedWalletButtonInner({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={() => openAppKit({ view: "OnRampProviders" })} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => safeAppKitOpen({ view: "OnRampProviders" })} className="cursor-pointer">
           <CreditCard className="mr-2 h-4 w-4 text-green-500" />
           <span>Buy Crypto</span>
           <Badge variant="secondary" className="ml-auto text-xs">

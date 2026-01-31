@@ -1,84 +1,132 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 
-// Check if AppKit is initialized
-function isAppKitInitialized(): boolean {
+// Check if we're in v0 preview environment
+function isV0Preview(): boolean {
   if (typeof window === "undefined") return false
-  // Check if we're in v0 preview
-  const isV0Preview = window.location.hostname.includes("vusercontent.net")
-  if (isV0Preview) return false
-  // Check if createAppKit has been called by looking for the modal
-  return !!(window as any).__APPKIT_INITIALIZED__
+  return window.location.hostname.includes("vusercontent.net")
 }
 
-// Safe wrapper for useAppKit
+interface SafeAppKitState {
+  address: string | undefined
+  isConnected: boolean
+  isReady: boolean
+}
+
+/**
+ * Safe wrapper for AppKit that works in all environments
+ * including v0 preview where AppKit is not initialized
+ */
 export function useSafeAppKit() {
-  const [initialized, setInitialized] = useState(false)
-  const { useAppKit } = require("@reown/appkit/react")
-  const { open: realOpen } = useAppKit()
+  const [state, setState] = useState<SafeAppKitState>({
+    address: undefined,
+    isConnected: false,
+    isReady: false,
+  })
+  const appKitRef = useRef<any>(null)
 
   useEffect(() => {
-    // Mark as initialized after a short delay to allow AppKit to initialize
-    const timer = setTimeout(() => {
-      setInitialized(isAppKitInitialized())
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [])
-
-  // Return a mock open function that does nothing if not initialized
-  const open = (options?: { view?: string }) => {
-    if (!initialized) {
-      console.log("[useSafeAppKit] AppKit not initialized, open() is a no-op")
+    // Skip in v0 preview or SSR
+    if (isV0Preview() || typeof window === "undefined") {
       return
     }
-    // Use the real open function
-    realOpen(options)
-  }
 
-  return { 
-    open, 
-    isInitialized: initialized 
-  }
-}
+    let mounted = true
+    let intervalId: NodeJS.Timeout | null = null
 
-// Safe wrapper for useAppKitAccount
-export function useSafeAppKitAccount() {
-  const [state, setState] = useState({
-    address: undefined as string | undefined,
-    isConnected: false,
-  })
+    const init = async () => {
+      try {
+        // Dynamic import to avoid SSR issues
+        const appkitModule = await import("@reown/appkit/react")
+        
+        if (!mounted) return
+        
+        appKitRef.current = appkitModule
+        
+        // Poll for connection state (since we can't use hooks here)
+        intervalId = setInterval(() => {
+          try {
+            // Access the modal state if available
+            const modal = (appkitModule as any).modal
+            if (modal) {
+              const account = modal.getAccount?.()
+              if (account) {
+                setState({
+                  address: account.address,
+                  isConnected: account.isConnected || false,
+                  isReady: true,
+                })
+              } else {
+                setState(prev => ({ ...prev, isReady: true }))
+              }
+            } else {
+              setState(prev => ({ ...prev, isReady: true }))
+            }
+          } catch (e) {
+            // Ignore polling errors
+          }
+        }, 1000)
+        
+        setState(prev => ({ ...prev, isReady: true }))
+      } catch (e) {
+        console.log("[useSafeAppKit] Failed to load AppKit:", e)
+      }
+    }
 
-  useEffect(() => {
-    if (!isAppKitInitialized()) return
+    init()
+
+    return () => {
+      mounted = false
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [])
+
+  const open = useCallback(async (options?: { view?: string }) => {
+    if (isV0Preview()) {
+      console.log("[useSafeAppKit] AppKit not available in v0 preview")
+      return
+    }
 
     try {
-      const { useAppKitAccount } = require("@reown/appkit/react")
-      // This won't work as hooks can't be called conditionally
-      // We need a different approach
+      if (appKitRef.current) {
+        const modal = (appKitRef.current as any).modal
+        if (modal?.open) {
+          await modal.open(options)
+        }
+      }
     } catch (e) {
-      // Ignore
+      console.log("[useSafeAppKit] Failed to open modal:", e)
     }
   }, [])
 
-  return state
-}
-
-// Safe wrapper for useDisconnect
-export function useSafeDisconnect() {
-  const disconnect = async () => {
-    if (!isAppKitInitialized()) {
-      console.log("[useSafeDisconnect] AppKit not initialized, disconnect() is a no-op")
+  const disconnect = useCallback(async () => {
+    if (isV0Preview()) {
       return
     }
-  }
 
-  return { disconnect }
-}
+    try {
+      if (appKitRef.current) {
+        const modal = (appKitRef.current as any).modal
+        if (modal?.disconnect) {
+          await modal.disconnect()
+          setState({
+            address: undefined,
+            isConnected: false,
+            isReady: true,
+          })
+        }
+      }
+    } catch (e) {
+      console.log("[useSafeAppKit] Failed to disconnect:", e)
+    }
+  }, [])
 
-// Mark AppKit as initialized - call this after createAppKit
-export function markAppKitInitialized() {
-  if (typeof window !== "undefined") {
-    (window as any).__APPKIT_INITIALIZED__ = true
+  return {
+    open,
+    disconnect,
+    address: state.address,
+    isConnected: state.isConnected,
+    isReady: state.isReady,
   }
 }
