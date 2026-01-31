@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useToast } from "@/hooks/use-toast"
 import { getSupabase } from "@/lib/supabase"
+import { hashKey } from "@/lib/hash-key"
 
 export interface PricingTier {
   id: string
@@ -15,11 +16,13 @@ export interface PricingTier {
 
 export interface APIKey {
   id: string
-  key: string
+  key_prefix: string
+  key_hash: string
   name: string
   tier: string
-  status: "active" | "revoked"
-  calls_used: number
+  is_active: boolean
+  status?: "active" | "revoked" // Computed from is_active for UI
+  usage_count: number
   calls_limit: number
   created_at: string
   last_used_at: string | null
@@ -123,7 +126,7 @@ export function useMonetizeConfig(): UseMonetizeConfigReturn {
       const { data: configData } = await supabase
         .from("monetize_configs")
         .select("*")
-        .eq("wallet_address", address.toLowerCase())
+        .eq("owner_address", address.toLowerCase())
         .single()
 
       if (configData) {
@@ -140,7 +143,7 @@ export function useMonetizeConfig(): UseMonetizeConfigReturn {
       const { data: keysData } = await supabase
         .from("api_keys")
         .select("*")
-        .eq("wallet_address", address.toLowerCase())
+        .eq("owner_address", address.toLowerCase())
         .order("created_at", { ascending: false })
 
       setApiKeys(keysData || [])
@@ -178,7 +181,7 @@ export function useMonetizeConfig(): UseMonetizeConfigReturn {
         const newConfig = { ...config, ...updates }
 
         const { error: upsertError } = await supabase.from("monetize_configs").upsert({
-          wallet_address: address.toLowerCase(),
+          owner_address: address.toLowerCase(),
           enabled: newConfig.enabled,
           tiers: newConfig.tiers,
           default_tier: newConfig.defaultTier,
@@ -212,18 +215,20 @@ export function useMonetizeConfig(): UseMonetizeConfigReturn {
 
       try {
         const supabase = getSupabase()
-        const key = `pb_${crypto.randomUUID().replace(/-/g, "")}`
+        const keyValue = `pb_${crypto.randomUUID().replace(/-/g, "")}`
+        const keyHash = await hashKey(keyValue)
         const tierConfig = config.tiers.find((t) => t.id === tier)
 
         const { data, error: insertError } = await supabase
           .from("api_keys")
           .insert({
-            wallet_address: address.toLowerCase(),
-            key,
+            owner_address: address.toLowerCase(),
+            key_prefix: keyValue.substring(0, 8),
+            key_hash: keyHash,
             name,
             tier,
-            status: "active",
-            calls_used: 0,
+            is_active: true,
+            usage_count: 0,
             calls_limit: tier === "enterprise" ? -1 : tierConfig?.rateLimit ? tierConfig.rateLimit * 30 * 24 * 60 : 1000,
           })
           .select()
@@ -256,12 +261,12 @@ export function useMonetizeConfig(): UseMonetizeConfigReturn {
         const supabase = getSupabase()
         const { error: updateError } = await supabase
           .from("api_keys")
-          .update({ status: "revoked" })
+          .update({ is_active: false })
           .eq("id", keyId)
 
         if (updateError) throw updateError
 
-        setApiKeys((prev) => prev.map((key) => (key.id === keyId ? { ...key, status: "revoked" } : key)))
+        setApiKeys((prev) => prev.map((key) => (key.id === keyId ? { ...key, is_active: false, status: "revoked" } : key)))
         toast({
           title: "API Key Revoked",
           description: "The API key has been revoked",

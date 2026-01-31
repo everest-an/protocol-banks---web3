@@ -10,6 +10,15 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -17,29 +26,24 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { useMonetizeConfig } from "@/hooks/use-monetize-config"
-import { UsageChart } from "@/components/usage-chart"
+import { useMonetizeConfig, type APIKey } from "@/hooks/use-monetize-config"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useDemo } from "@/contexts/demo-context"
 import {
   DollarSign,
   Key,
   BarChart3,
-  Settings,
   Copy,
   Eye,
   EyeOff,
-  RefreshCw,
   TrendingUp,
-  Clock,
   Shield,
   Zap,
-  ArrowUpRight,
   Loader2,
+  Plus,
+  RefreshCw,
 } from "lucide-react"
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -51,161 +55,98 @@ import {
   AreaChart,
 } from "recharts"
 
-interface APIKey {
-  id: string
-  name: string
-  key: string
-  createdAt: string
-  lastUsed: string | null
-  calls: number
-  status: "active" | "revoked"
-}
-
-interface UsageData {
-  date: string
-  calls: number
-  revenue: number
-  errors: number
-}
-
-interface PricingTier {
-  name: string
-  pricePerCall: number
-  monthlyLimit: number
-  features: string[]
-}
-
 export default function MonetizePage() {
   const { toast } = useToast()
-  const { wallets, isConnected } = useWeb3()
+  const { isConnected, address } = useWeb3()
   const { isDemoMode } = useDemo()
-  const [loading, setLoading] = useState(true)
-  const [apiKeys, setApiKeys] = useState<APIKey[]>([])
-  const [usageData, setUsageData] = useState<UsageData[]>([])
   const [showApiKey, setShowApiKey] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
+  const [newKeyName, setNewKeyName] = useState("")
+  const [newKeyTier, setNewKeyTier] = useState("free")
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   
-  // Use Monetize Config hook for API integration
+  // Use Monetize Config hook for real API integration
   const {
-    config: hookConfig,
-    apiKeys: hookApiKeys,
-    usage: hookUsage,
-    createApiKey: hookCreateApiKey,
-    revokeApiKey: hookRevokeApiKey,
-    updateConfig: hookUpdateConfig,
-    loading: hookLoading,
-    error: hookError,
+    config,
+    apiKeys,
+    usage: usageData,
+    totalRevenue,
+    totalCalls,
+    createAPIKey,
+    revokeAPIKey,
+    updateConfig,
+    loading,
+    error,
+    refresh,
   } = useMonetizeConfig()
   
-  // Monetization settings (use hook data if available)
-  const [monetizationEnabled, setMonetizationEnabled] = useState(hookConfig?.enabled ?? true)
-  const [pricePerCall, setPricePerCall] = useState(hookConfig?.pricePerCall?.toString() ?? "0.001")
-  const [monthlyLimit, setMonthlyLimit] = useState(hookConfig?.monthlyLimit?.toString() ?? "10000")
+  // Local state for settings form
+  const [monetizationEnabled, setMonetizationEnabled] = useState(config.enabled)
+  const [rateLimitEnabled, setRateLimitEnabled] = useState(config.rateLimitEnabled)
 
-  // Load data
+  // Sync local state with hook config
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      await new Promise((r) => setTimeout(r, 500))
+    setMonetizationEnabled(config.enabled)
+    setRateLimitEnabled(config.rateLimitEnabled)
+  }, [config])
 
-      // Demo API keys
-      setApiKeys([
-        {
-          id: "key_1",
-          name: "Production API",
-          key: "pk_live_51Hb8J2EZvKYlo2CXD9X8E5xY",
-          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-          lastUsed: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          calls: 15432,
-          status: "active",
-        },
-        {
-          id: "key_2",
-          name: "Development API",
-          key: "pk_test_51Hb8J2EZvKYlo2CXD9X8E5xY",
-          createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-          lastUsed: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          calls: 2341,
-          status: "active",
-        },
-      ])
+  const avgCallsPerDay = totalCalls > 0 ? Math.round(totalCalls / 30) : 0
+  const errorRate = totalCalls > 0 ? "0.5" : "0"
 
-      // Generate usage data for last 30 days
-      const data: UsageData[] = []
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
-        const baseCalls = 400 + Math.random() * 300
-        const calls = Math.floor(baseCalls + (29 - i) * 15) // Trending up
-        data.push({
-          date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          calls,
-          revenue: calls * 0.001,
-          errors: Math.floor(calls * 0.02 * Math.random()),
-        })
-      }
-      setUsageData(data)
-      setLoading(false)
-    }
-    loadData()
-  }, [])
-
-  const totalCalls = usageData.reduce((sum, d) => sum + d.calls, 0)
-  const totalRevenue = usageData.reduce((sum, d) => sum + d.revenue, 0)
-  const avgCallsPerDay = Math.round(totalCalls / 30)
-  const errorRate = (usageData.reduce((sum, d) => sum + d.errors, 0) / totalCalls * 100).toFixed(2)
-
-  const copyApiKey = (key: string) => {
-    navigator.clipboard.writeText(key)
-    toast({ title: "Copied", description: "API key copied to clipboard" })
+  const copyApiKey = (keyPrefix: string) => {
+    navigator.clipboard.writeText(keyPrefix)
+    toast({ title: "Copied", description: "API key prefix copied to clipboard" })
   }
 
-  const generateNewKey = () => {
-    const newKey: APIKey = {
-      id: `key_${Date.now()}`,
-      name: `API Key ${apiKeys.length + 1}`,
-      key: `pk_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`,
-      createdAt: new Date().toISOString(),
-      lastUsed: null,
-      calls: 0,
-      status: "active",
+  const handleCreateKey = async () => {
+    if (!newKeyName.trim()) {
+      toast({ title: "Error", description: "Please enter a name for the API key", variant: "destructive" })
+      return
     }
-    setApiKeys((prev) => [...prev, newKey])
-    toast({ title: "API Key Created", description: "New API key has been generated" })
+    
+    const result = await createAPIKey(newKeyName, newKeyTier)
+    if (result) {
+      setNewKeyName("")
+      setNewKeyTier("free")
+      setCreateDialogOpen(false)
+    }
   }
 
-  const revokeKey = (id: string) => {
-    setApiKeys((prev) =>
-      prev.map((key) => (key.id === id ? { ...key, status: "revoked" } : key))
+  const handleRevokeKey = async (keyId: string) => {
+    await revokeAPIKey(keyId)
+  }
+
+  const handleToggleMonetization = async (enabled: boolean) => {
+    setMonetizationEnabled(enabled)
+    await updateConfig({ enabled })
+  }
+
+  const handleSaveSettings = async () => {
+    await updateConfig({
+      enabled: monetizationEnabled,
+      rateLimitEnabled,
+    })
+  }
+
+  // Format usage data for charts
+  const chartData = usageData.map(d => ({
+    ...d,
+    date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+  }))
+
+  if (!isConnected && !isDemoMode) {
+    return (
+      <main className="container mx-auto py-6 px-4 max-w-7xl">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Key className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold mb-2">Connect Wallet</h2>
+            <p className="text-muted-foreground">Please connect your wallet to manage API monetization</p>
+          </CardContent>
+        </Card>
+      </main>
     )
-    toast({ title: "Key Revoked", description: "API key has been revoked" })
   }
-
-  const PRICING_TIERS: PricingTier[] = [
-    {
-      name: "Free",
-      pricePerCall: 0,
-      monthlyLimit: 1000,
-      features: ["Basic API access", "Community support"],
-    },
-    {
-      name: "Developer",
-      pricePerCall: 0.0005,
-      monthlyLimit: 10000,
-      features: ["Full API access", "Email support", "Analytics"],
-    },
-    {
-      name: "Business",
-      pricePerCall: 0.0003,
-      monthlyLimit: 100000,
-      features: ["Full API access", "Priority support", "Advanced analytics", "SLA guarantee"],
-    },
-    {
-      name: "Enterprise",
-      pricePerCall: 0.0001,
-      monthlyLimit: -1,
-      features: ["Unlimited calls", "Dedicated support", "Custom integrations", "99.99% SLA"],
-    },
-  ]
 
   return (
     <main className="container mx-auto py-6 px-4 max-w-7xl">
@@ -218,15 +159,58 @@ export default function MonetizePage() {
           <div className="flex items-center gap-2">
             <Switch
               checked={monetizationEnabled}
-              onCheckedChange={setMonetizationEnabled}
+              onCheckedChange={handleToggleMonetization}
               id="monetization"
             />
             <Label htmlFor="monetization">Monetization {monetizationEnabled ? "On" : "Off"}</Label>
           </div>
-          <Button onClick={generateNewKey}>
-            <Key className="h-4 w-4 mr-2" />
-            New API Key
+          <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                New API Key
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create API Key</DialogTitle>
+                <DialogDescription>Generate a new API key for external integrations</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="keyName">Key Name</Label>
+                  <Input
+                    id="keyName"
+                    placeholder="e.g., Production API"
+                    value={newKeyName}
+                    onChange={(e) => setNewKeyName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="keyTier">Tier</Label>
+                  <Select value={newKeyTier} onValueChange={setNewKeyTier}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {config.tiers.map((tier) => (
+                        <SelectItem key={tier.id} value={tier.id}>
+                          {tier.name} - {tier.price === 0 ? "Free" : `$${tier.price}/1k calls`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateKey}>Create Key</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -259,17 +243,17 @@ export default function MonetizePage() {
               <span className="text-sm">Avg. Daily Calls</span>
             </div>
             <div className="text-2xl font-bold">{avgCallsPerDay.toLocaleString()}</div>
-            <p className="text-xs text-emerald-400 mt-1">+12% from last month</p>
+            <p className="text-xs text-emerald-400 mt-1">Last 30 days</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Shield className="h-4 w-4" />
-              <span className="text-sm">Error Rate</span>
+              <Key className="h-4 w-4" />
+              <span className="text-sm">Active Keys</span>
             </div>
-            <div className="text-2xl font-bold">{errorRate}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Target: under 1%</p>
+            <div className="text-2xl font-bold">{apiKeys.filter(k => k.is_active).length}</div>
+            <p className="text-xs text-muted-foreground mt-1">{apiKeys.length} total</p>
           </CardContent>
         </Card>
       </div>
@@ -278,7 +262,7 @@ export default function MonetizePage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="keys">API Keys</TabsTrigger>
-          <TabsTrigger value="pricing">Pricing</TabsTrigger>
+          <TabsTrigger value="pricing">Pricing Tiers</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -287,16 +271,20 @@ export default function MonetizePage() {
           <Card>
             <CardHeader>
               <CardTitle>API Usage Over Time</CardTitle>
-              <CardDescription>Daily API calls and revenue for the last 30 days</CardDescription>
+              <CardDescription>Daily API calls for the last 30 days</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="h-[300px] flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
+              ) : chartData.length === 0 ? (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No usage data yet
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={usageData}>
+                  <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
@@ -338,9 +326,13 @@ export default function MonetizePage() {
                 <div className="h-[250px] flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
+              ) : chartData.length === 0 ? (
+                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                  No revenue data yet
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={usageData}>
+                  <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                     <XAxis dataKey="date" stroke="#888" fontSize={12} />
                     <YAxis stroke="#888" fontSize={12} tickFormatter={(v) => `$${v}`} />
@@ -367,104 +359,97 @@ export default function MonetizePage() {
               <CardDescription>Manage your API keys for external integrations</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Key</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Last Used</TableHead>
-                    <TableHead>Calls</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {apiKeys.map((key) => (
-                    <TableRow key={key.id}>
-                      <TableCell className="font-medium">{key.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <code className="text-xs bg-muted px-2 py-1 rounded">
-                            {showApiKey === key.id
-                              ? key.key
-                              : `${key.key.slice(0, 12)}...${key.key.slice(-4)}`}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
-                          >
-                            {showApiKey === key.id ? (
-                              <EyeOff className="h-3 w-3" />
-                            ) : (
-                              <Eye className="h-3 w-3" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => copyApiKey(key.key)}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>{new Date(key.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        {key.lastUsed ? new Date(key.lastUsed).toLocaleDateString() : "Never"}
-                      </TableCell>
-                      <TableCell>{key.calls.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            key.status === "active"
-                              ? "bg-emerald-500/10 text-emerald-400"
-                              : "bg-red-500/10 text-red-400"
-                          }
-                        >
-                          {key.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {key.status === "active" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-400"
-                            onClick={() => revokeKey(key.id)}
-                          >
-                            Revoke
-                          </Button>
-                        )}
-                      </TableCell>
+              {apiKeys.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Key className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No API keys yet. Create one to get started.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Key Prefix</TableHead>
+                      <TableHead>Tier</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Last Used</TableHead>
+                      <TableHead>Usage</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {apiKeys.map((key) => (
+                      <TableRow key={key.id}>
+                        <TableCell className="font-medium">{key.name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <code className="text-xs bg-muted px-2 py-1 rounded">
+                              {key.key_prefix}...
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => copyApiKey(key.key_prefix)}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{key.tier || "free"}</Badge>
+                        </TableCell>
+                        <TableCell>{new Date(key.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {key.last_used_at ? new Date(key.last_used_at).toLocaleDateString() : "Never"}
+                        </TableCell>
+                        <TableCell>{(key.usage_count || 0).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              key.is_active
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : "bg-red-500/10 text-red-400"
+                            }
+                          >
+                            {key.is_active ? "Active" : "Revoked"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {key.is_active && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-400"
+                              onClick={() => handleRevokeKey(key.id)}
+                            >
+                              Revoke
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="pricing">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {PRICING_TIERS.map((tier) => (
-              <Card key={tier.name} className={tier.name === "Business" ? "border-primary" : ""}>
+            {config.tiers.map((tier, index) => (
+              <Card key={tier.id} className={index === 2 ? "border-primary" : ""}>
                 <CardHeader>
                   <CardTitle>{tier.name}</CardTitle>
                   <CardDescription>
-                    {tier.pricePerCall === 0
-                      ? "Free"
-                      : `$${tier.pricePerCall.toFixed(4)} per call`}
+                    {tier.price === 0 ? "Free" : `$${tier.price.toFixed(2)} per 1000 calls`}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold mb-4">
-                    {tier.monthlyLimit === -1
-                      ? "Unlimited"
-                      : `${tier.monthlyLimit.toLocaleString()} calls/mo`}
+                    {tier.rateLimit} calls/min
                   </div>
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     {tier.features.map((feature) => (
@@ -484,37 +469,35 @@ export default function MonetizePage() {
           <Card>
             <CardHeader>
               <CardTitle>Monetization Settings</CardTitle>
-              <CardDescription>Configure your API pricing and limits</CardDescription>
+              <CardDescription>Configure your API monetization settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="pricePerCall">Price Per Call (USD)</Label>
-                  <Input
-                    id="pricePerCall"
-                    type="number"
-                    step="0.0001"
-                    value={pricePerCall}
-                    onChange={(e) => setPricePerCall(e.target.value)}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Enable Monetization</Label>
+                    <p className="text-sm text-muted-foreground">Charge for API usage</p>
+                  </div>
+                  <Switch
+                    checked={monetizationEnabled}
+                    onCheckedChange={setMonetizationEnabled}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Amount charged per API call
-                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="monthlyLimit">Monthly Limit</Label>
-                  <Input
-                    id="monthlyLimit"
-                    type="number"
-                    value={monthlyLimit}
-                    onChange={(e) => setMonthlyLimit(e.target.value)}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Rate Limiting</Label>
+                    <p className="text-sm text-muted-foreground">Enforce rate limits per tier</p>
+                  </div>
+                  <Switch
+                    checked={rateLimitEnabled}
+                    onCheckedChange={setRateLimitEnabled}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Maximum API calls per month per user
-                  </p>
                 </div>
               </div>
-              <Button>Save Settings</Button>
+              <Button onClick={handleSaveSettings} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Save Settings
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

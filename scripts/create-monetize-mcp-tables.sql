@@ -1,7 +1,7 @@
 -- Create Monetize Config table for API monetization settings
 CREATE TABLE IF NOT EXISTS monetize_configs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  wallet_address TEXT NOT NULL UNIQUE,
+  owner_address TEXT NOT NULL UNIQUE,
   enabled BOOLEAN DEFAULT false,
   tiers JSONB DEFAULT '[]'::jsonb,
   default_tier TEXT DEFAULT 'free',
@@ -11,25 +11,25 @@ CREATE TABLE IF NOT EXISTS monetize_configs (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create API Keys table for monetization
-CREATE TABLE IF NOT EXISTS api_keys (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  wallet_address TEXT NOT NULL,
-  key TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  tier TEXT DEFAULT 'free',
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'revoked')),
-  calls_used INTEGER DEFAULT 0,
-  calls_limit INTEGER DEFAULT 1000,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  last_used_at TIMESTAMPTZ
-);
+-- Note: api_keys table already exists with owner_address column
+-- We'll use the existing api_keys table and add monetization fields if needed
 
--- Create API Usage tracking table
+-- Add monetization fields to existing api_keys table if they don't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'api_keys' AND column_name = 'tier') THEN
+    ALTER TABLE api_keys ADD COLUMN tier TEXT DEFAULT 'free';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'api_keys' AND column_name = 'calls_limit') THEN
+    ALTER TABLE api_keys ADD COLUMN calls_limit INTEGER DEFAULT 1000;
+  END IF;
+END $$;
+
+-- Create API Usage tracking table using owner_address to match api_keys
 CREATE TABLE IF NOT EXISTS api_usage (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   api_key_id UUID REFERENCES api_keys(id) ON DELETE CASCADE,
-  wallet_address TEXT NOT NULL,
+  owner_address TEXT NOT NULL,
   endpoint TEXT,
   calls INTEGER DEFAULT 0,
   revenue DECIMAL(18, 6) DEFAULT 0,
@@ -113,10 +113,8 @@ CREATE POLICY "Users can delete their own mcp subscriptions" ON mcp_subscription
   FOR DELETE USING (true);
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS idx_monetize_configs_wallet ON monetize_configs(wallet_address);
-CREATE INDEX IF NOT EXISTS idx_api_keys_wallet ON api_keys(wallet_address);
-CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys(key);
-CREATE INDEX IF NOT EXISTS idx_api_usage_wallet ON api_usage(wallet_address);
+CREATE INDEX IF NOT EXISTS idx_monetize_configs_owner ON monetize_configs(owner_address);
+CREATE INDEX IF NOT EXISTS idx_api_usage_owner ON api_usage(owner_address);
 CREATE INDEX IF NOT EXISTS idx_api_usage_date ON api_usage(date);
 CREATE INDEX IF NOT EXISTS idx_mcp_subscriptions_wallet ON mcp_subscriptions(wallet_address);
 CREATE INDEX IF NOT EXISTS idx_mcp_subscriptions_provider ON mcp_subscriptions(provider_id);
