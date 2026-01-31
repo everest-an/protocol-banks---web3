@@ -57,6 +57,7 @@
     "@supabase/ssr": "0.8.0",
     "@supabase/supabase-js": "latest",
     "@swc/core": "latest",
+    "@swc/helpers": "latest",
     "@swc/wasm": "latest",
     "@tanstack/query-core": "latest",
     "@typechain/ethers-v6": "latest",
