@@ -19,15 +19,15 @@ This guide covers deploying the three Go microservices:
 
 ### 1. Configure Environment
 
-```bash
+\`\`\`bash
 cd services
 cp .env.example .env
 # Edit .env with your actual values
-```
+\`\`\`
 
 ### 2. Build and Run
 
-```bash
+\`\`\`bash
 # Build all services
 docker-compose build
 
@@ -39,13 +39,13 @@ docker-compose logs -f
 
 # Stop services
 docker-compose down
-```
+\`\`\`
 
 ## Production Deployment
 
 ### Option 1: Docker Compose on VPS
 
-```bash
+\`\`\`bash
 # SSH to your server
 ssh user@your-server
 
@@ -62,11 +62,11 @@ docker-compose -f docker-compose.yml up -d
 
 # Setup nginx reverse proxy for webhook-handler
 # See nginx.conf example below
-```
+\`\`\`
 
 ### Option 2: Individual Docker Containers
 
-```bash
+\`\`\`bash
 # Build each service
 docker build -t protocol-banks/payout-engine ./payout-engine
 docker build -t protocol-banks/event-indexer ./event-indexer
@@ -78,7 +78,7 @@ docker run -d \
   -p 50051:50051 \
   --env-file .env \
   protocol-banks/payout-engine
-```
+\`\`\`
 
 ## Service Configuration
 
@@ -111,7 +111,7 @@ Environment variables:
 
 ## Nginx Configuration (for webhook-handler)
 
-```nginx
+\`\`\`nginx
 server {
     listen 443 ssl http2;
     server_name webhooks.yourdomain.com;
@@ -128,7 +128,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-```
+\`\`\`
 
 ## Health Checks
 
@@ -142,13 +142,13 @@ All services expose health check endpoints:
 
 ### Logs
 
-```bash
+\`\`\`bash
 # View all logs
 docker-compose logs -f
 
 # View specific service
 docker-compose logs -f payout-engine
-```
+\`\`\`
 
 ### Metrics
 
@@ -158,11 +158,11 @@ Each service exposes Prometheus metrics at `/metrics` endpoint (webhook-handler)
 
 Update your Next.js environment variables:
 
-```env
+\`\`\`env
 PAYOUT_ENGINE_URL=your-server:50051
 EVENT_INDEXER_URL=your-server:50052
 WEBHOOK_HANDLER_URL=https://webhooks.yourdomain.com
-```
+\`\`\`
 
 ## Troubleshooting
 
