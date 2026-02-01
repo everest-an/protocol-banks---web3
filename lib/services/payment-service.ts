@@ -130,20 +130,132 @@ export async function executeSubscriptionPayment(
  */
 export function validateRecipients(recipients: Recipient[]): void {
   if (!recipients || recipients.length === 0) {
-    throw new Error("No recipients provided")
+    throw new Error("Recipients list cannot be empty")
   }
 
   for (const recipient of recipients) {
-    if (!recipient.address || !ethers.isAddress(recipient.address)) {
-      throw new Error(`Invalid address: ${recipient.address}`)
+    // Validate address
+    if (!recipient.address || recipient.address.length < 42) {
+      throw new Error(`Invalid address: ${recipient.address || 'empty'}`)
     }
-    if (!recipient.amount || recipient.amount <= 0) {
-      throw new Error(`Invalid amount for ${recipient.address}`)
+    
+    // Check address format (0x + 40 hex chars)
+    if (!/^0x[a-fA-F0-9]{40}$/.test(recipient.address)) {
+      throw new Error(`Invalid address format: ${recipient.address}`)
     }
+
+    // Validate amount
+    const amount = typeof recipient.amount === 'string' 
+      ? parseFloat(recipient.amount) 
+      : recipient.amount
+
+    if (isNaN(amount)) {
+      throw new Error(`Invalid amount: ${recipient.amount}`)
+    }
+    
+    if (amount <= 0) {
+      throw new Error(`Amount must be greater than 0: ${recipient.amount}`)
+    }
+
+    // Validate token
     if (!recipient.token) {
       throw new Error(`Token not specified for ${recipient.address}`)
     }
   }
+}
+
+/**
+ * Create a payment batch from recipients
+ */
+export interface PaymentBatch {
+  recipients: Recipient[];
+  token: string;
+  totalAmount: string;
+  createdAt: string;
+}
+
+export function createPaymentBatch(recipients: Recipient[], token: string): PaymentBatch {
+  // Merge duplicates by address
+  const merged = new Map<string, Recipient>();
+  
+  for (const recipient of recipients) {
+    const address = recipient.address.toLowerCase();
+    const existing = merged.get(address);
+    
+    if (existing) {
+      const existingAmount = parseFloat(existing.amount as string);
+      const newAmount = parseFloat(recipient.amount as string);
+      merged.set(address, {
+        ...existing,
+        amount: (existingAmount + newAmount).toFixed(2),
+      });
+    } else {
+      merged.set(address, { ...recipient, token });
+    }
+  }
+
+  const mergedRecipients = Array.from(merged.values());
+  const totalAmount = mergedRecipients
+    .reduce((sum, r) => sum + parseFloat(r.amount as string), 0)
+    .toFixed(2);
+
+  return {
+    recipients: mergedRecipients,
+    token,
+    totalAmount,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Get payment estimate for gas fees
+ */
+export interface PaymentEstimate {
+  gasEstimate: number;
+  estimatedFeeUSD: number;
+  estimatedFeeETH: number;
+}
+
+export function getPaymentEstimate(
+  recipientCount: number,
+  token: string,
+  chainId: number
+): PaymentEstimate {
+  // Base gas for ERC20 transfer
+  const GAS_PER_TRANSFER = 65000;
+  const BASE_GAS = 21000;
+  
+  const gasEstimate = BASE_GAS + (recipientCount * GAS_PER_TRANSFER);
+  
+  // Average gas prices by chain (in gwei)
+  const gasPrices: Record<number, number> = {
+    1: 30,      // Ethereum mainnet
+    10: 0.001,  // Optimism
+    137: 50,    // Polygon
+    8453: 0.01, // Base
+    42161: 0.1, // Arbitrum
+  };
+  
+  // ETH prices (simplified)
+  const ethPrices: Record<number, number> = {
+    1: 2500,
+    10: 2500,
+    137: 0.8,   // MATIC
+    8453: 2500,
+    42161: 2500,
+  };
+  
+  const gasPrice = gasPrices[chainId] || 30;
+  const ethPrice = ethPrices[chainId] || 2500;
+  
+  const estimatedFeeETH = (gasEstimate * gasPrice) / 1e9;
+  const estimatedFeeUSD = estimatedFeeETH * ethPrice;
+  
+  return {
+    gasEstimate,
+    estimatedFeeUSD,
+    estimatedFeeETH,
+  };
 }
 
 /**

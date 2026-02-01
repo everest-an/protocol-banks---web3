@@ -16,6 +16,7 @@
     "@emotion/is-prop-valid": "latest",
     "@grpc/grpc-js": "1.14.3",
     "@hookform/resolvers": "^3.10.0",
+    "@jest/globals": "30.2.0",
     "@nomicfoundation/hardhat-chai-matchers": "latest",
     "@nomicfoundation/hardhat-ethers": "latest",
     "@nomicfoundation/hardhat-ignition": "latest",

@@ -1,17 +1,18 @@
 /**
  * Unified Supabase Client Exports
  * 
- * This file re-exports Supabase clients from the canonical locations:
- * - Browser client: @/lib/supabase/client
- * - Server client: @/lib/supabase/server
+ * This file re-exports Supabase browser clients from the canonical location.
  * 
  * Usage:
  * - For client components: import { createClient, getSupabase, supabase } from "@/lib/supabase"
- * - For server components/actions: import { createServerClient } from "@/lib/supabase/server"
+ * - For server components/actions: import { createClient } from "@/lib/supabase/server"
+ * 
+ * Note: Server client must be imported directly from @/lib/supabase/server
+ * because it's an async function that requires request context.
  */
 
-// Re-export browser client
+// Re-export browser client only (server client must be imported directly)
 export { createClient, getSupabase, supabase } from "@/lib/supabase/client"
 
-// Re-export server client for convenience
-export { createClient as createServerClient } from "@/lib/supabase/server"
+// Re-export Database type for convenience
+export type { Database } from "@/types/supabase"
