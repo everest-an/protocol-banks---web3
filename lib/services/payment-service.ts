@@ -3,6 +3,7 @@ import type { Payment, Recipient, PaymentResult } from "@/types"
 import type { Subscription } from "@/lib/services/subscription-service"
 import { sendToken, signERC3009Authorization, executeERC3009Transfer, getTokenAddress, RPC_URLS, ERC20_ABI } from "@/lib/web3"
 import { notificationService } from "./notification-service"
+import { paymentLogger as logger } from "@/lib/logger"
 import {
   validateBatch,
   calculateBatchTotals,
@@ -22,7 +23,7 @@ import { vendorPaymentService } from "./vendor-payment-service"
 export async function executeSubscriptionPayment(
   subscription: Subscription
 ): Promise<{ success: boolean; txHash?: string; error?: string }> {
-  console.log("[PaymentService] Executing subscription payment:", {
+  logger.info("Executing subscription payment", {
     id: subscription.id,
     amount: subscription.amount,
     token: subscription.token,
@@ -68,7 +69,7 @@ export async function executeSubscriptionPayment(
     
     // For now, we simulate success and log the pending execution
     // The actual execution would be handled by a separate service
-    console.log("[PaymentService] Subscription payment queued for execution:", {
+    logger.info("Subscription payment queued for execution", {
       subscription_id: subscription.id,
       from: subscription.owner_address,
       to: subscription.wallet_address,
@@ -87,7 +88,7 @@ export async function executeSubscriptionPayment(
       subscription.amount,
       subscription.token
     ).catch(err => {
-      console.warn("[PaymentService] Failed to send notification:", err)
+      logger.warn("Failed to send notification", { error: err })
     })
 
     return {
@@ -96,7 +97,7 @@ export async function executeSubscriptionPayment(
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
-    console.error("[PaymentService] Subscription payment failed:", errorMessage)
+    logger.error("Subscription payment failed", { error: errorMessage })
 
     // Notify user of failure
     await notificationService.send(
@@ -114,7 +115,7 @@ export async function executeSubscriptionPayment(
         },
       }
     ).catch(err => {
-      console.warn("[PaymentService] Failed to send failure notification:", err)
+      logger.warn("Failed to send failure notification", { error: err })
     })
 
     return {
@@ -169,7 +170,7 @@ export async function processSinglePayment(
   wallet: string,
   chain: string,
 ): Promise<PaymentResult> {
-  console.log("[v0] Processing payment:", { recipient, wallet, chain })
+  logger.debug("Processing payment", { recipient: recipient.address, amount: recipient.amount, wallet, chain })
 
   const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   const eventData: PaymentEventData = {
@@ -185,16 +186,16 @@ export async function processSinglePayment(
 
   // Trigger payment.created webhook (fire and forget)
   webhookTriggerService.triggerPaymentCreated(wallet, eventData).catch((err) => {
-    console.error("[v0] Failed to trigger payment.created webhook:", err)
+    logger.error("Failed to trigger payment.created webhook", err)
   })
 
   // Auto-link payment to vendor (fire and forget)
   vendorPaymentService.autoLinkPayment(paymentId, recipient.address).then((vendorId) => {
     if (vendorId) {
-      console.log("[v0] Payment auto-linked to vendor:", vendorId)
+      logger.debug("Payment auto-linked to vendor", { vendorId })
     }
   }).catch((err) => {
-    console.error("[v0] Failed to auto-link payment to vendor:", err)
+    logger.error("Failed to auto-link payment to vendor", err)
   })
 
   try {
@@ -215,7 +216,7 @@ export async function processSinglePayment(
       throw new Error(`Token ${recipient.token} not supported on chain ${chainId}`)
     }
 
-    console.log("[v0] Sending token:", {
+    logger.debug("Sending token", {
       tokenAddress,
       to: recipient.address,
       amount: recipient.amount,
@@ -232,7 +233,7 @@ export async function processSinglePayment(
       tx_hash: txHash,
       status: "completed",
     }).catch((err) => {
-      console.error("[v0] Failed to trigger payment.completed webhook:", err)
+      logger.error("Failed to trigger payment.completed webhook", err)
     })
 
     return {
@@ -243,14 +244,14 @@ export async function processSinglePayment(
       token: recipient.token,
     }
   } catch (error) {
-    console.error("[v0] Payment failed:", error)
+    logger.error("Payment failed", error instanceof Error ? error : { error })
 
     // Trigger payment.failed webhook (fire and forget)
     webhookTriggerService.triggerPaymentFailed(wallet, {
       ...eventData,
       status: "failed",
     }).catch((err) => {
-      console.error("[v0] Failed to trigger payment.failed webhook:", err)
+      logger.error("Failed to trigger payment.failed webhook", err)
     })
 
     return {
@@ -272,7 +273,7 @@ export async function processBatchPayments(
   chain: string,
   onProgress?: (current: number, total: number) => void,
 ): Promise<PaymentResult[]> {
-  console.log("[v0] Processing batch payments:", { count: recipients.length, wallet, chain })
+  logger.info("Processing batch payments", { count: recipients.length, wallet, chain })
 
   validateRecipients(recipients)
 

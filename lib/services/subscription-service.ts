@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase-client';
+import { subscriptionLogger as logger } from '@/lib/logger';
 import type { Subscription as UISubscription, SubscriptionInput, SubscriptionFrequency as UIFrequency } from '@/types';
 
 // ============================================
@@ -480,7 +481,12 @@ export class SubscriptionService {
       });
 
     // Log for debugging
-    console.log(`[SubscriptionService] Payment failure recorded for ${id}: attempt ${failureCount}/${maxRetries}, status: ${newStatus}`);
+    logger.info('Payment failure recorded', { 
+      subscriptionId: id, 
+      attempt: failureCount, 
+      maxRetries, 
+      status: newStatus 
+    });
   }
 
   /**
