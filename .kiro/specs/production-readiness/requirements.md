@@ -1,216 +1,396 @@
-# Requirements Document
+# 生产环境就绪 - 需求文档
 
-## Introduction
+**版本**: 1.0  
+**日期**: 2026-02-03  
+**状态**: 规划中  
+**优先级**: P0 - 关键
 
-This document defines the requirements for bringing Protocol Banks to production-ready status. Based on the architecture analysis, the platform is approximately 70% complete. This specification covers the missing API routes, service integrations, and security enhancements needed for production deployment.
+---
 
-## Glossary
+## 1. 执行摘要
 
-- **Protocol_Banks**: The enterprise-grade crypto payment infrastructure platform
-- **API_Gateway**: The Next.js API routes layer handling HTTP requests
-- **Webhook_Service**: The service responsible for delivering event notifications to external endpoints
-- **API_Key_Service**: The service managing programmatic access credentials
-- **Subscription_Service**: The service handling recurring payment schedules
-- **Multisig_Service**: The service managing multi-signature wallet operations
-- **Rate_Limiter**: The component enforcing request rate limits per user and globally
-- **Health_Monitor**: The component providing system health status
-- **Go_Services**: The high-performance Go microservices (payout-engine, event-indexer, webhook-handler)
-- **Dashboard**: The main user interface showing balance, vendors, and payment activity
-- **Payment_Service**: The service handling payment creation, execution, and tracking
-- **Vendor_Service**: The service managing vendor/contact entities and their relationships
-- **Analytics_Service**: The service providing aggregated payment data and metrics
-- **Notification_Service**: The service handling push notifications and user alerts
+在推出 AI 计费基础设施之前，必须确保现有系统的生产环境稳定性、安全性和可维护性。本规范涵盖 P0 级别的关键缺失功能，确保产品能够安全、稳定地服务用户。
 
-## Requirements
+**目标**：
+- 建立完善的监控和告警系统
+- 提升测试覆盖率到 80%+
+- 完成安全加固和审计
+- 优化用户体验和文档
 
-### Requirement 1: API Key Management Endpoints
+**时间线**：2 个月  
+**团队规模**：3 人
 
-**User Story:** As a developer, I want to manage API keys programmatically, so that I can integrate Protocol Banks into my applications securely.
+---
 
-#### Acceptance Criteria
+## 2. 核心需求
 
-1. WHEN a user sends a POST request to `/api/settings/api-keys` with valid authentication, THE API_Gateway SHALL create a new API key and return the secret key (shown only once)
-2. WHEN a user sends a GET request to `/api/settings/api-keys` with valid authentication, THE API_Gateway SHALL return all API keys owned by the authenticated user (without secret keys)
-3. WHEN a user sends a DELETE request to `/api/settings/api-keys/[id]` with valid authentication, THE API_Gateway SHALL revoke the specified API key
-4. WHEN a user attempts to access API key endpoints without authentication, THE API_Gateway SHALL return a 401 Unauthorized response
-5. WHEN an API key is created, THE API_Key_Service SHALL hash the secret key using SHA-256 before storage
-6. WHEN validating an API key, THE API_Key_Service SHALL check expiration date and active status
-7. FOR ALL API key operations, THE API_Gateway SHALL log the action to the audit log
+### 2.1 生产环境监控系统
 
-### Requirement 2: Webhook Management Endpoints
+**用户故事**：
+> 作为运维人员，我需要实时监控系统健康状况，在出现问题时立即收到告警，以便快速响应和修复。
 
-**User Story:** As a developer, I want to configure webhooks to receive real-time notifications, so that I can react to payment events in my systems.
+**验收标准**：
+- [ ] 集成 Sentry 错误监控，捕获所有未处理异常
+- [ ] 部署 Prometheus + Grafana 监控仪表盘
+- [ ] 配置关键指标告警（错误率、响应时间、系统资源）
+- [ ] 实现多渠道告警（Telegram、Email、Webhook）
+- [ ] 完善健康检查端点（数据库、Redis、外部服务）
+- [ ] 实现结构化日志系统（JSON 格式，可查询）
 
-#### Acceptance Criteria
+**技术要求**：
+- Sentry SDK 集成（Next.js + Go）
+- Prometheus 指标导出
+- Grafana 仪表盘配置
+- 告警规则配置（Alertmanager）
+- 日志聚合（可选：ELK Stack 或 Loki）
 
-1. WHEN a user sends a POST request to `/api/webhooks` with valid authentication, THE API_Gateway SHALL create a new webhook and return the signing secret (shown only once)
-2. WHEN a user sends a GET request to `/api/webhooks` with valid authentication, THE API_Gateway SHALL return all webhooks owned by the authenticated user
-3. WHEN a user sends a PUT request to `/api/webhooks/[id]` with valid authentication, THE API_Gateway SHALL update the webhook configuration
-4. WHEN a user sends a DELETE request to `/api/webhooks/[id]` with valid authentication, THE API_Gateway SHALL delete the webhook and all associated delivery records
-5. WHEN a user sends a GET request to `/api/webhooks/[id]/deliveries`, THE API_Gateway SHALL return recent delivery attempts for that webhook
-6. WHEN a webhook event is triggered, THE Webhook_Service SHALL sign the payload using HMAC-SHA256 with the webhook secret
-7. IF a webhook delivery fails, THEN THE Webhook_Service SHALL retry up to 3 times with exponential backoff
-8. FOR ALL webhook deliveries, THE Webhook_Service SHALL include `X-Webhook-Signature`, `X-Webhook-Event`, and `X-Webhook-Timestamp` headers
+**成功指标**：
+- 错误捕获率 > 95%
+- 告警响应时间 < 5 分钟
+- 日志查询响应时间 < 2 秒
 
-### Requirement 3: Subscription Management Endpoints
+---
 
-**User Story:** As a user, I want to manage recurring payments, so that I can automate regular payments to vendors and services.
+### 2.2 测试覆盖率提升
 
-#### Acceptance Criteria
+**用户故事**：
+> 作为开发者，我需要完整的测试套件来确保代码质量，防止回归错误，提高开发效率。
 
-1. WHEN a user sends a POST request to `/api/subscriptions` with valid authentication, THE API_Gateway SHALL create a new subscription with the specified frequency and amount
-2. WHEN a user sends a GET request to `/api/subscriptions` with valid authentication, THE API_Gateway SHALL return all subscriptions owned by the authenticated user
-3. WHEN a user sends a PUT request to `/api/subscriptions/[id]` with valid authentication, THE API_Gateway SHALL update the subscription (amount, frequency, status)
-4. WHEN a user sends a DELETE request to `/api/subscriptions/[id]` with valid authentication, THE API_Gateway SHALL cancel the subscription
-5. WHEN a subscription is created, THE Subscription_Service SHALL calculate and store the next payment date
-6. WHEN a subscription status is changed to "paused", THE Subscription_Service SHALL skip scheduled payments until resumed
-7. WHEN a subscription payment is due, THE Subscription_Service SHALL validate sufficient balance before execution
-8. IF a subscription payment fails due to insufficient balance, THEN THE Subscription_Service SHALL notify the user and retry after 24 hours
+**验收标准**：
+- [ ] 核心支付流程 E2E 测试（单笔、批量、分账）
+- [ ] AI Agent 集成测试完善（提案、预算、x402）
+- [ ] 多签钱包流程测试
+- [ ] 跨链操作测试（Swap、Bridge）
+- [ ] API 端点集成测试
+- [ ] CI/CD 自动化测试流程
+- [ ] 测试覆盖率报告（Istanbul/NYC）
 
-### Requirement 4: Health Check and Status Endpoints
+**技术要求**：
+- Jest + React Testing Library（前端）
+- Vitest（TypeScript 服务）
+- Go testing 包（Go 服务）
+- Playwright 或 Cypress（E2E）
+- GitHub Actions CI/CD
 
-**User Story:** As a system administrator, I want to monitor system health, so that I can ensure the platform is operating correctly.
+**成功指标**：
+- 单元测试覆盖率 > 80%
+- 集成测试覆盖率 > 70%
+- E2E 测试覆盖核心流程 100%
+- CI/CD 自动化测试通过率 > 95%
 
-#### Acceptance Criteria
+---
 
-1. WHEN a request is sent to `/api/health`, THE Health_Monitor SHALL return the overall system health status
-2. WHEN the system is healthy, THE Health_Monitor SHALL return status "ok" with HTTP 200
-3. WHEN any critical component is unhealthy, THE Health_Monitor SHALL return status "degraded" or "unhealthy" with appropriate HTTP status
-4. THE Health_Monitor SHALL check database connectivity, Redis connectivity, and Go service availability
-5. WHEN a request is sent to `/api/status`, THE Health_Monitor SHALL return detailed component status including version information
-6. THE Health_Monitor SHALL respond within 5 seconds or return a timeout error
+### 2.3 安全加固
 
-### Requirement 5: Per-User Rate Limiting [DEFERRED]
+**用户故事**：
+> 作为用户，我需要确信我的资金和数据是安全的，平台经过专业安全审计。
 
-**Status:** Deferred - Not included in current implementation plan
+**验收标准**：
+- [ ] 第三方安全审计（智能合约 + 后端 API）
+- [ ] 渗透测试报告
+- [ ] 密钥轮换机制实现（90 天周期）
+- [ ] API 密钥加密存储（HashiCorp Vault）
+- [ ] 敏感操作二次验证（大额支付、设置变更）
+- [ ] 安全响应流程文档
 
-**User Story:** As a platform operator, I want to enforce per-user rate limits, so that no single user can exhaust system resources.
+**技术要求**：
+- 智能合约审计（CertiK、OpenZeppelin、Trail of Bits）
+- 后端渗透测试（OWASP Top 10）
+- HashiCorp Vault 集成
+- 密钥轮换自动化脚本
+- 安全事件响应手册
 
-#### Acceptance Criteria
+**成功指标**：
+- 通过第三方安全审计（无高危漏洞）
+- 密钥轮换自动化率 100%
+- 安全事件响应时间 < 1 小时
 
-1. WHEN a user exceeds their per-minute rate limit, THE Rate_Limiter SHALL return HTTP 429 with a `Retry-After` header
-2. WHEN a user exceeds their per-day rate limit, THE Rate_Limiter SHALL return HTTP 429 with remaining time until reset
-3. THE Rate_Limiter SHALL track request counts per user using Redis with atomic operations
-4. WHEN an API key is used, THE Rate_Limiter SHALL apply the rate limits configured for that specific key
-5. THE Rate_Limiter SHALL include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers in all responses
-6. IF Redis is unavailable, THEN THE Rate_Limiter SHALL fall back to in-memory rate limiting with degraded accuracy
+---
 
-### Requirement 6: API Key Authentication Middleware
+### 2.4 用户体验优化
 
-**User Story:** As a developer, I want to authenticate API requests using API keys, so that I can access Protocol Banks programmatically.
+**用户故事**：
+> 作为新用户，我需要清晰的引导和友好的界面，快速理解如何使用平台功能。
 
-#### Acceptance Criteria
+**验收标准**：
+- [ ] 新手引导流程（Onboarding）
+- [ ] 交互式教程（支付、批量支付、多签钱包）
+- [ ] 错误提示优化（友好的错误信息 + 解决方案）
+- [ ] 加载状态优化（Skeleton、进度条、乐观更新）
+- [ ] 移动端 PWA 体验提升
+- [ ] 无障碍访问（WCAG 2.1 AA 级别）
 
-1. WHEN a request includes an `Authorization: Bearer pb_xxx` header, THE API_Gateway SHALL validate the API key
-2. WHEN an API key is valid and active, THE API_Gateway SHALL attach the owner's address to the request context
-3. WHEN an API key is invalid, expired, or revoked, THE API_Gateway SHALL return HTTP 401
-4. WHEN an API key lacks required permissions for an endpoint, THE API_Gateway SHALL return HTTP 403
-5. FOR ALL API key authenticated requests, THE API_Key_Service SHALL log the usage with endpoint, method, and response time
-6. THE API_Gateway SHALL support both API key authentication and session-based authentication
+**技术要求**：
+- React Joyride 或 Intro.js（引导流程）
+- 错误边界和错误处理优化
+- Skeleton 组件库
+- PWA 优化（Service Worker、离线支持）
+- ARIA 标签和键盘导航
 
-### Requirement 7: Webhook Event Triggering
+**成功指标**：
+- 新用户完成首次支付时间 < 5 分钟
+- 错误恢复率 > 90%
+- 移动端 Lighthouse 分数 > 90
+- 无障碍访问评分 > 90
 
-**User Story:** As a developer, I want to receive webhook notifications for payment events, so that I can update my systems in real-time.
+---
 
-#### Acceptance Criteria
+### 2.5 开发者文档
 
-1. WHEN a payment is created, THE Webhook_Service SHALL trigger `payment.created` event to all subscribed webhooks
-2. WHEN a payment is completed, THE Webhook_Service SHALL trigger `payment.completed` event with transaction hash
-3. WHEN a payment fails, THE Webhook_Service SHALL trigger `payment.failed` event with error details
-4. WHEN a batch payment is created, THE Webhook_Service SHALL trigger `batch_payment.created` event
-5. WHEN a batch payment completes, THE Webhook_Service SHALL trigger `batch_payment.completed` event with summary
-6. WHEN a multisig proposal is created, THE Webhook_Service SHALL trigger `multisig.proposal_created` event
-7. WHEN a multisig transaction is executed, THE Webhook_Service SHALL trigger `multisig.executed` event
-8. FOR ALL webhook events, THE Webhook_Service SHALL include event type, timestamp, and relevant data in the payload
+**用户故事**：
+> 作为集成开发者，我需要完整的 API 文档和示例代码，快速集成 Protocol Banks。
 
-### Requirement 8: Go Services Integration Bridge
+**验收标准**：
+- [ ] OpenAPI/Swagger 规范文档
+- [ ] SDK 使用指南（Node.js、Python、Go）
+- [ ] 视频教程（5-10 分钟快速入门）
+- [ ] 示例项目（AI 聊天机器人、DePIN 租车、DAO 薪酬）
+- [ ] 故障排查指南
+- [ ] API 变更日志（Changelog）
 
-**User Story:** As a platform operator, I want the system to use Go services for high-performance operations with TypeScript fallback, so that the platform remains available even if Go services are down.
+**技术要求**：
+- Swagger UI 或 Redoc
+- 示例代码仓库（GitHub）
+- 视频录制和编辑
+- 文档网站（Docusaurus 或 VitePress）
 
-#### Acceptance Criteria
+**成功指标**：
+- API 文档完整性 100%
+- 示例项目可运行率 100%
+- 开发者反馈满意度 > 4.5/5
 
-1. WHEN Go services are enabled and available, THE API_Gateway SHALL route payout requests to the Go payout-engine via gRPC
-2. WHEN Go services are unavailable, THE API_Gateway SHALL fall back to TypeScript implementation
-3. THE API_Gateway SHALL implement circuit breaker pattern with 5-second timeout and 3 failure threshold
-4. WHEN a fallback occurs, THE API_Gateway SHALL log the event with reason and duration
-5. THE API_Gateway SHALL expose Go service health status via the `/api/health` endpoint
-6. WHEN Go services recover, THE API_Gateway SHALL automatically resume using them within 30 seconds
+---
 
-### Requirement 9: Subscription Execution Engine
+## 3. 非功能性需求
 
-**User Story:** As a user, I want my subscriptions to execute automatically on schedule, so that I don't have to manually process recurring payments.
+### 3.1 性能要求
+- API 响应时间 (p95) < 200ms
+- 错误监控延迟 < 1 秒
+- 日志查询响应时间 < 2 秒
+- 测试套件执行时间 < 10 分钟
 
-#### Acceptance Criteria
+### 3.2 可用性要求
+- 系统可用性 > 99.9%
+- 监控系统可用性 > 99.95%
+- 告警误报率 < 5%
 
-1. THE Subscription_Service SHALL check for due subscriptions every hour
-2. WHEN a subscription payment is due, THE Subscription_Service SHALL create a payment transaction
-3. WHEN a subscription payment succeeds, THE Subscription_Service SHALL update `last_payment_date` and calculate `next_payment_date`
-4. WHEN a subscription payment fails, THE Subscription_Service SHALL update status to "payment_failed" and notify the user
-5. THE Subscription_Service SHALL support daily, weekly, monthly, and yearly frequencies
-6. WHEN calculating next payment date for monthly subscriptions, THE Subscription_Service SHALL handle month-end edge cases (e.g., Jan 31 → Feb 28)
-7. THE Subscription_Service SHALL not execute payments for paused or cancelled subscriptions
+### 3.3 安全要求
+- 所有敏感数据加密存储
+- API 密钥定期轮换（90 天）
+- 安全事件响应时间 < 1 小时
+- 通过第三方安全审计
 
-### Requirement 10: Multisig Transaction Execution
+---
 
-**User Story:** As a business user, I want confirmed multisig transactions to execute automatically, so that approved payments are processed without manual intervention.
+## 4. 技术架构
 
-#### Acceptance Criteria
+### 4.1 监控架构
 
-1. WHEN a multisig transaction reaches the required threshold of confirmations, THE Multisig_Service SHALL mark it as "confirmed"
-2. WHEN a transaction is confirmed, THE Multisig_Service SHALL attempt to execute it on-chain
-3. WHEN execution succeeds, THE Multisig_Service SHALL update status to "executed" and store the transaction hash
-4. WHEN execution fails, THE Multisig_Service SHALL update status to "failed" and store the error message
-5. THE Multisig_Service SHALL verify all signatures before execution
-6. FOR ALL multisig executions, THE Multisig_Service SHALL trigger appropriate webhook events
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    应用层                                    │
+├─────────────────────────────────────────────────────────────┤
+│  Next.js App  │  Go Services  │  Smart Contracts            │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                ┌─────────────┼─────────────┐
+                ▼             ▼             ▼
+┌──────────────────┐  ┌──────────────┐  ┌──────────────┐
+│  Sentry          │  │  Prometheus  │  │  Logs        │
+│  (错误追踪)       │  │  (指标收集)   │  │  (日志聚合)   │
+└──────────────────┘  └──────────────┘  └──────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    可视化层                                  │
+├─────────────────────────────────────────────────────────────┤
+│  Grafana Dashboard  │  Alertmanager  │  Log Viewer         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    告警通道                                  │
+├─────────────────────────────────────────────────────────────┤
+│  Telegram  │  Email  │  Webhook  │  PagerDuty              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### Requirement 11: Dashboard Payment Activity Integration
+### 4.2 测试架构
 
-**User Story:** As a user, I want to see recent payment activity on my dashboard, so that I can quickly understand my payment flow without navigating to the history page.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    测试金字塔                                │
+├─────────────────────────────────────────────────────────────┤
+│                    E2E Tests (10%)                           │
+│              ┌──────────────────────────┐                   │
+│              │  Playwright / Cypress    │                   │
+│              └──────────────────────────┘                   │
+│                                                              │
+│              Integration Tests (30%)                         │
+│         ┌────────────────────────────────────┐              │
+│         │  API Tests, Service Tests          │              │
+│         └────────────────────────────────────┘              │
+│                                                              │
+│         Unit Tests (60%)                                     │
+│    ┌──────────────────────────────────────────────┐         │
+│    │  Jest, Vitest, Go testing                    │         │
+│    └──────────────────────────────────────────────┘         │
+└─────────────────────────────────────────────────────────────┘
+```
 
-#### Acceptance Criteria
+---
 
-1. WHEN a user views the dashboard, THE Dashboard SHALL display the 5 most recent payments
-2. WHEN a payment is associated with a known vendor, THE Dashboard SHALL display the vendor name instead of raw address
-3. WHEN a new payment is completed, THE Dashboard SHALL update the activity feed within 30 seconds
-4. THE Dashboard SHALL show payment direction (sent/received), amount, token, and timestamp for each activity item
-5. WHEN a user clicks on an activity item, THE Dashboard SHALL navigate to the detailed transaction view
-6. IF no payments exist, THEN THE Dashboard SHALL display an empty state with a call-to-action
+## 5. 实施计划
 
-### Requirement 12: Payment-to-Vendor Relationship Mapping
+### Phase 1: 监控与告警（Week 1-2）
+- Week 1: Sentry 集成 + 基础 Prometheus 指标
+- Week 2: Grafana 仪表盘 + 告警配置
 
-**User Story:** As a user, I want my payments to be automatically linked to my saved vendors, so that I can see payment history per vendor and generate reports.
+### Phase 2: 测试覆盖（Week 3-4）
+- Week 3: 单元测试 + 集成测试
+- Week 4: E2E 测试 + CI/CD 自动化
 
-#### Acceptance Criteria
+### Phase 3: 安全加固（Week 5-6）
+- Week 5: 密钥轮换 + Vault 集成
+- Week 6: 安全审计准备 + 渗透测试
 
-1. WHEN a payment is created with a `to_address` matching a vendor's `wallet_address`, THE Payment_Service SHALL automatically link the payment to that vendor
-2. WHEN viewing a vendor's details, THE Vendor_Service SHALL return the total payment volume and transaction count for that vendor
-3. WHEN a user sends a GET request to `/api/vendors/[id]/payments`, THE API_Gateway SHALL return all payments associated with that vendor
-4. THE Payment_Service SHALL update vendor statistics (monthly_volume, transaction_count) after each completed payment
-5. WHEN a vendor is deleted, THE Payment_Service SHALL preserve payment records but remove the vendor association
-6. FOR ALL payment-vendor mappings, THE Payment_Service SHALL match addresses case-insensitively
+### Phase 4: 用户体验（Week 7-8）
+- Week 7: 新手引导 + 错误优化
+- Week 8: 移动端优化 + 无障碍访问
 
-### Requirement 13: Analytics Data Aggregation Endpoints
+### Phase 5: 文档完善（Week 9-10）
+- Week 9: API 文档 + SDK 文档
+- Week 10: 示例项目 + 视频教程
 
-**User Story:** As a user, I want to access aggregated analytics data via API, so that I can build custom reports and dashboards.
+---
 
-#### Acceptance Criteria
+## 6. 资源分配
 
-1. WHEN a user sends a GET request to `/api/analytics/summary`, THE API_Gateway SHALL return total volume, transaction count, and growth metrics
-2. WHEN a user sends a GET request to `/api/analytics/monthly`, THE API_Gateway SHALL return monthly aggregated data for the past 12 months
-3. WHEN a user sends a GET request to `/api/analytics/by-vendor`, THE API_Gateway SHALL return payment volume grouped by vendor
-4. WHEN a user sends a GET request to `/api/analytics/by-chain`, THE API_Gateway SHALL return payment volume grouped by blockchain
-5. THE Analytics_Service SHALL cache aggregated data with a 5-minute TTL to improve performance
-6. WHEN query parameters `start_date` and `end_date` are provided, THE Analytics_Service SHALL filter data within that date range
+### 开发者 A（全栈）
+- 测试覆盖率提升（Week 3-4）
+- 用户体验优化（Week 7-8）
+- 示例项目开发（Week 9-10）
 
-### Requirement 14: Real-time Payment Notifications
+### 开发者 B（后端/Go）
+- 监控系统集成（Week 1-2）
+- 安全加固实施（Week 5-6）
+- API 文档编写（Week 9）
 
-**User Story:** As a user, I want to receive real-time notifications when payments are sent or received, so that I can stay informed without constantly checking the app.
+### 开发者 C（前端/文档）
+- 前端测试编写（Week 3-4）
+- 新手引导开发（Week 7-8）
+- 文档和视频制作（Week 9-10）
 
-#### Acceptance Criteria
+---
 
-1. WHEN a payment is completed, THE Notification_Service SHALL send a push notification to the recipient (if subscribed)
-2. WHEN a payment is completed, THE Notification_Service SHALL send a push notification to the sender confirming the transaction
-3. WHEN a subscription payment is executed, THE Notification_Service SHALL notify the user 24 hours before and after execution
-4. THE Notification_Service SHALL respect user notification preferences stored in the database
-5. WHEN a user sends a POST request to `/api/notifications/subscribe`, THE API_Gateway SHALL register the user's push subscription
-6. WHEN a user sends a DELETE request to `/api/notifications/unsubscribe`, THE API_Gateway SHALL remove the user's push subscription
+## 7. 风险与挑战
+
+| 风险 | 影响 | 缓解措施 |
+|------|------|----------|
+| 安全审计发现高危漏洞 | 高 | 预留 2 周缓冲时间修复 |
+| 测试编写时间超预期 | 中 | 优先核心流程，次要功能延后 |
+| 监控系统配置复杂 | 中 | 使用托管服务（Sentry Cloud） |
+| 文档编写资源不足 | 低 | 考虑外包技术写作 |
+
+---
+
+## 8. 成功指标
+
+### 技术指标
+- 系统可用性 > 99.9%
+- 错误捕获率 > 95%
+- 测试覆盖率 > 80%
+- API 响应时间 (p95) < 200ms
+
+### 业务指标
+- 新用户完成首次支付时间 < 5 分钟
+- 用户反馈满意度 > 4.5/5
+- 开发者集成成功率 > 90%
+- 安全事件数量 = 0
+
+---
+
+## 9. 附录
+
+### 9.1 监控指标清单
+
+**应用指标**：
+- 请求总数、成功率、错误率
+- 响应时间（p50, p95, p99）
+- 并发用户数
+- 数据库查询时间
+- Redis 命中率
+
+**业务指标**：
+- 支付成功率
+- 批量支付吞吐量
+- Agent 提案处理时间
+- 跨链操作成功率
+
+**系统指标**：
+- CPU 使用率
+- 内存使用率
+- 磁盘 I/O
+- 网络带宽
+
+### 9.2 告警规则示例
+
+```yaml
+# Prometheus Alerting Rules
+groups:
+  - name: application
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, http_request_duration_seconds) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API response time is slow"
+```
+
+### 9.3 测试策略
+
+**单元测试**：
+- 所有 service 层函数
+- 所有 utility 函数
+- 关键业务逻辑
+
+**集成测试**：
+- API 端点测试
+- 数据库操作测试
+- 外部服务集成测试
+
+**E2E 测试**：
+- 用户注册和登录
+- 完整支付流程
+- 批量支付流程
+- 多签钱包操作
+- Agent 提案流程
+
+### 9.4 安全检查清单
+
+- [ ] SQL 注入防护
+- [ ] XSS 防护
+- [ ] CSRF 防护
+- [ ] 重放攻击防护
+- [ ] 中间人攻击防护
+- [ ] 暴力破解防护
+- [ ] 会话劫持防护
+- [ ] 钓鱼攻击防护
+- [ ] 密钥安全存储
+- [ ] 敏感数据加密
+- [ ] API 速率限制
+- [ ] 输入验证
+- [ ] 输出编码
+- [ ] 安全头配置
+- [ ] HTTPS 强制
+

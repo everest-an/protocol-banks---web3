@@ -1,161 +1,397 @@
-# Implementation Plan: Production Readiness
+# 生产环境就绪 - 任务列表
 
-## Overview
+**总时间**: 8-10 周  
+**团队**: 3 人  
+**优先级**: P0 - 关键
 
-This implementation plan covers 13 requirements for bringing Protocol Banks to production-ready status (Rate Limiting deferred). Tasks are organized to build foundational services first, then layer on dependent features. All tasks including property-based tests are required.
+---
 
-## Tasks
+## Week 1-2: 监控与告警系统
 
-- [x] 1. Set up testing infrastructure and shared utilities
-  - Install fast-check for property-based testing
-  - Create test utilities for API mocking and database seeding
-  - Set up test database with migrations
-  - _Requirements: All_
+### 1. Sentry 错误监控集成
+- [ ] 1.1 安装 Sentry SDK（Next.js + Go）
+- [ ] 1.2 配置 Sentry 客户端（环境变量、采样率）
+- [ ] 1.3 添加错误边界组件
+- [ ] 1.4 实现自定义错误上下文
+- [ ] 1.5 配置错误过滤规则
+- [ ] 1.6 测试错误捕获和上报
 
-- [x] 2. Implement API Key Management
-  - [x] 2.1 Create API Key Service with hashing and validation
-  - [x] 2.2 Write property test for API Key hashing
-  - [x] 2.3 Write property test for API Key CRUD round-trip
-  - [x] 2.4 Create API Key endpoints
-  - [x] 2.5 Implement API Key usage logging
+**负责人**: 开发者 B（后端）  
+**工作量**: 3 天
 
-- [x] 3. Implement Authentication Middleware
-  - [x] 3.1 Create API Key authentication middleware
-  - [x] 3.2 Write property test for unauthenticated request rejection
-  - [x] 3.3 Implement permission checking
-  - [x] 3.4 Write property test for permission enforcement
-  - [x] 3.5 Support dual authentication (session + API key)
-  - [x] 3.6 Write property test for dual authentication
+### 2. Prometheus 指标收集
+- [ ] 2.1 安装 prom-client 库
+- [ ] 2.2 创建指标定义文件
+- [ ] 2.3 实现 HTTP 请求指标中间件
+- [ ] 2.4 添加业务指标（支付、Agent）
+- [ ] 2.5 创建 /api/metrics 端点
+- [ ] 2.6 Go 服务指标导出
 
-- [x] 4. Checkpoint - API Key and Auth tests pass
+**负责人**: 开发者 B（后端）  
+**工作量**: 3 天
 
-- [x] 5. Implement Webhook Management
-  - [x] 5.1 Create Webhook Service
-  - [x] 5.2 Write property test for Webhook CRUD round-trip
-  - [x] 5.3 Create Webhook endpoints
-  - [x] 5.4 Implement webhook signature generation
-  - [x] 5.5 Write property test for webhook signature verification
-  - [x] 5.6 Implement webhook delivery with retry logic
-  - [x] 5.7 Write property test for webhook retry behavior
+### 3. Grafana 仪表盘配置
+- [ ] 3.1 部署 Grafana 实例（Docker/Cloud）
+- [ ] 3.2 配置 Prometheus 数据源
+- [ ] 3.3 创建应用监控仪表盘
+- [ ] 3.4 创建业务指标仪表盘
+- [ ] 3.5 配置仪表盘变量和过滤器
+- [ ] 3.6 导出仪表盘 JSON 配置
 
-- [x] 6. Implement Webhook Event Triggering
-  - [x] 6.1 Create event trigger functions
-  - [x] 6.2 Write property test for webhook event triggering
-  - [ ] 6.3 Integrate triggers into payment flow (requires payment service modification)
+**负责人**: 开发者 B（后端）  
+**工作量**: 2 天
 
-- [x] 7. Checkpoint - Webhook tests pass (252 tests passing)
+### 4. 告警系统配置
+- [ ] 4.1 部署 Alertmanager
+- [ ] 4.2 配置告警规则（错误率、响应时间）
+- [ ] 4.3 实现 Telegram 告警通道
+- [ ] 4.4 实现 Email 告警通道
+- [ ] 4.5 创建告警 Webhook 端点
+- [ ] 4.6 测试告警触发和通知
 
-- [x] 8. Implement Subscription Management
-  - [x] 8.1 Create Subscription Service
-  - [x] 8.2 Write property test for Subscription CRUD round-trip
-  - [x] 8.3 Implement next payment date calculation
-  - [x] 8.4 Write property test for next payment date calculation
-  - [x] 8.5 Create Subscription endpoints
+**负责人**: 开发者 B（后端）  
+**工作量**: 2 天
 
-- [-] 9. Implement Subscription Execution Engine
-  - [ ] 9.1 Create subscription execution logic
-  - [ ] 9.2 Write property test for subscription payment execution
-  - [x] 9.3 Implement paused/cancelled subscription filtering
-  - [x] 9.4 Write property test for paused subscription non-execution
-  - [ ] 9.5 Implement failure handling
+---
 
-- [ ] 10. Checkpoint - Subscription tests pass
+## Week 3-4: 测试覆盖率提升
 
-- [x] 11. Implement Health Check Endpoints
-  - [x] 11.1 Create Health Monitor service
-  - [x] 11.2 Create health endpoints
-  - [x] 11.3 Implement timeout handling
+### 5. 单元测试框架配置
+- [ ] 5.1 配置 Jest 测试环境
+- [ ] 5.2 创建测试工具函数库
+- [ ] 5.3 配置测试覆盖率报告
+- [ ] 5.4 添加 CI 测试自动化
+- [ ] 5.5 配置测试数据库（SQLite）
+- [ ] 5.6 创建测试文档模板
 
-- [x] 12. Implement Go Services Integration Bridge
-  - [x] 12.1 Create Circuit Breaker class
-  - [x] 12.2 Write property test for circuit breaker behavior
-  - [x] 12.3 Create Go Services Bridge
-  - [x] 12.4 Integrate Go service health into /api/health
-  - [x] 12.5 Implement automatic recovery
+**负责人**: 开发者 A（全栈）  
+**工作量**: 2 天
 
-- [x] 13. Implement Multisig Transaction Execution
-  - [x] 13.1 Create Multisig Service execution logic
-  - [x] 13.2 Write property test for multisig threshold confirmation
-  - [x] 13.3 Implement signature verification
-  - [x] 13.4 Write property test for multisig signature verification
-  - [x] 13.5 Implement on-chain execution (simulated)
-  - [x] 13.6 Trigger webhook events for multisig
 
-- [x] 14. Checkpoint - Core services tests pass (252 tests)
+### 6. 核心服务单元测试
+- [ ] 6.1 agent-service 测试（创建、更新、删除）
+- [ ] 6.2 payment-service 测试（支付逻辑）
+- [ ] 6.3 budget-service 测试（预算管理）
+- [ ] 6.4 proposal-service 测试（提案流程）
+- [ ] 6.5 webhook-service 测试（Webhook 触发）
+- [ ] 6.6 multisig-service 测试（多签逻辑）
 
-- [x] 15. Implement Payment-Vendor Relationship
-  - [ ] 15.1 Add vendor_id column to payments table (migration needed)
-  - [x] 15.2 Create auto-linking trigger (service implemented)
-  - [x] 15.3 Write property test for payment-vendor auto-linking
-  - [x] 15.4 Implement vendor statistics update
-  - [x] 15.5 Write property test for vendor statistics update
-  - [x] 15.6 Create vendor payments endpoint
-  - [x] 15.7 Handle vendor deletion
+**负责人**: 开发者 A（全栈）  
+**工作量**: 4 天
 
-- [x] 16. Implement Analytics Endpoints
-  - [x] 16.1 Create Analytics Service
-  - [x] 16.2 Write property test for analytics data aggregation
-  - [x] 16.3 Create analytics endpoints
-  - [x] 16.4 Implement caching with 5-minute TTL
-  - [x] 16.5 Implement date range filtering
+### 7. API 端点集成测试
+- [ ] 7.1 /api/payments 端点测试
+- [ ] 7.2 /api/agents 端点测试
+- [ ] 7.3 /api/batch-payment 端点测试
+- [ ] 7.4 /api/subscriptions 端点测试
+- [ ] 7.5 /api/webhooks 端点测试
+- [ ] 7.6 错误处理和边界情况测试
 
-- [x] 17. Implement Dashboard Activity Integration
-  - [x] 17.1 Create dashboard activity service
-  - [x] 17.2 Write property test for dashboard activity display
-  - [ ] 17.3 Update dashboard component (UI integration needed)
+**负责人**: 开发者 A（全栈）  
+**工作量**: 3 天
 
-- [x] 18. Implement Notification Service
-  - [ ] 18.1 Create push subscription table migration (migration needed)
-  - [x] 18.2 Create Notification Service
-  - [x] 18.3 Create notification endpoints
-  - [x] 18.4 Implement notification triggers
-  - [x] 18.5 Write property test for notification preference respect
+### 8. E2E 测试实现
+- [ ] 8.1 安装和配置 Playwright
+- [ ] 8.2 用户注册和登录流程测试
+- [ ] 8.3 单笔支付流程测试
+- [ ] 8.4 批量支付流程测试
+- [ ] 8.5 多签钱包操作测试
+- [ ] 8.6 Agent 提案流程测试
+- [ ] 8.7 移动端响应式测试
 
-- [x] 19. Final Checkpoint - All tests pass
-  - 252 tests passing across 12 test files
-  - All property tests running 100 iterations each
+**负责人**: 开发者 C（前端）  
+**工作量**: 5 天
 
-## Summary
+---
 
-### Completed Services
-- `lib/services/api-key-service.ts` - API Key management
-- `lib/services/webhook-service.ts` - Webhook management
-- `lib/services/webhook-trigger-service.ts` - Webhook event triggering
-- `lib/services/subscription-service.ts` - Subscription management
-- `lib/services/health-monitor-service.ts` - Health monitoring
-- `lib/services/circuit-breaker.ts` - Circuit breaker pattern
-- `lib/services/go-services-bridge.ts` - Go services integration
-- `lib/services/analytics-service.ts` - Analytics and reporting
-- `lib/services/multisig-service.ts` - Multisig transaction execution
-- `lib/services/vendor-payment-service.ts` - Vendor-payment relationships
-- `lib/services/dashboard-activity-service.ts` - Dashboard activity
-- `lib/services/notification-service.ts` - Push notifications
-- `lib/middleware/api-key-auth.ts` - API key authentication
+## Week 5-6: 安全加固
 
-### Completed Endpoints
-- `/api/settings/api-keys` - API key CRUD
-- `/api/webhooks` - Webhook CRUD
-- `/api/subscriptions` - Subscription CRUD
-- `/api/health` - Basic health check
-- `/api/status` - Detailed status
-- `/api/analytics/summary` - Analytics summary
-- `/api/analytics/monthly` - Monthly data
-- `/api/analytics/by-vendor` - Vendor analytics
-- `/api/analytics/by-chain` - Chain analytics
-- `/api/vendors/[id]/payments` - Vendor payments
-- `/api/notifications/subscribe` - Push subscription
-- `/api/notifications/unsubscribe` - Push unsubscription
-- `/api/notifications/preferences` - Notification preferences
+### 9. 密钥管理系统
+- [ ] 9.1 安装 HashiCorp Vault（Docker）
+- [ ] 9.2 创建 Vault 客户端封装
+- [ ] 9.3 迁移敏感配置到 Vault
+- [ ] 9.4 实现密钥读取和写入
+- [ ] 9.5 配置 Vault 访问策略
+- [ ] 9.6 测试密钥管理功能
 
-### Remaining Work (Requires External Changes)
-- Database migrations for new tables (push_subscriptions, vendor_id column)
-- Payment service integration for webhook triggers
-- Dashboard UI component updates
-- Subscription execution engine (cron job setup)
+**负责人**: 开发者 B（后端）  
+**工作量**: 3 天
 
-## Notes
+### 10. 密钥轮换机制
+- [ ] 10.1 创建密钥轮换脚本
+- [ ] 10.2 实现 API 密钥轮换逻辑
+- [ ] 10.3 实现数据库密钥轮换
+- [ ] 10.4 配置定时任务（Cron）
+- [ ] 10.5 实现轮换通知系统
+- [ ] 10.6 测试轮换流程
 
-- All tasks are required (no optional tasks)
-- Rate Limiting (Requirement 5) is deferred and not included in this plan
-- Testing framework: Jest with fast-check for property-based testing
-- 252 tests passing with 100 iterations per property test
+**负责人**: 开发者 B（后端）  
+**工作量**: 2 天
+
+### 11. 安全审计准备
+- [ ] 11.1 整理智能合约代码
+- [ ] 11.2 编写合约文档和注释
+- [ ] 11.3 准备后端 API 文档
+- [ ] 11.4 创建安全检查清单
+- [ ] 11.5 运行自动化安全扫描
+- [ ] 11.6 修复已知安全问题
+
+**负责人**: 开发者 A + B  
+**工作量**: 3 天
+
+### 12. 渗透测试执行
+- [ ] 12.1 联系渗透测试服务商
+- [ ] 12.2 提供测试环境访问
+- [ ] 12.3 配合测试执行
+- [ ] 12.4 审查测试报告
+- [ ] 12.5 修复发现的漏洞
+- [ ] 12.6 复测验证修复
+
+**负责人**: CTO 协调 + 开发团队  
+**工作量**: 2 周（外包 + 内部配合）
+
+---
+
+## Week 7-8: 用户体验优化
+
+### 13. 新手引导系统
+- [ ] 13.1 安装 react-joyride 库
+- [ ] 13.2 设计引导流程步骤
+- [ ] 13.3 实现引导组件
+- [ ] 13.4 添加引导触发逻辑
+- [ ] 13.5 实现引导进度保存
+- [ ] 13.6 测试引导流程
+
+**负责人**: 开发者 C（前端）  
+**工作量**: 3 天
+
+### 14. 错误处理优化
+- [ ] 14.1 创建统一错误类型定义
+- [ ] 14.2 实现错误处理中间件
+- [ ] 14.3 优化错误提示文案
+- [ ] 14.4 添加错误解决方案提示
+- [ ] 14.5 实现错误边界组件
+- [ ] 14.6 测试错误处理流程
+
+**负责人**: 开发者 A（全栈）  
+**工作量**: 2 天
+
+### 15. 加载状态优化
+- [ ] 15.1 创建 Skeleton 组件库
+- [ ] 15.2 实现进度条组件
+- [ ] 15.3 添加乐观更新逻辑
+- [ ] 15.4 优化数据加载策略
+- [ ] 15.5 实现加载状态管理
+- [ ] 15.6 测试加载体验
+
+**负责人**: 开发者 C（前端）  
+**工作量**: 2 天
+
+### 16. 移动端 PWA 优化
+- [ ] 16.1 优化 Service Worker 配置
+- [ ] 16.2 实现离线支持
+- [ ] 16.3 优化移动端布局
+- [ ] 16.4 添加触摸手势支持
+- [ ] 16.5 优化移动端性能
+- [ ] 16.6 测试 PWA 功能
+
+**负责人**: 开发者 C（前端）  
+**工作量**: 3 天
+
+### 17. 无障碍访问
+- [ ] 17.1 添加 ARIA 标签
+- [ ] 17.2 实现键盘导航
+- [ ] 17.3 优化屏幕阅读器支持
+- [ ] 17.4 添加焦点管理
+- [ ] 17.5 优化颜色对比度
+- [ ] 17.6 运行无障碍审计工具
+
+**负责人**: 开发者 C（前端）  
+**工作量**: 2 天
+
+---
+
+## Week 9-10: 文档完善
+
+### 18. API 文档编写
+- [ ] 18.1 编写 OpenAPI 规范文件
+- [ ] 18.2 配置 Swagger UI
+- [ ] 18.3 添加 API 示例代码
+- [ ] 18.4 编写认证指南
+- [ ] 18.5 编写错误代码文档
+- [ ] 18.6 发布 API 文档网站
+
+**负责人**: 开发者 B（后端）  
+**工作量**: 3 天
+
+### 19. SDK 使用文档
+- [ ] 19.1 编写 Node.js SDK 文档
+- [ ] 19.2 编写 Python SDK 文档
+- [ ] 19.3 编写 Go SDK 文档
+- [ ] 19.4 添加代码示例
+- [ ] 19.5 编写常见问题解答
+- [ ] 19.6 创建快速开始指南
+
+**负责人**: 开发者 C（文档）  
+**工作量**: 3 天
+
+### 20. 示例项目开发
+- [ ] 20.1 创建 AI 聊天机器人示例
+- [ ] 20.2 创建 DePIN 租车示例
+- [ ] 20.3 创建 DAO 薪酬管理示例
+- [ ] 20.4 添加 README 和文档
+- [ ] 20.5 测试示例项目可运行性
+- [ ] 20.6 发布到 GitHub
+
+**负责人**: 开发者 A（全栈）  
+**工作量**: 4 天
+
+### 21. 视频教程制作
+- [ ] 21.1 编写视频脚本
+- [ ] 21.2 录制快速入门视频（5 分钟）
+- [ ] 21.3 录制支付流程视频（10 分钟）
+- [ ] 21.4 录制 Agent 集成视频（10 分钟）
+- [ ] 21.5 视频剪辑和后期
+- [ ] 21.6 发布到 YouTube 和文档网站
+
+**负责人**: 开发者 C（文档）或外包  
+**工作量**: 3 天
+
+### 22. 故障排查指南
+- [ ] 22.1 整理常见错误代码
+- [ ] 22.2 编写调试指南
+- [ ] 22.3 创建故障排查流程图
+- [ ] 22.4 添加日志查询指南
+- [ ] 22.5 编写性能优化建议
+- [ ] 22.6 创建支持联系方式
+
+**负责人**: 开发者 C（文档）  
+**工作量**: 2 天
+
+---
+
+## 额外任务（可选）
+
+### 23. 性能优化
+- [ ] 23.1 运行性能分析工具
+- [ ] 23.2 优化数据库查询
+- [ ] 23.3 实现 Redis 缓存
+- [ ] 23.4 优化前端资源加载
+- [ ] 23.5 实现 CDN 加速
+- [ ] 23.6 压力测试和调优
+
+**负责人**: 开发者 B（后端）  
+**工作量**: 1 周
+
+### 24. 日志聚合系统
+- [ ] 24.1 部署 ELK Stack 或 Loki
+- [ ] 24.2 配置日志收集
+- [ ] 24.3 创建日志查询界面
+- [ ] 24.4 配置日志保留策略
+- [ ] 24.5 实现日志告警
+- [ ] 24.6 测试日志系统
+
+**负责人**: 开发者 B（后端）  
+**工作量**: 1 周
+
+---
+
+## 资源分配总结
+
+### 开发者 A（全栈）
+- Week 3-4: 测试覆盖率提升（任务 5-7）
+- Week 7-8: 错误处理优化（任务 14）
+- Week 9-10: 示例项目开发（任务 20）
+
+### 开发者 B（后端/Go）
+- Week 1-2: 监控系统集成（任务 1-4）
+- Week 5-6: 安全加固实施（任务 9-11）
+- Week 9: API 文档编写（任务 18）
+
+### 开发者 C（前端/文档）
+- Week 3-4: E2E 测试（任务 8）
+- Week 7-8: 用户体验优化（任务 13, 15-17）
+- Week 9-10: 文档和视频制作（任务 19, 21-22）
+
+---
+
+## 里程碑
+
+- **M1 (Week 2)**: 监控系统上线，实时错误追踪
+- **M2 (Week 4)**: 测试覆盖率达到 80%+
+- **M3 (Week 6)**: 安全审计完成，漏洞修复
+- **M4 (Week 8)**: 用户体验优化完成
+- **M5 (Week 10)**: 文档完善，生产环境就绪
+
+---
+
+## 验收标准
+
+### 监控系统
+- [ ] Sentry 捕获所有未处理异常
+- [ ] Grafana 仪表盘显示关键指标
+- [ ] 告警系统正常工作（测试触发）
+- [ ] 日志可查询和分析
+
+### 测试覆盖
+- [ ] 单元测试覆盖率 > 80%
+- [ ] 集成测试覆盖核心 API
+- [ ] E2E 测试覆盖主要流程
+- [ ] CI/CD 自动化测试通过
+
+### 安全加固
+- [ ] 通过第三方安全审计
+- [ ] 密钥轮换机制正常工作
+- [ ] Vault 集成完成
+- [ ] 无高危安全漏洞
+
+### 用户体验
+- [ ] 新手引导流程完整
+- [ ] 错误提示友好清晰
+- [ ] 加载状态流畅
+- [ ] 移动端体验良好
+- [ ] 无障碍访问评分 > 90
+
+### 文档完善
+- [ ] API 文档完整准确
+- [ ] SDK 文档清晰易懂
+- [ ] 示例项目可运行
+- [ ] 视频教程发布
+- [ ] 故障排查指南完整
+
+---
+
+## 风险管理
+
+### 高风险项
+1. **安全审计发现高危漏洞**
+   - 缓解：预留 2 周缓冲时间
+   - 应对：优先修复，延后其他任务
+
+2. **测试编写时间超预期**
+   - 缓解：优先核心流程
+   - 应对：次要功能延后到下个迭代
+
+### 中风险项
+1. **监控系统配置复杂**
+   - 缓解：使用托管服务（Sentry Cloud）
+   - 应对：简化配置，使用默认设置
+
+2. **文档编写资源不足**
+   - 缓解：考虑外包技术写作
+   - 应对：优先 API 文档，其他延后
+
+---
+
+## 下一步行动
+
+1. **本周**: 团队会议，确认任务分配
+2. **Week 1**: 启动监控系统集成
+3. **Week 3**: 开始测试覆盖率提升
+4. **Week 5**: 启动安全加固工作
+5. **Week 7**: 开始用户体验优化
+6. **Week 9**: 完善文档和示例
+
+---
+
+**注意**: 所有任务完成后，进行全面的生产环境验收测试，确保系统稳定可靠后再推广使用。

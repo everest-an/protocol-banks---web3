@@ -1,932 +1,998 @@
-# Design Document: Production Readiness
+# 生产环境就绪 - 设计文档
 
-## Overview
+**版本**: 1.0  
+**日期**: 2026-02-03
 
-This design document outlines the technical architecture and implementation details for bringing Protocol Banks to production-ready status. The design covers 14 requirements spanning API endpoints, service integrations, security enhancements, and real-time features.
+---
 
-The implementation follows a layered architecture:
-- **API Layer**: Next.js API routes with middleware for authentication, rate limiting, and security
-- **Service Layer**: TypeScript services for business logic with Go service fallback
-- **Data Layer**: Supabase PostgreSQL with RLS policies
-- **Integration Layer**: gRPC bridge to Go microservices, webhook delivery, push notifications
+## 1. 监控系统设计
 
-## Architecture
+### 1.1 Sentry 错误监控
 
-\`\`\`mermaid
-graph TB
-    subgraph "Client Layer"
-        WEB[Web App]
-        SDK[SDK/API Clients]
-    end
-    
-    subgraph "API Gateway Layer"
-        MW[Middleware Stack]
-        AUTH[Auth Middleware]
-        RATE[Rate Limiter]
-        API[API Routes]
-    end
-    
-    subgraph "Service Layer"
-        AKS[API Key Service]
-        WHS[Webhook Service]
-        SUBS[Subscription Service]
-        PAYS[Payment Service]
-        ANLS[Analytics Service]
-        NOTS[Notification Service]
-        MSGS[Multisig Service]
-    end
-    
-    subgraph "Integration Layer"
-        GRPC[gRPC Bridge]
-        REDIS[Redis Cache]
-        PUSH[Push Service]
-    end
-    
-    subgraph "Go Services"
-        PAYOUT[Payout Engine]
-        INDEXER[Event Indexer]
-        WEBHOOK[Webhook Handler]
-    end
-    
-    subgraph "Data Layer"
-        DB[(Supabase PostgreSQL)]
-    end
-    
-    WEB --> MW
-    SDK --> MW
-    MW --> AUTH
-    AUTH --> RATE
-    RATE --> API
-    API --> AKS
-    API --> WHS
-    API --> SUBS
-    API --> PAYS
-    API --> ANLS
-    API --> NOTS
-    API --> MSGS
-    AKS --> DB
-    WHS --> DB
-    SUBS --> DB
-    PAYS --> DB
-    ANLS --> REDIS
-    ANLS --> DB
-    NOTS --> PUSH
-    MSGS --> GRPC
-    GRPC --> PAYOUT
-    GRPC --> INDEXER
-    GRPC --> WEBHOOK
-\`\`\`
+#### 1.1.1 Next.js 集成
 
-## Components and Interfaces
+```typescript
+// sentry.client.config.ts
+import * as Sentry from "@sentry/nextjs"
 
-### 1. API Key Service
-
-Manages programmatic access credentials with secure hashing and validation.
-
-\`\`\`typescript
-interface APIKey {
-  id: string;
-  name: string;
-  key_hash: string;        // SHA-256 hash of the secret
-  key_prefix: string;      // First 8 chars for identification (pb_xxxxxxxx)
-  owner_address: string;
-  permissions: Permission[];
-  rate_limit_per_minute: number;
-  rate_limit_per_day: number;
-  allowed_ips?: string[];
-  allowed_origins?: string[];
-  expires_at?: Date;
-  last_used_at?: Date;
-  usage_count: number;
-  is_active: boolean;
-  created_at: Date;
-  updated_at: Date;
-}
-
-type Permission = 'read' | 'write' | 'payments' | 'webhooks' | 'admin';
-
-interface APIKeyService {
-  create(input: CreateAPIKeyInput): Promise<{ key: APIKey; secret: string }>;
-  list(ownerAddress: string): Promise<APIKey[]>;
-  revoke(id: string, ownerAddress: string): Promise<void>;
-  validate(secret: string): Promise<{ valid: boolean; key?: APIKey }>;
-  logUsage(keyId: string, endpoint: string, method: string, statusCode: number, responseTimeMs: number): Promise<void>;
-}
-\`\`\`
-
-### 2. Webhook Service
-
-Handles webhook configuration and event delivery with retry logic.
-
-\`\`\`typescript
-interface Webhook {
-  id: string;
-  name: string;
-  url: string;
-  owner_address: string;
-  events: WebhookEvent[];
-  secret_hash: string;
-  is_active: boolean;
-  retry_count: number;
-  timeout_ms: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
-type WebhookEvent = 
-  | 'payment.created'
-  | 'payment.completed'
-  | 'payment.failed'
-  | 'batch_payment.created'
-  | 'batch_payment.completed'
-  | 'multisig.proposal_created'
-  | 'multisig.executed'
-  | 'subscription.payment_due'
-  | 'subscription.payment_completed';
-
-interface WebhookDelivery {
-  id: string;
-  webhook_id: string;
-  event_type: WebhookEvent;
-  payload: object;
-  status: 'pending' | 'delivered' | 'failed';
-  attempts: number;
-  last_attempt_at?: Date;
-  next_retry_at?: Date;
-  response_status?: number;
-  response_body?: string;
-  error_message?: string;
-  created_at: Date;
-  delivered_at?: Date;
-}
-
-interface WebhookService {
-  create(input: CreateWebhookInput): Promise<{ webhook: Webhook; secret: string }>;
-  list(ownerAddress: string): Promise<Webhook[]>;
-  update(id: string, input: UpdateWebhookInput): Promise<Webhook>;
-  delete(id: string, ownerAddress: string): Promise<void>;
-  getDeliveries(webhookId: string, limit?: number): Promise<WebhookDelivery[]>;
-  trigger(event: WebhookEvent, payload: object, ownerAddress: string): Promise<void>;
-  processDelivery(deliveryId: string): Promise<void>;
-}
-\`\`\`
-
-### 3. Subscription Service
-
-Manages recurring payments with automatic execution.
-
-\`\`\`typescript
-interface Subscription {
-  id: string;
-  owner_address: string;
-  service_name: string;
-  service_icon?: string;
-  wallet_address: string;
-  amount: string;
-  token: string;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  status: 'active' | 'paused' | 'cancelled' | 'payment_failed';
-  category: 'streaming' | 'saas' | 'membership' | 'utility' | 'other';
-  next_payment_date?: Date;
-  last_payment_date?: Date;
-  total_paid: string;
-  start_date: Date;
-  chain_id: number;
-  max_amount?: string;
-  notes?: string;
-  created_at: Date;
-  updated_at: Date;
-}
-
-interface SubscriptionService {
-  create(input: CreateSubscriptionInput): Promise<Subscription>;
-  list(ownerAddress: string): Promise<Subscription[]>;
-  update(id: string, input: UpdateSubscriptionInput): Promise<Subscription>;
-  cancel(id: string, ownerAddress: string): Promise<void>;
-  getDueSubscriptions(): Promise<Subscription[]>;
-  executePayment(subscriptionId: string): Promise<{ success: boolean; txHash?: string; error?: string }>;
-  calculateNextPaymentDate(frequency: string, fromDate: Date): Date;
-}
-\`\`\`
-
-### 4. Rate Limiter
-
-Enforces per-user and per-API-key rate limits using Redis.
-
-\`\`\`typescript
-interface RateLimitConfig {
-  perMinute: number;
-  perDay: number;
-}
-
-interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetAt: Date;
-  retryAfter?: number;
-}
-
-interface RateLimiter {
-  check(identifier: string, config: RateLimitConfig): Promise<RateLimitResult>;
-  increment(identifier: string): Promise<void>;
-  getRemainingQuota(identifier: string): Promise<{ minute: number; day: number }>;
-}
-\`\`\`
-
-### 5. Health Monitor
-
-Provides system health status and component checks.
-
-\`\`\`typescript
-interface HealthStatus {
-  status: 'ok' | 'degraded' | 'unhealthy';
-  timestamp: Date;
-  version: string;
-  components: ComponentHealth[];
-}
-
-interface ComponentHealth {
-  name: string;
-  status: 'ok' | 'degraded' | 'unhealthy';
-  latency_ms?: number;
-  message?: string;
-}
-
-interface HealthMonitor {
-  check(): Promise<HealthStatus>;
-  checkDatabase(): Promise<ComponentHealth>;
-  checkRedis(): Promise<ComponentHealth>;
-  checkGoServices(): Promise<ComponentHealth>;
-}
-\`\`\`
-
-### 6. Analytics Service
-
-Provides aggregated payment data and metrics.
-
-\`\`\`typescript
-interface AnalyticsSummary {
-  total_volume_usd: number;
-  transaction_count: number;
-  unique_vendors: number;
-  growth_rate_percent: number;
-  period: { start: Date; end: Date };
-}
-
-interface MonthlyData {
-  month: string;  // YYYY-MM format
-  volume_usd: number;
-  transaction_count: number;
-  sent: number;
-  received: number;
-}
-
-interface VendorAnalytics {
-  vendor_id: string;
-  vendor_name: string;
-  volume_usd: number;
-  transaction_count: number;
-  last_payment_date?: Date;
-}
-
-interface AnalyticsService {
-  getSummary(ownerAddress: string, startDate?: Date, endDate?: Date): Promise<AnalyticsSummary>;
-  getMonthlyData(ownerAddress: string, months?: number): Promise<MonthlyData[]>;
-  getByVendor(ownerAddress: string): Promise<VendorAnalytics[]>;
-  getByChain(ownerAddress: string): Promise<{ chain: string; volume_usd: number; count: number }[]>;
-}
-\`\`\`
-
-### 7. Notification Service
-
-Handles push notifications for payment events.
-
-\`\`\`typescript
-interface PushSubscription {
-  id: string;
-  owner_address: string;
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
-  preferences: NotificationPreferences;
-  created_at: Date;
-}
-
-interface NotificationPreferences {
-  payment_completed: boolean;
-  payment_received: boolean;
-  subscription_reminder: boolean;
-  subscription_executed: boolean;
-}
-
-interface NotificationService {
-  subscribe(ownerAddress: string, subscription: PushSubscriptionInput): Promise<PushSubscription>;
-  unsubscribe(ownerAddress: string): Promise<void>;
-  getPreferences(ownerAddress: string): Promise<NotificationPreferences>;
-  updatePreferences(ownerAddress: string, prefs: Partial<NotificationPreferences>): Promise<void>;
-  send(ownerAddress: string, notification: NotificationPayload): Promise<void>;
-}
-\`\`\`
-
-### 8. Go Services Bridge
-
-Circuit breaker pattern for Go service integration.
-
-\`\`\`typescript
-interface CircuitBreakerConfig {
-  timeout_ms: number;
-  failure_threshold: number;
-  recovery_time_ms: number;
-}
-
-interface GoServicesBridge {
-  isAvailable(): boolean;
-  executePayout(request: PayoutRequest): Promise<PayoutResponse>;
-  fallbackToTypeScript<T>(operation: () => Promise<T>): Promise<T>;
-  getHealthStatus(): Promise<{ payout: boolean; indexer: boolean; webhook: boolean }>;
-}
-\`\`\`
-
-
-
-## Data Models
-
-### Database Schema Extensions
-
-The following tables are already defined in the database (from SQL scripts 014 and 015):
-
-**Existing Tables:**
-- `api_keys` - API key storage with hashed secrets
-- `api_key_usage_logs` - Usage tracking for API keys
-- `webhooks` - Webhook configurations
-- `webhook_deliveries` - Webhook delivery attempts and status
-- `subscriptions` - Personal recurring payments
-- `auto_payments` - Enterprise recurring payments
-- `multisig_wallets` - Multi-signature wallet configurations
-- `multisig_signers` - Signers for multisig wallets
-- `multisig_transactions` - Pending/executed multisig transactions
-- `multisig_confirmations` - Signatures for multisig transactions
-
-**New Tables Required:**
-
-\`\`\`sql
--- Push notification subscriptions
-CREATE TABLE IF NOT EXISTS push_subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_address TEXT NOT NULL UNIQUE,
-  endpoint TEXT NOT NULL,
-  p256dh_key TEXT NOT NULL,
-  auth_key TEXT NOT NULL,
-  preferences JSONB NOT NULL DEFAULT '{"payment_completed": true, "payment_received": true, "subscription_reminder": true, "subscription_executed": true}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Analytics cache table
-CREATE TABLE IF NOT EXISTS analytics_cache (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_address TEXT NOT NULL,
-  cache_key TEXT NOT NULL,
-  data JSONB NOT NULL,
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(owner_address, cache_key)
-);
-
--- Rate limit tracking (Redis preferred, DB fallback)
-CREATE TABLE IF NOT EXISTS rate_limits (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  identifier TEXT NOT NULL,
-  window_type TEXT NOT NULL, -- 'minute' or 'day'
-  window_start TIMESTAMP WITH TIME ZONE NOT NULL,
-  count INTEGER DEFAULT 0,
-  UNIQUE(identifier, window_type, window_start)
-);
-\`\`\`
-
-### Payment-Vendor Relationship
-
-The existing `payments` table needs a `vendor_id` column to link payments to vendors:
-
-\`\`\`sql
--- Add vendor_id to payments table
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS vendor_id UUID REFERENCES vendors(id);
-
--- Create index for vendor lookups
-CREATE INDEX IF NOT EXISTS idx_payments_vendor_id ON payments(vendor_id);
-
--- Function to auto-link payments to vendors
-CREATE OR REPLACE FUNCTION link_payment_to_vendor()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Try to find a matching vendor by wallet address
-  SELECT id INTO NEW.vendor_id
-  FROM vendors
-  WHERE LOWER(wallet_address) = LOWER(NEW.to_address)
-    AND created_by = NEW.created_by
-  LIMIT 1;
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  tracesSampleRate: 1.0,
   
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger to auto-link on insert
-CREATE TRIGGER payment_vendor_link
-  BEFORE INSERT ON payments
-  FOR EACH ROW
-  EXECUTE FUNCTION link_payment_to_vendor();
-\`\`\`
-
-## API Endpoints
-
-### API Key Management
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/settings/api-keys` | Create new API key |
-| GET | `/api/settings/api-keys` | List all API keys |
-| DELETE | `/api/settings/api-keys/[id]` | Revoke API key |
-
-### Webhook Management
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/webhooks` | Create webhook |
-| GET | `/api/webhooks` | List webhooks |
-| PUT | `/api/webhooks/[id]` | Update webhook |
-| DELETE | `/api/webhooks/[id]` | Delete webhook |
-| GET | `/api/webhooks/[id]/deliveries` | Get delivery history |
-
-### Subscription Management
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/subscriptions` | Create subscription |
-| GET | `/api/subscriptions` | List subscriptions |
-| PUT | `/api/subscriptions/[id]` | Update subscription |
-| DELETE | `/api/subscriptions/[id]` | Cancel subscription |
-
-### Health & Status
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/health` | Basic health check |
-| GET | `/api/status` | Detailed component status |
-
-### Analytics
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/analytics/summary` | Aggregated summary |
-| GET | `/api/analytics/monthly` | Monthly breakdown |
-| GET | `/api/analytics/by-vendor` | Volume by vendor |
-| GET | `/api/analytics/by-chain` | Volume by chain |
-
-### Vendor Payments
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/vendors/[id]/payments` | Payments for vendor |
-
-### Notifications
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/notifications/subscribe` | Subscribe to push |
-| DELETE | `/api/notifications/unsubscribe` | Unsubscribe |
-| PUT | `/api/notifications/preferences` | Update preferences |
-
-## Middleware Stack
-
-\`\`\`typescript
-// Middleware execution order
-const middlewareStack = [
-  securityHeaders,      // Add security headers (CSP, CORS, etc.)
-  validateOrigin,       // Validate request origin
-  rateLimiter,          // Check rate limits
-  authenticateRequest,  // Validate session or API key
-  auditLogger,          // Log request for audit trail
-];
-
-// API Key Authentication
-async function authenticateRequest(req: NextRequest) {
-  const authHeader = req.headers.get('Authorization');
+  // 性能监控
+  integrations: [
+    new Sentry.BrowserTracing({
+      tracePropagationTargets: ["localhost", /^https:\/\/api\.protocolbanks\.com/],
+    }),
+  ],
   
-  if (authHeader?.startsWith('Bearer pb_')) {
-    // API Key authentication
-    const apiKey = authHeader.slice(7);
-    const validation = await apiKeyService.validate(apiKey);
-    
-    if (!validation.valid) {
-      return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
+  // 错误过滤
+  beforeSend(event, hint) {
+    // 过滤掉已知的非关键错误
+    if (event.exception?.values?.[0]?.value?.includes('ResizeObserver')) {
+      return null
     }
-    
-    // Attach owner address to request context
-    req.headers.set('x-owner-address', validation.key!.owner_address);
-    req.headers.set('x-auth-type', 'api-key');
-    req.headers.set('x-api-key-id', validation.key!.id);
-    
-    return null; // Continue to next middleware
-  }
+    return event
+  },
   
-  // Fall back to session authentication
-  const session = await getSession(req);
-  if (session?.address) {
-    req.headers.set('x-owner-address', session.address);
-    req.headers.set('x-auth-type', 'session');
-    return null;
-  }
-  
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
-\`\`\`
-
-## Webhook Delivery Flow
-
-\`\`\`mermaid
-sequenceDiagram
-    participant App as Application
-    participant WS as Webhook Service
-    participant DB as Database
-    participant Q as Job Queue
-    participant WH as Webhook Handler
-    participant Ext as External Endpoint
-    
-    App->>WS: trigger(event, payload)
-    WS->>DB: Get subscribed webhooks
-    DB-->>WS: Webhook list
-    
-    loop For each webhook
-        WS->>DB: Create delivery record
-        WS->>Q: Queue delivery job
-    end
-    
-    Q->>WH: Process delivery
-    WH->>WH: Sign payload (HMAC-SHA256)
-    WH->>Ext: POST with headers
-    
-    alt Success (2xx)
-        Ext-->>WH: Response
-        WH->>DB: Update status = delivered
-    else Failure
-        Ext-->>WH: Error/Timeout
-        WH->>DB: Increment attempts
-        alt attempts < max_retries
-            WH->>Q: Schedule retry (exponential backoff)
-        else
-            WH->>DB: Update status = failed
-        end
-    end
-\`\`\`
-
-## Circuit Breaker Pattern
-
-\`\`\`typescript
-class CircuitBreaker {
-  private state: 'closed' | 'open' | 'half-open' = 'closed';
-  private failures = 0;
-  private lastFailure?: Date;
-  
-  constructor(
-    private config: CircuitBreakerConfig = {
-      timeout_ms: 5000,
-      failure_threshold: 3,
-      recovery_time_ms: 30000,
+  // 用户上下文
+  beforeBreadcrumb(breadcrumb) {
+    if (breadcrumb.category === 'console') {
+      return null // 不记录 console 日志
     }
-  ) {}
-  
-  async execute<T>(
-    operation: () => Promise<T>,
-    fallback: () => Promise<T>
-  ): Promise<T> {
-    if (this.state === 'open') {
-      if (this.shouldAttemptRecovery()) {
-        this.state = 'half-open';
-      } else {
-        console.log('[CircuitBreaker] Open, using fallback');
-        return fallback();
-      }
-    }
-    
-    try {
-      const result = await Promise.race([
-        operation(),
-        this.timeout(),
-      ]);
-      
-      this.onSuccess();
-      return result as T;
-    } catch (error) {
-      this.onFailure();
-      console.log('[CircuitBreaker] Failure, using fallback:', error);
-      return fallback();
-    }
-  }
-  
-  private onSuccess() {
-    this.failures = 0;
-    this.state = 'closed';
-  }
-  
-  private onFailure() {
-    this.failures++;
-    this.lastFailure = new Date();
-    
-    if (this.failures >= this.config.failure_threshold) {
-      this.state = 'open';
-    }
-  }
-  
-  private shouldAttemptRecovery(): boolean {
-    if (!this.lastFailure) return true;
-    const elapsed = Date.now() - this.lastFailure.getTime();
-    return elapsed >= this.config.recovery_time_ms;
-  }
-  
-  private timeout(): Promise<never> {
-    return new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), this.config.timeout_ms);
-    });
-  }
-}
-\`\`\`
-
-
-
-## Correctness Properties
-
-*A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
-
-Based on the prework analysis, the following correctness properties have been identified:
-
-### Property 1: API Key Secret Hashing
-
-*For any* API key created, the stored `key_hash` SHALL be a valid SHA-256 hash that does not match the original secret, and validating the original secret against the hash SHALL succeed.
-
-**Validates: Requirements 1.5**
-
-### Property 2: API Key CRUD Round-Trip
-
-*For any* valid API key input, creating a key, listing keys, and then revoking the key SHALL result in the key no longer appearing in the list and failing validation.
-
-**Validates: Requirements 1.1, 1.2, 1.3**
-
-### Property 3: Unauthenticated Request Rejection
-
-*For any* request to a protected endpoint without valid authentication (no session, no API key, or invalid API key), the API SHALL return HTTP 401.
-
-**Validates: Requirements 1.4, 6.3**
-
-### Property 4: API Key Expiration and Status Validation
-
-*For any* API key that is expired or has `is_active = false`, validation SHALL fail regardless of the secret being correct.
-
-**Validates: Requirements 1.6**
-
-### Property 5: Webhook CRUD Round-Trip
-
-*For any* valid webhook input, creating a webhook, listing webhooks, updating it, and then deleting it SHALL result in the webhook and all associated deliveries being removed.
-
-**Validates: Requirements 2.1, 2.2, 2.3, 2.4**
-
-### Property 6: Webhook Signature Verification
-
-*For any* webhook delivery, the `X-Webhook-Signature` header SHALL be a valid HMAC-SHA256 signature of the payload using the webhook's secret, and verifying the signature with the correct secret SHALL succeed.
-
-**Validates: Requirements 2.6, 2.8**
-
-### Property 7: Webhook Retry Behavior
-
-*For any* webhook delivery that fails, the service SHALL retry up to 3 times with exponential backoff, and the `attempts` count SHALL increment with each retry.
-
-**Validates: Requirements 2.7**
-
-### Property 8: Subscription CRUD Round-Trip
-
-*For any* valid subscription input, creating a subscription, listing subscriptions, updating it, and then cancelling it SHALL result in the subscription having status "cancelled".
-
-**Validates: Requirements 3.1, 3.2, 3.3, 3.4**
-
-### Property 9: Subscription Next Payment Date Calculation
-
-*For any* subscription with a given frequency and start date, the calculated `next_payment_date` SHALL be exactly one frequency period after the start date (or last payment date).
-
-**Validates: Requirements 3.5, 9.5**
-
-### Property 10: Paused Subscription Non-Execution
-
-*For any* subscription with status "paused" or "cancelled", the subscription execution engine SHALL NOT create payment transactions for it.
-
-**Validates: Requirements 3.6, 9.7**
-
-### Property 11: Rate Limit Enforcement
-
-*For any* user or API key that exceeds their configured rate limit, subsequent requests within the same window SHALL return HTTP 429 with valid `Retry-After` and `X-RateLimit-*` headers.
-
-**Validates: Requirements 5.1, 5.2, 5.4, 5.5**
-
-### Property 12: Rate Limiter Fallback
-
-*For any* rate limit check when Redis is unavailable, the rate limiter SHALL fall back to in-memory tracking and still enforce limits (with potentially degraded accuracy).
-
-**Validates: Requirements 5.6**
-
-### Property 13: API Key Permission Enforcement
-
-*For any* API key with limited permissions, requests to endpoints requiring permissions not in the key's permission set SHALL return HTTP 403.
-
-**Validates: Requirements 6.4**
-
-### Property 14: Dual Authentication Support
-
-*For any* protected endpoint, both session-based authentication and API key authentication SHALL be accepted, and the owner address SHALL be correctly attached to the request context.
-
-**Validates: Requirements 6.2, 6.6**
-
-### Property 15: Webhook Event Triggering
-
-*For any* payment, batch payment, or multisig event, all webhooks subscribed to that event type SHALL receive a delivery with the correct event type, timestamp, and relevant data.
-
-**Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8**
-
-### Property 16: Circuit Breaker Behavior
-
-*For any* Go service call that fails 3 times consecutively, the circuit breaker SHALL open and route subsequent requests to the TypeScript fallback until recovery.
-
-**Validates: Requirements 8.2, 8.3**
-
-### Property 17: Subscription Payment Execution
-
-*For any* due subscription with status "active" and sufficient balance, executing the payment SHALL create a payment transaction, update `last_payment_date`, and calculate the new `next_payment_date`.
-
-**Validates: Requirements 9.2, 9.3**
-
-### Property 18: Multisig Threshold Confirmation
-
-*For any* multisig transaction that receives confirmations equal to or greater than the wallet's threshold, the transaction status SHALL be updated to "confirmed".
-
-**Validates: Requirements 10.1**
-
-### Property 19: Multisig Signature Verification
-
-*For any* multisig transaction execution, all signatures SHALL be verified against the signer addresses before on-chain execution.
-
-**Validates: Requirements 10.5**
-
-### Property 20: Payment-Vendor Auto-Linking
-
-*For any* payment created with a `to_address` that matches (case-insensitively) a vendor's `wallet_address` owned by the same user, the payment SHALL be automatically linked to that vendor via `vendor_id`.
-
-**Validates: Requirements 12.1, 12.6**
-
-### Property 21: Vendor Statistics Update
-
-*For any* completed payment linked to a vendor, the vendor's `monthly_volume` and `transaction_count` SHALL be updated to reflect the new payment.
-
-**Validates: Requirements 12.4**
-
-### Property 22: Analytics Data Aggregation
-
-*For any* analytics query with date range parameters, the returned data SHALL only include payments within that date range, and aggregations SHALL be mathematically correct.
-
-**Validates: Requirements 13.1, 13.2, 13.3, 13.4, 13.6**
-
-### Property 23: Notification Preference Respect
-
-*For any* notification event, the notification SHALL only be sent if the user has subscribed and their preferences allow that notification type.
-
-**Validates: Requirements 14.4**
-
-### Property 24: Dashboard Activity Display
-
-*For any* user with payments, the dashboard activity feed SHALL display at most 5 payments, sorted by most recent first, with vendor names resolved for linked payments.
-
-**Validates: Requirements 11.1, 11.2, 11.4**
-
-## Error Handling
-
-### API Error Responses
-
-All API endpoints SHALL return consistent error responses:
-
-\`\`\`typescript
-interface APIError {
-  error: string;
-  code?: string;
-  details?: object;
+    return breadcrumb
+  },
+})
+```
+
+#### 1.1.2 Go 服务集成
+
+```go
+// services/shared/sentry.go
+package shared
+
+import (
+    "github.com/getsentry/sentry-go"
+    "time"
+)
+
+func InitSentry(dsn string, environment string) error {
+    return sentry.Init(sentry.ClientOptions{
+        Dsn:              dsn,
+        Environment:      environment,
+        TracesSampleRate: 1.0,
+        BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+            // 添加自定义上下文
+            event.Tags["service"] = "payout-engine"
+            return event
+        },
+    })
 }
 
-// HTTP Status Codes
-// 400 - Bad Request (invalid input)
-// 401 - Unauthorized (missing or invalid authentication)
-// 403 - Forbidden (insufficient permissions)
-// 404 - Not Found (resource doesn't exist)
-// 429 - Too Many Requests (rate limited)
-// 500 - Internal Server Error (unexpected error)
-// 503 - Service Unavailable (Go services down, using fallback)
-\`\`\`
-
-### Webhook Delivery Errors
-
-\`\`\`typescript
-interface WebhookDeliveryError {
-  type: 'timeout' | 'connection_refused' | 'invalid_response' | 'server_error';
-  message: string;
-  response_status?: number;
-  response_body?: string;
-}
-
-// Retry schedule (exponential backoff)
-// Attempt 1: Immediate
-// Attempt 2: 1 minute delay
-// Attempt 3: 5 minutes delay
-// After 3 failures: Mark as failed, no more retries
-\`\`\`
-
-### Circuit Breaker States
-
-\`\`\`typescript
-// Closed: Normal operation, requests go to Go services
-// Open: Go services unavailable, all requests go to TypeScript fallback
-// Half-Open: Testing recovery, single request goes to Go services
-
-// State transitions:
-// Closed → Open: After 3 consecutive failures
-// Open → Half-Open: After 30 seconds
-// Half-Open → Closed: On successful request
-// Half-Open → Open: On failed request
-\`\`\`
-
-## Testing Strategy
-
-### Unit Tests
-
-Unit tests focus on specific examples and edge cases:
-
-- API key hashing and validation
-- Webhook signature generation and verification
-- Subscription next payment date calculation (including month-end edge cases)
-- Rate limit window calculations
-- Circuit breaker state transitions
-- Analytics aggregation functions
-
-### Property-Based Tests
-
-Property-based tests verify universal properties across many generated inputs using **fast-check** library:
-
-\`\`\`typescript
-import fc from 'fast-check';
-
-// Example: API Key Round-Trip Property
-describe('API Key Service', () => {
-  it('Property 2: API Key CRUD Round-Trip', async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.record({
-          name: fc.string({ minLength: 1, maxLength: 100 }),
-          permissions: fc.array(fc.constantFrom('read', 'write', 'payments')),
-          rate_limit_per_minute: fc.integer({ min: 1, max: 1000 }),
-        }),
-        async (input) => {
-          // Create key
-          const { key, secret } = await apiKeyService.create({
-            ...input,
-            owner_address: '0xTestAddress',
-          });
-          
-          // Verify in list
-          const keys = await apiKeyService.list('0xTestAddress');
-          expect(keys.some(k => k.id === key.id)).toBe(true);
-          
-          // Revoke key
-          await apiKeyService.revoke(key.id, '0xTestAddress');
-          
-          // Verify not in list
-          const keysAfter = await apiKeyService.list('0xTestAddress');
-          expect(keysAfter.some(k => k.id === key.id)).toBe(false);
-          
-          // Verify validation fails
-          const validation = await apiKeyService.validate(secret);
-          expect(validation.valid).toBe(false);
+func CaptureError(err error, context map[string]interface{}) {
+    sentry.WithScope(func(scope *sentry.Scope) {
+        for key, value := range context {
+            scope.SetContext(key, value)
         }
-      ),
-      { numRuns: 100 }
-    );
-  });
-});
-\`\`\`
+        sentry.CaptureException(err)
+    })
+    sentry.Flush(2 * time.Second)
+}
+```
 
-### Integration Tests
+---
 
-Integration tests verify end-to-end flows:
+### 1.2 Prometheus 指标收集
 
-- Full webhook delivery cycle (trigger → sign → deliver → retry)
-- Subscription execution cycle (due check → payment → update)
-- Multisig confirmation and execution flow
-- Go services circuit breaker behavior
+#### 1.2.1 Next.js 指标导出
 
-### Test Configuration
+```typescript
+// lib/monitoring/metrics.ts
+import { Counter, Histogram, Registry } from 'prom-client'
 
-- Property tests: Minimum 100 iterations per property
-- Each property test references its design document property number
-- Tag format: `Feature: production-readiness, Property N: [property_text]`
-- Testing framework: Jest with fast-check for property-based testing
+export const register = new Registry()
+
+// HTTP 请求计数器
+export const httpRequestsTotal = new Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status'],
+  registers: [register],
+})
+
+// HTTP 请求延迟
+export const httpRequestDuration = new Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'HTTP request duration in seconds',
+  labelNames: ['method', 'route', 'status'],
+  buckets: [0.1, 0.5, 1, 2, 5],
+  registers: [register],
+})
+
+// 支付成功率
+export const paymentSuccessRate = new Counter({
+  name: 'payment_success_total',
+  help: 'Total number of successful payments',
+  labelNames: ['chain', 'token'],
+  registers: [register],
+})
+
+// 批量支付吞吐量
+export const batchPaymentThroughput = new Histogram({
+  name: 'batch_payment_throughput',
+  help: 'Batch payment throughput (transactions per second)',
+  buckets: [10, 50, 100, 500, 1000],
+  registers: [register],
+})
+```
+
+#### 1.2.2 指标导出端点
+
+```typescript
+// app/api/metrics/route.ts
+import { NextResponse } from 'next/server'
+import { register } from '@/lib/monitoring/metrics'
+
+export async function GET() {
+  const metrics = await register.metrics()
+  
+  return new NextResponse(metrics, {
+    headers: {
+      'Content-Type': register.contentType,
+    },
+  })
+}
+```
+
+#### 1.2.3 Go 服务指标
+
+```go
+// services/shared/metrics.go
+package shared
+
+import (
+    "github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+    // 支付处理时间
+    PaymentProcessingDuration = promauto.NewHistogramVec(
+        prometheus.HistogramOpts{
+            Name:    "payment_processing_duration_seconds",
+            Help:    "Payment processing duration in seconds",
+            Buckets: prometheus.DefBuckets,
+        },
+        []string{"chain", "token"},
+    )
+    
+    // 并发支付数
+    ConcurrentPayments = promauto.NewGauge(
+        prometheus.GaugeOpts{
+            Name: "concurrent_payments",
+            Help: "Number of concurrent payment operations",
+        },
+    )
+    
+    // 失败重试次数
+    PaymentRetries = promauto.NewCounterVec(
+        prometheus.CounterOpts{
+            Name: "payment_retries_total",
+            Help: "Total number of payment retries",
+        },
+        []string{"reason"},
+    )
+)
+```
+
+---
+
+### 1.3 Grafana 仪表盘
+
+#### 1.3.1 仪表盘配置
+
+```json
+{
+  "dashboard": {
+    "title": "Protocol Banks - Production Monitoring",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m])",
+            "legendFormat": "5xx errors"
+          }
+        ]
+      },
+      {
+        "title": "Response Time (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          }
+        ]
+      },
+      {
+        "title": "Payment Success Rate",
+        "targets": [
+          {
+            "expr": "rate(payment_success_total[5m])",
+            "legendFormat": "{{chain}} - {{token}}"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 1.4 告警系统
+
+#### 1.4.1 Alertmanager 配置
+
+```yaml
+# alertmanager.yml
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+
+receivers:
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:3000/api/alerts/webhook'
+  
+  - name: 'critical-alerts'
+    telegram_configs:
+      - bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}
+        message: |
+          🚨 Critical Alert
+          Alert: {{ .GroupLabels.alertname }}
+          Summary: {{ .CommonAnnotations.summary }}
+    email_configs:
+      - to: 'ops@protocolbanks.com'
+        from: 'alerts@protocolbanks.com'
+        smarthost: 'smtp.gmail.com:587'
+  
+  - name: 'warning-alerts'
+    webhook_configs:
+      - url: 'http://localhost:3000/api/alerts/webhook'
+```
+
+#### 1.4.2 告警规则
+
+```yaml
+# prometheus-rules.yml
+groups:
+  - name: application_alerts
+    interval: 30s
+    rules:
+      # 高错误率
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected ({{ $value }})"
+          description: "Error rate is above 5% for 5 minutes"
+      
+      # 慢响应时间
+      - alert: SlowResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API response time is slow ({{ $value }}s)"
+      
+      # 支付失败率高
+      - alert: HighPaymentFailureRate
+        expr: |
+          rate(payment_failures_total[5m]) / 
+          rate(payment_attempts_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Payment failure rate is high ({{ $value }})"
+      
+      # 数据库连接池耗尽
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          database_connections_active / 
+          database_connections_max > 0.9
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool is nearly exhausted"
+      
+      # Redis 连接失败
+      - alert: RedisConnectionFailure
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis connection is down"
+```
+
+---
+
+## 2. 测试系统设计
+
+### 2.1 单元测试框架
+
+#### 2.1.1 Jest 配置
+
+```javascript
+// jest.config.js
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/lib', '<rootDir>/app'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
+  collectCoverageFrom: [
+    'lib/**/*.ts',
+    'app/api/**/*.ts',
+    '!**/*.d.ts',
+    '!**/node_modules/**',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+}
+```
+
+#### 2.1.2 测试工具函数
+
+```typescript
+// lib/test-utils/test-helpers.ts
+import { createMocks } from 'node-mocks-http'
+import type { NextApiRequest, NextApiResponse } from 'next'
+
+export function createMockRequest(options: any = {}) {
+  const { req, res } = createMocks<NextApiRequest, NextApiResponse>(options)
+  return { req, res }
+}
+
+export function mockSupabaseClient() {
+  return {
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn().mockResolvedValue({ data: null, error: null }),
+  }
+}
+
+export function mockEthersProvider() {
+  return {
+    getBalance: jest.fn().mockResolvedValue(ethers.parseEther('10')),
+    getTransactionCount: jest.fn().mockResolvedValue(0),
+    estimateGas: jest.fn().mockResolvedValue(21000n),
+    sendTransaction: jest.fn().mockResolvedValue({
+      hash: '0x123...',
+      wait: jest.fn().mockResolvedValue({ status: 1 }),
+    }),
+  }
+}
+```
+
+### 2.2 集成测试
+
+#### 2.2.1 API 端点测试
+
+```typescript
+// app/api/payments/__tests__/create.test.ts
+import { POST } from '../route'
+import { createMockRequest } from '@/lib/test-utils/test-helpers'
+
+describe('POST /api/payments', () => {
+  it('should create a payment successfully', async () => {
+    const { req } = createMockRequest({
+      method: 'POST',
+      body: {
+        recipient: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+        amount: '100',
+        token: 'USDC',
+        chain_id: 137,
+      },
+      headers: {
+        'authorization': 'Bearer test-api-key',
+      },
+    })
+    
+    const response = await POST(req)
+    const data = await response.json()
+    
+    expect(response.status).toBe(200)
+    expect(data).toHaveProperty('tx_hash')
+    expect(data.status).toBe('pending')
+  })
+  
+  it('should reject invalid recipient address', async () => {
+    const { req } = createMockRequest({
+      method: 'POST',
+      body: {
+        recipient: 'invalid-address',
+        amount: '100',
+        token: 'USDC',
+        chain_id: 137,
+      },
+    })
+    
+    const response = await POST(req)
+    
+    expect(response.status).toBe(400)
+  })
+})
+```
+
+### 2.3 E2E 测试
+
+#### 2.3.1 Playwright 配置
+
+```typescript
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Mobile Chrome',
+      use: { ...devices['Pixel 5'] },
+    },
+  ],
+  webServer: {
+    command: 'pnpm dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+  },
+})
+```
+
+#### 2.3.2 支付流程 E2E 测试
+
+```typescript
+// e2e/payment-flow.spec.ts
+import { test, expect } from '@playwright/test'
+
+test.describe('Payment Flow', () => {
+  test('should complete single payment', async ({ page }) => {
+    // 登录
+    await page.goto('/auth/signin')
+    await page.fill('[name="email"]', 'test@example.com')
+    await page.click('button[type="submit"]')
+    
+    // 等待登录完成
+    await page.waitForURL('/dashboard')
+    
+    // 导航到支付页面
+    await page.goto('/pay')
+    
+    // 填写支付表单
+    await page.fill('[name="recipient"]', '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb')
+    await page.fill('[name="amount"]', '100')
+    await page.selectOption('[name="token"]', 'USDC')
+    await page.selectOption('[name="chain"]', '137')
+    
+    // 提交支付
+    await page.click('button:has-text("Send Payment")')
+    
+    // 等待确认
+    await expect(page.locator('text=Payment Successful')).toBeVisible()
+    
+    // 验证交易哈希
+    const txHash = await page.locator('[data-testid="tx-hash"]').textContent()
+    expect(txHash).toMatch(/^0x[a-fA-F0-9]{64}$/)
+  })
+  
+  test('should complete batch payment', async ({ page }) => {
+    await page.goto('/batch-payment')
+    
+    // 上传 CSV 文件
+    const fileInput = page.locator('input[type="file"]')
+    await fileInput.setInputFiles('./fixtures/batch-payment.csv')
+    
+    // 等待验证完成
+    await expect(page.locator('text=Validation Complete')).toBeVisible()
+    
+    // 查看摘要
+    const recipientCount = await page.locator('[data-testid="recipient-count"]').textContent()
+    expect(recipientCount).toBe('10')
+    
+    // 执行批量支付
+    await page.click('button:has-text("Execute Batch Payment")')
+    
+    // 等待完成
+    await expect(page.locator('text=Batch Payment Complete')).toBeVisible({ timeout: 60000 })
+  })
+})
+```
+
+---
+
+## 3. 安全系统设计
+
+### 3.1 密钥轮换机制
+
+#### 3.1.1 自动轮换脚本
+
+```typescript
+// scripts/rotate-api-keys.ts
+import { createClient } from '@supabase/supabase-js'
+import { hashApiKey } from '@/lib/hash-key'
+import crypto from 'crypto'
+
+async function rotateApiKeys() {
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  
+  // 查找需要轮换的密钥（90 天以上）
+  const { data: keysToRotate } = await supabase
+    .from('api_keys')
+    .select('*')
+    .lt('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+    .eq('status', 'active')
+  
+  for (const key of keysToRotate || []) {
+    // 生成新密钥
+    const newKey = `pb_${crypto.randomBytes(32).toString('hex')}`
+    const hashedKey = await hashApiKey(newKey)
+    
+    // 更新数据库
+    await supabase
+      .from('api_keys')
+      .update({
+        key_hash: hashedKey,
+        rotated_at: new Date().toISOString(),
+      })
+      .eq('id', key.id)
+    
+    // 发送通知给用户
+    await sendKeyRotationNotification(key.user_id, newKey)
+    
+    console.log(`Rotated API key for user ${key.user_id}`)
+  }
+}
+
+async function sendKeyRotationNotification(userId: string, newKey: string) {
+  // 发送邮件通知
+  // 实现邮件发送逻辑
+}
+
+// 定时任务（每天运行）
+rotateApiKeys().catch(console.error)
+```
+
+### 3.2 HashiCorp Vault 集成
+
+```typescript
+// lib/vault/client.ts
+import vault from 'node-vault'
+
+export class VaultClient {
+  private client: any
+  
+  constructor() {
+    this.client = vault({
+      apiVersion: 'v1',
+      endpoint: process.env.VAULT_ADDR,
+      token: process.env.VAULT_TOKEN,
+    })
+  }
+  
+  async getSecret(path: string): Promise<any> {
+    try {
+      const result = await this.client.read(path)
+      return result.data
+    } catch (error) {
+      console.error('Failed to read secret from Vault:', error)
+      throw error
+    }
+  }
+  
+  async setSecret(path: string, data: any): Promise<void> {
+    try {
+      await this.client.write(path, { data })
+    } catch (error) {
+      console.error('Failed to write secret to Vault:', error)
+      throw error
+    }
+  }
+  
+  async rotateSecret(path: string): Promise<string> {
+    const newSecret = crypto.randomBytes(32).toString('hex')
+    await this.setSecret(path, { value: newSecret })
+    return newSecret
+  }
+}
+
+export const vaultClient = new VaultClient()
+```
+
+---
+
+## 4. 用户体验设计
+
+### 4.1 新手引导系统
+
+```typescript
+// components/onboarding/onboarding-tour.tsx
+'use client'
+
+import { useState } from 'react'
+import Joyride, { Step } from 'react-joyride'
+
+const steps: Step[] = [
+  {
+    target: '[data-tour="wallet-connect"]',
+    content: '首先，连接你的钱包以开始使用 Protocol Banks',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="balance"]',
+    content: '这里显示你的余额和资产分布',
+  },
+  {
+    target: '[data-tour="send-payment"]',
+    content: '点击这里发送单笔支付',
+  },
+  {
+    target: '[data-tour="batch-payment"]',
+    content: '或者使用批量支付功能一次性支付多个收款人',
+  },
+  {
+    target: '[data-tour="agents"]',
+    content: '创建 AI Agent 来自动化你的支付流程',
+  },
+]
+
+export function OnboardingTour() {
+  const [run, setRun] = useState(true)
+  
+  return (
+    <Joyride
+      steps={steps}
+      run={run}
+      continuous
+      showProgress
+      showSkipButton
+      styles={{
+        options: {
+          primaryColor: '#3b82f6',
+        },
+      }}
+      callback={(data) => {
+        if (data.status === 'finished' || data.status === 'skipped') {
+          setRun(false)
+          localStorage.setItem('onboarding-completed', 'true')
+        }
+      }}
+    />
+  )
+}
+```
+
+### 4.2 错误处理优化
+
+```typescript
+// lib/errors/error-handler.ts
+export class AppError extends Error {
+  constructor(
+    public code: string,
+    public message: string,
+    public userMessage: string,
+    public solution?: string,
+    public statusCode: number = 500
+  ) {
+    super(message)
+    this.name = 'AppError'
+  }
+}
+
+export const ErrorCodes = {
+  INSUFFICIENT_BALANCE: {
+    code: 'INSUFFICIENT_BALANCE',
+    message: 'Insufficient balance for transaction',
+    userMessage: '余额不足',
+    solution: '请充值或减少支付金额',
+    statusCode: 400,
+  },
+  INVALID_ADDRESS: {
+    code: 'INVALID_ADDRESS',
+    message: 'Invalid recipient address',
+    userMessage: '收款地址无效',
+    solution: '请检查地址格式是否正确',
+    statusCode: 400,
+  },
+  NETWORK_ERROR: {
+    code: 'NETWORK_ERROR',
+    message: 'Network request failed',
+    userMessage: '网络连接失败',
+    solution: '请检查网络连接后重试',
+    statusCode: 503,
+  },
+}
+
+export function handleError(error: unknown) {
+  if (error instanceof AppError) {
+    return {
+      code: error.code,
+      message: error.userMessage,
+      solution: error.solution,
+      statusCode: error.statusCode,
+    }
+  }
+  
+  // 未知错误
+  return {
+    code: 'UNKNOWN_ERROR',
+    message: '发生未知错误',
+    solution: '请稍后重试或联系支持团队',
+    statusCode: 500,
+  }
+}
+```
+
+---
+
+## 5. 文档系统设计
+
+### 5.1 OpenAPI 规范
+
+```yaml
+# openapi.yaml
+openapi: 3.0.0
+info:
+  title: Protocol Banks API
+  version: 2.0.0
+  description: Web3 Programmable Commerce Infrastructure
+
+servers:
+  - url: https://api.protocolbanks.com
+    description: Production
+  - url: http://localhost:3000
+    description: Development
+
+paths:
+  /api/payments:
+    post:
+      summary: Create a payment
+      tags:
+        - Payments
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '200':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      
+  schemas:
+    CreatePaymentRequest:
+      type: object
+      required:
+        - recipient
+        - amount
+        - token
+        - chain_id
+      properties:
+        recipient:
+          type: string
+          example: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+        amount:
+          type: string
+          example: "100"
+        token:
+          type: string
+          enum: [USDC, USDT, DAI, WETH]
+        chain_id:
+          type: integer
+          example: 137
+        reason:
+          type: string
+          example: "Invoice payment"
+    
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        tx_hash:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+        created_at:
+          type: string
+          format: date-time
+```
+
+---
+
+## 6. CI/CD 流程设计
+
+### 6.1 GitHub Actions 工作流
+
+```yaml
+# .github/workflows/ci.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Run linter
+        run: pnpm lint
+      
+      - name: Run unit tests
+        run: pnpm test:unit
+      
+      - name: Run integration tests
+        run: pnpm test:integration
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+  
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Install Playwright
+        run: pnpm exec playwright install --with-deps
+      
+      - name: Run E2E tests
+        run: pnpm test:e2e
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-report
+          path: playwright-report/
+  
+  deploy:
+    needs: [test, e2e]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+```
+
+---
+
+## 7. 部署架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Production Environment                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Vercel      │  │  Kubernetes  │  │  Supabase    │      │
+│  │  (Next.js)   │  │  (Go)        │  │  (Database)  │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│         │                  │                  │             │
+│         └──────────────────┼──────────────────┘             │
+│                            │                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Sentry      │  │  Prometheus  │  │  Grafana     │      │
+│  │  (Errors)    │  │  (Metrics)   │  │  (Dashboard) │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
