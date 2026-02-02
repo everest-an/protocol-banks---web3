@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -199,10 +201,30 @@ func (h *RainHandler) verifySignature(body []byte, signature, timestamp string) 
 
 // handleTransaction 处理交易事件
 func (h *RainHandler) handleTransaction(ctx interface{}, payload RainWebhookPayload) {
+	realCtx, ok := ctx.(context.Context)
+	if !ok {
+		log.Error().Msg("Invalid context type for transaction handler")
+		return
+	}
+
 	var tx RainTransaction
 	if err := json.Unmarshal(payload.Data, &tx); err != nil {
 		log.Error().Err(err).Msg("Failed to parse transaction data")
 		return
+	}
+
+	// 保存交易记录到数据库
+	if err := h.store.SaveRainTransaction(realCtx, tx.TransactionID, tx.CardID, tx.UserID,
+		tx.MerchantName, tx.MerchantCategory, tx.Amount, tx.Currency, tx.Status); err != nil {
+		log.Error().Err(err).Str("tx_id", tx.TransactionID).Msg("Failed to save transaction")
+		return
+	}
+
+	// 创建用户通知
+	notifMsg := fmt.Sprintf("%.2f %s at %s", tx.Amount, tx.Currency, tx.MerchantName)
+	if err := h.store.CreateNotification(realCtx, tx.UserID, "card_transaction",
+		"Card Transaction", notifMsg); err != nil {
+		log.Error().Err(err).Msg("Failed to create transaction notification")
 	}
 
 	log.Info().
@@ -210,34 +232,205 @@ func (h *RainHandler) handleTransaction(ctx interface{}, payload RainWebhookPayl
 		Str("merchant", tx.MerchantName).
 		Float64("amount", tx.Amount).
 		Str("status", tx.Status).
-		Msg("Card transaction processed")
-
-	// TODO: 同步到数据库，触发通知等
+		Msg("Card transaction processed and saved")
 }
 
 // handleCardCreated 处理卡片创建事件
 func (h *RainHandler) handleCardCreated(ctx interface{}, payload RainWebhookPayload) {
-	log.Info().Str("event_id", payload.EventID).Msg("Card created event")
-	// TODO: 更新用户卡片状态
+	realCtx, ok := ctx.(context.Context)
+	if !ok {
+		log.Error().Msg("Invalid context type for card created handler")
+		return
+	}
+
+	var cardData struct {
+		CardID        string `json:"card_id"`
+		UserID        string `json:"user_id"`
+		WalletAddress string `json:"wallet_address"`
+		Last4         string `json:"last_4"`
+	}
+	if err := json.Unmarshal(payload.Data, &cardData); err != nil {
+		log.Error().Err(err).Msg("Failed to parse card created data")
+		return
+	}
+
+	if err := h.store.UpdateCardStatus(realCtx, cardData.CardID, "created"); err != nil {
+		log.Error().Err(err).Str("card_id", cardData.CardID).Msg("Failed to update card status")
+		return
+	}
+
+	log.Info().Str("event_id", payload.EventID).Str("card_id", cardData.CardID).Msg("Card created and status updated")
 }
 
 // handleCardActivated 处理卡片激活事件
 func (h *RainHandler) handleCardActivated(ctx interface{}, payload RainWebhookPayload) {
-	log.Info().Str("event_id", payload.EventID).Msg("Card activated event")
-	// TODO: 更新用户卡片状态
+	realCtx, ok := ctx.(context.Context)
+	if !ok {
+		log.Error().Msg("Invalid context type for card activated handler")
+		return
+	}
+
+	var cardData struct {
+		CardID string `json:"card_id"`
+		UserID string `json:"user_id"`
+	}
+	if err := json.Unmarshal(payload.Data, &cardData); err != nil {
+		log.Error().Err(err).Msg("Failed to parse card activated data")
+		return
+	}
+
+	if err := h.store.UpdateCardStatus(realCtx, cardData.CardID, "active"); err != nil {
+		log.Error().Err(err).Str("card_id", cardData.CardID).Msg("Failed to activate card")
+		return
+	}
+
+	// 通知用户卡片已激活
+	if err := h.store.CreateNotification(realCtx, cardData.UserID, "card_activated",
+		"Card Activated", "Your Rain card has been activated and is ready to use."); err != nil {
+		log.Error().Err(err).Msg("Failed to create card activation notification")
+	}
+
+	log.Info().Str("event_id", payload.EventID).Str("card_id", cardData.CardID).Msg("Card activated and status updated")
 }
 
 // handleSettlement 处理结算事件
 func (h *RainHandler) handleSettlement(ctx interface{}, payload RainWebhookPayload) {
-	log.Info().Str("event_id", payload.EventID).Msg("Settlement event")
-	// TODO: 处理结算，更新用户余额
+	realCtx, ok := ctx.(context.Context)
+	if !ok {
+		log.Error().Msg("Invalid context type for settlement handler")
+		return
+	}
+
+	var settlement struct {
+		SettlementID string  `json:"settlement_id"`
+		CardID       string  `json:"card_id"`
+		UserID       string  `json:"user_id"`
+		Amount       float64 `json:"amount"`
+		Currency     string  `json:"currency"`
+	}
+	if err := json.Unmarshal(payload.Data, &settlement); err != nil {
+		log.Error().Err(err).Msg("Failed to parse settlement data")
+		return
+	}
+
+	// 记录结算并更新余额
+	if err := h.store.ProcessSettlement(realCtx, settlement.SettlementID, settlement.CardID,
+		settlement.UserID, settlement.Amount, settlement.Currency); err != nil {
+		log.Error().Err(err).Str("settlement_id", settlement.SettlementID).Msg("Failed to process settlement")
+		return
+	}
+
+	log.Info().
+		Str("event_id", payload.EventID).
+		Str("settlement_id", settlement.SettlementID).
+		Float64("amount", settlement.Amount).
+		Msg("Settlement processed and balance updated")
 }
 
 // checkAuthorization 检查授权
 func (h *RainHandler) checkAuthorization(ctx interface{}, req RainAuthorizationRequest) (bool, string) {
-	// TODO: 实现授权检查逻辑
-	// 1. 检查用户余额
-	// 2. 检查交易限额
-	// 3. 检查黑名单商户
+	// 转换 context
+	realCtx, ok := ctx.(context.Context)
+	if !ok {
+		log.Error().Msg("Invalid context type for authorization check")
+		return false, "internal_error"
+	}
+
+	// 使用带超时的 context（授权请求通常需要快速响应）
+	checkCtx, cancel := context.WithTimeout(realCtx, 5*time.Second)
+	defer cancel()
+
+	// 1. 获取卡用户信息
+	userInfo, err := h.store.GetCardUserInfo(checkCtx, req.CardID)
+	if err != nil {
+		log.Error().Err(err).Str("card_id", req.CardID).Msg("Failed to get card user info")
+		// 查询失败时拒绝交易（安全优先）
+		h.recordAuthorizationResult(checkCtx, req, false, "card_not_found")
+		return false, "card_not_found"
+	}
+
+	// 2. 检查卡是否激活
+	if !userInfo.IsActive {
+		log.Warn().Str("card_id", req.CardID).Msg("Card is not active")
+		h.recordAuthorizationResult(checkCtx, req, false, "card_inactive")
+		return false, "card_inactive"
+	}
+
+	// 3. 检查余额是否充足
+	if userInfo.Balance < req.Amount {
+		log.Warn().
+			Str("card_id", req.CardID).
+			Float64("balance", userInfo.Balance).
+			Float64("amount", req.Amount).
+			Msg("Insufficient balance")
+		h.recordAuthorizationResult(checkCtx, req, false, "insufficient_balance")
+		return false, "insufficient_balance"
+	}
+
+	// 4. 检查单笔交易限额
+	if req.Amount > userInfo.SingleTxLimit {
+		log.Warn().
+			Str("card_id", req.CardID).
+			Float64("amount", req.Amount).
+			Float64("limit", userInfo.SingleTxLimit).
+			Msg("Single transaction limit exceeded")
+		h.recordAuthorizationResult(checkCtx, req, false, "single_tx_limit_exceeded")
+		return false, "single_tx_limit_exceeded"
+	}
+
+	// 5. 检查日限额
+	if userInfo.DailySpent+req.Amount > userInfo.DailyLimit {
+		log.Warn().
+			Str("card_id", req.CardID).
+			Float64("daily_spent", userInfo.DailySpent).
+			Float64("amount", req.Amount).
+			Float64("limit", userInfo.DailyLimit).
+			Msg("Daily limit exceeded")
+		h.recordAuthorizationResult(checkCtx, req, false, "daily_limit_exceeded")
+		return false, "daily_limit_exceeded"
+	}
+
+	// 6. 检查月限额
+	if userInfo.MonthlySpent+req.Amount > userInfo.MonthlyLimit {
+		log.Warn().
+			Str("card_id", req.CardID).
+			Float64("monthly_spent", userInfo.MonthlySpent).
+			Float64("amount", req.Amount).
+			Float64("limit", userInfo.MonthlyLimit).
+			Msg("Monthly limit exceeded")
+		h.recordAuthorizationResult(checkCtx, req, false, "monthly_limit_exceeded")
+		return false, "monthly_limit_exceeded"
+	}
+
+	// 7. 检查商户黑名单
+	isBlacklisted, err := h.store.IsMerchantBlacklisted(checkCtx, req.MerchantName, "")
+	if err != nil {
+		log.Error().Err(err).Str("merchant", req.MerchantName).Msg("Failed to check merchant blacklist")
+		// 查询失败时拒绝交易（安全优先）
+		h.recordAuthorizationResult(checkCtx, req, false, "blacklist_check_failed")
+		return false, "blacklist_check_failed"
+	}
+	if isBlacklisted {
+		log.Warn().Str("merchant", req.MerchantName).Msg("Merchant is blacklisted")
+		h.recordAuthorizationResult(checkCtx, req, false, "merchant_blacklisted")
+		return false, "merchant_blacklisted"
+	}
+
+	// 所有检查通过，批准交易
+	log.Info().
+		Str("card_id", req.CardID).
+		Str("user_id", req.UserID).
+		Float64("amount", req.Amount).
+		Str("merchant", req.MerchantName).
+		Msg("Authorization approved")
+
+	h.recordAuthorizationResult(checkCtx, req, true, "approved")
 	return true, "approved"
+}
+
+// recordAuthorizationResult 记录授权结果
+func (h *RainHandler) recordAuthorizationResult(ctx context.Context, req RainAuthorizationRequest, approved bool, reason string) {
+	if err := h.store.RecordAuthorization(ctx, req.AuthorizationID, req.CardID, req.UserID, req.MerchantName, req.Amount, approved, reason); err != nil {
+		log.Error().Err(err).Str("auth_id", req.AuthorizationID).Msg("Failed to record authorization")
+	}
 }

@@ -70,13 +70,16 @@ export default function HomePage() {
   const [tierFilter, setTierFilter] = useState<"all" | "subsidiary" | "partner" | "vendor">("all")
   const [viewMode, setViewMode] = useState<"graph" | "list">("graph")
   const [timeRange, setTimeRange] = useState([0, 100])
+  
+  // Use dynamic date range based on current year
+  const currentYear = new Date().getFullYear()
   const [dateRange, setDateRange] = useState({
-    start: new Date(2025, 0, 1),
-    end: new Date(2025, 11, 31),
+    start: new Date(currentYear, 0, 1),
+    end: new Date(currentYear, 11, 31),
   })
 
   const [searchQuery, setSearchQuery] = useState("")
-  const [yearRange, setYearRange] = useState([2024])
+  const [yearRange, setYearRange] = useState([currentYear])
   const [allowRange, setAllowRange] = useState(false)
 
   const [dialogOpen, setDialogOpen] = useState(false)

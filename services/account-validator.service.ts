@@ -40,8 +40,7 @@ export function isZeroAddress(address: string): boolean {
 export async function validateAccountWalletAssociation(
   accountId: string,
   walletAddress: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any
+  supabase: import('@/types').SupabaseClientType
 ): Promise<{ valid: boolean; error?: string }> {
   if (!isValidAddress(walletAddress)) {
     return { valid: false, error: 'Invalid wallet address format' }

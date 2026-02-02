@@ -11,9 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/protocol-bank/payout-engine/internal/config"
+	"github.com/protocol-bank/payout-engine/internal/kms"
 	"github.com/protocol-bank/payout-engine/internal/nonce"
 	"github.com/protocol-bank/payout-engine/internal/queue"
 	"github.com/rs/zerolog/log"
@@ -29,6 +29,7 @@ type PayoutService struct {
 	queue        *queue.Consumer
 	clients      map[uint64]*ethclient.Client
 	erc20ABI     abi.ABI
+	signer       kms.Signer
 }
 
 // NewPayoutService 创建支付服务
@@ -43,6 +44,34 @@ func NewPayoutService(
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ERC20 ABI: %w", err)
 	}
+
+	// 初始化 KMS 签名器
+	kmsCfg := &kms.Config{
+		Provider:        kms.Provider(cfg.KMS.Provider),
+		LocalPrivateKey: cfg.KMS.LocalPrivateKey,
+		AWSRegion:       cfg.KMS.AWSRegion,
+		AWSKeyID:        cfg.KMS.AWSKeyID,
+		GCPProjectID:    cfg.KMS.GCPProjectID,
+		GCPLocationID:   cfg.KMS.GCPLocationID,
+		GCPKeyRingID:    cfg.KMS.GCPKeyRingID,
+		GCPKeyID:        cfg.KMS.GCPKeyID,
+		GCPKeyVersion:   cfg.KMS.GCPKeyVersion,
+		VaultAddress:    cfg.KMS.VaultAddress,
+		VaultToken:      cfg.KMS.VaultToken,
+		VaultMountPath:  cfg.KMS.VaultMountPath,
+		VaultKeyName:    cfg.KMS.VaultKeyName,
+	}
+
+	signer, err := kms.NewSigner(ctx, kmsCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize KMS signer: %w", err)
+	}
+
+	signerAddr, err := signer.GetAddress(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get signer address: %w", err)
+	}
+	log.Info().Str("address", signerAddr.Hex()).Str("provider", cfg.KMS.Provider).Msg("KMS signer initialized")
 
 	// 初始化链客户端
 	clients := make(map[uint64]*ethclient.Client)
@@ -63,6 +92,7 @@ func NewPayoutService(
 		queue:        queueConsumer,
 		clients:      clients,
 		erc20ABI:     parsedABI,
+		signer:       signer,
 	}, nil
 }
 
@@ -308,29 +338,27 @@ func (s *PayoutService) buildERC20Transfer(
 	return tx, nil
 }
 
-// signTransaction 签名交易
-// 注意：生产环境应使用 HSM/KMS，这里只是示例
+// signTransaction 使用 KMS 签名交易
 func (s *PayoutService) signTransaction(ctx context.Context, tx *types.Transaction, chainID uint64) (*types.Transaction, error) {
-	// TODO: 从安全存储获取私钥
-	// 生产环境应使用 AWS KMS, GCP KMS, 或 HashiCorp Vault
-	privateKeyHex := "" // 从环境变量或密钥管理服务获取
-
-	if privateKeyHex == "" {
-		return nil, fmt.Errorf("private key not configured")
+	if s.signer == nil {
+		return nil, fmt.Errorf("KMS signer not initialized")
 	}
 
-	privateKey, err := crypto.HexToECDSA(privateKeyHex)
+	chainIDBig := new(big.Int).SetUint64(chainID)
+	signedTx, err := s.signer.SignTransaction(ctx, tx, chainIDBig)
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
-	}
-
-	signer := types.LatestSignerForChainID(new(big.Int).SetUint64(chainID))
-	signedTx, err := types.SignTx(tx, signer, privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign: %w", err)
+		return nil, fmt.Errorf("KMS signing failed: %w", err)
 	}
 
 	return signedTx, nil
+}
+
+// Close 释放资源
+func (s *PayoutService) Close() error {
+	if s.signer != nil {
+		return s.signer.Close()
+	}
+	return nil
 }
 
 // validateRequest 验证请求

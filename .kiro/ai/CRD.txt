@@ -1,0 +1,115 @@
+客户需求文档 (Customer Requirements Document)
+项目名称： ProtocolBanks 智能计费全栈 (Intelligent Billing Stack) 目标客户： AI 服务商、DePIN 项目（租车/充电宝）、SaaS 公司、API 提供商。 核心价值： 解决传统支付无法处理的“高频微支付”、“动态定价”与“去中心化风控”问题。
+
+第一部分：核心功能模块定义 (Functional Requirements)
+模块 A：动态流支付引擎 (The "Stream" Module)
+对应原概念：PB "Session Stream" SDK, PB "Micro-Meter" SDK
+
+客户需求 (User Story)：
+
+“作为一家Web3 租车公司，我需要根据用户驾驶的时长（分钟）和车型动态扣费。我不希望用户每次停车都要手动签名支付一次，也不希望预收押金后退款很慢。”
+
+产品功能实现：
+
+状态通道记账 (State Channel Metering)：
+
+SDK 在链下实时记录使用量（如：第 10 分钟，累计 5 U）。
+
+每隔一定阈值（如每 1 小时或满 20 U）自动触发一次链上结算。
+
+动态费率预言机 (Pricing Oracle)：
+
+允许商户通过 API 传入变量（如：当前是高峰期，费率 x 1.5）。
+
+计费引擎根据 Price * Usage * Multiplier 实时计算应扣金额。
+
+模块 B：无感授权组件 (The "Session" Module)
+对应原概念：Session Key Subscription Widget, Pay-Per-Prompt Gateway
+
+客户需求 (User Story)：
+
+“作为一家AI Agent 平台，我的用户的 AI 机器人每天要调用上千次 API。如果每次调用都要弹钱包签名，用户会疯掉。我需要一种‘一次授权，自动扣款’的机制。”
+
+产品功能实现：
+
+会话密钥生成器 (Session Key Generator)：
+
+前端组件引导用户签名生成一个临时私钥（Session Key）。
+
+权限限制： 只能用于与商户合约交互；有效期 24 小时；总限额 50 U。
+
+静默支付网关 (Silent Payment Gateway)：
+
+当 AI 发起请求时，网关验证 Session Key 是否有效。
+
+若有效，直接放行请求并在后台异步扣款，前端无弹窗。
+
+模块 C：AI 哨兵风控 (The "Sentinel" Module)
+对应原概念：PB "Sentinel" AI
+
+客户需求 (User Story)：
+
+“作为用户，我不敢给一个新的 AI 网站授权自动扣款，怕它一晚上把我的钱扣光。作为商户，我怕黑客利用漏洞刷爆我的 API 资源。”
+
+产品功能实现：
+
+异常熔断机制 (Circuit Breaker)：
+
+规则引擎： 设置硬性指标（如：单笔不超过 10 U，每小时不超过 50 U）。
+
+AI 行为分析： 监控消费曲线。如果出现垂直拉升（异常激增），Sentinel 立即暂停 Session Key 权限。
+
+人工介入通知：
+
+触发熔断时，通过 Telegram/邮件通知用户手动确认。
+
+第二部分：不同客户场景的解决方案 (Use Cases)
+你在向客户（科技公司）推销时，直接把下面的方案甩给他们：
+
+场景 1：AI 公司 (LLM Wrappers / Image Gen)
+痛点： 现在的月付订阅制（$20/月）挡住了 90% 只想试用两次的用户。
+
+你的方案： "Pay-As-You-Go SDK"
+
+集成 Pay-Per-Prompt Gateway。
+
+用户充值 5 U，每生成一张图扣 0.1 U。
+
+集成 Sentinel，防止恶意脚本把用户的 5 U 瞬间刷完。
+
+场景 2：DePIN / 共享经济 (Rentals & Energy)
+痛点： 需要押金，结算周期长，无法处理“用多久付多久”。
+
+你的方案： "Real-Time Stream SDK"
+
+集成 Session Keys。用户上车前点一次“开始”，下车点“结束”。
+
+中间过程每分钟自动计费（Micro-Meter），完全按实际时长扣款。
+
+场景 3：云服务 / 算力租赁 (GPU Cloud)
+痛点： 客户想用 USDT 支付，但你要付法币给电费/AWS。
+
+你的方案： "Pre-paid Compute Card"
+
+客户在你的平台存入 USDT。
+
+ProtocolBanks 后台自动生成虚拟 Visa 卡支付给 AWS，或者通过 Swap 支付给去中心化算力网络（如 Akash）。
+
+实现**“客户付 U -> 你付法币 -> 算力交付”**的闭环。
+
+第三部分：MVP 开发优先级 (Roadmap for 3 People)
+为了不让团队累死，请严格按此顺序开发：
+
+P0 (最高优先级) - 核心引擎：
+
+Go 语言编写的计费后端： 能够接收 API 请求，记录 User A used Service B for 10 units，并调用合约扣款。
+
+简单的 Session Key 合约： 允许用户设置限额和有效期。
+
+P1 (次高优先级) - 前端组件：
+
+"Subscribe with ProtocolBanks" 按钮： 一个标准的 React 组件，商户嵌进去就能弹窗让用户授权。
+
+P2 (增值服务) - 哨兵规则：
+
+先别做 AI 学习，先做硬规则（Hard Rules）。比如“每分钟限额”。等数据多了再上 AI 模型。

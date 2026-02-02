@@ -166,8 +166,7 @@ export function createFailedItem(
  */
 export async function storeFailedItems(
   items: FailedItem[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase?: any
+  supabase?: import('@/types').OptionalSupabaseClient
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     // Store in localStorage for development
@@ -203,8 +202,7 @@ export async function storeFailedItems(
  * Get pending failed items for recovery
  */
 export async function getPendingFailedItems(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase?: any,
+  supabase?: import('@/types').OptionalSupabaseClient,
   config: RecoveryConfig = DEFAULT_CONFIG
 ): Promise<FailedItem[]> {
   if (!supabase) {

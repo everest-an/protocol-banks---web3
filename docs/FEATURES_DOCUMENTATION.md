@@ -2,6 +2,10 @@
 
 Complete guide to all platform features.
 
+**Version:** 2.0  
+**Last Updated:** 2026-02-02  
+**Status:** Production + Planned Features
+
 ---
 
 ## Table of Contents
@@ -13,9 +17,11 @@ Complete guide to all platform features.
 5. [Multi-Signature Wallets](#multi-signature-wallets)
 6. [Cross-Chain Operations](#cross-chain-operations)
 7. [Subscriptions](#subscriptions)
-8. [Security](#security)
-9. [Mobile Features](#mobile-features)
-10. [API Integration](#api-integration)
+8. [AI Agent Integration](#ai-agent-integration)
+9. [AI Billing Infrastructure (Coming Q2 2026)](#ai-billing-infrastructure)
+10. [Security](#security)
+11. [Mobile Features](#mobile-features)
+12. [API Integration](#api-integration)
 
 ---
 
@@ -247,7 +253,265 @@ Threshold: 2
 
 ---
 
-## 8. Security
+## 8. AI Agent Integration
+
+### Agent Registration
+
+**Create AI Agent:**
+1. Navigate to `/agents`
+2. Click "Create Agent"
+3. Enter agent name and type
+4. System generates unique API key (`agent_xxxxxx`)
+5. Copy API key (shown once)
+6. Configure permissions and budget
+
+**Agent Types:**
+- **Trading Agent**: Automated trading operations
+- **Payroll Agent**: Scheduled salary payments
+- **Expense Agent**: Vendor and expense management
+- **Subscription Agent**: Recurring payment automation
+- **Custom Agent**: User-defined automation
+
+### Budget Management
+
+**Set Budget Limits:**
+1. Go to agent details page
+2. Click "Manage Budget"
+3. Set limits:
+   - Daily limit (e.g., 100 USDC)
+   - Weekly limit (e.g., 500 USDC)
+   - Monthly limit (e.g., 2000 USDC)
+4. Select allowed tokens (USDC, USDT, DAI)
+5. Select allowed chains (Ethereum, Polygon, etc.)
+6. Save configuration
+
+**Budget Tracking:**
+- Real-time usage monitoring
+- Automatic alerts at 80% usage
+- Budget reset schedules
+- Historical usage reports
+
+### Payment Proposals
+
+**Agent Workflow:**
+1. Agent creates payment proposal via API
+2. System checks budget availability
+3. If within budget: Auto-execute (if enabled)
+4. If over budget: Require human approval
+5. Notification sent to owner
+6. Owner approves/rejects on mobile
+
+**Auto-Execute Rules:**
+```typescript
+// Example configuration
+{
+  "autoExecute": true,
+  "conditions": {
+    "maxAmount": "100",
+    "allowedRecipients": ["0x..."],
+    "requiresApprovalAbove": "1000"
+  }
+}
+```
+
+### x402 Protocol (Gasless Payments)
+
+**How it works:**
+1. Agent creates payment proposal
+2. Owner signs EIP-712 authorization message (no gas)
+3. Relayer submits signed authorization
+4. Transfer executes, relayer pays gas
+
+**Benefits:**
+- No ETH needed in approval wallet
+- Batch approvals when gas is low
+- Secure (amount, recipient, expiration specific)
+- 50%+ gas cost reduction
+
+### Agent API
+
+**Authentication:**
+```bash
+curl -X POST https://api.protocolbanks.com/api/agents/proposals \
+  -H "Authorization: Bearer agent_xxxxxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipient_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "amount": "100",
+    "token": "USDC",
+    "chain_id": 137,
+    "reason": "Monthly API subscription payment"
+  }'
+```
+
+**Response:**
+```json
+{
+  "id": "proposal_abc123",
+  "status": "executed",
+  "auto_executed": true,
+  "tx_hash": "0x...",
+  "timestamp": "2026-02-02T12:00:00Z"
+}
+```
+
+**Webhook Events:**
+- `agent.created`
+- `proposal.created`
+- `proposal.approved`
+- `proposal.rejected`
+- `proposal.executed`
+- `budget.warning` (80% used)
+- `budget.exceeded`
+
+---
+
+## 9. AI Billing Infrastructure (Coming Q2 2026)
+
+### PB-Stream: Micro-Payment Gateway
+
+**HTTP 402 Middleware Integration:**
+
+**Node.js/Express:**
+```typescript
+import { PBStream } from '@protocolbanks/stream-sdk'
+
+const pbStream = new PBStream({
+  apiKey: process.env.PB_API_KEY,
+  service: 'my-ai-service',
+  ratePerCall: '0.01'  // 0.01 USDC per API call
+})
+
+// Apply middleware
+app.use('/api/ai', pbStream.middleware())
+```
+
+**Python/Flask:**
+```python
+from protocolbanks import PBStream
+
+pb_stream = PBStream(
+    api_key=os.getenv('PB_API_KEY'),
+    service='my-ai-service',
+    rate_per_call='0.01'
+)
+
+@app.route('/api/ai')
+@pb_stream.require_payment
+def ai_endpoint():
+    return {'result': 'success'}
+```
+
+**Features:**
+- Micro-payments as low as $0.001
+- Off-chain accumulation (state channels)
+- Batch settlement (every 10 USDC)
+- Dynamic pricing (peak hour multipliers)
+- Real-time billing
+
+### Session Keys: Automatic Payments
+
+**User Authorization Flow:**
+1. User visits AI service website
+2. Clicks "Connect Wallet"
+3. Authorizes Session Key:
+   - Maximum spending: 50 USDC
+   - Duration: 30 days
+   - Allowed services: Specific contracts
+4. Session key generated and stored
+5. AI can now charge automatically
+
+**Silent Payments:**
+- No wallet popup for each transaction
+- Payments happen in background
+- User receives periodic summaries
+- Can revoke anytime
+
+**Emergency Controls:**
+- Instant freeze capability
+- Real-time usage monitoring
+- Automatic expiration
+- Spending limit enforcement
+
+### AI Sentinel: Fraud Detection
+
+**Rule Engine:**
+
+**Rule 1: Single Amount Anomaly**
+```
+if currentAmount > averageAmount * 10:
+    freezeSessionKey("Abnormal single payment")
+    sendAlert(user, "Suspicious large payment detected")
+```
+
+**Rule 2: Frequency Anomaly**
+```
+if callsPerMinute > 100:
+    freezeSessionKey("Abnormal call frequency")
+    sendAlert(user, "Unusual API call frequency")
+```
+
+**Rule 3: Low Balance Warning**
+```
+if remainingBalance < limitAmount * 0.1:
+    sendAlert(user, "Balance below 10%")
+```
+
+**Anomaly Detection:**
+- ML-based behavioral analysis
+- Z-score analysis of spending patterns
+- Frequency spike detection
+- Amount anomaly detection
+- Historical baseline learning
+
+**Circuit Breaker:**
+- Automatic freeze on anomaly
+- Multi-channel alerts (Telegram, Email, Webhook)
+- User-defined risk parameters
+- Whitelist trusted services
+
+### Stream Payments: Real-Time Billing
+
+**Use Cases:**
+
+**1. Web3 Car Rental:**
+```
+User scans QR → Authorize Session Key
+↓
+Start driving → Begin billing (0.5 USDC/hour)
+↓
+Peak hours → Dynamic rate (0.75 USDC/hour)
+↓
+Return car → Stop billing
+↓
+Auto-settle → Generate PDF invoice
+```
+
+**2. GPU Compute:**
+```
+Enterprise funds Agent (100 USDC)
+↓
+Agent rents GPU → Real-time billing (0.001 USDC/second)
+↓
+Balance low → Auto-alert
+↓
+Top up → Service continues
+```
+
+**3. API Marketplace:**
+```
+Developer integrates PB-Stream
+↓
+Client calls API → Micro-charge (0.001 USDC/call)
+↓
+Accumulate off-chain → Batch settle every 1 USDC
+↓
+Webhook notification → Update client balance
+```
+
+---
+
+## 10. Security
 
 ### Audit Logs
 
@@ -281,7 +545,7 @@ Threshold: 2
 
 ---
 
-## 9. Mobile Features
+## 11. Mobile Features
 
 ### PWA Installation
 
@@ -323,7 +587,7 @@ Threshold: 2
 
 ---
 
-## 10. API Integration
+## 12. API Integration
 
 ### Webhooks
 
@@ -398,5 +662,30 @@ curl https://api.protocolbanks.com/v1/payments \
 
 For questions or issues:
 - **Documentation:** https://docs.protocolbanks.com
-- **GitHub:** https://github.com/YOUR_ORG/protocol-banks/issues
-- **Email:** support@protocolbanks.com
+- **Whitepaper:** [WHITEPAPER.md](../WHITEPAPER.md)
+- **Technical Architecture:** [TECHNICAL_ARCHITECTURE.md](TECHNICAL_ARCHITECTURE.md)
+- **GitHub:** https://github.com/everest-an/protocol-banks---web3/issues
+- **Email:** everest9812@gmail.com
+
+---
+
+## Appendix: Feature Status
+
+| Feature | Status | Release |
+|---------|--------|---------|
+| **Authentication** | Production | Q1 2025 |
+| **Single Payments** | Production | Q1 2025 |
+| **Batch Payments** | Production | Q1 2025 |
+| **Multi-Sig Wallets** | Production | Q1 2025 |
+| **Cross-Chain Swap** | Production | Q1 2025 |
+| **Subscriptions** | Production | Q1 2025 |
+| **AI Agent API** | Production | Q1 2025 |
+| **x402 Protocol** | Production | Q1 2025 |
+| **Session Keys** | Development | Q2 2026 |
+| **PB-Stream Gateway** | Development | Q2 2026 |
+| **AI Sentinel** | Development | Q2 2026 |
+| **Stream Payments** | Planned | Q2 2026 |
+
+---
+
+**Built for the AI Era**
