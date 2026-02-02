@@ -1,5 +1,7 @@
 import { ethers } from "ethers"
-import type { ChainType } from "./path-to-chain-type" // Assuming ChainType is declared in another file
+
+// Chain type definition for multi-chain support
+export type ChainType = "EVM" | "SOLANA" | "BITCOIN"
 
 // Re-export service layer functions for unified access
 export {
