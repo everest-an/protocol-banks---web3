@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSessionKey } from "@/hooks/use-session-key";
 import { SessionKeyCard } from "@/components/session-key-card";
 import { CreateSessionDialog } from "@/components/create-session-dialog";
+import type { CreateSessionKeyRequest } from "@/types/session-key";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -184,10 +185,10 @@ export default function SessionKeysPage() {
                 key={session.sessionId}
                 session={session}
                 currencySymbol={currentChain?.nativeCurrency.symbol || "ETH"}
-                onFreeze={(reason) => freezeSession(session.sessionId, reason)}
+                onFreeze={(reason: string) => freezeSession(session.sessionId, reason)}
                 onUnfreeze={() => unfreezeSession(session.sessionId)}
                 onRevoke={() => revokeSession(session.sessionId)}
-                onTopUp={(amount) => topUpBudget(session.sessionId, amount)}
+                onTopUp={(amount: string) => topUpBudget(session.sessionId, amount)}
                 formatBudget={formatBudget}
               />
             ))}
@@ -199,7 +200,7 @@ export default function SessionKeysPage() {
       <CreateSessionDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onSubmit={async (config) => {
+        onSubmit={async (config: Omit<CreateSessionKeyRequest, "chainId">) => {
           const sessionId = await createSession(config);
           if (sessionId) {
             setCreateDialogOpen(false);

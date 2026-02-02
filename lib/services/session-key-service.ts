@@ -62,9 +62,15 @@ export class SessionKeyService {
     }
 
     this.chainConfig = config;
-    this.provider = signerOrProvider instanceof ethers.Signer
-      ? signerOrProvider.provider!
-      : signerOrProvider || new ethers.JsonRpcProvider(config.rpcUrl);
+    
+    // Determine provider from signer or use directly
+    if (signerOrProvider && 'provider' in signerOrProvider && signerOrProvider.provider) {
+      this.provider = signerOrProvider.provider;
+    } else if (signerOrProvider && !('provider' in signerOrProvider)) {
+      this.provider = signerOrProvider as ethers.Provider;
+    } else {
+      this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
+    }
 
     this.contract = new ethers.Contract(
       config.contractAddress,
