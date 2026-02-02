@@ -384,6 +384,7 @@ if remainingBalance < limitAmount * 0.1 {
 | Polygon | EVM L2 | Production | High-frequency micro-payments |
 | Arbitrum | EVM L2 | Production | DeFi integrations |
 | Base | EVM L2 | Production | Consumer applications |
+| Hashkey | EVM L2 | Production | Consumer applications |
 | Optimism | EVM L2 | Production | DAO treasuries |
 | BNB Chain | EVM | Production | Asian market |
 | Solana | SVM | Production | High-speed settlements |
