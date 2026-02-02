@@ -1,13 +1,18 @@
 {
   "name": "protocol-banks-contracts",
   "version": "1.0.0",
-  "description": "Smart contracts for Protocol Banks batch transfer",
+  "description": "Smart contracts for Protocol Banks batch transfer and AI billing",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:session": "hardhat test test/SessionKeyValidator.test.ts",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:testnet": "hardhat run scripts/deploy.ts --network arbitrumSepolia",
-    "deploy:mainnet": "hardhat run scripts/deploy.ts --network arbitrum"
+    "deploy:mainnet": "hardhat run scripts/deploy.ts --network arbitrum",
+    "deploy:session:base": "hardhat run scripts/deploy-session-key.ts --network base",
+    "deploy:session:base-testnet": "hardhat run scripts/deploy-session-key.ts --network baseSepolia",
+    "deploy:session:hashkey": "hardhat run scripts/deploy-session-key.ts --network hashkey",
+    "deploy:session:hashkey-testnet": "hardhat run scripts/deploy-session-key.ts --network hashkeyTestnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",

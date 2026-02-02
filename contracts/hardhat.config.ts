@@ -46,6 +46,18 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 8453,
     },
+    // HashKey Chain 测试网
+    hashkeyTestnet: {
+      url: process.env.HASHKEY_TESTNET_RPC || "https://hashkeychain-testnet.alt.technology",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 133,
+    },
+    // HashKey Chain 主网
+    hashkey: {
+      url: process.env.HASHKEY_RPC || "https://mainnet.hashkeychain.com",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 177,
+    },
   },
   etherscan: {
     apiKey: {
@@ -53,7 +65,27 @@ const config: HardhatUserConfig = {
       arbitrumSepolia: process.env.ARBISCAN_API_KEY || "",
       base: process.env.BASESCAN_API_KEY || "",
       baseSepolia: process.env.BASESCAN_API_KEY || "",
+      hashkey: process.env.HASHKEY_API_KEY || "",
+      hashkeyTestnet: process.env.HASHKEY_API_KEY || "",
     },
+    customChains: [
+      {
+        network: "hashkey",
+        chainId: 177,
+        urls: {
+          apiURL: "https://explorer.hashkeychain.com/api",
+          browserURL: "https://explorer.hashkeychain.com",
+        },
+      },
+      {
+        network: "hashkeyTestnet",
+        chainId: 133,
+        urls: {
+          apiURL: "https://hashkeychain-testnet-explorer.alt.technology/api",
+          browserURL: "https://hashkeychain-testnet-explorer.alt.technology",
+        },
+      },
+    ],
   },
 };
 
