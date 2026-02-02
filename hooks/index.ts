@@ -1,34 +1,67 @@
-// Core hooks
+/**
+ * Protocol Banks Hooks
+ * 
+ * Centralized exports for all React hooks used in the application.
+ * Import from "@/hooks" for cleaner imports.
+ */
+
+// ============================================
+// Core Hooks
+// ============================================
 export { useToast, toast } from "./use-toast"
 export { useMobile } from "./use-mobile"
+export { useMediaQuery } from "./use-media-query"
 
-// Payment hooks
+// ============================================
+// Auth & Wallet Hooks
+// ============================================
+export { useAuth } from "./use-auth"
+export { useBalance } from "./use-balance"
+export { useSafeAppkit } from "./use-safe-appkit"
+
+// ============================================
+// Payment Hooks
+// ============================================
 export { useBatchPayment } from "./use-batch-payment"
+export { useBatchTransfer } from "./use-batch-transfer"
 export { usePaymentHistory } from "./use-payment-history"
-
-// Security hooks
-export { useSecurityCheck } from "./use-security-check"
-export { useClientSecurity } from "./use-client-security"
-
-// Integration hooks
-export { useX402 } from "./use-x402"
-export { useOfframp } from "./use-offramp"
-
-// Audit and logging
-export { useAuditLog } from "./use-audit-log"
-
-// Invoice and merchant tools
-export { useInvoice } from "./use-invoice"
-
-// MCP and monetization hooks
-export { useMCPSubscriptions } from "./use-mcp-subscriptions"
-export { useMonetizeConfig } from "./use-monetize-config"
-
-// Payment confirmation with biometric and security
 export { usePaymentConfirmation } from "./use-payment-confirmation"
 
-// Security monitoring
+// ============================================
+// Subscription & Recurring Payment Hooks
+// ============================================
+export { useSubscriptions } from "./use-subscriptions"
+export { useMCPSubscriptions } from "./use-mcp-subscriptions"
+
+// ============================================
+// Security Hooks
+// ============================================
+export { useSecurityCheck } from "./use-security-check"
+export { useClientSecurity } from "./use-client-security"
 export { useSecurityMonitor } from "./use-security-monitor"
+
+// ============================================
+// Integration Hooks (X402, Off-ramp, etc.)
+// ============================================
+export { useX402 } from "./use-x402"
+export { useOfframp } from "./use-offramp"
+export { useRainCard } from "./use-rain-card"
+
+// ============================================
+// Developer & API Hooks
+// ============================================
+export { useApiKeys } from "./use-api-keys"
+export { useWebhooks } from "./use-webhooks"
+export { useMonetizeConfig } from "./use-monetize-config"
+
+// ============================================
+// Business & Analytics Hooks
+// ============================================
+export { useAuditLog } from "./use-audit-log"
+export { useInvoice } from "./use-invoice"
+export { useVendors } from "./use-vendors"
+export { useDashboardActivity } from "./use-dashboard-activity"
+export { useTokenPrices } from "./use-token-prices"
 
 // Re-export useful utilities from lib for convenience
 export {

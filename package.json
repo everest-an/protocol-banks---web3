@@ -16,14 +16,13 @@
     "@emotion/is-prop-valid": "latest",
     "@grpc/grpc-js": "1.14.3",
     "@hookform/resolvers": "^3.10.0",
+    "@jest/globals": "30.2.0",
     "@nomicfoundation/hardhat-chai-matchers": "latest",
     "@nomicfoundation/hardhat-ethers": "latest",
-    "@nomicfoundation/hardhat-ignition": "latest",
     "@nomicfoundation/hardhat-ignition-ethers": "latest",
     "@nomicfoundation/hardhat-network-helpers": "latest",
     "@nomicfoundation/hardhat-toolbox": "6.1.0",
     "@nomicfoundation/hardhat-verify": "latest",
-    "@nomicfoundation/ignition-core": "latest",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -56,9 +55,6 @@
     "@solana/web3.js": "^1.95.0",
     "@supabase/ssr": "0.8.0",
     "@supabase/supabase-js": "latest",
-    "@swc/core": "latest",
-    "@swc/helpers": "latest",
-    "@swc/wasm": "latest",
     "@tanstack/query-core": "latest",
     "@typechain/ethers-v6": "latest",
     "@typechain/hardhat": "latest",
@@ -84,8 +80,6 @@
     "lucide-react": "^0.454.0",
     "next": "15.5.9",
     "next-themes": "^0.4.6",
-    "pg": "^8.17.2",
-    "pg-native": "latest",
     "qrcode.react": "4.2.0",
     "react": "19.2.0",
     "react-day-picker": "9.8.0",
@@ -120,8 +114,5 @@
     "tailwindcss": "^4.1.9",
     "ts-jest": "^29.1.2",
     "typescript": "^5"
-  },
-  "trustedDependencies": [
-    "pg-native"
-  ]
+  }
 }

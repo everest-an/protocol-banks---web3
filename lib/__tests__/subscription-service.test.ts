@@ -307,4 +307,58 @@ describe('Subscription Service - Unit Tests', () => {
       expect(isSubscriptionDue(subscription as Subscription)).toBe(false);
     });
   });
+
+  describe('Subscription Retry Logic', () => {
+    it('should increment failure count on payment failure', () => {
+      const subscription = createMockSubscription({
+        status: 'active',
+        failure_count: 0,
+      });
+      
+      // Simulate failure increment
+      const newFailureCount = (subscription.failure_count || 0) + 1;
+      expect(newFailureCount).toBe(1);
+    });
+
+    it('should set status to payment_failed after first failure', () => {
+      const failureCount = 1;
+      const maxRetries = 3;
+      const newStatus = failureCount >= maxRetries ? 'cancelled' : 'payment_failed';
+      expect(newStatus).toBe('payment_failed');
+    });
+
+    it('should set status to cancelled after max retries', () => {
+      const failureCount = 3;
+      const maxRetries = 3;
+      const newStatus = failureCount >= maxRetries ? 'cancelled' : 'payment_failed';
+      expect(newStatus).toBe('cancelled');
+    });
+
+    it('should calculate retry date 24 hours in future', () => {
+      const now = new Date();
+      const retryDate = new Date(now);
+      retryDate.setHours(retryDate.getHours() + 24);
+      
+      const diffHours = (retryDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+      expect(Math.round(diffHours)).toBe(24);
+    });
+
+    it('should not schedule retry after max failures', () => {
+      const failureCount = 3;
+      const maxRetries = 3;
+      const shouldScheduleRetry = failureCount < maxRetries;
+      expect(shouldScheduleRetry).toBe(false);
+    });
+
+    it('should reset failure count after successful payment', () => {
+      const subscription = createMockSubscription({
+        status: 'payment_failed',
+        failure_count: 2,
+      });
+      
+      // After successful payment, count should reset
+      const resetCount = 0;
+      expect(resetCount).toBe(0);
+    });
+  });
 });

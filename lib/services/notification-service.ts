@@ -4,13 +4,14 @@
  */
 
 import { createClient } from '@/lib/supabase-client';
+import { notificationLogger as logger } from '@/lib/logger';
 
 // Web Push types (optional dependency)
 let webpush: any = null;
 try {
   webpush = require('web-push');
 } catch (e) {
-  console.warn('[Notification] web-push not available, push notifications disabled');
+  logger.warn('web-push not available, push notifications disabled');
 }
 
 // ============================================
@@ -245,7 +246,7 @@ export class NotificationService {
     // Check preferences
     const preferences = await this.getPreferences(normalizedAddress);
     if (!this.isNotificationEnabled(preferences, type)) {
-      console.log(`[Notification] Type ${type} disabled for user ${normalizedAddress}`);
+      logger.debug(`Type ${type} disabled for user`, { userAddress: normalizedAddress });
       return results;
     }
 
@@ -267,7 +268,7 @@ export class NotificationService {
     const sendPromises = subscriptions.map(async (sub) => {
       try {
         if (!webpush) {
-          console.warn('[Notification] web-push not available');
+          logger.warn('web-push not available');
           results.failed++;
           return;
         }
@@ -281,7 +282,7 @@ export class NotificationService {
         );
         results.sent++;
       } catch (err: any) {
-        console.error(`[Notification] Failed to send to ${sub.endpoint}:`, err.message);
+        logger.error(`Failed to send to endpoint`, { endpoint: sub.endpoint, error: err.message });
         results.failed++;
 
         // Remove invalid subscriptions

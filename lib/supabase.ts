@@ -1,35 +1,18 @@
-import { createBrowserClient } from "@supabase/ssr"
+/**
+ * Unified Supabase Client Exports
+ * 
+ * This file re-exports Supabase browser clients from the canonical location.
+ * 
+ * Usage:
+ * - For client components: import { createClient, getSupabase, supabase } from "@/lib/supabase"
+ * - For server components/actions: import { createClient } from "@/lib/supabase/server"
+ * 
+ * Note: Server client must be imported directly from @/lib/supabase/server
+ * because it's an async function that requires request context.
+ */
 
-// Singleton instance
-let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null
+// Re-export browser client only (server client must be imported directly)
+export { createClient, getSupabase, supabase } from "@/lib/supabase/client"
 
-export function createClient() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    // Return a mock client that won't throw but logs warnings
-    return {
-      from: () => ({
-        select: () => ({ data: [], error: { message: "Supabase not configured" } }),
-        insert: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        update: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        delete: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        single: () => ({ data: null, error: { message: "Supabase not configured" } }),
-        eq: () => ({ data: [], error: { message: "Supabase not configured" } }),
-      }),
-      rpc: () => ({ data: null, error: { message: "Supabase not configured" } }),
-    } as any
-  }
-
-  if (!supabaseInstance) {
-    supabaseInstance = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    )
-  }
-  return supabaseInstance
-}
-
-export function getSupabase() {
-  return createClient()
-}
-
-export const supabase = createClient()
+// Re-export Database type for convenience
+export type { Database } from "@/types/supabase"
