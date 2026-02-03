@@ -92,6 +92,17 @@
     "overrides": {
       "@noble/hashes": "1.8.0",
       "@noble/curves": "1.9.7"
+    },
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "hardhat",
+        "chai",
+        "@nomicfoundation/hardhat-ethers"
+      ],
+      "allowAny": [
+        "hardhat",
+        "chai"
+      ]
     }
   },
   "overrides": {

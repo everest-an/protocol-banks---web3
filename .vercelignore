@@ -1,0 +1,27 @@
+# Exclude smart contracts directory from Vercel build
+contracts/
+contracts/**
+
+# Protocol Bank copies (if any)
+protocol-banks---web3/
+protocol-banks---web3-main/
+
+# Development files
+*.sql
+scripts/*.sql
+
+# Documentation that's not needed for build
+docs/
+*.md
+!README.md
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__/
+
+# Local development
+.env.local
+.env.development.local
