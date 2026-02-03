@@ -7,6 +7,7 @@ import { ReownProvider } from "@/contexts/reown-provider"
 import { DemoProvider } from "@/contexts/demo-context"
 import { UserTypeProvider } from "@/contexts/user-type-context"
 import { AuthProvider } from "@/contexts/auth-provider"
+import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { MobileNav } from "@/components/mobile-nav"
@@ -67,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -79,29 +80,31 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <UserTypeProvider>
-          <AuthProvider>
-            <ReownProvider>
-              <Web3Provider>
-                <DemoProvider>
-                  <div className="relative min-h-screen flex flex-col pb-safe">
-                    <Header />
-                    <main className="flex-1 pb-16 md:pb-0">{children}</main>
-                    <div className="hidden md:block">
-                      <Footer />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <UserTypeProvider>
+            <AuthProvider>
+              <ReownProvider>
+                <Web3Provider>
+                  <DemoProvider>
+                    <div className="relative min-h-screen flex flex-col pb-safe">
+                      <Header />
+                      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+                      <div className="hidden md:block">
+                        <Footer />
+                      </div>
+                      <MobileNav />
                     </div>
-                    <MobileNav />
-                  </div>
-                  <Toaster />
-                  <RecaptchaScript />
-                  <WelcomeGuide />
-                  <PWAInstallPrompt />
-                  <NotificationPrompt />
-                </DemoProvider>
-              </Web3Provider>
-            </ReownProvider>
-          </AuthProvider>
-        </UserTypeProvider>
+                    <Toaster />
+                    <RecaptchaScript />
+                    <WelcomeGuide />
+                    <PWAInstallPrompt />
+                    <NotificationPrompt />
+                  </DemoProvider>
+                </Web3Provider>
+              </ReownProvider>
+            </AuthProvider>
+          </UserTypeProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

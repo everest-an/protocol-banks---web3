@@ -2,15 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Wallet, Send, QrCode, ArrowLeftRight, Shield, ShoppingBag } from "lucide-react"
+import { Grid3X3, Wallet, Send, Layers, ArrowLeftRight } from "lucide-react"
 
 const navItems = [
-  { href: "/", label: "Account", icon: Wallet },
-  { href: "/batch-payment", label: "Pay", icon: Send },
-  { href: "/receive", label: "Receive", icon: QrCode },
+  { href: "/products", label: "Products", icon: Grid3X3 },
+  { href: "/history", label: "Payments", icon: Wallet },
+  { href: "/pay", label: "Pay", icon: Send },
+  { href: "/batch-payment", label: "Batch", icon: Layers },
   { href: "/swap", label: "Swap", icon: ArrowLeftRight },
-  { href: "/acquiring", label: "Acquiring", icon: ShoppingBag },
-  { href: "/settings/multisig", label: "Multi-sig", icon: Shield },
 ]
 
 export function MobileNav() {
@@ -21,7 +20,7 @@ export function MobileNav() {
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href || (item.href === "/batch-payment" && pathname === "/send")
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
 
           return (
             <Link

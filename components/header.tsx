@@ -2,7 +2,24 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { Wallet, Send, QrCode, Menu, Play, StopCircle, Loader2, ArrowLeftRight, CreditCard, ShoppingBag } from "lucide-react"
+import {
+  Wallet,
+  Send,
+  Menu,
+  Play,
+  StopCircle,
+  Loader2,
+  ArrowLeftRight,
+  CreditCard,
+  ShoppingBag,
+  Grid3X3,
+  Link2,
+  FileText,
+  Monitor,
+  Coins,
+  Layers,
+  Globe,
+} from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 import { useDemo } from "@/contexts/demo-context"
@@ -11,6 +28,7 @@ import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
 import { SoundSettings } from "@/components/sound-settings"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const UnifiedWalletButton = dynamic(() => import("./unified-wallet-button").then((mod) => mod.UnifiedWalletButton), {
   ssr: false,
@@ -28,14 +46,24 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false)
 
   const navItems = [
-    { href: "/", label: "Account", icon: Wallet },
-    { href: "/subscriptions", label: "Subscriptions", icon: Send },
-    { href: "/batch-payment", label: "Pay", icon: Send },
-    { href: "/receive", label: "Receive", icon: QrCode },
+    { href: "/products", label: "Products", icon: Grid3X3 },
+    { href: "/history", label: "Payments", icon: Wallet },
+    { href: "/pay", label: "Pay", icon: Send },
+    { href: "/batch-payment", label: "Batch Payment", icon: Layers },
+    { href: "/acquiring/payment-links", label: "Payment Links", icon: Link2 },
+    { href: "/acquiring", label: "Commerce", icon: ShoppingBag },
+    { href: "/checkout", label: "Checkout", icon: CreditCard },
+    { href: "/acquiring/invoices", label: "Invoicing", icon: FileText },
+    { href: "/terminal", label: "Terminal", icon: Monitor },
+    { href: "/omnichain", label: "DeFi", icon: Coins },
     { href: "/swap", label: "Swap", icon: ArrowLeftRight },
-    { href: "/acquiring", label: "Acquiring", icon: ShoppingBag },
-    { href: "/card", label: "Card", icon: CreditCard },
+    { href: "/analytics", label: "Global Payment", icon: Globe },
   ]
+
+  const isActivePath = (href: string) => {
+    if (href === "/") return pathname === "/"
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -64,7 +92,7 @@ export function Header() {
                 <div className="space-y-1">
                   {navItems.map((item) => {
                     const Icon = item.icon
-                    const isActive = pathname === item.href || (item.href === "/batch-payment" && pathname === "/send")
+                    const isActive = isActivePath(item.href)
                     return (
                       <Link
                         key={item.href}
@@ -138,7 +166,7 @@ export function Header() {
           <nav className="hidden md:flex items-center">
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || (item.href === "/batch-payment" && pathname === "/send")
+              const isActive = isActivePath(item.href)
               return (
                 <Link
                   key={item.href}
@@ -159,6 +187,7 @@ export function Header() {
 
         <div className="flex items-center gap-2 shrink-0">
           <SoundSettings />
+          <ThemeToggle />
           <Button
             variant="outline"
             size="sm"
