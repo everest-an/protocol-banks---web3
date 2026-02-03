@@ -14,7 +14,7 @@ interface DemoContextType {
 const DemoContext = createContext<DemoContextType | undefined>(undefined)
 
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [isDemoMode, setIsDemoMode] = useState(true)
+  const [isDemoMode, setIsDemoMode] = useState(false)
   const [demoModeBlocked, setDemoModeBlocked] = useState(false)
   const [demoBlockReason, setDemoBlockReason] = useState<string | null>(null)
   const [walletConnected, setWalletConnectedState] = useState(false)
@@ -34,9 +34,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     if (connected) {
       // Wallet connected, switch to real mode
       setIsDemoMode(false)
-    } else if (!demoModeBlocked) {
-      // Wallet disconnected and demo is not blocked, return to demo mode
-      setIsDemoMode(true)
     }
   }
 
