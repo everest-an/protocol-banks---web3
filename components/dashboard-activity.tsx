@@ -81,9 +81,9 @@ export function DashboardActivity({
 }: DashboardActivityProps) {
   const [activeTab, setActiveTab] = useState("all")
   
-  // Fetch activities from API
+  // Fetch activities from API - use /api/activities for real transaction data
   const { data, error, isLoading, mutate } = useSWR<{ activities: Activity[]; total: number }>(
-    walletAddress ? `/api/analytics/summary?wallet=${walletAddress}&limit=${limit}` : null,
+    walletAddress ? `/api/activities?wallet=${walletAddress}&limit=${limit}` : null,
     fetcher,
     {
       refreshInterval: 30000, // Refresh every 30 seconds
