@@ -9,7 +9,7 @@ import {
   validateSubscription,
   calculateNextPaymentDate,
   formatSubscriptionForDisplay,
-} from "@/lib/services/subscription-service"
+} from "@/lib/subscription-helpers"
 import { processSinglePayment } from "@/lib/services/payment-service"
 import type { SubscriptionInput } from "@/types"
 import { Button } from "@/components/ui/button"

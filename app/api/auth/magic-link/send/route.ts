@@ -11,8 +11,6 @@ import { generateSecureToken, sha256 } from "@/lib/auth/crypto"
 import { AUTH_CONFIG } from "@/lib/auth/config"
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()
@@ -73,6 +71,17 @@ export async function POST(request: NextRequest) {
     // Build magic link URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://protocolbank.io"
     const magicLinkUrl = `${baseUrl}/api/auth/magic-link/verify?token=${token}`
+
+    const resendApiKey = process.env.RESEND_API_KEY
+    if (!resendApiKey) {
+      console.error("[Auth] Missing RESEND_API_KEY")
+      return NextResponse.json(
+        { error: "Email service not configured" },
+        { status: 500 }
+      )
+    }
+
+    const resend = new Resend(resendApiKey)
 
     // Send email
     try {

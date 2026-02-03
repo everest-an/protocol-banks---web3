@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(dir \"e:\\\\Protocol Bank\\\\Development\\\\历史版本\\\\protocol-banks---web3-main\\\\protocol-banks---web3-main\\\\*.docx\")",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nComplete Email Login PIN setup flow\n\nImplements PIN setup API with Shamir Secret Sharing:\n- PBKDF2 key derivation from 6-digit PIN \\(100k iterations\\)\n- BIP39 mnemonic generation \\(12 words\\)\n- Ethereum wallet creation with HD derivation path\n- Shamir Secret Sharing \\(2-of-3 threshold\\)\n  - Share A: Device storage \\(IndexedDB\\)\n  - Share B: Server storage \\(PIN-encrypted\\)\n  - Share C: Recovery code \\(user backup\\)\n- AES-256-GCM encryption for server share\n- Recovery code generation and hashing\n\nFrontend components already complete:\n- PIN setup UI with strength validation\n- Recovery phrase backup component\n- Mnemonic display with copy functionality\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
