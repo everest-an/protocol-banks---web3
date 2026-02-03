@@ -1,9 +1,9 @@
 import hre from "hardhat";
 import * as dotenv from "dotenv";
 
-const ethers = hre.ethers;
-
 dotenv.config();
+
+const ethers = hre.ethers;
 
 /**
  * 部署 SessionKeyValidator 合约到多个链
@@ -16,7 +16,13 @@ dotenv.config();
  */
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
+  const signers = await ethers.getSigners();
+  
+  if (signers.length === 0) {
+    throw new Error("No signers available. Please set PRIVATE_KEY in .env file");
+  }
+  
+  const deployer = signers[0];
   const network = await ethers.provider.getNetwork();
 
   console.log("=".repeat(60));

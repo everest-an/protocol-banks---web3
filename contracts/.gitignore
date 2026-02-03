@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build
+cache/
+artifacts/
+typechain-types/
+
+# Environment - 绝对不要提交
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.swp
+*.swo

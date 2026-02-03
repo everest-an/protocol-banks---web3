@@ -1,17 +1,19 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@openzeppelin/hardhat-upgrades";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.20",
+    version: "0.8.22",
     settings: {
       optimizer: {
         enabled: true,
         runs: 200,
       },
+      viaIR: true,
     },
   },
   networks: {
@@ -54,10 +56,16 @@ const config: HardhatUserConfig = {
     },
     // HashKey Chain 主网
     hashkey: {
-      url: process.env.HASHKEY_RPC || "https://mainnet.hashkeychain.com",
+      url: process.env.HASHKEY_RPC || "https://mainnet.hsk.xyz",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 177,
     },
+  },
+  paths: {
+    sources: "./src",  // 合约文件在 src 目录
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
   },
   etherscan: {
     apiKey: {
