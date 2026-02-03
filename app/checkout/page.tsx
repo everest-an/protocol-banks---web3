@@ -82,7 +82,19 @@ function CheckoutContent() {
   const [showNetworkSelection, setShowNetworkSelection] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
 
+  // Branding
+  const [brandColor, setBrandColor] = useState<string | null>(null);
+  const [merchantLogo, setMerchantLogo] = useState<string | null>(null);
+
   const orderNo = searchParams.get("order");
+  const brandColorParam = searchParams.get("brandColor");
+  const logoParam = searchParams.get("logo");
+
+  // Set branding from URL params
+  useEffect(() => {
+    if (brandColorParam) setBrandColor(brandColorParam);
+    if (logoParam) setMerchantLogo(decodeURIComponent(logoParam));
+  }, [brandColorParam, logoParam]);
 
   // Fetch order information
   useEffect(() => {
@@ -93,6 +105,10 @@ function CheckoutContent() {
       .then((data) => {
         if (data.success && data.order) {
           setOrder(data.order);
+          // Set branding from order metadata if available
+          const meta = data.order.metadata;
+          if (meta?.brandColor && !brandColorParam) setBrandColor(meta.brandColor);
+          if (meta?.logoUrl && !logoParam) setMerchantLogo(meta.logoUrl);
         } else {
           toast({
             title: "Order Not Found",
@@ -112,7 +128,7 @@ function CheckoutContent() {
       .finally(() => {
         setLoading(false);
       });
-  }, [orderNo, toast]);
+  }, [orderNo, toast, brandColorParam, logoParam]);
 
   // Countdown timer
   useEffect(() => {
@@ -391,6 +407,17 @@ function CheckoutContent() {
     <div className="container max-w-lg mx-auto py-10 px-4">
       <Card className="border-border shadow-lg">
         <CardHeader className="text-center border-b border-border/50 pb-6">
+          {merchantLogo && (
+            <div className="flex justify-center mb-3">
+              <Image
+                src={merchantLogo}
+                alt="Merchant"
+                width={48}
+                height={48}
+                className="rounded-lg object-contain"
+              />
+            </div>
+          )}
           <div className="text-sm text-muted-foreground mb-2">
             {(order as any).merchant_name || "Merchant"} | Order{" "}
             {order.order_no.slice(-8)}
@@ -519,6 +546,7 @@ function CheckoutContent() {
               <Button
                 size="lg"
                 className="w-full mt-6"
+                style={brandColor ? { backgroundColor: brandColor, borderColor: brandColor } : undefined}
                 onClick={handlePayment}
                 disabled={!selectedMethod || processing}
               >
@@ -616,7 +644,10 @@ function CheckoutContent() {
           )}
 
           <div className="text-center text-sm text-muted-foreground mt-4">
-            Powered by Protocol Banks
+            Powered by{" "}
+            <span style={brandColor ? { color: brandColor } : undefined}>
+              Protocol Banks
+            </span>
           </div>
         </CardContent>
       </Card>

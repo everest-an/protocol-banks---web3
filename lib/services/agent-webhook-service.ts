@@ -6,8 +6,7 @@
  * @module lib/services/agent-webhook-service
  */
 
-import { randomUUID } from 'crypto';
-import { createHmac } from 'crypto';
+import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 
 // ============================================
@@ -76,6 +75,30 @@ function convertDbDelivery(data: any): AgentWebhookDelivery {
  */
 export function generateWebhookSignature(payload: string, secret: string): string {
   return createHmac('sha256', secret).update(payload).digest('hex');
+}
+
+/**
+ * Verify webhook signature using timing-safe comparison
+ */
+export function verifyAgentWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
+  const expectedSignature = generateWebhookSignature(payload, secret);
+
+  try {
+    const sigBuffer = new Uint8Array(Buffer.from(signature, 'hex'));
+    const expectedBuffer = new Uint8Array(Buffer.from(expectedSignature, 'hex'));
+
+    if (sigBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
+    return timingSafeEqual(sigBuffer, expectedBuffer);
+  } catch {
+    return false;
+  }
 }
 
 // ============================================

@@ -1,16 +1,25 @@
 /**
  * Auto-Execute Service
- * 
+ *
  * Handles automatic approval and execution of proposals within budget.
- * Checks rules, budget limits, and executes payments via x402 protocol.
- * 
+ * Checks rules, budget limits, and executes payments via x402 protocol
+ * or the Go payout engine.
+ *
+ * Execution paths:
+ * 1. x402 + Relayer: For ERC-3009 gasless USDC transfers (preferred)
+ * 2. Payout Bridge: For batch payments via Go payout engine or TS fallback
+ *
  * @module lib/services/auto-execute-service
  */
 
 import { PaymentProposal, proposalService } from './proposal-service';
 import { budgetService } from './budget-service';
 import { agentService, Agent, AutoExecuteRules } from './agent-service';
+import { agentX402Service } from './agent-x402-service';
+import { agentActivityService } from './agent-activity-service';
 import { notificationService } from './notification-service';
+import { isRelayerConfigured } from './relayer-service';
+import { isERC3009Supported } from '@/lib/erc3009';
 import { submitBatchPayment } from '@/lib/grpc/payout-bridge';
 import { getTokenAddress, CHAIN_IDS } from '@/lib/web3';
 
@@ -85,6 +94,22 @@ export class AutoExecuteService {
       };
     }
 
+    // Check daily spending limit
+    if (agent.auto_execute_rules) {
+      const withinDailyLimit = await this.checkDailyLimit(
+        proposal.agent_id,
+        agent.auto_execute_rules
+      );
+      if (!withinDailyLimit) {
+        this.notifyManualApprovalNeeded(proposal, agent.name, 'Daily spending limit reached');
+        return {
+          auto_executed: false,
+          reason: 'Daily spending limit reached',
+          proposal,
+        };
+      }
+    }
+
     // Check budget
     const withinBudget = await this.isWithinBudget(
       proposal.agent_id,
@@ -133,10 +158,10 @@ export class AutoExecuteService {
     // Start execution
     const executingProposal = await proposalService.startExecution(proposal.id);
 
-    // Execute via x402 (simulated for now)
+    // Execute payment: try x402/relayer first, then payout bridge
     try {
       const txHash = await this.executePayment(executingProposal);
-      
+
       // Mark as executed with auto-execute flag for notification
       const executedProposal = await proposalService.markExecuted(
         proposal.id,
@@ -146,21 +171,53 @@ export class AutoExecuteService {
         true // auto-executed
       );
 
+      // Log activity
+      agentActivityService.log(
+        proposal.agent_id,
+        proposal.owner_address,
+        'payment_executed',
+        {
+          proposal_id: proposal.id,
+          amount: proposal.amount,
+          token: proposal.token,
+          recipient_address: proposal.recipient_address,
+          tx_hash: txHash,
+          auto_executed: true,
+          agent_name: agent.name,
+        }
+      ).catch(err => console.error('[AutoExecute] Activity log failed:', err));
+
       return {
         auto_executed: true,
         proposal: executedProposal,
         tx_hash: txHash,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Execution failed';
+
       const failedProposal = await proposalService.markFailed(
         proposal.id,
-        error instanceof Error ? error.message : 'Execution failed',
+        errorMessage,
         agent.name
       );
 
+      // Log failure
+      agentActivityService.log(
+        proposal.agent_id,
+        proposal.owner_address,
+        'payment_failed',
+        {
+          proposal_id: proposal.id,
+          amount: proposal.amount,
+          token: proposal.token,
+          error: errorMessage,
+          auto_executed: true,
+        }
+      ).catch(err => console.error('[AutoExecute] Activity log failed:', err));
+
       return {
         auto_executed: false,
-        reason: error instanceof Error ? error.message : 'Execution failed',
+        reason: errorMessage,
         proposal: failedProposal,
       };
     }
@@ -259,35 +316,78 @@ export class AutoExecuteService {
   }
 
   /**
-   * Execute payment via payout bridge
-   * Uses Go payout engine or TypeScript fallback for real transactions
+   * Execute payment - tries x402/relayer for gasless transfers, falls back to payout bridge.
+   *
+   * Execution strategy:
+   * 1. If ERC-3009 is supported for the token+chain AND relayer is configured → use x402 service
+   * 2. Otherwise → use the payout bridge (Go engine or TS fallback)
    */
   private async executePayment(proposal: PaymentProposal): Promise<string> {
-    // Use chain_id from proposal or default to Base
     const chainId = proposal.chain_id || CHAIN_IDS.BASE;
+    const token = proposal.token || 'USDC';
 
-    // Get token address
-    const tokenAddress = getTokenAddress(chainId, proposal.token || 'USDC');
-    if (!tokenAddress) {
-      throw new Error(`Token ${proposal.token} not supported on chain ${chainId}`);
+    // Strategy 1: x402 + Relayer for gasless ERC-3009 transfers
+    if (isERC3009Supported(chainId, token) && isRelayerConfigured()) {
+      try {
+        return await this.executeViaX402(proposal);
+      } catch (error) {
+        console.warn('[AutoExecute] x402 execution failed, falling back to payout bridge:', error);
+        // Fall through to payout bridge
+      }
     }
 
+    // Strategy 2: Payout bridge (Go engine or TypeScript fallback)
+    return await this.executeViaPayout(proposal);
+  }
+
+  /**
+   * Execute via x402 protocol + relayer (gasless ERC-3009)
+   */
+  private async executeViaX402(proposal: PaymentProposal): Promise<string> {
+    console.log(`[AutoExecute] Executing via x402 for proposal ${proposal.id}`);
+
+    // Generate authorization and execute via the x402 service
+    const result = await agentX402Service.processProposalPayment(
+      proposal,
+      proposal.owner_address
+    );
+
+    if (!result.success) {
+      throw new Error(result.error || 'x402 execution failed');
+    }
+
+    return result.tx_hash || '';
+  }
+
+  /**
+   * Execute via payout bridge (Go engine or TypeScript fallback)
+   */
+  private async executeViaPayout(proposal: PaymentProposal): Promise<string> {
+    const chainId = proposal.chain_id || CHAIN_IDS.BASE;
+    const token = proposal.token || 'USDC';
+
+    const tokenAddress = getTokenAddress(chainId, token);
+    if (!tokenAddress) {
+      throw new Error(`Token ${token} not supported on chain ${chainId}`);
+    }
+
+    console.log(`[AutoExecute] Executing via payout bridge for proposal ${proposal.id}`);
+
     try {
-      // Submit payment via payout bridge
       const result = await submitBatchPayment(
-        proposal.owner_address, // userId
-        proposal.owner_address, // senderAddress (owner is the sender)
+        proposal.owner_address,
+        proposal.owner_address,
         [
           {
             address: proposal.recipient_address,
             amount: proposal.amount,
             token: tokenAddress,
             chainId,
-            vendorName: proposal.reason, // Use reason as vendor name
+            vendorName: proposal.reason,
           },
         ],
         {
-          priority: 'high', // Auto-executed payments should be processed quickly
+          priority: 'high',
         }
       );
 
@@ -295,10 +395,9 @@ export class AutoExecuteService {
         throw new Error(result.transactions[0]?.error || 'Payment execution failed');
       }
 
-      // Return the transaction hash or batch ID
       return result.transactions[0]?.txHash || result.batchId;
     } catch (error) {
-      console.error('[AutoExecute] Payment execution failed:', error);
+      console.error('[AutoExecute] Payout bridge execution failed:', error);
       throw error;
     }
   }

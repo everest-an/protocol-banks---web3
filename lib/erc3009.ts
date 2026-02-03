@@ -25,14 +25,36 @@ export interface TransferWithAuthorization {
   nonce: string
 }
 
-// Supported tokens with ERC-3009 support
-export const ERC3009_TOKENS: Record<number, Record<string, { address: string; name: string; version: string }>> = {
+// Token decimals mapping
+export const TOKEN_DECIMALS: Record<string, number> = {
+  USDC: 6,
+  USDT: 6,
+  DAI: 18,
+  WETH: 18,
+  WBTC: 8,
+}
+
+// Supported tokens with ERC-3009 / permit support
+export const ERC3009_TOKENS: Record<number, Record<string, { address: string; name: string; version: string; decimals: number }>> = {
   // Ethereum Mainnet
   1: {
     USDC: {
       address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       name: "USD Coin",
       version: "2",
+      decimals: 6,
+    },
+    USDT: {
+      address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      name: "Tether USD",
+      version: "1",
+      decimals: 6,
+    },
+    DAI: {
+      address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      name: "Dai Stablecoin",
+      version: "1",
+      decimals: 18,
     },
   },
   // Polygon
@@ -41,6 +63,19 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
       name: "USD Coin",
       version: "2",
+      decimals: 6,
+    },
+    USDT: {
+      address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      name: "Tether USD",
+      version: "1",
+      decimals: 6,
+    },
+    DAI: {
+      address: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+      name: "Dai Stablecoin",
+      version: "1",
+      decimals: 18,
     },
   },
   // Arbitrum
@@ -49,6 +84,19 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       name: "USD Coin",
       version: "2",
+      decimals: 6,
+    },
+    USDT: {
+      address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      name: "Tether USD",
+      version: "1",
+      decimals: 6,
+    },
+    DAI: {
+      address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      name: "Dai Stablecoin",
+      version: "1",
+      decimals: 18,
     },
   },
   // Base
@@ -57,6 +105,13 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       name: "USD Coin",
       version: "2",
+      decimals: 6,
+    },
+    DAI: {
+      address: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+      name: "Dai Stablecoin",
+      version: "1",
+      decimals: 18,
     },
   },
   // Optimism
@@ -65,8 +120,63 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       address: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
       name: "USD Coin",
       version: "2",
+      decimals: 6,
+    },
+    USDT: {
+      address: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      name: "Tether USD",
+      version: "1",
+      decimals: 6,
+    },
+    DAI: {
+      address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      name: "Dai Stablecoin",
+      version: "1",
+      decimals: 18,
     },
   },
+  // BNB Chain
+  56: {
+    USDC: {
+      address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      name: "USD Coin",
+      version: "1",
+      decimals: 18,
+    },
+    USDT: {
+      address: "0x55d398326f99059fF775485246999027B3197955",
+      name: "Tether USD",
+      version: "1",
+      decimals: 18,
+    },
+    DAI: {
+      address: "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3",
+      name: "Dai Stablecoin",
+      version: "1",
+      decimals: 18,
+    },
+  },
+}
+
+/**
+ * Get token decimals for a given token on a chain
+ */
+export function getTokenDecimals(chainId: number, tokenSymbol: string): number {
+  return ERC3009_TOKENS[chainId]?.[tokenSymbol]?.decimals ?? TOKEN_DECIMALS[tokenSymbol] ?? 18
+}
+
+/**
+ * Get all supported tokens for a chain
+ */
+export function getSupportedTokens(chainId: number): string[] {
+  return Object.keys(ERC3009_TOKENS[chainId] || {})
+}
+
+/**
+ * Get all supported chains
+ */
+export function getSupportedChains(): number[] {
+  return Object.keys(ERC3009_TOKENS).map(Number)
 }
 
 // EIP-712 type definitions for TransferWithAuthorization
@@ -179,15 +289,18 @@ export function createTransferAuthorization(params: {
   from: string
   to: string
   amount: string
+  chainId?: number
+  tokenSymbol?: string
   validityMinutes?: number
 }): TransferWithAuthorization {
-  const { from, to, amount, validityMinutes = 60 } = params
+  const { from, to, amount, chainId, tokenSymbol, validityMinutes = 60 } = params
   const now = Math.floor(Date.now() / 1000)
+  const decimals = chainId && tokenSymbol ? getTokenDecimals(chainId, tokenSymbol) : 6
 
   return {
     from: from.toLowerCase(),
     to: to.toLowerCase(),
-    value: parseTokenAmount(amount),
+    value: parseTokenAmount(amount, decimals),
     validAfter: now - 60, // Valid from 1 minute ago (clock skew tolerance)
     validBefore: now + validityMinutes * 60,
     nonce: generateNonce(),

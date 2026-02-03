@@ -1,0 +1,42 @@
+{
+  "name": "@protocolbanks/sdk",
+  "version": "0.1.0",
+  "description": "Protocol Banks SDK - Crypto payment integration for web applications",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "crypto",
+    "payments",
+    "web3",
+    "USDC",
+    "stablecoin",
+    "x402",
+    "protocol-banks"
+  ],
+  "author": "Protocol Banks",
+  "license": "MIT",
+  "peerDependencies": {
+    "ethers": "^6.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

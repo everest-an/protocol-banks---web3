@@ -187,6 +187,40 @@ export default function AcquiringDashboard() {
             </Link>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Links</CardTitle>
+            <CardDescription>
+              Create no-code payment links to accept crypto payments
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/acquiring/payment-links">
+              <Button className="w-full">
+                Go to Payment Links
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Invoices</CardTitle>
+            <CardDescription>
+              Create and manage crypto invoices with dual currency pricing
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/acquiring/invoices">
+              <Button className="w-full">
+                Go to Invoices
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Usage Guide */}

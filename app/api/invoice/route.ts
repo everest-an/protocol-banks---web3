@@ -23,7 +23,7 @@ function generateSignature(data: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { recipientAddress, amount, token, description, merchantName, expiresIn, metadata } = body
+    const { recipientAddress, amount, token, description, merchantName, expiresIn, metadata, amountFiat, fiatCurrency } = body
 
     // Validate required fields
     if (!recipientAddress || !/^0x[a-fA-F0-9]{40}$/.test(recipientAddress)) {
@@ -64,13 +64,19 @@ export async function POST(request: NextRequest) {
         invoice_id: invoiceId,
         recipient_address: recipientAddress,
         amount: parseFloat(amount),
+        amount_fiat: amountFiat ? parseFloat(amountFiat) : null,
+        fiat_currency: fiatCurrency || null,
         token: token || "USDC",
         description,
         merchant_name: merchantName,
         status: "pending",
         signature,
         expires_at: expiresAt.toISOString(),
-        metadata,
+        metadata: {
+          ...metadata,
+          amountFiat: amountFiat ? parseFloat(amountFiat) : undefined,
+          fiatCurrency: fiatCurrency || undefined,
+        },
       })
       .select()
       .single()
@@ -84,6 +90,8 @@ export async function POST(request: NextRequest) {
         invoice_id: invoiceId,
         recipient_address: recipientAddress,
         amount: parseFloat(amount),
+        amount_fiat: amountFiat ? parseFloat(amountFiat) : null,
+        fiat_currency: fiatCurrency || null,
         token: token || "USDC",
         description,
         merchant_name: merchantName,

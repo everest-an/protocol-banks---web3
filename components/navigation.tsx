@@ -1,13 +1,19 @@
-import { Home, CreditCard, Users, BarChart2, Receipt, FileText, HelpCircle, Shield, DollarSign } from "lucide-react"
+import { Home, Wallet, ArrowLeftRight, Users, Grid3X3, Settings, HelpCircle, Store, FileText, Link2, Monitor, Banknote } from "lucide-react"
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: Home },
-  { href: "/pay", label: "Pay", icon: CreditCard },
-  { href: "/batch-payment", label: "Batch Payment", icon: Receipt },
-  { href: "/vendors", label: "Vendors", icon: Users },
-  { href: "/analytics", label: "Analytics", icon: BarChart2 },
-  { href: "/fees", label: "Fees", icon: DollarSign }, // Added Fees nav item
-  { href: "/security", label: "Security", icon: Shield },
-  { href: "/whitepaper", label: "Whitepaper", icon: FileText },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/balances", label: "Balances", icon: Wallet },
+  { href: "/history", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/vendors", label: "Contacts", icon: Users },
+  { href: "/products", label: "Products", icon: Grid3X3 },
+  { href: "/acquiring", label: "Acquiring", icon: Store },
+  { href: "/acquiring/payment-links", label: "Payment Links", icon: Link2 },
+  { href: "/acquiring/invoices", label: "Invoices", icon: FileText },
+  { href: "/terminal", label: "POS Terminal", icon: Monitor },
+  { href: "/offramp", label: "Off-Ramp", icon: Banknote },
+]
+
+const secondaryNavItems = [
+  { href: "/settings", label: "Settings", icon: Settings },
   { href: "/help", label: "Help", icon: HelpCircle },
 ]

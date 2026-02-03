@@ -1,20 +1,26 @@
 /**
  * Subscription Payment Executor
- * 
+ *
  * Processes due subscription payments using ERC-3009 (gasless USDC transfers)
- * or standard ERC-20 transfers with x402 protocol.
+ * or x402 protocol with direct service calls (no HTTP fetch for server-side).
+ *
+ * Execution paths:
+ * 1. ERC-3009 + Relayer: Gasless USDC transfer using pre-stored authorization
+ * 2. x402 Service: Direct service call via agentX402Service
+ * 3. Development fallback: Mock tx hash when no relayer configured
  */
 
 import { subscriptionService, type Subscription } from './subscription-service'
 import {
   isERC3009Supported,
   createTransferAuthorization,
-  getTokenAddress,
-  encodeTransferWithAuthorization,
   type TransferWithAuthorization,
 } from '../erc3009'
+import { agentX402Service } from './agent-x402-service'
 import { notificationService } from './notification-service'
 import { relayerService, isRelayerConfigured } from './relayer-service'
+import { createClient } from '@/lib/supabase/server'
+import { randomBytes } from 'crypto'
 import type { Hex, Address } from 'viem'
 
 export interface PaymentExecutionResult {
@@ -92,20 +98,22 @@ export class SubscriptionPaymentExecutor {
     try {
       // Determine payment method
       const useERC3009 = isERC3009Supported(subscription.chain_id, subscription.token)
-      const method = useERC3009 ? 'erc3009' : 'x402'
       const relayerReady = isRelayerConfigured()
-
+      let method: PaymentExecutionResult['method'] = 'direct'
       let txHash: string
 
       if (useERC3009 && relayerReady) {
         // Use ERC-3009 gasless transfer via relayer
+        method = 'erc3009'
         txHash = await this.executeERC3009Payment(subscription)
       } else if (relayerReady) {
-        // Use x402 protocol
+        // Use x402 protocol via direct service call
+        method = 'x402'
         txHash = await this.executeX402Payment(subscription)
       } else {
         // Fallback: simulate for development
         console.warn('[SubscriptionExecutor] No relayer configured, simulating payment')
+        method = 'direct'
         txHash = this.generateMockTxHash()
       }
 
@@ -135,6 +143,9 @@ export class SubscriptionPaymentExecutor {
       // Record failure
       await subscriptionService.recordPaymentFailure(subscription.id, errorMessage)
 
+      // Send failure notification
+      await this.sendPaymentNotification(subscription, '', false)
+
       return {
         subscriptionId: subscription.id,
         success: false,
@@ -160,8 +171,7 @@ export class SubscriptionPaymentExecutor {
       validityMinutes: 60,
     })
 
-    // Request signature from the pre-authorized session key or stored authorization
-    // In production, this would use a session key with pre-approved spending limits
+    // Retrieve pre-stored authorization signature from database
     const signature = await this.getStoredAuthorization(subscription.id, authorization)
 
     // Execute via relayer service
@@ -185,67 +195,77 @@ export class SubscriptionPaymentExecutor {
   }
 
   /**
-   * Execute payment using x402 protocol
+   * Execute payment using x402 protocol via direct service call.
+   * No HTTP fetch - calls agentX402Service directly for server-side execution.
    */
   private async executeX402Payment(subscription: Subscription): Promise<string> {
-    // Create x402 authorization
-    const response = await fetch('/api/x402/authorize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: subscription.wallet_address,
-        to: subscription.recipient_address,
-        amount: subscription.amount,
-        token: subscription.token,
-        chainId: subscription.chain_id,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to create x402 authorization')
+    // Build a proposal-like object for the x402 service
+    const proposalLike = {
+      id: subscription.id,
+      status: 'approved' as const,
+      recipient_address: subscription.recipient_address,
+      amount: subscription.amount,
+      token: subscription.token,
+      chain_id: subscription.chain_id,
+      reason: `Subscription payment: ${subscription.service_name}`,
     }
 
-    const { authorization } = await response.json()
+    // Execute via x402 service directly (no HTTP roundtrip)
+    const result = await agentX402Service.processProposalPayment(
+      proposalLike as any,
+      subscription.wallet_address
+    )
 
-    // Execute via relayer
-    const executeResponse = await fetch(`${this.config.relayerUrl}/x402/execute`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': process.env.RELAYER_API_KEY || '',
-      },
-      body: JSON.stringify({
-        authorizationId: authorization.transferId,
-        chainId: subscription.chain_id,
-      }),
-    })
-
-    if (!executeResponse.ok) {
-      throw new Error('Failed to execute x402 payment')
+    if (!result.success) {
+      throw new Error(result.error || 'x402 execution failed')
     }
 
-    const result = await executeResponse.json()
-    return result.txHash
+    return result.tx_hash || ''
   }
 
   /**
-   * Get stored authorization signature for subscription
-   * In production, this retrieves pre-signed authorizations or uses session keys
+   * Get stored authorization signature for subscription.
+   * Retrieves pre-signed authorizations from the database (stored when user
+   * initially approved the subscription).
    */
   private async getStoredAuthorization(
     subscriptionId: string,
     authorization: TransferWithAuthorization
   ): Promise<string> {
-    // Check for stored pre-authorization
-    const response = await fetch(`/api/subscriptions/${subscriptionId}/authorization`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(authorization),
-    })
+    try {
+      const supabase = await createClient()
 
-    if (response.ok) {
-      const { signature } = await response.json()
-      if (signature) return signature
+      // Look up stored authorization signature for this subscription
+      const { data, error } = await supabase
+        .from('subscription_authorizations')
+        .select('signature')
+        .eq('subscription_id', subscriptionId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (!error && data?.signature) {
+        return data.signature
+      }
+
+      // Fallback: check x402_authorizations table for a matching pre-authorization
+      const { data: x402Data } = await supabase
+        .from('x402_authorizations')
+        .select('signature')
+        .eq('from_address', authorization.from.toLowerCase())
+        .eq('to_address', authorization.to.toLowerCase())
+        .eq('status', 'signed')
+        .gt('valid_before', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (x402Data?.signature) {
+        return x402Data.signature
+      }
+    } catch (error) {
+      console.error('[SubscriptionExecutor] Failed to get stored authorization:', error)
     }
 
     // If no stored authorization, this subscription needs manual re-authorization
@@ -288,9 +308,7 @@ export class SubscriptionPaymentExecutor {
    * Generate mock transaction hash for development
    */
   private generateMockTxHash(): string {
-    return '0x' + Array.from({ length: 64 }, () => 
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('')
+    return '0x' + randomBytes(32).toString('hex')
   }
 }
 
@@ -307,7 +325,7 @@ export async function processSubscriptionsCron(): Promise<{
   failed: number
 }> {
   const results = await subscriptionPaymentExecutor.processDueSubscriptions()
-  
+
   return {
     processed: results.length,
     successful: results.filter(r => r.success).length,

@@ -64,6 +64,7 @@ interface DashboardActivityProps {
   walletAddress?: string
   limit?: number
   showTabs?: boolean
+  compact?: boolean
 }
 
 const fetcher = async (url: string) => {
@@ -76,6 +77,7 @@ export function DashboardActivity({
   walletAddress,
   limit = 15,
   showTabs = true,
+  compact = false,
 }: DashboardActivityProps) {
   const [activeTab, setActiveTab] = useState("all")
   

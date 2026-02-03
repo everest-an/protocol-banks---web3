@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { Resend } from "resend"
 import { sanitizeTextInput, checkRateLimit } from "@/lib/security"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Only initialize Resend if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 const INPUT_LIMITS = {
   name: 100,
@@ -118,7 +119,7 @@ export async function POST(request: Request) {
 
     const resendApiKey = process.env.RESEND_API_KEY
 
-    if (!resendApiKey) {
+    if (!resendApiKey || !resend) {
       return NextResponse.json(
         {
           success: false,
