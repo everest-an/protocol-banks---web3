@@ -2,14 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Grid3X3, Wallet, Send, Layers, ArrowLeftRight } from "lucide-react"
+import { Grid3X3, Wallet, CreditCard, ArrowLeftRight, ShoppingBag } from "lucide-react"
 
 const navItems = [
+  { href: "/", label: "Home", icon: Wallet },
+  { href: "/balances", label: "Balances", icon: CreditCard },
+  { href: "/history", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/vendors", label: "Contacts", icon: ShoppingBag },
   { href: "/products", label: "Products", icon: Grid3X3 },
-  { href: "/history", label: "Payments", icon: Wallet },
-  { href: "/pay", label: "Pay", icon: Send },
-  { href: "/batch-payment", label: "Batch", icon: Layers },
-  { href: "/swap", label: "Swap", icon: ArrowLeftRight },
 ]
 
 export function MobileNav() {

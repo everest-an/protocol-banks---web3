@@ -4,7 +4,6 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import {
   Wallet,
-  Send,
   Menu,
   Play,
   StopCircle,
@@ -13,12 +12,6 @@ import {
   CreditCard,
   ShoppingBag,
   Grid3X3,
-  Link2,
-  FileText,
-  Monitor,
-  Coins,
-  Layers,
-  Globe,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -46,18 +39,11 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false)
 
   const navItems = [
+    { href: "/", label: "Home", icon: Wallet },
+    { href: "/balances", label: "Balances", icon: CreditCard },
+    { href: "/history", label: "Transactions", icon: ArrowLeftRight },
+    { href: "/vendors", label: "Contacts", icon: ShoppingBag },
     { href: "/products", label: "Products", icon: Grid3X3 },
-    { href: "/history", label: "Payments", icon: Wallet },
-    { href: "/pay", label: "Pay", icon: Send },
-    { href: "/batch-payment", label: "Batch Payment", icon: Layers },
-    { href: "/acquiring/payment-links", label: "Payment Links", icon: Link2 },
-    { href: "/acquiring", label: "Commerce", icon: ShoppingBag },
-    { href: "/checkout", label: "Checkout", icon: CreditCard },
-    { href: "/acquiring/invoices", label: "Invoicing", icon: FileText },
-    { href: "/terminal", label: "Terminal", icon: Monitor },
-    { href: "/omnichain", label: "DeFi", icon: Coins },
-    { href: "/swap", label: "Swap", icon: ArrowLeftRight },
-    { href: "/analytics", label: "Global Payment", icon: Globe },
   ]
 
   const isActivePath = (href: string) => {
