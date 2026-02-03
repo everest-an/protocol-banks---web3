@@ -48,6 +48,7 @@ export const SUPPORTED_CHAINS = {
   42161: { name: "Arbitrum", symbol: "ETH", type: "evm" },
   10: { name: "Optimism", symbol: "ETH", type: "evm" },
   8453: { name: "Base", symbol: "ETH", type: "evm" },
+  177: { name: "HashKey Chain", symbol: "HSK", type: "evm" },
   7000: { name: "ZetaChain", symbol: "ZETA", type: "zeta" },
   // 非 EVM 链
   bitcoin: { name: "Bitcoin", symbol: "BTC", type: "utxo" },

@@ -6,6 +6,7 @@ export const SUPPORTED_CHAINS = [
   { id: 8453, name: "Base", symbol: "ETH", icon: "🔵", color: "#0052FF" },
   { id: 10, name: "Optimism", symbol: "ETH", icon: "🔴", color: "#FF0420" },
   { id: 56, name: "BNB Chain", symbol: "BNB", icon: "⬡", color: "#F0B90B" },
+  { id: 177, name: "HashKey Chain", symbol: "HSK", icon: "🔑", color: "#2D6AE0" },
 ] as const
 
 export type SupportedChainId = (typeof SUPPORTED_CHAINS)[number]["id"]

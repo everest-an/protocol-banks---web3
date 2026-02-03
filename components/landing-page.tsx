@@ -384,8 +384,8 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-muted-foreground">
             {[
               "Ethereum", "Polygon", "Arbitrum", "Optimism",
-              "Base", "BSC", "Avalanche", "Solana",
-              "Bitcoin", "ZetaChain",
+              "Base", "BSC", "Avalanche", "HashKey Chain",
+              "Solana", "Bitcoin", "ZetaChain",
             ].map((chain) => (
               <div
                 key={chain}

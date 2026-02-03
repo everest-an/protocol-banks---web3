@@ -129,6 +129,14 @@ export const SUPPORTED_CHAINS: ChainInfo[] = [
     nativeCurrency: { symbol: "AVAX", decimals: 18 },
   },
   {
+    id: "HASHKEY",
+    name: "HashKey Chain",
+    logo: "https://raw.githubusercontent.com/rango-exchange/assets/main/blockchains/HASHKEY/icon.svg",
+    chainId: 177,
+    type: "EVM",
+    nativeCurrency: { symbol: "HSK", decimals: 18 },
+  },
+  {
     id: "ZETA",
     name: "ZetaChain",
     logo: "https://raw.githubusercontent.com/rango-exchange/assets/main/blockchains/ZETA/icon.svg",
