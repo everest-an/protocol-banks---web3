@@ -540,7 +540,7 @@ export function NetworkGraph({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[400px] md:min-h-[800px] bg-background rounded-lg overflow-hidden border border-border"
+      className="relative w-full h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] bg-background rounded-lg overflow-hidden border border-border"
     >
       {/* Header with title and search */}
       <div className="absolute top-3 md:top-6 left-3 md:left-6 right-3 md:right-6 z-20 flex items-start justify-between pointer-events-none">
@@ -690,7 +690,7 @@ export function NetworkGraph({
                     strokeWidth={active ? 1.5 : 0.5}
                     className="transition-all duration-300"
                   />
-                  <circle r="1.5" fill={dotColor}>
+                  <circle r="2" fill="none" stroke={dotColor} strokeWidth={1}>
                     <animateMotion
                       dur={`${2 + (index % 5)}s`}
                       repeatCount="indefinite"
@@ -698,7 +698,7 @@ export function NetworkGraph({
                     />
                   </circle>
                   {edge.weight > 1 && (
-                    <circle r="1" fill={isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)"}>
+                    <circle r="1.5" fill="none" stroke={isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)"} strokeWidth={1}>
                       <animateMotion
                         dur={`${3 + (index % 5)}s`}
                         begin="1s"
@@ -739,7 +739,7 @@ export function NetworkGraph({
                     cx={0}
                     cy={0}
                     r={node.r}
-                    fill="#0a0a0a"
+                    fill={isDark ? "#0a0a0a" : "#ffffff"}
                     stroke={node.color}
                     strokeWidth={isSelected ? 3 : node.type === "vendor" ? 1 : 2}
                     className="transition-all duration-300"
@@ -762,7 +762,7 @@ export function NetworkGraph({
                       x={0}
                       y={node.r + 14}
                       textAnchor="middle"
-                      fill={isSelected || isHovered ? "#fff" : "#71717a"}
+                      fill={isSelected || isHovered ? (isDark ? "#fff" : "#000") : "#71717a"}
                       className="text-[10px] font-mono tracking-wider font-medium pointer-events-none select-none uppercase"
                     >
                       {node.data?.company_name || node.data?.name || "Unknown"}
@@ -770,7 +770,7 @@ export function NetworkGraph({
                   )}
 
                   {isBeingDragged && (
-                    <circle r={node.r * transform.k + 4} fill="none" stroke="#ffffff" strokeWidth={2} opacity={0.8} />
+                    <circle r={node.r * transform.k + 4} fill="none" stroke={isDark ? "#ffffff" : "#000000"} strokeWidth={2} opacity={0.8} />
                   )}
                 </g>
               )
