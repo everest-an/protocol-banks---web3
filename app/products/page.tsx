@@ -183,18 +183,18 @@ function ProductSection({
   title, 
   description, 
   products,
-  emoji
+  icon: Icon
 }: { 
   title: string
   description: string
   products: ProductItem[]
-  emoji: string
+  icon: React.ElementType
 }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-muted">
-          <span className="text-lg">{emoji}</span>
+          <Icon className="h-5 w-5 text-muted-foreground" />
         </div>
         <div>
           <h2 className="text-lg font-semibold">{title}</h2>
@@ -266,28 +266,28 @@ export default function ProductsPage() {
           title="Payments"
           description="Send and receive crypto payments"
           products={paymentProducts}
-          emoji="💳"
+          icon={Send}
         />
 
         <ProductSection
           title="Commerce"
           description="Accept payments for your business"
           products={commerceProducts}
-          emoji="🛒"
+          icon={ShoppingCart}
         />
 
         <ProductSection
           title="DeFi"
           description="Swap tokens and manage cross-chain assets"
           products={defiProducts}
-          emoji="🔄"
+          icon={ArrowRightLeft}
         />
 
         <ProductSection
           title="Advanced"
           description="Enterprise and cutting-edge features"
           products={advancedProducts}
-          emoji="🤖"
+          icon={Shield}
         />
 
         {/* Developer Resources */}
