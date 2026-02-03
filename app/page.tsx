@@ -6,11 +6,11 @@ import { useWeb3 } from "@/contexts/web3-context"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  ArrowDownLeft, 
-  Send, 
-  CreditCard, 
-  Users, 
+import {
+  ArrowDownLeft,
+  Send,
+  CreditCard,
+  Users,
   RefreshCw,
   Wallet,
   TrendingUp,
@@ -22,6 +22,7 @@ import {
 import { useBalance } from "@/hooks/use-balance"
 import { BalanceDistribution } from "@/components/balance-distribution"
 import { DashboardActivity } from "@/components/dashboard-activity"
+import { LandingPage } from "@/components/landing-page"
 
 // Quick action buttons for the dashboard
 const quickActions = [
@@ -33,7 +34,7 @@ const quickActions = [
 
 export default function HomePage() {
   const { isConnected, connectWallet, wallet } = useWeb3()
-  const { isDemoMode, setWalletConnected } = useDemo()
+  const { isDemoMode, setWalletConnected, toggleDemoMode } = useDemo()
   const { balance, loading: balanceLoading } = useBalance({ isDemoMode, walletAddress: wallet || undefined })
 
   useEffect(() => {
@@ -45,10 +46,20 @@ export default function HomePage() {
     maximumFractionDigits: 2,
   })
 
+  // Show landing page for visitors who haven't connected a wallet and aren't in demo mode
+  if (!isConnected && !isDemoMode) {
+    return (
+      <LandingPage
+        onConnectWallet={() => connectWallet()}
+        onTryDemo={() => toggleDemoMode()}
+      />
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <div className="container mx-auto py-6 px-4 space-y-6">
-        
+
         {/* Balance Card */}
         <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20">
           <CardContent className="pt-6">
@@ -184,23 +195,6 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Connect Wallet CTA (if not connected) */}
-        {!isConnected && !isDemoMode && (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="p-4 rounded-full bg-primary/10 mb-4">
-                <Wallet className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
-              <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-                Connect your wallet to view balances, send payments, and access all features.
-              </p>
-              <Button onClick={() => connectWallet()}>
-                Connect Wallet
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   )
