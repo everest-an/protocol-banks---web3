@@ -2,13 +2,21 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { Wallet, Send, QrCode, Menu, Play, StopCircle, Loader2, ArrowLeftRight, CreditCard, ShoppingBag, FileText } from "lucide-react"
+import { Wallet, Send, QrCode, Menu, Play, StopCircle, Loader2, ArrowLeftRight, CreditCard, ShoppingBag, FileText, Settings, Key, Shield, Webhook, ChevronDown, LayoutDashboard } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
 import { SoundSettings } from "@/components/sound-settings"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -40,6 +48,7 @@ export function Header() {
 
   const navItems = [
     { href: "/", label: "Account", icon: Wallet },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/subscriptions", label: "Subscriptions", icon: Send },
     { href: "/batch-payment", label: "Pay", icon: Send },
     { href: "/receive", label: "Receive", icon: QrCode },
@@ -47,6 +56,13 @@ export function Header() {
     { href: "/swap", label: "Swap", icon: ArrowLeftRight },
     { href: "/acquiring", label: "Acquiring", icon: ShoppingBag },
     { href: "/card", label: "Card", icon: CreditCard },
+  ]
+
+  const settingsItems = [
+    { href: "/agents/session-keys", label: "Session Keys", icon: Key },
+    { href: "/settings/api-keys", label: "API Keys", icon: Shield },
+    { href: "/settings/webhooks", label: "Webhooks", icon: Webhook },
+    { href: "/settings/multisig", label: "Multi-sig", icon: Shield },
   ]
 
   return (
@@ -93,6 +109,32 @@ export function Header() {
                       </Link>
                     )
                   })}
+                </div>
+
+                {/* Settings Section */}
+                <div className="pt-4 border-t border-border">
+                  <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Settings</p>
+                  <div className="space-y-1">
+                    {settingsItems.map((item) => {
+                      const Icon = item.icon
+                      const isActive = pathname === item.href
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                            isActive
+                              ? "bg-primary/10 text-primary border-l-2 border-primary"
+                              : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                          <span>{item.label}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 {/* Demo Toggle */}
@@ -166,6 +208,39 @@ export function Header() {
                 </Link>
               )
             })}
+
+            {/* Settings Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={`flex items-center gap-1.5 px-2.5 py-2 h-auto text-sm font-medium transition-colors whitespace-nowrap ${
+                    settingsItems.some((item) => pathname === item.href)
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                  }`}
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {settingsItems.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href} className="flex items-center gap-2 cursor-pointer">
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
         </div>
 
