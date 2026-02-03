@@ -19,9 +19,37 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Play, Pause, X, Plus, DollarSign, Calendar } from "lucide-react"
+import { Play, Pause, X, Plus, DollarSign, Calendar, History, Clock, CheckCircle2, XCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
 import type { Subscription } from "@/types"
+import { SubscriptionPaymentHistory } from "@/components/subscription-payment-history"
+
+// Helper function to calculate time until next payment
+function getTimeUntilPayment(nextPayment: string | undefined): { text: string; urgent: boolean } {
+  if (!nextPayment) return { text: "Not scheduled", urgent: false }
+  
+  const now = new Date()
+  const next = new Date(nextPayment)
+  const diffMs = next.getTime() - now.getTime()
+  
+  if (diffMs < 0) return { text: "Overdue", urgent: true }
+  
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  
+  if (diffDays > 7) {
+    return { text: `in ${diffDays} days`, urgent: false }
+  } else if (diffDays > 0) {
+    return { text: `in ${diffDays}d ${diffHours}h`, urgent: diffDays <= 2 }
+  } else if (diffHours > 0) {
+    return { text: `in ${diffHours} hours`, urgent: true }
+  } else {
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+    return { text: `in ${diffMinutes} min`, urgent: true }
+  }
+}
 
 export default function SubscriptionsPage() {
   const { wallets, activeChain } = useWeb3()
@@ -40,6 +68,7 @@ export default function SubscriptionsPage() {
   })
 
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [expandedSubscription, setExpandedSubscription] = useState<string | null>(null)
   const [newSubscription, setNewSubscription] = useState<SubscriptionInput>({
     service_name: "",
     amount: 0,
@@ -322,45 +351,104 @@ export default function SubscriptionsPage() {
           ) : (
             subscriptions.map((subscription) => {
               const formatted = formatSubscriptionForDisplay(subscription)
+              const timeUntil = getTimeUntilPayment(subscription.next_payment)
+              const isExpanded = expandedSubscription === subscription.id
 
               return (
-                <Card key={subscription.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <h3 className="font-semibold">{subscription.service_name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {formatted.formattedAmount} • {formatted.formattedFrequency}
-                        </p>
-                        {subscription.next_payment && (
-                          <p className="text-xs text-muted-foreground">Next: {formatted.formattedNextPayment}</p>
-                        )}
+                <Collapsible
+                  key={subscription.id}
+                  open={isExpanded}
+                  onOpenChange={(open) => setExpandedSubscription(open ? subscription.id : null)}
+                >
+                  <Card className="overflow-hidden">
+                    <div className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold truncate">{subscription.service_name}</h3>
+                              <Badge variant={subscription.status === "active" ? "default" : "secondary"}>
+                                {subscription.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {formatted.formattedAmount} • {formatted.formattedFrequency}
+                            </p>
+                            
+                            {/* Next payment countdown */}
+                            {subscription.status === "active" && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Clock className={`h-3.5 w-3.5 ${timeUntil.urgent ? 'text-yellow-500' : 'text-muted-foreground'}`} />
+                                <span className={`text-xs ${timeUntil.urgent ? 'text-yellow-500 font-medium' : 'text-muted-foreground'}`}>
+                                  Next payment {timeUntil.text}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Last payment status */}
+                            {subscription.last_payment && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                                <span className="text-xs text-muted-foreground">
+                                  Last paid {new Date(subscription.last_payment).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <CollapsibleTrigger asChild>
+                            <Button size="sm" variant="outline" className="gap-1">
+                              <History className="h-4 w-4" />
+                              <span className="hidden sm:inline">History</span>
+                              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </Button>
+                          </CollapsibleTrigger>
+
+                          <Button size="sm" variant="outline" onClick={() => handlePayNow(subscription)}>
+                            Pay Now
+                          </Button>
+
+                          <Button size="sm" variant="outline" onClick={() => handleToggleStatus(subscription)}>
+                            {subscription.status === "active" ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+
+                          <Button size="sm" variant="outline" onClick={() => handleCancelSubscription(subscription)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
+
+                      {/* Budget usage progress bar */}
+                      {subscription.max_amount && Number(subscription.max_amount) > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">Budget usage</span>
+                            <span className="font-medium">
+                              {subscription.amount} / {subscription.max_amount} {subscription.token}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={(Number(subscription.amount) / Number(subscription.max_amount)) * 100} 
+                            className="h-1.5"
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Badge variant={subscription.status === "active" ? "default" : "secondary"}>
-                        {subscription.status}
-                      </Badge>
-
-                      <Button size="sm" variant="outline" onClick={() => handlePayNow(subscription)}>
-                        Pay Now
-                      </Button>
-
-                      <Button size="sm" variant="outline" onClick={() => handleToggleStatus(subscription)}>
-                        {subscription.status === "active" ? (
-                          <Pause className="h-4 w-4" />
-                        ) : (
-                          <Play className="h-4 w-4" />
-                        )}
-                      </Button>
-
-                      <Button size="sm" variant="outline" onClick={() => handleCancelSubscription(subscription)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
+                    {/* Payment History Panel */}
+                    <CollapsibleContent>
+                      <div className="border-t border-border bg-muted/30 p-4">
+                        <SubscriptionPaymentHistory subscription={subscription} isDemoMode={isDemoMode} />
+                      </div>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               )
             })
           )}
