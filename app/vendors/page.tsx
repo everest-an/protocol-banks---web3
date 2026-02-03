@@ -155,6 +155,13 @@ export default function VendorsPage() {
 
   const displayVendors = isDemoMode ? demoVendors : vendors
 
+  // Map filter categories to tier values
+  const filterToTierMap: Record<string, string> = {
+    "Suppliers": "vendor",
+    "Partners": "partner", 
+    "Subsidiaries": "subsidiary",
+  }
+
   const filteredVendors = useMemo(() => {
     return displayVendors.filter((v) => {
       const matchesSearch =
@@ -533,23 +540,28 @@ export default function VendorsPage() {
               <span className="text-muted-foreground whitespace-nowrap">Filters:</span>
             </div>
             <div className="flex items-center gap-2">
-              {["All", "Suppliers", "Partners", "Subsidiaries"].map((cat) => (
+              {[
+                { label: "All", tier: null, count: displayVendors.length },
+                { label: "Suppliers", tier: "vendor", count: displayVendors.filter(v => v.tier === "vendor").length },
+                { label: "Partners", tier: "partner", count: displayVendors.filter(v => v.tier === "partner").length },
+                { label: "Subsidiaries", tier: "subsidiary", count: displayVendors.filter(v => v.tier === "subsidiary").length },
+              ].map((cat) => (
                 <Button
-                  key={cat}
-                  variant={selectedCategories.includes(cat) ? "secondary" : "ghost"}
+                  key={cat.label}
+                  variant={selectedCategories.includes(cat.label) || (cat.label === "All" && selectedCategories.length === 0) ? "secondary" : "ghost"}
                   size="sm"
                   className="h-7 px-3 text-xs whitespace-nowrap"
                   onClick={() => {
-                    if (cat === "All") {
+                    if (cat.label === "All") {
                       setSelectedCategories([])
                     } else {
                       setSelectedCategories((prev) =>
-                        prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+                        prev.includes(cat.label) ? prev.filter((c) => c !== cat.label) : [...prev, cat.label],
                       )
                     }
                   }}
                 >
-                  {cat}
+                  {cat.label} ({cat.count})
                 </Button>
               ))}
             </div>
@@ -752,3 +764,4 @@ export default function VendorsPage() {
     </div>
   )
 }
+
