@@ -9,6 +9,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    // Force clean build without Sentry
+  },
 }
 
 export default nextConfig
