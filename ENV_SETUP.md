@@ -134,6 +134,66 @@ NEXT_PUBLIC_ALLOW_DEMO_MODE=true
 
 **Note:** `ETHERSCAN_API_KEY` is used server-side only in API routes, so it does not need the `NEXT_PUBLIC_` prefix.
 
+### 6. Payment Relayer Configuration
+
+For production blockchain payment execution:
+
+```env
+# Relayer service for gasless transactions
+RELAYER_URL=https://your-relayer-service.com
+RELAYER_API_KEY=your_relayer_api_key
+RELAYER_ADDRESS=0x...your_relayer_wallet_address
+
+# x402 Protocol relayer (optional, defaults to RELAYER_URL)
+X402_RELAYER_URL=https://your-x402-relayer.com
+```
+
+### 7. Webhook Configuration
+
+For production webhook delivery:
+
+```env
+# Enable real HTTP webhook delivery (default: false for development)
+WEBHOOK_REAL_DELIVERY=true
+```
+
+### 8. Off-ramp Provider API Keys
+
+For fiat off-ramp functionality (crypto to bank):
+
+```env
+# Bridge.xyz (cross-border payments)
+BRIDGE_API_KEY=your_bridge_api_key
+
+# Coinbase Onramp/Offramp
+COINBASE_ONRAMP_API_KEY=your_coinbase_api_key
+
+# Transak
+TRANSAK_API_KEY=your_transak_api_key
+```
+
+### 9. Storage Configuration
+
+For production Redis storage (optional, defaults to in-memory):
+
+```env
+# Enable Redis storage
+USE_REDIS=true
+REDIS_URL=redis://localhost:6379
+
+# Or Redis Cloud / Upstash
+REDIS_URL=rediss://user:password@host:port
+```
+
+### 10. Cron Job Security
+
+For subscription cron endpoint protection:
+
+```env
+# Secret for verifying cron job requests
+CRON_SECRET=your_secure_random_string
+```
+
 ## How to Add Variables in v0
 
 1. Open your project in v0

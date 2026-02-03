@@ -31,9 +31,10 @@ async function getOwnerAddress(): Promise<string | null> {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -42,7 +43,7 @@ export async function GET(
       );
     }
 
-    const proposal = await proposalService.get(params.id);
+    const proposal = await proposalService.get(id);
     
     if (!proposal) {
       return NextResponse.json(

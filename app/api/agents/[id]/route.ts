@@ -33,9 +33,10 @@ async function getOwnerAddress(): Promise<string | null> {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -44,7 +45,7 @@ export async function GET(
       );
     }
 
-    const agent = await agentService.get(params.id, ownerAddress);
+    const agent = await agentService.get(id, ownerAddress);
     
     if (!agent) {
       return NextResponse.json(
@@ -73,9 +74,10 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -126,7 +128,7 @@ export async function PUT(
     if (body.auto_execute_rules !== undefined) input.auto_execute_rules = body.auto_execute_rules;
     if (body.rate_limit_per_minute !== undefined) input.rate_limit_per_minute = body.rate_limit_per_minute;
 
-    const agent = await agentService.update(params.id, ownerAddress, input);
+    const agent = await agentService.update(id, ownerAddress, input);
 
     return NextResponse.json({
       success: true,
@@ -159,9 +161,10 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -170,7 +173,7 @@ export async function DELETE(
       );
     }
 
-    await agentService.deactivate(params.id, ownerAddress);
+    await agentService.deactivate(id, ownerAddress);
 
     return NextResponse.json({
       success: true,

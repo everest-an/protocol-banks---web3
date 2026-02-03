@@ -31,9 +31,10 @@ async function getOwnerAddress(): Promise<string | null> {
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -45,7 +46,7 @@ export async function PUT(
     const body = await req.json().catch(() => ({}));
     const reason = body.reason;
 
-    const proposal = await proposalService.reject(params.id, ownerAddress, reason);
+    const proposal = await proposalService.reject(id, ownerAddress, reason);
 
     return NextResponse.json({
       success: true,

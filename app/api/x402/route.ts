@@ -14,7 +14,9 @@ export interface X402InfoResponse {
   supportedChains: { id: number; name: string }[]
   endpoints: {
     authorize: string
+    execute: string
     verify: string
+    settle: string
     status: string
   }
   documentation: string
@@ -34,7 +36,9 @@ export async function GET(): Promise<NextResponse<X402InfoResponse>> {
     ],
     endpoints: {
       authorize: "/api/x402/authorize",
+      execute: "/api/x402/execute",
       verify: "/api/x402/verify",
+      settle: "/api/x402/settle",
       status: "/api/x402/status",
     },
     documentation: "https://docs.protocolbanks.com/x402",

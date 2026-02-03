@@ -1,13 +1,14 @@
 /**
  * Agent Webhook Service
- * 
+ *
  * Delivers webhook events to agents with retry logic.
- * 
+ *
  * @module lib/services/agent-webhook-service
  */
 
 import { randomUUID } from 'crypto';
 import { createHmac } from 'crypto';
+import { createClient } from '@/lib/supabase/server';
 
 // ============================================
 // Types
@@ -49,6 +50,23 @@ const deliveryStore = new Map<string, AgentWebhookDelivery>();
 // Retry delays in milliseconds
 const RETRY_DELAYS = [0, 60000, 300000]; // Immediate, 1 min, 5 min
 
+// Flag to enable/disable database (for testing)
+let useDatabaseStorage = true;
+
+export function setUseDatabaseStorage(enabled: boolean) {
+  useDatabaseStorage = enabled;
+}
+
+function convertDbDelivery(data: any): AgentWebhookDelivery {
+  return {
+    ...data,
+    created_at: new Date(data.created_at),
+    last_attempt_at: data.last_attempt_at ? new Date(data.last_attempt_at) : undefined,
+    next_retry_at: data.next_retry_at ? new Date(data.next_retry_at) : undefined,
+    delivered_at: data.delivered_at ? new Date(data.delivered_at) : undefined,
+  };
+}
+
 // ============================================
 // Helper Functions
 // ============================================
@@ -75,22 +93,75 @@ export class AgentWebhookService {
     event: AgentWebhookEvent,
     payload: object
   ): Promise<AgentWebhookDelivery> {
-    const delivery: AgentWebhookDelivery = {
-      id: randomUUID(),
+    const deliveryData = {
       agent_id: agentId,
       event_type: event,
       payload,
-      status: 'pending',
+      status: 'pending' as const,
       attempts: 0,
-      created_at: new Date(),
     };
 
-    deliveryStore.set(delivery.id, delivery);
+    let delivery: AgentWebhookDelivery;
+
+    if (useDatabaseStorage) {
+      try {
+        const supabase = await createClient();
+
+        const { data, error } = await supabase
+          .from('agent_webhook_deliveries')
+          .insert(deliveryData)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Webhook Service] Insert error:', error);
+          // Fall back to in-memory
+          delivery = {
+            id: randomUUID(),
+            ...deliveryData,
+            created_at: new Date(),
+          };
+          deliveryStore.set(delivery.id, delivery);
+        } else {
+          delivery = convertDbDelivery(data);
+        }
+      } catch (error) {
+        console.error('[Webhook Service] Failed to create delivery:', error);
+        delivery = {
+          id: randomUUID(),
+          ...deliveryData,
+          created_at: new Date(),
+        };
+        deliveryStore.set(delivery.id, delivery);
+      }
+    } else {
+      delivery = {
+        id: randomUUID(),
+        ...deliveryData,
+        created_at: new Date(),
+      };
+      deliveryStore.set(delivery.id, delivery);
+    }
 
     // Attempt delivery
     await this.processDelivery(delivery.id, webhookUrl, webhookSecret);
 
-    return deliveryStore.get(delivery.id)!;
+    // Return latest state
+    if (useDatabaseStorage) {
+      try {
+        const supabase = await createClient();
+        const { data } = await supabase
+          .from('agent_webhook_deliveries')
+          .select('*')
+          .eq('id', delivery.id)
+          .single();
+        if (data) return convertDbDelivery(data);
+      } catch {
+        // Fall through
+      }
+    }
+
+    return deliveryStore.get(delivery.id) || delivery;
   }
 
   /**
@@ -101,7 +172,26 @@ export class AgentWebhookService {
     webhookUrl: string,
     webhookSecret: string
   ): Promise<void> {
-    const delivery = deliveryStore.get(deliveryId);
+    let delivery: AgentWebhookDelivery | null = null;
+
+    if (useDatabaseStorage) {
+      try {
+        const supabase = await createClient();
+        const { data } = await supabase
+          .from('agent_webhook_deliveries')
+          .select('*')
+          .eq('id', deliveryId)
+          .single();
+        if (data) delivery = convertDbDelivery(data);
+      } catch {
+        // Fall through to in-memory
+      }
+    }
+
+    if (!delivery) {
+      delivery = deliveryStore.get(deliveryId) || null;
+    }
+
     if (!delivery) {
       throw new Error('Delivery not found');
     }
@@ -112,7 +202,7 @@ export class AgentWebhookService {
 
     if (delivery.attempts >= 3) {
       delivery.status = 'failed';
-      deliveryStore.set(deliveryId, delivery);
+      await this.saveDelivery(delivery);
       return;
     }
 
@@ -129,8 +219,6 @@ export class AgentWebhookService {
 
       const signature = generateWebhookSignature(payloadString, webhookSecret);
 
-      // In production, this would make an actual HTTP request
-      // For now, simulate the delivery
       const response = await this.simulateDelivery(webhookUrl, payloadString, signature);
 
       if (response.ok) {
@@ -142,7 +230,7 @@ export class AgentWebhookService {
       }
     } catch (error) {
       delivery.error_message = error instanceof Error ? error.message : 'Unknown error';
-      
+
       if (delivery.attempts < 3) {
         // Schedule retry
         const retryDelay = RETRY_DELAYS[delivery.attempts] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
@@ -152,31 +240,82 @@ export class AgentWebhookService {
       }
     }
 
-    deliveryStore.set(deliveryId, delivery);
+    await this.saveDelivery(delivery);
+  }
+
+  /**
+   * Persist delivery state to database or in-memory store
+   */
+  private async saveDelivery(delivery: AgentWebhookDelivery): Promise<void> {
+    if (useDatabaseStorage) {
+      try {
+        const supabase = await createClient();
+
+        await supabase
+          .from('agent_webhook_deliveries')
+          .update({
+            status: delivery.status,
+            attempts: delivery.attempts,
+            last_attempt_at: delivery.last_attempt_at?.toISOString(),
+            next_retry_at: delivery.next_retry_at?.toISOString(),
+            response_status: delivery.response_status,
+            error_message: delivery.error_message,
+            delivered_at: delivery.delivered_at?.toISOString(),
+          })
+          .eq('id', delivery.id);
+      } catch (error) {
+        console.error('[Webhook Service] Failed to save delivery:', error);
+        // Fall back to in-memory
+        deliveryStore.set(delivery.id, delivery);
+      }
+    } else {
+      deliveryStore.set(delivery.id, delivery);
+    }
   }
 
   /**
    * Simulate webhook delivery (for testing)
-   * In production, this would use fetch() to make actual HTTP requests
+   * In production, this uses fetch() to make actual HTTP requests
    */
   private async simulateDelivery(
     url: string,
     payload: string,
     signature: string
   ): Promise<{ ok: boolean; status: number }> {
-    // Simulate successful delivery
-    // In production, this would be:
-    // const response = await fetch(url, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'X-Webhook-Signature': signature,
-    //   },
-    //   body: payload,
-    // });
-    // return { ok: response.ok, status: response.status };
+    // Check if we should use real HTTP delivery
+    const useRealDelivery = process.env.WEBHOOK_REAL_DELIVERY === 'true'
 
-    return { ok: true, status: 200 };
+    if (useRealDelivery) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': signature,
+            'X-Webhook-Timestamp': new Date().toISOString(),
+            'User-Agent': 'ProtocolBanks-Webhook/1.0',
+          },
+          body: payload,
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+        return { ok: response.ok, status: response.status }
+      } catch (error) {
+        console.error('[WebhookService] Delivery failed:', error)
+        if (error instanceof Error && error.name === 'AbortError') {
+          return { ok: false, status: 408 } // Request Timeout
+        }
+        return { ok: false, status: 500 }
+      }
+    }
+
+    // Fallback: simulate successful delivery in development
+    console.log('[WebhookService] Simulating webhook delivery to:', url)
+    return { ok: true, status: 200 }
   }
 
   /**

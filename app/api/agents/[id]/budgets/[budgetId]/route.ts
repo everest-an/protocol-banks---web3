@@ -34,9 +34,10 @@ async function getOwnerAddress(): Promise<string | null> {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string; budgetId: string } }
+  { params }: { params: Promise<{ id: string; budgetId: string }> }
 ) {
   try {
+    const { id, budgetId } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -46,7 +47,7 @@ export async function GET(
     }
 
     // Verify agent exists and belongs to owner
-    const agent = await agentService.get(params.id, ownerAddress);
+    const agent = await agentService.get(id, ownerAddress);
     if (!agent) {
       return NextResponse.json(
         { error: 'Agent not found' },
@@ -54,8 +55,8 @@ export async function GET(
       );
     }
 
-    const budget = await budgetService.get(params.budgetId);
-    if (!budget || budget.agent_id !== params.id) {
+    const budget = await budgetService.get(budgetId);
+    if (!budget || budget.agent_id !== id) {
       return NextResponse.json(
         { error: 'Budget not found' },
         { status: 404 }
@@ -82,9 +83,10 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string; budgetId: string } }
+  { params }: { params: Promise<{ id: string; budgetId: string }> }
 ) {
   try {
+    const { id, budgetId } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -94,7 +96,7 @@ export async function PUT(
     }
 
     // Verify agent exists and belongs to owner
-    const agent = await agentService.get(params.id, ownerAddress);
+    const agent = await agentService.get(id, ownerAddress);
     if (!agent) {
       return NextResponse.json(
         { error: 'Agent not found' },
@@ -103,8 +105,8 @@ export async function PUT(
     }
 
     // Verify budget exists and belongs to agent
-    const existingBudget = await budgetService.get(params.budgetId);
-    if (!existingBudget || existingBudget.agent_id !== params.id) {
+    const existingBudget = await budgetService.get(budgetId);
+    if (!existingBudget || existingBudget.agent_id !== id) {
       return NextResponse.json(
         { error: 'Budget not found' },
         { status: 404 }
@@ -135,7 +137,7 @@ export async function PUT(
       }
     }
 
-    const budget = await budgetService.update(params.budgetId, {
+    const budget = await budgetService.update(budgetId, {
       amount: body.amount,
       token: body.token,
       chain_id: body.chain_id,
@@ -168,9 +170,10 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string; budgetId: string } }
+  { params }: { params: Promise<{ id: string; budgetId: string }> }
 ) {
   try {
+    const { id, budgetId } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -180,7 +183,7 @@ export async function DELETE(
     }
 
     // Verify agent exists and belongs to owner
-    const agent = await agentService.get(params.id, ownerAddress);
+    const agent = await agentService.get(id, ownerAddress);
     if (!agent) {
       return NextResponse.json(
         { error: 'Agent not found' },
@@ -189,15 +192,15 @@ export async function DELETE(
     }
 
     // Verify budget exists and belongs to agent
-    const existingBudget = await budgetService.get(params.budgetId);
-    if (!existingBudget || existingBudget.agent_id !== params.id) {
+    const existingBudget = await budgetService.get(budgetId);
+    if (!existingBudget || existingBudget.agent_id !== id) {
       return NextResponse.json(
         { error: 'Budget not found' },
         { status: 404 }
       );
     }
 
-    await budgetService.delete(params.budgetId);
+    await budgetService.delete(budgetId);
 
     return NextResponse.json({
       success: true,

@@ -33,9 +33,10 @@ async function getOwnerAddress(): Promise<string | null> {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -45,7 +46,7 @@ export async function POST(
     }
 
     // Verify agent exists and belongs to owner
-    const agent = await agentService.get(params.id, ownerAddress);
+    const agent = await agentService.get(id, ownerAddress);
     if (!agent) {
       return NextResponse.json(
         { error: 'Agent not found' },
@@ -94,7 +95,7 @@ export async function POST(
     }
 
     const budget = await budgetService.create({
-      agent_id: params.id,
+      agent_id: id,
       owner_address: ownerAddress,
       amount: body.amount,
       token: body.token,
@@ -128,9 +129,10 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -140,7 +142,7 @@ export async function GET(
     }
 
     // Verify agent exists and belongs to owner
-    const agent = await agentService.get(params.id, ownerAddress);
+    const agent = await agentService.get(id, ownerAddress);
     if (!agent) {
       return NextResponse.json(
         { error: 'Agent not found' },
@@ -148,7 +150,7 @@ export async function GET(
       );
     }
 
-    const budgets = await budgetService.list(params.id);
+    const budgets = await budgetService.list(id);
 
     return NextResponse.json({
       success: true,

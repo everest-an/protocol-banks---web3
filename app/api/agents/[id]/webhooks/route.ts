@@ -32,9 +32,10 @@ async function getOwnerAddress(): Promise<string | null> {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -44,7 +45,7 @@ export async function GET(
     }
 
     // Verify agent exists and belongs to owner
-    const agent = await agentService.get(params.id, ownerAddress);
+    const agent = await agentService.get(id, ownerAddress);
     if (!agent) {
       return NextResponse.json(
         { error: 'Agent not found' },
@@ -55,7 +56,7 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    const deliveries = await agentWebhookService.getDeliveries(params.id, limit);
+    const deliveries = await agentWebhookService.getDeliveries(id, limit);
 
     return NextResponse.json({
       success: true,

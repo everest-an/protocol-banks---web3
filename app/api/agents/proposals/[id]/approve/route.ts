@@ -31,9 +31,10 @@ async function getOwnerAddress(): Promise<string | null> {
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const ownerAddress = await getOwnerAddress();
     if (!ownerAddress) {
       return NextResponse.json(
@@ -42,7 +43,7 @@ export async function PUT(
       );
     }
 
-    const proposal = await proposalService.approve(params.id, ownerAddress);
+    const proposal = await proposalService.approve(id, ownerAddress);
 
     return NextResponse.json({
       success: true,

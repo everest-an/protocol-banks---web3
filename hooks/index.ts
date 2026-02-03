@@ -12,7 +12,9 @@ export { useClientSecurity } from "./use-client-security"
 
 // Integration hooks
 export { useX402 } from "./use-x402"
+export { useX402Payment } from "./use-x402-payment"
 export { useOffRamp } from "./use-offramp"
+export { useSubscription } from "./use-subscription"
 
 // Audit and logging
 export { useAuditLog } from "./use-audit-log"
