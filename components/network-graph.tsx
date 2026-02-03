@@ -542,59 +542,63 @@ export function NetworkGraph({
       ref={containerRef}
       className="relative w-full h-full min-h-[400px] md:min-h-[800px] bg-background rounded-lg overflow-hidden border border-border"
     >
-      <div className="absolute top-3 md:top-6 left-3 md:left-6 z-20 space-y-1 md:space-y-2">
-        <h3 className="text-lg md:text-2xl font-light tracking-tight text-foreground">Global Payment Mesh</h3>
-        <div className="flex gap-4 text-xs text-muted-foreground font-mono pt-1 md:pt-2">
-          <div>
-            NODES: <span className="text-foreground">{nodes.length}</span>
+      {/* Header with title and search */}
+      <div className="absolute top-3 md:top-6 left-3 md:left-6 right-3 md:right-6 z-20 flex items-start justify-between pointer-events-none">
+        {/* Left: Title */}
+        <div className="space-y-1 md:space-y-2 pointer-events-auto">
+          <h3 className="text-lg md:text-2xl font-light tracking-tight text-foreground">Global Payment Mesh</h3>
+          <div className="flex gap-4 text-xs text-muted-foreground font-mono pt-1 md:pt-2">
+            <div>
+              NODES: <span className="text-foreground">{nodes.length}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="absolute top-3 md:top-6 left-1/2 -translate-x-1/2 z-20 hidden md:block">
-        {/* ... existing search code ... */}
-        <div className="relative">
-          <div className="flex items-center bg-muted/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 w-64">
-            <Search className="w-4 h-4 text-muted-foreground mr-2" />
-            <input
-              type="text"
-              placeholder="Search entities..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => searchQuery && setShowSearchResults(true)}
-              onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
-              className="bg-transparent text-sm text-foreground placeholder-muted-foreground outline-none w-full"
-            />
-          </div>
-          {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute top-full mt-2 w-full bg-card/95 backdrop-blur-sm border border-border rounded-lg overflow-hidden">
-              {searchResults.map((node) => (
-                <button
-                  key={node.id}
-                  onClick={() => handleSearchSelect(node)}
-                  className="w-full px-3 py-2 text-left hover:bg-muted transition-colors flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-sm text-foreground">{node.data?.company_name || node.data?.name || "Unknown"}</div>
-                    <div className="text-xs text-muted-foreground font-mono truncate max-w-[180px]">
-                      {node.data?.wallet_address}
-                    </div>
-                  </div>
-                  <span
-                    className={`text-[10px] uppercase px-1.5 py-0.5 rounded ${
-                      node.type === "subsidiary"
-                        ? "text-emerald-600 dark:text-emerald-500 bg-emerald-500/10"
-                        : node.type === "partner"
-                          ? "text-blue-600 dark:text-blue-500 bg-blue-500/10"
-                          : "text-muted-foreground bg-muted"
-                    }`}
-                  >
-                    {node.type}
-                  </span>
-                </button>
-              ))}
+        {/* Right: Search (desktop only) */}
+        <div className="hidden md:block pointer-events-auto">
+          <div className="relative">
+            <div className="flex items-center bg-muted/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 w-64">
+              <Search className="w-4 h-4 text-muted-foreground mr-2" />
+              <input
+                type="text"
+                placeholder="Search entities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => searchQuery && setShowSearchResults(true)}
+                onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
+                className="bg-transparent text-sm text-foreground placeholder-muted-foreground outline-none w-full"
+              />
             </div>
-          )}
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute top-full mt-2 w-full bg-card/95 backdrop-blur-sm border border-border rounded-lg overflow-hidden">
+                {searchResults.map((node) => (
+                  <button
+                    key={node.id}
+                    onClick={() => handleSearchSelect(node)}
+                    className="w-full px-3 py-2 text-left hover:bg-muted transition-colors flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-sm text-foreground">{node.data?.company_name || node.data?.name || "Unknown"}</div>
+                      <div className="text-xs text-muted-foreground font-mono truncate max-w-[180px]">
+                        {node.data?.wallet_address}
+                      </div>
+                    </div>
+                    <span
+                      className={`text-[10px] uppercase px-1.5 py-0.5 rounded ${
+                        node.type === "subsidiary"
+                          ? "text-emerald-600 dark:text-emerald-500 bg-emerald-500/10"
+                          : node.type === "partner"
+                            ? "text-blue-600 dark:text-blue-500 bg-blue-500/10"
+                            : "text-muted-foreground bg-muted"
+                      }`}
+                    >
+                      {node.type}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -810,7 +814,7 @@ export function NetworkGraph({
         </Drawer>
       ) : (
         selectedNode && (
-          <div className="absolute top-6 right-6 bottom-6 z-20 w-80 bg-card/90 backdrop-blur-sm rounded-lg border border-border overflow-hidden">
+          <div className="absolute top-20 right-6 bottom-6 z-20 w-72 bg-card/90 backdrop-blur-sm rounded-lg border border-border overflow-hidden">
             <DetailPanelContent />
           </div>
         )
