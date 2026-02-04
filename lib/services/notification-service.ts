@@ -42,6 +42,7 @@ export interface NotificationPreferences {
   agent_proposal_rejected: boolean;
   agent_payment_executed: boolean;
   agent_payment_failed: boolean;
+  vendor_address_changed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -66,7 +67,8 @@ export type NotificationType =
   | 'agent_proposal_approved'
   | 'agent_proposal_rejected'
   | 'agent_payment_executed'
-  | 'agent_payment_failed';
+  | 'agent_payment_failed'
+  | 'vendor_address_changed';
 
 // ============================================
 // Constants
@@ -84,6 +86,7 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreferences, 'id' | 'user_address' |
   agent_proposal_rejected: true,
   agent_payment_executed: true,
   agent_payment_failed: true,
+  vendor_address_changed: true,
 };
 
 // ============================================

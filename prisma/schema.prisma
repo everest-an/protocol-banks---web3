@@ -96,10 +96,12 @@ model Vendor {
   on_chain_balance  Float?    @default(0)
   ltv               Float?    @default(0)
   last_payment_at   DateTime?
-  integrity_hash    String?
-  created_by        String?
-  created_at        DateTime  @default(now())
-  updated_at        DateTime  @updatedAt
+  integrity_hash           String?
+  created_by               String?
+  address_changed_at       DateTime?
+  address_change_signature String?
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
 
   payments          Payment[]
 

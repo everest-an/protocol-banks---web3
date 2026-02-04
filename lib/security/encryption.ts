@@ -41,12 +41,13 @@ export function decryptVendorData(
   }
 }
 
-// Generate integrity hash for vendor data
+// Generate deterministic integrity hash for vendor data
+// NOTE: No longer includes Date.now() - hash is deterministic for verification
 export function generateIntegrityHash(
   walletAddress: string,
   vendorData: { name: string; wallet_address: string },
 ): string {
-  const data = `${walletAddress}:${vendorData.name}:${vendorData.wallet_address}:${Date.now()}`
+  const data = `${walletAddress.toLowerCase()}:${vendorData.name}:${vendorData.wallet_address.toLowerCase()}`
   return createHash("sha256").update(data).digest("hex").substring(0, 32)
 }
 

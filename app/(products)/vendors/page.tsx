@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useMemo } from "react"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,7 +28,6 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { getSupabase } from "@/lib/supabase"
 import { NetworkGraph } from "@/components/network-graph"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -54,8 +53,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { generateIntegrityHash } from "@/lib/security/encryption"
-import { secureCreateVendor, secureUpdateVendor, secureDeleteVendor } from "@/lib/supabase-secure"
+import { BatchVendorEditDialog } from "@/components/batch-vendor-edit-dialog"
 
 import type { Vendor, VendorCategory, ReputationTag } from "@/types/vendor"
 
@@ -215,14 +213,13 @@ function timeAgo(dateStr?: string): string {
 }
 
 export default function VendorsPage() {
-  const { wallet, isConnected, chainId } = useWeb3()
+  const { address: wallet, isConnected, chainId, signMessage } = useUnifiedWallet()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const router = useRouter()
 
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [loading, setLoading] = useState(true)
-  // Default to list view - show wallet contacts first
   const [viewMode, setViewMode] = useState<"list" | "dashboard">("list")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedTag, setSelectedTag] = useState<ReputationTag | "all">("all")
@@ -236,6 +233,11 @@ export default function VendorsPage() {
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null)
+
+  // Batch Edit States
+  const [batchEditMode, setBatchEditMode] = useState(false)
+  const [selectedVendorIds, setSelectedVendorIds] = useState<Set<string>>(new Set())
+  const [batchEditDialogOpen, setBatchEditDialogOpen] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -296,67 +298,46 @@ export default function VendorsPage() {
 
   const loadVendors = async () => {
     try {
-      const supabase = getSupabase()
-      if (!supabase) {
+      if (!wallet) {
         setLoading(false)
         return
       }
 
-      const { data: vendorsData, error } = await supabase
-        .from("vendors")
-        .select("*")
-        .eq("created_by", wallet)
-        .order("name")
+      const res = await fetch(`/api/vendors?owner=${wallet}`)
+      if (!res.ok) throw new Error("Failed to fetch vendors")
+      const { vendors: vendorsData } = await res.json()
 
-      if (error) throw error
-
+      // Enrich with payment stats from transactions API
       let allPayments: any[] = []
-
-      const { data: paymentsData } = await supabase
-        .from("payments")
-        .select("amount_usd, to_address, vendor_id, tx_hash")
-        .eq("from_address", wallet)
-
-      if (paymentsData) {
-        allPayments = [...paymentsData]
-      }
-
-      if (wallet) {
-        try {
-          const currentChainId = chainId || "1"
-          const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
-          const data = await response.json()
-
-          if (data.transactions) {
-            const externalTxs = data.transactions
-            const existingHashes = new Set(allPayments.map((p) => p.tx_hash?.toLowerCase()).filter(Boolean))
-            const newExternalTxs = externalTxs.filter(
-              (tx: any) =>
-                !existingHashes.has(tx.tx_hash.toLowerCase()) && tx.from_address.toLowerCase() === wallet.toLowerCase(),
-            )
-            allPayments = [...allPayments, ...newExternalTxs]
-          }
-        } catch (err) {
-          console.error("Failed to fetch external transactions for vendors:", err)
+      try {
+        const currentChainId = chainId || "1"
+        const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
+        const data = await response.json()
+        if (data.transactions) {
+          allPayments = data.transactions.filter(
+            (tx: any) => tx.from_address?.toLowerCase() === wallet.toLowerCase(),
+          )
         }
+      } catch (err) {
+        console.error("Failed to fetch external transactions for vendors:", err)
       }
 
       const vendorsWithStats = (vendorsData || []).map((vendor: any) => {
         const vendorPayments = allPayments.filter(
-          (p) =>
+          (p: any) =>
             p.vendor_id === vendor.id ||
             (p.to_address &&
               vendor.wallet_address &&
               p.to_address.toLowerCase() === vendor.wallet_address.toLowerCase()),
         )
 
-        const totalReceived = vendorPayments.reduce((sum, p) => sum + (Number(p.amount_usd) || 0), 0)
+        const totalReceived = vendorPayments.reduce((sum: number, p: any) => sum + (Number(p.amount_usd) || 0), 0)
 
         return {
           ...vendor,
           totalReceived,
-          ltv: totalReceived,
-          transaction_count: vendorPayments.length,
+          ltv: totalReceived || vendor.ltv || 0,
+          transaction_count: vendorPayments.length || vendor.transaction_count || 0,
           category: vendor.category || categories[vendor.id.charCodeAt(0) % categories.length],
           tier: vendor.tier || "vendor",
         }
@@ -400,12 +381,11 @@ export default function VendorsPage() {
     if (!vendorToDelete || !wallet) return
 
     try {
-      const supabase = getSupabase()
-      if (!supabase) return
-
-      const { error } = await supabase.from("vendors").delete().eq("id", vendorToDelete.id).eq("created_by", wallet)
-
-      if (error) throw error
+      const res = await fetch(`/api/vendors/${vendorToDelete.id}?owner=${wallet}`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to delete")
+      }
 
       toast({ title: "Success", description: "Contact deleted successfully" })
       setDeleteDialogOpen(false)
@@ -429,43 +409,51 @@ export default function VendorsPage() {
     }
 
     try {
-      const supabase = getSupabase()
-      if (!supabase) {
-        toast({
-          title: "Error",
-          description: "Database connection not available",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const integrityHash = generateIntegrityHash(wallet, {
-        name: formData.name,
-        wallet_address: formData.wallet_address,
-      })
-
       if (editMode && editingVendor) {
-        const { error } = await supabase
-          .from("vendors")
-          .update({
-            name: formData.name,
-            wallet_address: formData.wallet_address,
-            ens_name: formData.ens_name || null,
-            email: formData.email,
-            notes: formData.notes,
-            category: formData.category,
-            tier: formData.tier,
-            chain: formData.chain,
-            integrity_hash: integrityHash,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editingVendor.id)
-          .eq("created_by", wallet)
+        // Detect address change — requires wallet signature
+        const isAddressChange =
+          formData.wallet_address.toLowerCase() !== editingVendor.wallet_address.toLowerCase()
 
-        if (error) throw error
-        toast({ title: "Success", description: "Contact updated successfully" })
-      } else {
-        const { error } = await supabase.from("vendors").insert({
+        let addressChangeSignature: string | undefined
+        let addressChangeMessage: string | undefined
+
+        if (isAddressChange) {
+          // Check cooldown on the client side for UX
+          if (editingVendor.address_changed_at) {
+            const cooldownMs = 24 * 60 * 60 * 1000
+            const timeSince = Date.now() - new Date(editingVendor.address_changed_at).getTime()
+            if (timeSince < cooldownMs) {
+              const hoursLeft = Math.ceil((cooldownMs - timeSince) / (1000 * 60 * 60))
+              toast({
+                title: "Address Change Cooldown",
+                description: `Cannot change address for ${hoursLeft} more hours`,
+                variant: "destructive",
+              })
+              return
+            }
+          }
+
+          // Request wallet signature
+          addressChangeMessage =
+            `Protocol Banks: Confirm address change for "${editingVendor.name}"\n` +
+            `From: ${editingVendor.wallet_address}\n` +
+            `To: ${formData.wallet_address}\n` +
+            `Timestamp: ${Date.now()}`
+
+          try {
+            addressChangeSignature = await signMessage(addressChangeMessage)
+          } catch {
+            toast({
+              title: "Signature Required",
+              description: "You must sign the message to change a vendor address",
+              variant: "destructive",
+            })
+            return
+          }
+        }
+
+        const body: Record<string, any> = {
+          owner_address: wallet,
           name: formData.name,
           wallet_address: formData.wallet_address,
           ens_name: formData.ens_name || null,
@@ -474,11 +462,42 @@ export default function VendorsPage() {
           category: formData.category,
           tier: formData.tier,
           chain: formData.chain,
-          created_by: wallet,
-          integrity_hash: integrityHash,
-        })
+        }
+        if (addressChangeSignature) {
+          body.address_change_signature = addressChangeSignature
+          body.address_change_message = addressChangeMessage
+        }
 
-        if (error) throw error
+        const res = await fetch(`/api/vendors/${editingVendor.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || "Failed to update")
+        }
+        toast({ title: "Success", description: "Contact updated successfully" })
+      } else {
+        const res = await fetch("/api/vendors", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            wallet_address: formData.wallet_address,
+            ens_name: formData.ens_name || null,
+            email: formData.email,
+            notes: formData.notes,
+            category: formData.category,
+            tier: formData.tier,
+            chain: formData.chain,
+            created_by: wallet,
+          }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || "Failed to create")
+        }
         toast({ title: "Success", description: "Contact added successfully" })
       }
 
@@ -491,6 +510,38 @@ export default function VendorsPage() {
       console.error("[v0] Failed to save contact:", err)
       toast({ title: "Error", description: err.message, variant: "destructive" })
     }
+  }
+
+  const handleBatchEditSubmit = async (updates: Array<{ id: string; name: string }>) => {
+    if (!wallet) return
+    try {
+      const res = await fetch("/api/vendors/batch-update", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates, owner_address: wallet }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Batch update failed")
+      }
+      const result = await res.json()
+      toast({ title: "Success", description: `Updated ${result.updated} contacts` })
+      setBatchEditDialogOpen(false)
+      setBatchEditMode(false)
+      setSelectedVendorIds(new Set())
+      loadVendors()
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" })
+    }
+  }
+
+  const toggleVendorSelection = (id: string) => {
+    setSelectedVendorIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -535,6 +586,30 @@ export default function VendorsPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Batch Edit Toggle */}
+              {!isDemoMode && isConnected && (
+                <Button
+                  size="sm"
+                  variant={batchEditMode ? "secondary" : "outline"}
+                  className="hidden sm:flex gap-2"
+                  onClick={() => {
+                    setBatchEditMode(!batchEditMode)
+                    if (batchEditMode) setSelectedVendorIds(new Set())
+                  }}
+                >
+                  <Edit className="w-4 h-4" />
+                  {batchEditMode ? "Cancel" : "Batch Edit"}
+                </Button>
+              )}
+              {batchEditMode && selectedVendorIds.size > 0 && (
+                <Button
+                  size="sm"
+                  onClick={() => setBatchEditDialogOpen(true)}
+                >
+                  Edit {selectedVendorIds.size} Selected
+                </Button>
+              )}
+
               {/* Add Contact */}
               <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
                 <DialogTrigger asChild>
@@ -754,15 +829,34 @@ export default function VendorsPage() {
                 const chainColor = CHAIN_COLORS[vendor.last_chain || vendor.chain] || CHAIN_COLORS.Ethereum
                 const displayName = vendor.ens_name || vendor.name || vendor.company_name || "Unknown"
                 const shortAddr = `${vendor.wallet_address.substring(0, 6)}...${vendor.wallet_address.substring(38)}`
+                const hasActiveCooldown = vendor.address_changed_at &&
+                  (Date.now() - new Date(vendor.address_changed_at).getTime()) < 24 * 60 * 60 * 1000
 
                 return (
                   <Card
                     key={vendor.id}
-                    className="border-border hover:border-primary/30 transition-all cursor-pointer group"
-                    onClick={() => router.push(`/vendors/${vendor.id}`)}
+                    className={`border-border hover:border-primary/30 transition-all cursor-pointer group ${batchEditMode && selectedVendorIds.has(vendor.id) ? "border-primary bg-primary/5" : ""}`}
+                    onClick={() => {
+                      if (batchEditMode) {
+                        toggleVendorSelection(vendor.id)
+                      } else {
+                        router.push(`/vendors/${vendor.id}`)
+                      }
+                    }}
                   >
                     <CardContent className="py-3 px-4">
                       <div className="flex items-center gap-4">
+                        {/* Batch selection checkbox */}
+                        {batchEditMode && (
+                          <input
+                            type="checkbox"
+                            checked={selectedVendorIds.has(vendor.id)}
+                            onChange={() => toggleVendorSelection(vendor.id)}
+                            className="h-4 w-4 shrink-0 rounded border-border"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )}
+
                         {/* Avatar */}
                         <Avatar className="h-10 w-10 border border-border shrink-0">
                           <AvatarImage src={`https://avatar.vercel.sh/${vendor.wallet_address}`} />
@@ -784,6 +878,12 @@ export default function VendorsPage() {
                             <Badge variant="outline" className={`text-[10px] h-5 px-1.5 shrink-0 ${tagConfig.bg} ${tagConfig.color}`}>
                               {tagConfig.label}
                             </Badge>
+                            {/* Address Change Cooldown Warning */}
+                            {hasActiveCooldown && (
+                              <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                                Address recently changed
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="font-mono text-xs text-muted-foreground">{shortAddr}</span>
@@ -993,6 +1093,16 @@ export default function VendorsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Batch Edit Dialog */}
+      {batchEditDialogOpen && (
+        <BatchVendorEditDialog
+          open={batchEditDialogOpen}
+          onOpenChange={setBatchEditDialogOpen}
+          vendors={sortedVendors.filter((v) => selectedVendorIds.has(v.id))}
+          onSubmit={handleBatchEditSubmit}
+        />
+      )}
     </div>
   )
 }

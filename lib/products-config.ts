@@ -1,6 +1,6 @@
-import { 
-  Send, 
-  Users, 
+import {
+  Send,
+  Users,
   Link as LinkIcon,
   ShoppingCart,
   FileText,
@@ -12,7 +12,10 @@ import {
   Globe,
   Zap,
   Shield,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Home,
+  CreditCard,
+  ShoppingBag,
 } from "lucide-react"
 
 export interface ProductItem {
@@ -25,6 +28,38 @@ export interface ProductItem {
   badgeColor?: string
   disabled?: boolean
 }
+
+// 📊 Overview - 核心导航
+export const overviewItems: ProductItem[] = [
+  {
+    href: "/",
+    title: "Home",
+    description: "Dashboard overview",
+    icon: Home,
+    color: "bg-slate-500/10 text-slate-500",
+  },
+  {
+    href: "/balances",
+    title: "Balances",
+    description: "View wallet balances across chains",
+    icon: CreditCard,
+    color: "bg-emerald-500/10 text-emerald-500",
+  },
+  {
+    href: "/history",
+    title: "Transactions",
+    description: "Payment history and activity",
+    icon: ArrowRightLeft,
+    color: "bg-blue-500/10 text-blue-500",
+  },
+  {
+    href: "/vendors",
+    title: "Contacts",
+    description: "Manage suppliers and partners",
+    icon: ShoppingBag,
+    color: "bg-orange-500/10 text-orange-500",
+  },
+]
 
 // 💳 Payments - 支付相关
 export const paymentProducts: ProductItem[] = [

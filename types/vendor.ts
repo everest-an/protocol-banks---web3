@@ -47,6 +47,11 @@ export interface Vendor {
   parentId?: string  // For network graph hierarchy
   totalReceived?: number  // Total amount received
   last_payment_at?: string  // Last payment timestamp
+  integrity_hash?: string  // SHA-256 hash for tamper detection
+  integrity_verified?: boolean | null  // Result of integrity check on read
+  address_changed_at?: string  // ISO timestamp of last address change
+  address_change_signature?: string  // Wallet signature confirming last address change
+  owner_address?: string  // Owner's wallet address
   metadata?: {
     total_volume?: number
     tx_count?: number

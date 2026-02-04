@@ -4,113 +4,25 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { 
-  Send, 
-  CreditCard, 
-  Users, 
-  RefreshCw, 
-  Link as LinkIcon,
+import {
   FileText,
-  Monitor,
   Zap,
-  Globe,
-  Clock,
-  Shield,
-  ArrowRightLeft,
   ChevronRight,
   Sparkles,
-  ShoppingCart,
   Bot,
-  Layers
 } from "lucide-react"
-
-import { 
-  paymentProducts, 
-  commerceProducts, 
-  defiProducts, 
-  advancedProducts,
-  type ProductItem 
-} from "@/lib/products-config"
-
-function ProductCard({ product }: { product: ProductItem }) {
-  const isDisabled = product.disabled || product.badge === "Coming Soon"
-  
-  const content = (
-    <Card className={`h-full transition-all ${
-      isDisabled 
-        ? 'opacity-50 cursor-not-allowed' 
-        : 'hover:border-primary/50 hover:shadow-md cursor-pointer group'
-    }`}>
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between mb-3">
-          <div className={`p-3 rounded-xl ${product.color} transition-transform ${!isDisabled && 'group-hover:scale-110'}`}>
-            <product.icon className="h-5 w-5" />
-          </div>
-          {product.badge && (
-            <Badge variant="secondary" className={`text-xs ${product.badgeColor}`}>
-              {product.badge}
-            </Badge>
-          )}
-        </div>
-        <h3 className="font-semibold mb-1">{product.title}</h3>
-        <p className="text-sm text-muted-foreground">{product.description}</p>
-      </CardContent>
-    </Card>
-  )
-
-  if (isDisabled) {
-    return content
-  }
-
-  return (
-    <Link href={product.href}>
-      {content}
-    </Link>
-  )
-}
-
-function ProductSection({ 
-  title, 
-  description, 
-  products,
-  icon: Icon
-}: { 
-  title: string
-  description: string
-  products: ProductItem[]
-  icon: React.ElementType
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-muted">
-          <Icon className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((product) => (
-          <ProductCard key={product.href + product.title} product={product} />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export default function ProductsPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <div className="container mx-auto py-6 px-4 space-y-8 pb-24 md:pb-6">
-        
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold mb-1">Products</h1>
             <p className="text-muted-foreground">
-              Explore all Protocol Banks payment and DeFi products
+              Select a product from the sidebar to get started
             </p>
           </div>
           <Link href="/help">
@@ -135,7 +47,7 @@ export default function ProductsPage() {
                     <Badge className="bg-yellow-500/20 text-yellow-600">New</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground max-w-md">
-                    Enable autonomous payments with session keys. Perfect for AI agents, 
+                    Enable autonomous payments with session keys. Perfect for AI agents,
                     automated trading bots, and smart contract integrations.
                   </p>
                 </div>
@@ -150,35 +62,6 @@ export default function ProductsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Product Sections */}
-        <ProductSection
-          title="Payments"
-          description="Send and receive crypto payments"
-          products={paymentProducts}
-          icon={Send}
-        />
-
-        <ProductSection
-          title="Commerce"
-          description="Accept payments for your business"
-          products={commerceProducts}
-          icon={ShoppingCart}
-        />
-
-        <ProductSection
-          title="DeFi"
-          description="Swap tokens and manage cross-chain assets"
-          products={defiProducts}
-          icon={ArrowRightLeft}
-        />
-
-        <ProductSection
-          title="Advanced"
-          description="Enterprise and cutting-edge features"
-          products={advancedProducts}
-          icon={Shield}
-        />
 
         {/* Developer Resources */}
         <Card>
