@@ -15,13 +15,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing wallet address" }, { status: 400 })
     }
 
-    const where: Record<string, unknown> = {
-      created_by: walletAddress,
+    // Default: find payments where user is sender OR receiver (if type is not specified or 'all')
+    let where: Record<string, unknown> = {}
+    
+    if (type === 'sent') {
+      where = {
+        from_address: walletAddress
+      }
+    } else if (type === 'received') {
+      where = {
+        to_address: walletAddress
+      }
+    } else {
+      // type === 'all' or undefined
+      where = {
+        OR: [
+          { from_address: walletAddress },
+          { to_address: walletAddress }
+        ]
+      }
     }
-
-    if (type && type !== "all") {
-      where.type = type
-    }
+    
+    // Optional: filter by created_by if needed, but history usually wants all interactions
+    // If strict ownership is needed: 
+    // where.created_by = walletAddress 
+    // But for received payments, created_by might be the sender. So we stick to address matching.
 
     const payments = await prisma.payment.findMany({
       where,

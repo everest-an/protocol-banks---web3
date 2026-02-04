@@ -68,17 +68,12 @@ export async function checkSystemHealth(): Promise<{
 
   // Check database connection
   try {
-    const supabase = getSupabase()
-    if (!supabase) {
-      issues.push("Database connection not available")
-    } else {
-      const { error } = await supabase.from("payments").select("id").limit(1)
-      if (error) {
-        issues.push(`Database query failed: ${error.message}`)
-      }
+    const response = await fetch('/api/health');
+    if (!response.ok) {
+      issues.push("Database/System health check failed");
     }
   } catch (error) {
-    issues.push("Database health check failed")
+    issues.push("Health check endpoint unreachable");
   }
 
   // Check required environment variables

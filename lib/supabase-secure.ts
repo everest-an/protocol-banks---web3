@@ -9,6 +9,7 @@
  */
 
 import { createBrowserClient } from "@supabase/ssr"
+import { prisma } from "@/lib/prisma"
 import {
   validateAndChecksumAddress,
   sanitizeTextInput,
@@ -384,15 +385,12 @@ export async function verifyPaymentConsistency(
     token_symbol: string
   },
 ): Promise<{ consistent: boolean; discrepancies: string[] }> {
-  const supabase = getSecureSupabaseClient()
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    select: { to_address: true, amount: true, token_symbol: true }
+  })
 
-  const { data: payment, error } = await supabase
-    .from("payments")
-    .select("to_address, amount, token_symbol")
-    .eq("id", paymentId)
-    .single()
-
-  if (error || !payment) {
+  if (!payment) {
     return { consistent: false, discrepancies: ["Payment record not found"] }
   }
 

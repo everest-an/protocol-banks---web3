@@ -33,32 +33,30 @@ export default function HistoryPage() {
 
   const loadTransactions = async () => {
     try {
-      const supabase = getSupabase()
-      if (!supabase || !wallet) return
+      if (!wallet) return
 
-      // Get sent payments
-      const { data: sentPayments } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("from_address", wallet)
-        .order("timestamp", { ascending: false })
+      const response = await fetch(`/api/payments?wallet=${wallet}&type=all`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch payments")
+      }
+      
+      const data = await response.json()
+      const payments = data.payments || []
 
-      // Get received payments
-      const { data: receivedPayments } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("to_address", wallet)
-        .order("timestamp", { ascending: false })
+      // Determine 'sent' or 'received' based on wallet address if not explicit
+      // The API returns all relevant payments. We just need to ensure the `type` property is correct for the UI.
+      const processed = payments.map((p: any) => {
+        // If from_address matches wallet, it's sent. Otherwise received.
+        const derivedType = p.from_address?.toLowerCase() === wallet.toLowerCase() ? 'sent' : 'received'
+        return {
+          ...p,
+          type: derivedType,
+          // Ensure timestamp is available fallback to created_at
+          timestamp: p.timestamp || p.created_at
+        }
+      })
 
-      const sent = (sentPayments || []).map((p: Transaction) => ({ ...p, type: "sent" as const }))
-      const received = (receivedPayments || []).map((p: Transaction) => ({ ...p, type: "received" as const }))
-
-      // Merge and sort by timestamp
-      const allTx = [...sent, ...received].sort(
-        (a, b) => new Date(b.timestamp || b.created_at).getTime() - new Date(a.timestamp || a.created_at).getTime(),
-      )
-
-      setTransactions(allTx as Transaction[])
+      setTransactions(processed as Transaction[])
     } catch (error) {
       console.error("Failed to load transactions:", error)
     } finally {

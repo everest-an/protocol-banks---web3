@@ -447,28 +447,33 @@ function PaymentContent() {
       }
 
       // ✅ P0 IMPROVEMENT: Database write with retry queue fallback
-      const supabase = getSupabase()
-      if (supabase) {
-        try {
-          const { data: paymentData, error: dbError } = await supabase
-            .from("payments")
-            .insert({
-              tx_hash: hash,
-              from_address: wallets.EVM,
-              to_address: to,
-              token_symbol: token,
-              token_address: tokenAddress,
-              amount: amount,
-              amount_usd: Number(amount),
-              status: "completed",
-            })
-            .select()
-            .single()
+      try {
+        const payload = {
+          tx_hash: hash,
+          from_address: wallets.EVM,
+          to_address: to,
+          token_symbol: token,
+          token: tokenAddress,
+          amount: amount,
+          amount_usd: Number(amount),
+          chain: chainId.toString(),
+          type: "sent",
+          status: "completed",
+        }
 
-          if (dbError) throw dbError
+        const response = await fetch('/api/payments', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify(payload)
+        })
 
-          // Record protocol fee
-          if (paymentData) {
+        if (!response.ok) {
+           console.error("Payment record failed", await response.text())
+        } else {
+           const { payment: paymentData } = await response.json()
+
+           // Record protocol fee
+           if (paymentData) {
             await recordFee({
               paymentId: paymentData.id,
               amount: Number(amount),
@@ -478,8 +483,9 @@ function PaymentContent() {
               tier: "standard",
               collectionMethod: "deferred",
             })
-          }
-        } catch (dbError: any) {
+           }
+        }
+      } catch (dbError: any) {
           console.error("[Pay] Database recording failed:", dbError)
 
           // Add to retry queue to prevent data loss
@@ -508,7 +514,6 @@ function PaymentContent() {
             // Even if retry queue fails, don't block transaction success display
           }
         }
-      }
 
       setTxHash(hash)
       setCompleted(true)

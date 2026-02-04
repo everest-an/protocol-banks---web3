@@ -3,7 +3,7 @@
  * Monitors system health including database and Go services
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -52,10 +52,9 @@ const GO_SERVICES = {
 // ============================================
 
 export class HealthMonitorService {
-  private supabase;
-
+  
   constructor() {
-    this.supabase = createClient();
+    // No initialization needed for prisma singleton
   }
 
   /**
@@ -103,27 +102,10 @@ export class HealthMonitorService {
     const startTime = Date.now();
     
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
-
       // Simple query to check connectivity
-      const { error } = await this.supabase
-        .from('api_keys')
-        .select('id')
-        .limit(1);
+      await prisma.payment.findFirst({ select: { id: true } });
 
-      clearTimeout(timeoutId);
       const latency = Date.now() - startTime;
-
-      if (error) {
-        return {
-          name: 'database',
-          status: 'unhealthy',
-          latency_ms: latency,
-          message: error.message,
-          last_check: new Date().toISOString(),
-        };
-      }
 
       return {
         name: 'database',
