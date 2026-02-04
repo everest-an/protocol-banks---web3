@@ -17,6 +17,38 @@ export function isValidAddress(address: string): boolean {
 }
 
 /**
+ * Validate address for specific chain
+ */
+export function isValidChainAddress(address: string, chain: string = 'EVM'): boolean {
+  if (!address) return false
+  
+  switch (chain.toUpperCase()) {
+    case 'SOLANA':
+    case 'SOL':
+       // Basic Base58 check for Solana (32-44 chars)
+       return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)
+       
+    case 'BITCOIN':
+    case 'BTC':
+       // Basic Bitcoin address validation (P2PKH, P2SH, Bech32)
+       // Starts with 1, 3, or bc1, alphanumeric, 26-62 chars
+       return /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address)
+       
+    case 'TRON':
+    case 'TRX':
+      // TRX addresses start with T and are 34 chars long
+      return /^T[a-zA-Z0-9]{33}$/.test(address)
+
+    case 'EVM':
+    case 'ETH':
+    case 'BSC':
+    case 'POLYGON':
+    default:
+       return isValidAddress(address)
+  }
+}
+
+/**
  * Normalize address to checksum format
  */
 export function normalizeAddress(address: string): string {

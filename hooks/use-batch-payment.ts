@@ -110,9 +110,41 @@ export function useBatchPayment(): UseBatchPaymentReturn {
   const validateBatch = useCallback((recipients: PaymentRecipient[]): { isValid: boolean; errors: string[] } => {
     const errors: string[] = []
     
+    // Regex patterns
+    const ethRegex = /^0x[a-fA-F0-9]{40}$/
+    const solRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+    const btcRegex = /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/
+    const tronRegex = /^T[a-zA-Z0-9]{33}$/
+
     recipients.forEach((r, idx) => {
-      if (!r.address || !/^0x[a-fA-F0-9]{40}$/.test(r.address)) {
-        errors.push(`Row ${idx + 1}: Invalid address`)
+      const chain = r.chain ? r.chain.toUpperCase() : 'EVM'
+      let isValidAddress = false
+
+      // Validate address based on chain
+      switch (chain) {
+        case 'SOLANA':
+        case 'SOL':
+          isValidAddress = solRegex.test(r.address)
+          break
+        case 'BITCOIN':
+        case 'BTC':
+          isValidAddress = btcRegex.test(r.address)
+          break
+        case 'TRON':
+        case 'TRX':
+          isValidAddress = tronRegex.test(r.address)
+          break
+        case 'EVM':
+        case 'ETH':
+        case 'BSC':
+        case 'POLYGON':
+        default:
+          isValidAddress = ethRegex.test(r.address)
+          break
+      }
+
+      if (!r.address || !isValidAddress) {
+        errors.push(`Row ${idx + 1}: Invalid address format for chain ${chain}`)
       }
       if (!r.amount || isNaN(parseFloat(r.amount)) || parseFloat(r.amount) <= 0) {
         errors.push(`Row ${idx + 1}: Invalid amount`)

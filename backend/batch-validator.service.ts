@@ -3,12 +3,13 @@
  * Validates batch payment data
  */
 
-import { isValidAddress } from './account-validator.service'
+import { isValidAddress, isValidChainAddress } from './account-validator.service'
 
 export interface BatchPaymentItem {
   recipient: string
   amount: string | number
   token?: string
+  chain?: string // Chain identifier (e.g., 'EVM', 'SOLANA', 'BTC')
   memo?: string
 }
 
@@ -25,8 +26,8 @@ export interface BatchValidationError {
   message: string
 }
 
-// Maximum batch size
-export const MAX_BATCH_SIZE = 100
+// Maximum batch size (Increased for async processing)
+export const MAX_BATCH_SIZE = 10000
 
 // Minimum amount
 export const MIN_AMOUNT = 0.000001
@@ -39,12 +40,17 @@ export function validateBatchItem(
   index: number
 ): { valid: boolean; errors: BatchValidationError[] } {
   const errors: BatchValidationError[] = []
+  const chain = item.chain || 'EVM' // Default to EVM if not specified
   
-  // Validate recipient address
+  // Validate recipient address based on chain
   if (!item.recipient) {
     errors.push({ row: index, field: 'recipient', message: 'Recipient address is required' })
-  } else if (!isValidAddress(item.recipient)) {
-    errors.push({ row: index, field: 'recipient', message: 'Invalid recipient address' })
+  } else if (!isValidChainAddress(item.recipient, chain)) {
+    errors.push({ 
+      row: index, 
+      field: 'recipient', 
+      message: `Invalid recipient address format for chain: ${chain}` 
+    })
   }
   
   // Validate amount
