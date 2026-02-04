@@ -654,10 +654,6 @@ export class ProposalService {
         console.error('[Proposal Service] Start execution error:', error);
         throw new Error(`Failed to start execution`);
       }
-      } catch (error) {
-        console.error('[Proposal Service] Failed to start execution:', error);
-        throw error;
-      }
     } else {
       // Fallback to in-memory storage
       const updatedProposal: PaymentProposal = {
