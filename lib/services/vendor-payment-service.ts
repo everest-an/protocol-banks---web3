@@ -3,7 +3,8 @@
  * Manages payment-vendor relationships and vendor statistics
  */
 
-import { prisma } from '@/lib/prisma';
+// Lazy import to avoid bundling pg/prisma on client side
+const getPrisma = () => require('@/lib/prisma').prisma;
 
 // ============================================
 // Types
@@ -57,7 +58,7 @@ export class VendorPaymentService {
     const normalizedAddress = toAddress.toLowerCase();
 
     // Find vendor by wallet address (case-insensitive)
-    const vendor = await prisma.vendor.findFirst({
+    const vendor = await getPrisma().vendor.findFirst({
       where: {
         wallet_address: {
           mode: 'insensitive',
@@ -73,7 +74,7 @@ export class VendorPaymentService {
 
     // Update payment with vendor_id
     try {
-      await prisma.payment.update({
+      await getPrisma().payment.update({
         where: { id: paymentId },
         data: { vendor_id: vendor.id }
       });
@@ -89,7 +90,7 @@ export class VendorPaymentService {
    */
   async updateVendorStats(vendorId: string, amount: string): Promise<void> {
     // Get current vendor stats
-    const vendor = await prisma.vendor.findUnique({
+    const vendor = await getPrisma().vendor.findUnique({
       where: { id: vendorId },
       select: { monthly_volume: true, transaction_count: true }
     });
@@ -103,7 +104,7 @@ export class VendorPaymentService {
 
     // Update vendor stats
     try {
-       await prisma.vendor.update({
+       await getPrisma().vendor.update({
         where: { id: vendorId },
         data: {
           monthly_volume: newMonthlyVolume,
@@ -127,7 +128,7 @@ export class VendorPaymentService {
     const { limit = 50, offset = 0, status } = options;
 
     // Verify vendor ownership
-    const vendor = await prisma.vendor.findFirst({
+    const vendor = await getPrisma().vendor.findFirst({
       where: {
         id: vendorId,
         owner_address: {
@@ -151,14 +152,15 @@ export class VendorPaymentService {
       where.status = status;
     }
 
-    const [payments, count] = await prisma.$transaction([
-      prisma.payment.findMany({
+    const db = getPrisma();
+    const [payments, count] = await db.$transaction([
+      db.payment.findMany({
         where,
         orderBy: { created_at: 'desc' },
         take: limit,
         skip: offset,
       }),
-      prisma.payment.count({ where })
+      db.payment.count({ where })
     ]);
 
     // Map Prisma Payment to VendorPayment interface
@@ -186,7 +188,7 @@ export class VendorPaymentService {
    */
   async getVendorStats(vendorId: string, ownerAddress: string): Promise<VendorStats> {
     // Verify vendor ownership
-    const vendor = await prisma.vendor.findFirst({
+    const vendor = await getPrisma().vendor.findFirst({
       where: {
         id: vendorId,
         owner_address: {
@@ -206,7 +208,7 @@ export class VendorPaymentService {
 
     // Get total volume from all completed payments
     // Using aggregation for better performance than fetching all records
-    const aggregator = await prisma.payment.aggregate({
+    const aggregator = await getPrisma().payment.aggregate({
       _sum: {
         amount: true
       },
@@ -235,7 +237,7 @@ export class VendorPaymentService {
    * Handle vendor deletion - preserve payments but set vendor_id to null
    */
   async handleVendorDeletion(vendorId: string): Promise<number> {
-    const result = await prisma.payment.updateMany({
+    const result = await getPrisma().payment.updateMany({
       where: { vendor_id: vendorId },
       data: { vendor_id: null }
     });
@@ -247,7 +249,7 @@ export class VendorPaymentService {
    * Reset monthly volume for all vendors (for monthly reset job)
    */
   async resetMonthlyVolumes(): Promise<number> {
-    const result = await prisma.vendor.updateMany({
+    const result = await getPrisma().vendor.updateMany({
       where: {
         monthly_volume: {
           not: 0
