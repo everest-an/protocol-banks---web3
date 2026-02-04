@@ -207,3 +207,16 @@ export function parseFile(file: File): Promise<ParseResult> {
     }
   })
 }
+
+/**
+ * Parse Batch File (Node.js/Server Context)
+ */
+export async function parseBatchFile(content: Buffer, extension: string): Promise<ParseResult> {
+  if (extension === "csv") {
+    return parseCsv(content.toString("utf-8"))
+  } else if (["xls", "xlsx"].includes(extension)) {
+    // XLSX read accepts Buffer directly
+    return parseExcel(content)
+  }
+  return { success: false, data: [], errors: ["Unsupported file type: " + extension], headers: [] }
+}

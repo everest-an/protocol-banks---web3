@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { createClient } from "@/lib/supabase-client"
 import type { Payment, PaymentHistory, MonthlyPaymentData } from "@/types"
 
 // Demo payment history
@@ -130,22 +129,21 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
         return
       }
 
-      const supabase = createClient()
-      let query = supabase
-        .from("payments")
-        .select("*")
-        .eq("created_by", walletAddress)
-        .order("created_at", { ascending: false })
-
+      // Fetch from Prisma-backed API route
+      const params = new URLSearchParams({ wallet: walletAddress })
       if (type !== "all") {
-        query = query.eq("type", type)
+        params.set("type", type)
       }
 
-      const { data, error: dbError } = await query
+      const res = await fetch(`/api/payments?${params.toString()}`)
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to fetch payments (${res.status})`)
+      }
 
-      if (dbError) throw dbError
+      const { payments: data } = await res.json()
 
-      console.log("[v0] usePaymentHistory: Loaded from DB, count:", data?.length || 0)
+      console.log("[v0] usePaymentHistory: Loaded from API, count:", data?.length || 0)
       setPayments(data || EMPTY_PAYMENTS)
     } catch (err) {
       console.error("[v0] usePaymentHistory: Error:", err)
@@ -168,10 +166,19 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
         return newPayment
       }
 
-      const supabase = createClient()
-      const { data, error: dbError } = await supabase.from("payments").insert([payment]).select().single()
+      // POST to Prisma-backed API route
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payment),
+      })
 
-      if (dbError) throw dbError
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to create payment")
+      }
+
+      const { payment: data } = await res.json()
 
       setPayments((prev) => [data, ...prev])
       return data

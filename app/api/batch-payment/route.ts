@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabase } from "@/lib/supabase"
-import { validateBatch, calculateBatchTotals, type BatchPaymentItem } from "@/services"
+import { validateBatch, calculateBatchTotals, type BatchPaymentItem } from "@/backend"
 
 /**
  * POST /api/batch-payment

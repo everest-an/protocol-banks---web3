@@ -191,7 +191,7 @@ export class PaymentService {
   }
 
   /**
-   * Store payment record in database
+   * Store payment record in database via Prisma API route
    */
   static async recordPayment(
     payment: {
@@ -199,24 +199,32 @@ export class PaymentService {
       to: string
       amount: string
       token: string
+      chain?: string
       txHash: string
       status: string
     },
-    supabase: any,
   ): Promise<boolean> {
     try {
-      const { error } = await supabase.from("payments").insert({
-        from_address: payment.from,
-        to_address: payment.to,
-        amount: payment.amount,
-        token: payment.token,
-        tx_hash: payment.txHash,
-        status: payment.status,
-        type: "sent",
-        created_at: new Date().toISOString(),
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from_address: payment.from,
+          to_address: payment.to,
+          amount: payment.amount,
+          token: payment.token,
+          chain: payment.chain || "Ethereum",
+          tx_hash: payment.txHash,
+          status: payment.status,
+          type: "sent",
+        }),
       })
 
-      if (error) throw error
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to record payment")
+      }
+
       return true
     } catch (error) {
       console.error("[v0] PaymentService: failed to record payment", error)
