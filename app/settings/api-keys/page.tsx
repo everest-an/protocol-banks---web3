@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { apiKeyService, API_PERMISSIONS, type ApiKey } from "@/lib/api-keys"
+import { apiKeyService, API_PERMISSIONS, type ApiKey } from "@/lib/security/api-keys"
 import { Key, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle } from "lucide-react"
 
 export default function ApiKeysPage() {

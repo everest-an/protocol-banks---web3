@@ -38,7 +38,7 @@ export {
   isValidPaymentAmount,
   createPaymentConfirmation,
   verifyTransactionParameters,
-} from "@/lib/client-security"
+} from "@/lib/security/client-security"
 
 export {
   categorizeTransaction,

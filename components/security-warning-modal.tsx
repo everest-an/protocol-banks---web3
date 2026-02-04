@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Shield, ShieldAlert, ShieldCheck, ShieldX, X } from "lucide-react"
-import type { PreTransactionCheckResult } from "@/lib/web3-security"
+import type { PreTransactionCheckResult } from "@/lib/security/web3-security"
 
 interface SecurityWarningModalProps {
   isOpen: boolean

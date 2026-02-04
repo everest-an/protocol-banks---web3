@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Shield, Clock, AlertTriangle, CheckCircle2, Info, ExternalLink } from "lucide-react"
-import { assessQuantumReadiness, type QuantumReadinessReport } from "@/lib/future-attack-protection"
+import { assessQuantumReadiness, type QuantumReadinessReport } from "@/lib/security/future-attack-protection"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface QuantumReadinessCardProps {
