@@ -50,6 +50,7 @@ export interface PaymentRecipient {
   vendorName?: string
   vendorId?: string
   token: string
+  chain?: string // Chain identifier (EVM, SOLANA, BTC, etc.)
 }
 
 
