@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { secureDemoModeToggle } from "@/lib/cross-function-security"
+import { secureDemoModeToggle } from "@/lib/security/cross-function-security"
 
 interface DemoContextType {
   isDemoMode: boolean

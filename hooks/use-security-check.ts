@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import {
   performPreTransactionCheck,
   type PreTransactionCheckResult,
-} from "@/lib/web3-security"
+} from "@/lib/security/web3-security"
 import { useWeb3 } from "@/contexts/web3-context"
 
 export interface TransactionDetails {

@@ -11,7 +11,7 @@ import {
   generateAddressChecksum,
   ClipboardMonitor,
   type ClipboardSecurityResult,
-} from "@/lib/future-attack-protection"
+} from "@/lib/security/future-attack-protection"
 import { useToast } from "@/hooks/use-toast"
 
 interface AddressVerificationDisplayProps {

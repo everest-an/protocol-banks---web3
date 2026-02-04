@@ -24,7 +24,7 @@ import {
   bindSessionToWallet,
   verifySessionBinding,
   signEvent,
-} from "@/lib/cross-function-security"
+} from "@/lib/security/cross-function-security"
 
 interface Web3ContextType {
   wallets: {

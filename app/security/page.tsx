@@ -29,7 +29,7 @@ import {
   Users,
 } from "lucide-react"
 import { getSupabase } from "@/lib/supabase"
-import { SECURITY_CONFIG } from "@/lib/security"
+import { SECURITY_CONFIG } from "@/lib/security/security"
 
 interface AuditLog {
   id: string

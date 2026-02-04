@@ -7,7 +7,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
-import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security"
+import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security/security"
 
 export async function POST(request: NextRequest) {
   try {

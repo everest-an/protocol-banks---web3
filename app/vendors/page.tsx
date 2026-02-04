@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { generateIntegrityHash } from "@/lib/encryption"
+import { generateIntegrityHash } from "@/lib/security/encryption"
 import { VendorSidebar } from "@/components/vendor-sidebar"
 import { secureCreateVendor, secureUpdateVendor, secureDeleteVendor } from "@/lib/supabase-secure"
 

@@ -7,7 +7,7 @@ import {
   safeLocalStorageGet,
   safeLocalStorageSet,
   safeLocalStorageRemove,
-} from "@/lib/client-security"
+} from "@/lib/security/client-security"
 
 /**
  * Hook for secure client-side operations

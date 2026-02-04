@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security"
-import { addSecurityHeaders, validateOrigin } from "@/lib/security-middleware"
+import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security/security"
+import { addSecurityHeaders, validateOrigin } from "@/lib/security/security-middleware"
 
 // Regex for basic Ethereum address validation
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/

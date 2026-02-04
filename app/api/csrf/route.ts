@@ -5,7 +5,7 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server"
-import { generateCSRFToken, addSecurityHeaders } from "@/lib/security-middleware"
+import { generateCSRFToken, addSecurityHeaders } from "@/lib/security/security-middleware"
 
 export async function GET(request: NextRequest) {
   const token = generateCSRFToken()
