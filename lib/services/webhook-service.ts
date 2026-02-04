@@ -4,7 +4,7 @@
  */
 
 import { createHash, randomBytes, createHmac } from 'crypto';
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -146,11 +146,7 @@ export function calculateNextRetryTime(attempt: number): Date {
 // ============================================
 
 export class WebhookService {
-  private supabase;
-
-  constructor() {
-    this.supabase = createClient();
-  }
+  constructor() {}
 
   /**
    * Create a new webhook
@@ -162,30 +158,26 @@ export class WebhookService {
     const secretHash = hashWebhookSecret(secret);
 
     // Prepare data for insertion
-    const webhookData = {
-      name: input.name,
-      url: input.url,
-      owner_address: input.owner_address.toLowerCase(),
-      events: input.events,
-      secret_hash: secretHash,
-      is_active: true,
-      retry_count: input.retry_count ?? DEFAULT_RETRY_COUNT,
-      timeout_ms: input.timeout_ms ?? DEFAULT_TIMEOUT_MS,
-    };
-
-    // Insert into database
-    const { data, error } = await this.supabase
-      .from('webhooks')
-      .insert([webhookData])
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create webhook: ${error.message}`);
-    }
+    const webhook = await prisma.webhook.create({
+      data: {
+        name: input.name,
+        url: input.url,
+        owner_address: input.owner_address.toLowerCase(),
+        events: input.events,
+        secret_hash: secretHash,
+        is_active: true,
+        retry_count: input.retry_count ?? DEFAULT_RETRY_COUNT,
+        timeout_ms: input.timeout_ms ?? DEFAULT_TIMEOUT_MS,
+      }
+    });
 
     return {
-      webhook: data as Webhook,
+      webhook: {
+        ...webhook,
+        events: webhook.events as WebhookEvent[],
+        created_at: webhook.created_at.toISOString(),
+        updated_at: webhook.updated_at.toISOString()
+      },
       secret,
     };
   }
@@ -194,46 +186,52 @@ export class WebhookService {
    * List all webhooks for an owner
    */
   async list(ownerAddress: string): Promise<Webhook[]> {
-    const { data, error } = await this.supabase
-      .from('webhooks')
-      .select('*')
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .order('created_at', { ascending: false });
+    const webhooks = await prisma.webhook.findMany({
+      where: {
+        owner_address: ownerAddress.toLowerCase()
+      },
+      orderBy: {
+        created_at: 'desc'
+      }
+    });
 
-    if (error) {
-      throw new Error(`Failed to list webhooks: ${error.message}`);
-    }
-
-    return (data || []) as Webhook[];
+    return webhooks.map(w => ({
+      ...w,
+      events: w.events as WebhookEvent[],
+      created_at: w.created_at.toISOString(),
+      updated_at: w.updated_at.toISOString()
+    }));
   }
 
   /**
    * Get a single webhook by ID
    */
   async getById(id: string, ownerAddress: string): Promise<Webhook | null> {
-    const { data, error } = await this.supabase
-      .from('webhooks')
-      .select('*')
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null;
+    const webhook = await prisma.webhook.findFirst({
+      where: {
+        id,
+        owner_address: ownerAddress.toLowerCase()
       }
-      throw new Error(`Failed to get webhook: ${error.message}`);
+    });
+
+    if (!webhook) {
+      return null;
     }
 
-    return data as Webhook;
+    return {
+      ...webhook,
+      events: webhook.events as WebhookEvent[],
+      created_at: webhook.created_at.toISOString(),
+      updated_at: webhook.updated_at.toISOString()
+    };
   }
 
   /**
    * Update a webhook
    */
   async update(id: string, ownerAddress: string, input: UpdateWebhookInput): Promise<Webhook> {
-    const updateData: Record<string, any> = {
-      updated_at: new Date().toISOString(),
+    const updateData: any = {
+      updated_at: new Date(),
     };
 
     if (input.name !== undefined) updateData.name = input.name;
@@ -243,34 +241,43 @@ export class WebhookService {
     if (input.retry_count !== undefined) updateData.retry_count = input.retry_count;
     if (input.timeout_ms !== undefined) updateData.timeout_ms = input.timeout_ms;
 
-    const { data, error } = await this.supabase
-      .from('webhooks')
-      .update(updateData)
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to update webhook: ${error.message}`);
+    // First check ownership
+    const existing = await prisma.webhook.findFirst({
+        where: { id, owner_address: ownerAddress.toLowerCase() }
+    });
+    
+    if (!existing) {
+        throw new Error('Webhook not found');
     }
 
-    return data as Webhook;
+    const webhook = await prisma.webhook.update({
+      where: { id },
+      data: updateData
+    });
+
+    return {
+      ...webhook,
+      events: webhook.events as WebhookEvent[],
+      created_at: webhook.created_at.toISOString(),
+      updated_at: webhook.updated_at.toISOString()
+    };
   }
 
   /**
    * Delete a webhook
    */
   async delete(id: string, ownerAddress: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('webhooks')
-      .delete()
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase());
+    const existing = await prisma.webhook.findFirst({
+        where: { id, owner_address: ownerAddress.toLowerCase() }
+    });
 
-    if (error) {
-      throw new Error(`Failed to delete webhook: ${error.message}`);
+    if (!existing) {
+        throw new Error('Webhook not found or access denied');
     }
+
+    await prisma.webhook.delete({
+      where: { id }
+    });
   }
 
   /**
@@ -287,27 +294,29 @@ export class WebhookService {
       throw new Error('Webhook not found');
     }
 
-    let query = this.supabase
-      .from('webhook_deliveries')
-      .select('*')
-      .eq('webhook_id', webhookId)
-      .order('created_at', { ascending: false });
+    const where: any = {
+      webhook_id: webhookId
+    };
 
     if (options.status) {
-      query = query.eq('status', options.status);
+      where.status = options.status;
     }
 
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
+    const deliveries = await prisma.webhookDelivery.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      take: options.limit
+    });
 
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to get deliveries: ${error.message}`);
-    }
-
-    return (data || []) as WebhookDelivery[];
+    return deliveries.map((d: any) => ({
+      ...d,
+      event_type: d.event_type as WebhookEvent,
+      status: d.status as any,
+      created_at: d.created_at.toISOString(),
+      delivered_at: d.delivered_at?.toISOString(),
+      last_attempt_at: d.last_attempt_at?.toISOString(),
+      next_retry_at: d.next_retry_at?.toISOString()
+    }));
   }
 
   /**
@@ -318,43 +327,47 @@ export class WebhookService {
     event: WebhookEvent,
     payload: Record<string, any>
   ): Promise<WebhookDelivery> {
-    const deliveryData = {
-      webhook_id: webhookId,
-      event_type: event,
-      payload,
-      status: 'pending',
-      attempts: 0,
+    const delivery = await prisma.webhookDelivery.create({
+      data: {
+        webhook_id: webhookId,
+        event_type: event,
+        payload,
+        status: 'pending',
+        attempts: 0,
+      }
+    });
+
+    return {
+      ...delivery,
+      event_type: delivery.event_type as WebhookEvent,
+      status: delivery.status as any,
+      created_at: delivery.created_at.toISOString(),
+      delivered_at: delivery.delivered_at?.toISOString(),
+      last_attempt_at: delivery.last_attempt_at?.toISOString(),
+      next_retry_at: delivery.next_retry_at?.toISOString()
     };
-
-    const { data, error } = await this.supabase
-      .from('webhook_deliveries')
-      .insert([deliveryData])
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to queue delivery: ${error.message}`);
-    }
-
-    return data as WebhookDelivery;
   }
 
   /**
    * Get webhooks subscribed to an event for an owner
    */
   async getWebhooksForEvent(ownerAddress: string, event: WebhookEvent): Promise<Webhook[]> {
-    const { data, error } = await this.supabase
-      .from('webhooks')
-      .select('*')
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .eq('is_active', true)
-      .contains('events', [event]);
+    const webhooks = await prisma.webhook.findMany({
+      where: {
+        owner_address: ownerAddress.toLowerCase(),
+        is_active: true,
+        events: {
+          has: event
+        }
+      }
+    });
 
-    if (error) {
-      throw new Error(`Failed to get webhooks for event: ${error.message}`);
-    }
-
-    return (data || []) as Webhook[];
+    return webhooks.map(w => ({
+      ...w,
+      events: w.events as WebhookEvent[],
+      created_at: w.created_at.toISOString(),
+      updated_at: w.updated_at.toISOString()
+    }));
   }
 
   /**

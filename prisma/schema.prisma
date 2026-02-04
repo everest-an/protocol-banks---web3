@@ -79,15 +79,34 @@ model Vendor {
   name              String
   wallet_address    String
   owner_address     String
+  ens_name          String?
   company_name      String?
-  category          String?   // "subsidiary" | "partner"
+  category          String?
+  tier              String?   @default("vendor") // "subsidiary" | "partner" | "vendor"
+  chain             String?   @default("Ethereum")
+  last_chain        String?   // Last chain used for payment
+  last_wallet_type  String?   // Last wallet type used (MetaMask, Safe, etc.)
+  email             String?
+  contact_email     String?
+  contact_name      String?
+  notes             String?
+  tags              String[]  @default([])
+  reputation_tag    String?   // "whale" | "active" | "newbie" | "inactive"
   monthly_volume    String?
   transaction_count Int       @default(0)
+  on_chain_balance  Float?    @default(0)
+  ltv               Float?    @default(0)
+  last_payment_at   DateTime?
+  integrity_hash    String?
+  created_by        String?
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
   payments          Payment[]
 
+  @@index([owner_address])
+  @@index([created_by])
+  @@index([wallet_address])
   @@map("vendors")
 }
 
@@ -134,4 +153,46 @@ model PushSubscription {
 
   @@index([user_address])
   @@map("push_subscriptions")
+}
+
+model Webhook {
+  id              String            @id @default(uuid())
+  name            String
+  url             String
+  owner_address   String
+  events          String[]
+  secret_hash     String
+  is_active       Boolean           @default(true)
+  retry_count     Int               @default(3)
+  timeout_ms      Int               @default(30000)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+
+  deliveries      WebhookDelivery[]
+
+  @@index([owner_address])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id                String    @id @default(uuid())
+  webhook_id        String
+  event_type        String
+  payload           Json
+  status            String    @default("pending")
+  attempts          Int       @default(0)
+  last_attempt_at   DateTime?
+  next_retry_at     DateTime?
+  response_status   Int?
+  response_body     String?
+  error_message     String?
+  created_at        DateTime  @default(now())
+  delivered_at      DateTime?
+
+  webhook           Webhook   @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
+
+  @@index([webhook_id])
+  @@index([status])
+  @@index([next_retry_at])
+  @@map("webhook_deliveries")
 }
