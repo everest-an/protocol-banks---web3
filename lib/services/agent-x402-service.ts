@@ -388,19 +388,11 @@ export class AgentX402Service {
   async getAuthorization(authorizationId: string): Promise<X402Authorization | null> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.x402Authorization.findUnique({
+          where: { id: authorizationId }
+        });
 
-        const { data, error } = await supabase
-          .from('x402_authorizations')
-          .select('*')
-          .eq('id', authorizationId)
-          .single();
-
-        if (error) {
-          if (error.code === 'PGRST116') return null;
-          console.error('[x402 Service] Get error:', error);
-          return null;
-        }
+        if (!data) return null;
 
         return convertDbAuth(data);
       } catch {
@@ -417,20 +409,12 @@ export class AgentX402Service {
   async getAuthorizationByProposal(proposalId: string): Promise<X402Authorization | null> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.x402Authorization.findFirst({
+          where: { proposal_id: proposalId },
+          orderBy: { created_at: 'desc' }
+        });
 
-        const { data, error } = await supabase
-          .from('x402_authorizations')
-          .select('*')
-          .eq('transfer_id', proposalId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (error) {
-          if (error.code === 'PGRST116') return null;
-          return null;
-        }
+        if (!data) return null;
 
         return convertDbAuth(data);
       } catch {
@@ -452,21 +436,13 @@ export class AgentX402Service {
   async listByOwner(ownerAddress: string, limit: number = 50): Promise<X402Authorization[]> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.x402Authorization.findMany({
+          where: { from_address: ownerAddress.toLowerCase() },
+          orderBy: { created_at: 'desc' },
+          take: limit
+        });
 
-        const { data, error } = await supabase
-          .from('x402_authorizations')
-          .select('*')
-          .eq('from_address', ownerAddress.toLowerCase())
-          .order('created_at', { ascending: false })
-          .limit(limit);
-
-        if (error) {
-          console.error('[x402 Service] List by owner error:', error);
-          return [];
-        }
-
-        return (data || []).map(convertDbAuth);
+        return data.map(convertDbAuth);
       } catch {
         return [];
       }

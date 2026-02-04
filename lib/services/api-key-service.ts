@@ -4,7 +4,7 @@
  */
 
 import { createHash, randomBytes } from 'crypto';
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -108,11 +108,7 @@ export function isValidAPIKeyFormat(secret: string): boolean {
 // ============================================
 
 export class APIKeyService {
-  private supabase;
-
-  constructor() {
-    this.supabase = createClient();
-  }
+  constructor() {}
 
   /**
    * Create a new API key
@@ -124,36 +120,42 @@ export class APIKeyService {
     const keyHash = hashAPIKeySecret(secret);
     const keyPrefix = extractKeyPrefix(secret);
 
-    // Prepare data for insertion
-    const keyData = {
-      name: input.name,
-      key_hash: keyHash,
-      key_prefix: keyPrefix,
-      owner_address: input.owner_address.toLowerCase(),
-      permissions: input.permissions || ['read'],
-      rate_limit_per_minute: input.rate_limit_per_minute || 60,
-      rate_limit_per_day: input.rate_limit_per_day || 10000,
-      allowed_ips: input.allowed_ips || null,
-      allowed_origins: input.allowed_origins || null,
-      expires_at: input.expires_at || null,
-      is_active: true,
-      usage_count: 0,
-    };
+    try {
+      // Insert into database
+      const apiKey = await prisma.apiKey.create({
+        data: {
+          name: input.name,
+          key_hash: keyHash,
+          key_prefix: keyPrefix,
+          owner_address: input.owner_address.toLowerCase(),
+          permissions: (input.permissions || ['read']) as string[],
+          rate_limit_per_minute: input.rate_limit_per_minute || 60,
+          rate_limit_per_day: input.rate_limit_per_day || 10000,
+          allowed_ips: input.allowed_ips || [],
+          allowed_origins: input.allowed_origins || [],
+          expires_at: input.expires_at ? new Date(input.expires_at) : null,
+          is_active: true,
+          usage_count: 0,
+        }
+      });
 
-    // Insert into database
-    const { data, error } = await this.supabase
-      .from('api_keys')
-      .insert([keyData])
-      .select()
-      .single();
-
-    if (error) {
+      return {
+        key: this.mapToType(apiKey),
+        secret,
+      };
+    } catch (error: any) {
       throw new Error(`Failed to create API key: ${error.message}`);
     }
+  }
 
+  private mapToType(record: any): APIKey {
     return {
-      key: data as APIKey,
-      secret,
+      ...record,
+      permissions: record.permissions as Permission[],
+      created_at: record.created_at.toISOString(),
+      updated_at: record.updated_at.toISOString(),
+      expires_at: record.expires_at?.toISOString(),
+      last_used_at: record.last_used_at?.toISOString()
     };
   }
 
@@ -161,51 +163,60 @@ export class APIKeyService {
    * List all API keys for an owner (without secrets)
    */
   async list(ownerAddress: string): Promise<APIKey[]> {
-    const { data, error } = await this.supabase
-      .from('api_keys')
-      .select('*')
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .order('created_at', { ascending: false });
+    try {
+      const keys = await prisma.apiKey.findMany({
+        where: {
+          owner_address: ownerAddress.toLowerCase()
+        },
+        orderBy: {
+          created_at: 'desc'
+        }
+      });
 
-    if (error) {
+      return keys.map(k => this.mapToType(k));
+    } catch (error: any) {
       throw new Error(`Failed to list API keys: ${error.message}`);
     }
-
-    return (data || []) as APIKey[];
   }
 
   /**
    * Get a single API key by ID
    */
   async getById(id: string, ownerAddress: string): Promise<APIKey | null> {
-    const { data, error } = await this.supabase
-      .from('api_keys')
-      .select('*')
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .single();
+    try {
+      const key = await prisma.apiKey.findFirst({
+        where: {
+          id,
+          owner_address: ownerAddress.toLowerCase()
+        }
+      });
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Not found
-      }
+      if (!key) return null;
+
+      return this.mapToType(key);
+    } catch (error: any) {
       throw new Error(`Failed to get API key: ${error.message}`);
     }
-
-    return data as APIKey;
   }
 
   /**
    * Revoke (delete) an API key
    */
   async revoke(id: string, ownerAddress: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('api_keys')
-      .delete()
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase());
+    try {
+      // Check ownership first
+      const count = await prisma.apiKey.count({
+        where: { id, owner_address: ownerAddress.toLowerCase() }
+      });
+      
+      if (count === 0) {
+        throw new Error('API key not found or access denied');
+      }
 
-    if (error) {
+      await prisma.apiKey.delete({
+        where: { id }
+      });
+    } catch (error: any) {
       throw new Error(`Failed to revoke API key: ${error.message}`);
     }
   }
@@ -223,42 +234,41 @@ export class APIKeyService {
     // Hash the secret
     const keyHash = hashAPIKeySecret(secret);
 
-    // Look up by hash
-    const { data, error } = await this.supabase
-      .from('api_keys')
-      .select('*')
-      .eq('key_hash', keyHash)
-      .single();
+    try {
+      // Look up by hash
+      const key = await prisma.apiKey.findUnique({
+        where: { key_hash: keyHash }
+      });
 
-    if (error || !data) {
-      return { valid: false, error: 'API key not found' };
-    }
-
-    const key = data as APIKey;
-
-    // Check if active
-    if (!key.is_active) {
-      return { valid: false, error: 'API key is inactive' };
-    }
-
-    // Check expiration
-    if (key.expires_at) {
-      const expiresAt = new Date(key.expires_at);
-      if (expiresAt < new Date()) {
-        return { valid: false, error: 'API key has expired' };
+      if (!key) {
+        return { valid: false, error: 'API key not found' };
       }
+
+      // Check if active
+      if (!key.is_active) {
+        return { valid: false, error: 'API key is inactive' };
+      }
+
+      // Check expiration
+      if (key.expires_at) {
+        if (key.expires_at < new Date()) {
+          return { valid: false, error: 'API key has expired' };
+        }
+      }
+
+      // Update last_used_at and usage_count
+      await prisma.apiKey.update({
+        where: { id: key.id },
+        data: {
+          last_used_at: new Date(),
+          usage_count: { increment: 1 }
+        }
+      });
+
+      return { valid: true, key: this.mapToType(key) };
+    } catch (error) {
+       return { valid: false, error: 'Validation error' };
     }
-
-    // Update last_used_at and usage_count
-    await this.supabase
-      .from('api_keys')
-      .update({
-        last_used_at: new Date().toISOString(),
-        usage_count: key.usage_count + 1,
-      })
-      .eq('id', key.id);
-
-    return { valid: true, key };
   }
 
   /**
@@ -276,19 +286,19 @@ export class APIKeyService {
    * Log API key usage
    */
   async logUsage(log: APIKeyUsageLog): Promise<void> {
-    const { error } = await this.supabase
-      .from('api_key_usage_logs')
-      .insert([{
-        api_key_id: log.api_key_id,
-        endpoint: log.endpoint,
-        method: log.method,
-        status_code: log.status_code,
-        response_time_ms: log.response_time_ms,
-        ip_address: log.ip_address || null,
-        user_agent: log.user_agent || null,
-      }]);
-
-    if (error) {
+    try {
+      await prisma.apiKeyUsageLog.create({
+        data: {
+          api_key_id: log.api_key_id,
+          endpoint: log.endpoint,
+          method: log.method,
+          status_code: log.status_code,
+          response_time_ms: log.response_time_ms,
+          ip_address: log.ip_address || null,
+          user_agent: log.user_agent || null,
+        }
+      });
+    } catch (error: any) {
       // Log error but don't throw - usage logging shouldn't break the request
       console.error('[APIKeyService] Failed to log usage:', error.message);
     }
@@ -298,6 +308,22 @@ export class APIKeyService {
    * Deactivate an API key (soft delete)
    */
   async deactivate(id: string, ownerAddress: string): Promise<void> {
+    try {
+      // Check ownership
+      const key = await prisma.apiKey.findFirst({
+        where: { id, owner_address: ownerAddress.toLowerCase() }
+      });
+
+      if (!key) throw new Error("Key not found");
+
+      await prisma.apiKey.update({
+        where: { id },
+        data: { is_active: false } 
+      });
+    } catch (error: any) {
+         throw new Error(`Failed to deactivate: ${error.message}`);
+    }
+  }
     const { error } = await this.supabase
       .from('api_keys')
       .update({ is_active: false, updated_at: new Date().toISOString() })

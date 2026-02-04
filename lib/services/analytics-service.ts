@@ -3,7 +3,8 @@
  * Provides payment analytics and reporting
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 // ============================================
 // Types
@@ -65,11 +66,10 @@ const CHAIN_NAMES: Record<number, string> = {
 // ============================================
 
 export class AnalyticsService {
-  private supabase;
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
 
   constructor() {
-    this.supabase = createClient();
+    //
   }
 
   /**
@@ -139,62 +139,67 @@ export class AnalyticsService {
     const cached = this.getFromCache(cacheKey);
     if (cached) return cached;
 
-    let query = this.supabase
-      .from('payments')
-      .select(`
-        vendor_id,
-        amount,
-        vendors!inner(name)
-      `)
-      .eq('created_by', ownerAddress.toLowerCase())
-      .eq('status', 'completed')
-      .not('vendor_id', 'is', null);
+    const where: any = {
+      created_by: ownerAddress.toLowerCase(),
+      status: 'completed',
+      vendor_id: { not: null }
+    };
 
     if (dateRange?.start_date) {
-      query = query.gte('created_at', dateRange.start_date);
+      where.created_at = { ...where.created_at, gte: new Date(dateRange.start_date) };
     }
     if (dateRange?.end_date) {
-      query = query.lte('created_at', dateRange.end_date);
+      where.created_at = { ...where.created_at, lte: new Date(dateRange.end_date) };
     }
 
-    const { data, error } = await query;
+    try {
+      const data = await prisma.payment.findMany({
+        where,
+        select: {
+          vendor_id: true,
+          amount: true,
+          vendor: {
+            select: { name: true }
+          }
+        }
+      });
 
-    if (error) {
+      // Aggregate by vendor
+      const vendorMap = new Map<string, { name: string; volume: number; count: number }>();
+      let totalVolume = 0;
+
+      for (const payment of data) {
+        if (!payment.vendor_id) continue;
+        const vendorId = payment.vendor_id;
+        const amount = parseFloat(payment.amount) || 0;
+        const vendorName = payment.vendor?.name || 'Unknown';
+
+        if (!vendorMap.has(vendorId)) {
+          vendorMap.set(vendorId, { name: vendorName, volume: 0, count: 0 });
+        }
+
+        const vendor = vendorMap.get(vendorId)!;
+        vendor.volume += amount;
+        vendor.count += 1;
+        totalVolume += amount;
+      }
+
+      const result: VendorAnalytics[] = Array.from(vendorMap.entries())
+        .map(([vendor_id, data]) => ({
+          vendor_id,
+          vendor_name: data.name,
+          volume: data.volume,
+          count: data.count,
+          percentage: totalVolume > 0 ? (data.volume / totalVolume) * 100 : 0,
+        }))
+        .sort((a, b) => b.volume - a.volume);
+
+      this.setCache(cacheKey, result);
+      return result;
+    } catch (error) {
       console.error('[Analytics] By vendor error:', error);
       return [];
     }
-
-    // Aggregate by vendor
-    const vendorMap = new Map<string, { name: string; volume: number; count: number }>();
-    let totalVolume = 0;
-
-    for (const payment of data || []) {
-      const vendorId = payment.vendor_id;
-      const amount = parseFloat(payment.amount) || 0;
-      const vendorName = (payment.vendors as any)?.name || 'Unknown';
-
-      if (!vendorMap.has(vendorId)) {
-        vendorMap.set(vendorId, { name: vendorName, volume: 0, count: 0 });
-      }
-
-      const vendor = vendorMap.get(vendorId)!;
-      vendor.volume += amount;
-      vendor.count += 1;
-      totalVolume += amount;
-    }
-
-    const result: VendorAnalytics[] = Array.from(vendorMap.entries())
-      .map(([vendor_id, data]) => ({
-        vendor_id,
-        vendor_name: data.name,
-        volume: data.volume,
-        count: data.count,
-        percentage: totalVolume > 0 ? (data.volume / totalVolume) * 100 : 0,
-      }))
-      .sort((a, b) => b.volume - a.volume);
-
-    this.setCache(cacheKey, result);
-    return result;
   }
 
   /**
@@ -205,56 +210,58 @@ export class AnalyticsService {
     const cached = this.getFromCache(cacheKey);
     if (cached) return cached;
 
-    let query = this.supabase
-      .from('payments')
-      .select('chain_id, amount')
-      .eq('created_by', ownerAddress.toLowerCase())
-      .eq('status', 'completed');
+    const where: any = {
+      created_by: ownerAddress.toLowerCase(),
+      status: 'completed'
+    };
 
     if (dateRange?.start_date) {
-      query = query.gte('created_at', dateRange.start_date);
+      where.created_at = { ...where.created_at, gte: new Date(dateRange.start_date) };
     }
     if (dateRange?.end_date) {
-      query = query.lte('created_at', dateRange.end_date);
+      where.created_at = { ...where.created_at, lte: new Date(dateRange.end_date) };
     }
 
-    const { data, error } = await query;
+    try {
+      const data = await prisma.payment.findMany({
+        where,
+        select: { chain_id: true, amount: true }
+      });
 
-    if (error) {
+      // Aggregate by chain
+      const chainMap = new Map<number, { volume: number; count: number }>();
+      let totalVolume = 0;
+
+      for (const payment of data) {
+        const chainId = payment.chain_id || 1;
+        const amount = parseFloat(payment.amount) || 0;
+
+        if (!chainMap.has(chainId)) {
+          chainMap.set(chainId, { volume: 0, count: 0 });
+        }
+
+        const chain = chainMap.get(chainId)!;
+        chain.volume += amount;
+        chain.count += 1;
+        totalVolume += amount;
+      }
+
+      const result: ChainAnalytics[] = Array.from(chainMap.entries())
+        .map(([chain_id, data]) => ({
+          chain_id,
+          chain_name: CHAIN_NAMES[chain_id] || `Chain ${chain_id}`,
+          volume: data.volume,
+          count: data.count,
+          percentage: totalVolume > 0 ? (data.volume / totalVolume) * 100 : 0,
+        }))
+        .sort((a, b) => b.volume - a.volume);
+
+      this.setCache(cacheKey, result);
+      return result;
+    } catch (error) {
       console.error('[Analytics] By chain error:', error);
       return [];
     }
-
-    // Aggregate by chain
-    const chainMap = new Map<number, { volume: number; count: number }>();
-    let totalVolume = 0;
-
-    for (const payment of data || []) {
-      const chainId = payment.chain_id || 1;
-      const amount = parseFloat(payment.amount) || 0;
-
-      if (!chainMap.has(chainId)) {
-        chainMap.set(chainId, { volume: 0, count: 0 });
-      }
-
-      const chain = chainMap.get(chainId)!;
-      chain.volume += amount;
-      chain.count += 1;
-      totalVolume += amount;
-    }
-
-    const result: ChainAnalytics[] = Array.from(chainMap.entries())
-      .map(([chain_id, data]) => ({
-        chain_id,
-        chain_name: CHAIN_NAMES[chain_id] || `Chain ${chain_id}`,
-        volume: data.volume,
-        count: data.count,
-        percentage: totalVolume > 0 ? (data.volume / totalVolume) * 100 : 0,
-      }))
-      .sort((a, b) => b.volume - a.volume);
-
-    this.setCache(cacheKey, result);
-    return result;
   }
 
   /**
@@ -264,33 +271,34 @@ export class AnalyticsService {
     ownerAddress: string,
     dateRange?: DateRange
   ): Promise<{ volume: number; count: number }> {
-    let query = this.supabase
-      .from('payments')
-      .select('amount')
-      .eq('created_by', ownerAddress.toLowerCase())
-      .eq('status', 'completed');
+    const where: any = {
+      created_by: ownerAddress.toLowerCase(),
+      status: 'completed'
+    };
 
     if (dateRange?.start_date) {
-      query = query.gte('created_at', dateRange.start_date);
+      where.created_at = { ...where.created_at, gte: new Date(dateRange.start_date) };
     }
     if (dateRange?.end_date) {
-      query = query.lte('created_at', dateRange.end_date);
+      where.created_at = { ...where.created_at, lte: new Date(dateRange.end_date) };
     }
 
-    const { data, error } = await query;
+    try {
+      const payments = await prisma.payment.findMany({
+        where,
+        select: { amount: true }
+      });
 
-    if (error) {
+      const volume = payments.reduce((sum: number, p: { amount: string }) => sum + (parseFloat(p.amount) || 0), 0);
+
+      return {
+        volume,
+        count: payments.length,
+      };
+    } catch (error) {
       console.error('[Analytics] Stats error:', error);
       return { volume: 0, count: 0 };
     }
-
-    const payments = data || [];
-    const volume = payments.reduce((sum: number, p: { amount: string }) => sum + (parseFloat(p.amount) || 0), 0);
-
-    return {
-      volume,
-      count: payments.length,
-    };
   }
 
   /**

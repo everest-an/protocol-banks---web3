@@ -599,44 +599,43 @@ export class BudgetService {
   async resetPeriodBudgets(): Promise<number> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
         // Get all budgets with period_end in the past
-        const { data: expiredBudgets, error } = await supabase
-          .from('agent_budgets')
-          .select('*')
-          .not('period_end', 'is', null)
-          .lt('period_end', new Date().toISOString());
-
-        if (error) {
-          console.error('[Budget Service] Reset period budgets error:', error);
-          throw new Error(`Failed to reset period budgets: ${error.message}`);
-        }
+        const expiredBudgets = await prisma.agentBudget.findMany({
+          where: {
+            period_end: {
+              not: null,
+              lt: new Date()
+            }
+          }
+        });
 
         let resetCount = 0;
 
-        for (const b of expiredBudgets || []) {
+        for (const b of expiredBudgets) {
           const budget: AgentBudget = {
             ...b,
-            period_start: new Date(b.period_start),
-            period_end: b.period_end ? new Date(b.period_end) : undefined,
-            created_at: new Date(b.created_at),
-            updated_at: new Date(b.updated_at),
+            amount: b.amount,
+            currency: b.currency,
+            period: b.period as any,
+            period_start: b.period_start,
+            period_end: b.period_end || undefined,
+            created_at: b.created_at,
+            updated_at: b.updated_at,
           };
 
           const resetBudget = resetBudgetPeriod(budget);
 
           // Update in database
-          await supabase
-            .from('agent_budgets')
-            .update({
+          await prisma.agentBudget.update({
+            where: { id: budget.id },
+            data: {
               used_amount: resetBudget.used_amount,
               remaining_amount: resetBudget.remaining_amount,
-              period_start: resetBudget.period_start.toISOString(),
-              period_end: resetBudget.period_end?.toISOString(),
-              updated_at: resetBudget.updated_at.toISOString(),
-            })
-            .eq('id', budget.id);
+              period_start: resetBudget.period_start,
+              period_end: resetBudget.period_end,
+              updated_at: resetBudget.updated_at,
+            }
+          });
 
           resetCount++;
         }

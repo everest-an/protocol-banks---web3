@@ -4,6 +4,7 @@
  */
 
 import { WebhookService, type WebhookEvent, generateWebhookSignature } from './webhook-service';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -195,11 +196,9 @@ export async function processWebhookDeliveries(): Promise<{ processed: number; s
     for (const delivery of deliveries) {
       try {
         // Get webhook details
-        const { data: webhook } = await webhookService['supabase']
-          .from('webhooks')
-          .select('*')
-          .eq('id', delivery.webhook_id)
-          .single();
+        const webhook = await prisma.webhook.findUnique({
+          where: { id: delivery.webhook_id }
+        });
 
         if (!webhook || !webhook.is_active) {
           await webhookService.updateDeliveryStatus(delivery.id, 'failed', {

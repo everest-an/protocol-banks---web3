@@ -3,7 +3,7 @@
  * Manages SaaS subscription plans, user subscriptions, and transaction fees
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 import type {
   SubscriptionPlan,
   UserSubscription,
@@ -42,8 +42,7 @@ export interface UsageMetrics {
 // ============================================
 
 export class BillingService {
-  private supabase = createClient();
-
+  
   // ============================================
   // Plan Management
   // ============================================
@@ -52,48 +51,43 @@ export class BillingService {
    * Get all available subscription plans
    */
   async getPlans(): Promise<SubscriptionPlan[]> {
-    const { data, error } = await this.supabase
-      .from('subscription_plans')
-      .select('*')
-      .eq('is_active', true)
-      .order('price_monthly', { ascending: true });
-
-    if (error) throw new Error(`Failed to fetch plans: ${error.message}`);
-    return data || [];
+    try {
+      const data = await prisma.subscriptionPlan.findMany({
+        where: { is_active: true },
+        orderBy: { price_monthly: 'asc' }
+      });
+      return data as unknown as SubscriptionPlan[];
+    } catch (error) {
+      throw new Error(`Failed to fetch plans: ${error}`);
+    }
   }
 
   /**
    * Get a specific plan by ID
    */
   async getPlan(planId: string): Promise<SubscriptionPlan | null> {
-    const { data, error } = await this.supabase
-      .from('subscription_plans')
-      .select('*')
-      .eq('id', planId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to fetch plan: ${error.message}`);
+    try {
+      const data = await prisma.subscriptionPlan.findUnique({
+        where: { id: planId }
+      });
+      return data as unknown as SubscriptionPlan;
+    } catch (error) {
+       throw new Error(`Failed to fetch plan: ${error}`);
     }
-    return data;
   }
 
   /**
    * Get plan by name (Free, Pro, Enterprise)
    */
   async getPlanByName(name: string): Promise<SubscriptionPlan | null> {
-    const { data, error } = await this.supabase
-      .from('subscription_plans')
-      .select('*')
-      .eq('name', name)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to fetch plan: ${error.message}`);
+    try {
+      const data = await prisma.subscriptionPlan.findUnique({
+        where: { name }
+      });
+      return data as unknown as SubscriptionPlan;
+    } catch (error) {
+      throw new Error(`Failed to fetch plan: ${error}`);
     }
-    return data;
   }
 
   // ============================================
@@ -104,17 +98,15 @@ export class BillingService {
    * Get user's current subscription
    */
   async getUserSubscription(userAddress: string): Promise<UserSubscription | null> {
-    const { data, error } = await this.supabase
-      .from('user_subscriptions')
-      .select('*, plan:subscription_plans(*)')
-      .eq('user_address', userAddress)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to fetch subscription: ${error.message}`);
+    try {
+      const data = await prisma.userSubscription.findUnique({
+        where: { user_address: userAddress },
+        include: { plan: true }
+      });
+      return data as unknown as UserSubscription;
+    } catch (error) {
+      throw new Error(`Failed to fetch subscription: ${error}`);
     }
-    return data;
   }
 
   /**
@@ -127,20 +119,21 @@ export class BillingService {
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    const { data, error } = await this.supabase
-      .from('user_subscriptions')
-      .insert({
-        user_address,
-        plan_id,
-        status: 'active',
-        current_period_start: new Date().toISOString(),
-        current_period_end: periodEnd.toISOString(),
-      })
-      .select('*, plan:subscription_plans(*)')
-      .single();
-
-    if (error) throw new Error(`Failed to create subscription: ${error.message}`);
-    return data;
+    try {
+      const data = await prisma.userSubscription.create({
+        data: {
+          user_address,
+          plan_id,
+          status: 'active',
+          current_period_start: new Date(),
+          current_period_end: periodEnd,
+        },
+        include: { plan: true }
+      });
+      return data as unknown as UserSubscription;
+    } catch (error) {
+       throw new Error(`Failed to create subscription: ${error}`);
+    }
   }
 
   /**
@@ -182,29 +175,29 @@ export class BillingService {
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    const { data, error } = await this.supabase
-      .from('user_subscriptions')
-      .update({
+    try {
+      const data = await prisma.userSubscription.update({
+        where: { user_address: userAddress },
+        data: {
+          plan_id: newPlanId,
+          current_period_start: new Date(),
+          current_period_end: periodEnd,
+        },
+        include: { plan: true }
+      });
+
+      // Record billing history
+      await this.recordBillingEvent(userAddress, {
+        type: 'plan_change',
+        amount: newPlan.price_monthly,
+        description: `Changed to ${newPlan.name} plan`,
         plan_id: newPlanId,
-        current_period_start: new Date().toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_address', userAddress)
-      .select('*, plan:subscription_plans(*)')
-      .single();
+      });
 
-    if (error) throw new Error(`Failed to change plan: ${error.message}`);
-
-    // Record billing history
-    await this.recordBillingEvent(userAddress, {
-      type: 'plan_change',
-      amount: newPlan.price_monthly,
-      description: `Changed to ${newPlan.name} plan`,
-      plan_id: newPlanId,
-    });
-
-    return data;
+      return data as unknown as UserSubscription;
+    } catch (error) {
+      throw new Error(`Failed to change plan: ${error}`);
+    }
   }
 
   /**
@@ -216,42 +209,41 @@ export class BillingService {
       throw new Error('Free plan not found');
     }
 
-    const { data, error } = await this.supabase
-      .from('user_subscriptions')
-      .update({
-        plan_id: freePlan.id,
-        status: 'cancelled',
-        cancelled_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_address', userAddress)
-      .select('*, plan:subscription_plans(*)')
-      .single();
+    try {
+      const data = await prisma.userSubscription.update({
+        where: { user_address: userAddress },
+        data: {
+          plan_id: freePlan.id,
+          status: 'cancelled',
+          cancelled_at: new Date(),
+        },
+        include: { plan: true }
+      });
 
-    if (error) throw new Error(`Failed to cancel subscription: ${error.message}`);
+      await this.recordBillingEvent(userAddress, {
+        type: 'cancellation',
+        amount: 0,
+        description: 'Subscription cancelled, moved to Free plan',
+      });
 
-    await this.recordBillingEvent(userAddress, {
-      type: 'cancellation',
-      amount: 0,
-      description: 'Subscription cancelled, moved to Free plan',
-    });
-
-    return data;
+      return data as unknown as UserSubscription;
+    } catch (error) {
+      throw new Error(`Failed to cancel subscription: ${error}`);
+    }
   }
 
   /**
    * Update subscription status
    */
   async updateStatus(userAddress: string, status: BillingSubscriptionStatus): Promise<void> {
-    const { error } = await this.supabase
-      .from('user_subscriptions')
-      .update({
-        status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_address', userAddress);
-
-    if (error) throw new Error(`Failed to update status: ${error.message}`);
+    try {
+      await prisma.userSubscription.update({
+        where: { user_address: userAddress },
+        data: { status }
+      });
+    } catch (error) {
+       throw new Error(`Failed to update subscription status: ${error}`);
+    }
   }
 
   // ============================================
@@ -343,19 +335,19 @@ export class BillingService {
 
     const feeAmount = amount * (fee_percentage / 100);
 
-    const { data, error } = await this.supabase
-      .from('transaction_fees')
-      .insert({
-        user_address,
-        payment_id,
-        fee_amount: feeAmount,
-        fee_percentage,
-      })
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to record fee: ${error.message}`);
-    return data;
+    try {
+      const data = await prisma.transactionFee.create({
+        data: {
+          user_address,
+          payment_id,
+          fee_amount: feeAmount,
+          fee_percentage,
+        }
+      });
+      return data as unknown as TransactionFee;
+    } catch (error) {
+       throw new Error(`Failed to record fee: ${error}`);
+    }
   }
 
   /**
@@ -374,17 +366,26 @@ export class BillingService {
     startDate: string,
     endDate: string
   ): Promise<{ total: number; count: number }> {
-    const { data, error } = await this.supabase
-      .from('transaction_fees')
-      .select('fee_amount')
-      .eq('user_address', userAddress)
-      .gte('created_at', startDate)
-      .lte('created_at', endDate);
+    try {
+      const result = await prisma.transactionFee.aggregate({
+        where: {
+          user_address: userAddress,
+          created_at: {
+            gte: new Date(startDate),
+            lte: new Date(endDate)
+          }
+        },
+        _sum: { fee_amount: true },
+        _count: { _all: true }
+      });
 
-    if (error) throw new Error(`Failed to fetch fees: ${error.message}`);
-
-    const total = (data || []).reduce((sum: number, f: any) => sum + parseFloat(f.fee_amount), 0);
-    return { total, count: (data || []).length };
+      return {
+        total: result._sum.fee_amount || 0,
+        count: result._count._all
+      };
+    } catch (error) {
+       throw new Error(`Failed to fetch fees: ${error}`);
+    }
   }
 
   // ============================================
@@ -404,21 +405,21 @@ export class BillingService {
       invoice_url?: string;
     }
   ): Promise<BillingRecord> {
-    const { data, error } = await this.supabase
-      .from('billing_history')
-      .insert({
-        user_address: userAddress,
-        event_type: event.type,
-        amount: event.amount,
-        description: event.description,
-        plan_id: event.plan_id,
-        invoice_url: event.invoice_url,
-      })
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to record billing event: ${error.message}`);
-    return data;
+    try {
+      const data = await prisma.billingHistory.create({
+        data: {
+          user_address: userAddress,
+          event_type: event.type,
+          amount: event.amount,
+          description: event.description,
+          plan_id: event.plan_id,
+          invoice_url: event.invoice_url,
+        }
+      });
+      return data as unknown as BillingRecord;
+    } catch (error) {
+      throw new Error(`Failed to record billing event: ${error}`);
+    }
   }
 
   /**
@@ -428,15 +429,16 @@ export class BillingService {
     userAddress: string,
     limit: number = 20
   ): Promise<BillingRecord[]> {
-    const { data, error } = await this.supabase
-      .from('billing_history')
-      .select('*')
-      .eq('user_address', userAddress)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw new Error(`Failed to fetch billing history: ${error.message}`);
-    return data || [];
+    try {
+      const data = await prisma.billingHistory.findMany({
+        where: { user_address: userAddress },
+        orderBy: { created_at: 'desc' },
+        take: limit
+      });
+      return data as unknown as BillingRecord[];
+    } catch (error) {
+      throw new Error(`Failed to fetch billing history: ${error}`);
+    }
   }
 
   // ============================================
@@ -449,54 +451,54 @@ export class BillingService {
   async getUsageMetrics(userAddress: string): Promise<UsageMetrics> {
     // Get date range for current month
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // Parallel queries for efficiency
     const [
       scheduledCount,
       teamMembersCount,
-      transactionsData,
+      transactions,
     ] = await Promise.all([
       // Count scheduled payments
-      this.supabase
-        .from('scheduled_payments')
-        .select('*', { count: 'exact', head: true })
-        .eq('owner_address', userAddress)
-        .in('status', ['active', 'paused']),
+      prisma.scheduledPayment.count({
+        where: {
+          owner_address: userAddress,
+          status: { in: ['active', 'paused'] }
+        }
+      }),
 
       // Count team members across all owned teams
-      this.supabase
-        .from('team_members')
-        .select('team_id', { count: 'exact', head: true })
-        .in('team_id',
-          this.supabase
-            .from('teams')
-            .select('id')
-            .eq('owner_address', userAddress)
-        )
-        .eq('status', 'active'),
+      prisma.teamMember.count({
+        where: {
+          team: { owner_address: userAddress },
+          status: 'active'
+        }
+      }),
 
       // Get transactions this month
-      this.supabase
-        .from('payments')
-        .select('amount_usd')
-        .eq('from_address', userAddress)
-        .gte('timestamp', startOfMonth)
-        .lte('timestamp', endOfMonth)
-        .eq('status', 'completed'),
+      prisma.payment.findMany({
+        where: {
+          from_address: userAddress,
+          timestamp: {
+            gte: startOfMonth,
+            lte: endOfMonth
+          },
+          status: 'completed'
+        },
+        select: { amount_usd: true }
+      }),
     ]);
 
-    const transactions = transactionsData.data || [];
     const totalVolume = transactions.reduce(
-      (sum: number, t: any) => sum + parseFloat(t.amount_usd || 0),
+      (sum: number, t: any) => sum + parseFloat(t.amount_usd || '0'),
       0
     );
 
     return {
       recipients_count: 0, // This would be calculated per batch
-      scheduled_count: scheduledCount.count || 0,
-      team_members_count: teamMembersCount.count || 0,
+      scheduled_count: scheduledCount,
+      team_members_count: teamMembersCount,
       transactions_this_month: transactions.length,
       total_volume_this_month: totalVolume,
     };
@@ -511,24 +513,37 @@ export class BillingService {
       new Date().getFullYear(),
       new Date().getMonth(),
       1
-    ).toISOString();
+    );
 
-    const { error } = await this.supabase
-      .from('usage_metrics')
-      .upsert({
-        user_address: userAddress,
-        period_start: periodStart,
-        recipients_used: metrics.recipients_count,
-        scheduled_payments_count: metrics.scheduled_count,
-        team_members_count: metrics.team_members_count,
-        transactions_count: metrics.transactions_this_month,
-        total_volume: metrics.total_volume_this_month,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_address,period_start',
+    try {
+      await prisma.usageMetric.upsert({
+        where: {
+          user_address_period_start: {
+            user_address: userAddress,
+            period_start: periodStart
+          }
+        },
+        update: {
+          recipients_used: metrics.recipients_count,
+          scheduled_payments_count: metrics.scheduled_count,
+          team_members_count: metrics.team_members_count,
+          transactions_count: metrics.transactions_this_month,
+          total_volume: metrics.total_volume_this_month,
+          updated_at: new Date(),
+        },
+        create: {
+          user_address: userAddress,
+          period_start: periodStart,
+          recipients_used: metrics.recipients_count,
+          scheduled_payments_count: metrics.scheduled_count,
+          team_members_count: metrics.team_members_count,
+          transactions_count: metrics.transactions_this_month,
+          total_volume: metrics.total_volume_this_month,
+        }
       });
-
-    if (error) throw new Error(`Failed to update usage metrics: ${error.message}`);
+    } catch (error) {
+      throw new Error(`Failed to update usage metrics: ${error}`);
+    }
   }
 
   // ============================================

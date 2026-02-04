@@ -3,7 +3,7 @@
  * Provides recent activity data for the dashboard
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -36,11 +36,7 @@ export interface DashboardActivity {
 // ============================================
 
 export class DashboardActivityService {
-  private supabase;
-
-  constructor() {
-    this.supabase = createClient();
-  }
+  constructor() {}
 
   /**
    * Get recent activity for a user
@@ -52,78 +48,81 @@ export class DashboardActivityService {
     const normalizedAddress = userAddress.toLowerCase();
 
     // Get sent payments
-    const { data: sentPayments, error: sentError } = await this.supabase
-      .from('payments')
-      .select(`
-        id,
-        to_address,
-        amount,
-        token,
-        chain_id,
-        tx_hash,
-        status,
-        vendor_id,
-        created_at,
-        vendors(name)
-      `)
-      .eq('from_address', normalizedAddress)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (sentError) {
-      console.error('[DashboardActivity] Sent payments error:', sentError);
-    }
+    const sentPayments = await prisma.payment.findMany({
+      where: {
+        from_address: normalizedAddress
+      },
+      select: {
+          id: true,
+          to_address: true,
+          amount: true,
+          token: true,
+          chain: true, // Prisma model has 'chain', not 'chain_id' for some reason? Let's check schema.
+          tx_hash: true,
+          status: true,
+          vendor_id: true,
+          created_at: true,
+          vendor: {
+              select: { name: true }
+          }
+      },
+      orderBy: { created_at: 'desc' },
+      take: limit
+    });
+    // Schema has 'chain' String. Interface 'ActivityItem' needs 'chain_id' number. 
+    // And 'Payment' in schema has 'chain' String. 
+    // I need to parse 'chain'.
 
     // Get received payments
-    const { data: receivedPayments, error: receivedError } = await this.supabase
-      .from('payments')
-      .select(`
-        id,
-        from_address,
-        amount,
-        token,
-        chain_id,
-        tx_hash,
-        status,
-        vendor_id,
-        created_at,
-        vendors(name)
-      `)
-      .eq('to_address', normalizedAddress)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (receivedError) {
-      console.error('[DashboardActivity] Received payments error:', receivedError);
-    }
+    const receivedPayments = await prisma.payment.findMany({
+      where: {
+        to_address: normalizedAddress
+      },
+      select: {
+          id: true,
+          from_address: true,
+          amount: true,
+          token: true,
+          chain: true,
+          tx_hash: true,
+          status: true,
+          vendor_id: true,
+          created_at: true,
+          vendor: {
+              select: { name: true }
+          }
+      },
+      orderBy: { created_at: 'desc' },
+      take: limit
+    });
 
     // Combine and sort
-    const sentItems: ActivityItem[] = (sentPayments || []).map((p: any) => ({
+    const sentItems: ActivityItem[] = sentPayments.map((p: any) => ({
       id: p.id,
       type: 'sent' as const,
       amount: p.amount,
       token: p.token,
-      chain_id: p.chain_id,
+      chain_id: parseInt(p.chain) || 0, // Fallback parsing
       counterparty: p.to_address,
       vendor_id: p.vendor_id,
-      vendor_name: p.vendors?.name,
+      vendor_name: p.vendor?.name,
       tx_hash: p.tx_hash,
       status: p.status,
-      created_at: p.created_at,
+      created_at: p.created_at.toISOString(),
     }));
 
-    const receivedItems: ActivityItem[] = (receivedPayments || []).map((p: any) => ({
+    const receivedItems: ActivityItem[] = receivedPayments.map((p: any) => ({
       id: p.id,
       type: 'received' as const,
       amount: p.amount,
       token: p.token,
-      chain_id: p.chain_id,
+      chain_id: parseInt(p.chain) || 0,
       counterparty: p.from_address,
       vendor_id: p.vendor_id,
-      vendor_name: p.vendors?.name,
+      vendor_name: p.vendor?.name,
       tx_hash: p.tx_hash,
       status: p.status,
-      created_at: p.created_at,
+      created_at: p.created_at.toISOString(),
     }));
 
     // Merge and sort by date
@@ -159,39 +158,50 @@ export class DashboardActivityService {
   }> {
     const normalizedAddress = userAddress.toLowerCase();
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const whereUserInvolved = {
+        OR: [
+            { from_address: normalizedAddress },
+            { to_address: normalizedAddress }
+        ]
+    };
 
     // Get counts
-    const [todayResult, weekResult, monthResult, pendingResult] = await Promise.all([
-      this.supabase
-        .from('payments')
-        .select('id', { count: 'exact', head: true })
-        .or(`from_address.eq.${normalizedAddress},to_address.eq.${normalizedAddress}`)
-        .gte('created_at', todayStart),
-      this.supabase
-        .from('payments')
-        .select('id', { count: 'exact', head: true })
-        .or(`from_address.eq.${normalizedAddress},to_address.eq.${normalizedAddress}`)
-        .gte('created_at', weekStart),
-      this.supabase
-        .from('payments')
-        .select('id', { count: 'exact', head: true })
-        .or(`from_address.eq.${normalizedAddress},to_address.eq.${normalizedAddress}`)
-        .gte('created_at', monthStart),
-      this.supabase
-        .from('payments')
-        .select('id', { count: 'exact', head: true })
-        .or(`from_address.eq.${normalizedAddress},to_address.eq.${normalizedAddress}`)
-        .eq('status', 'pending'),
+    const [todayCount, weekCount, monthCount, pendingCount] = await Promise.all([
+      prisma.payment.count({
+          where: {
+              ...whereUserInvolved,
+              created_at: { gte: todayStart }
+          }
+      }),
+      prisma.payment.count({
+          where: {
+              ...whereUserInvolved,
+              created_at: { gte: weekStart }
+          }
+      }),
+      prisma.payment.count({
+          where: {
+              ...whereUserInvolved,
+              created_at: { gte: monthStart }
+          }
+      }),
+      prisma.payment.count({
+          where: {
+              ...whereUserInvolved,
+              status: 'pending'
+          }
+      })
     ]);
 
     return {
-      today_count: todayResult.count || 0,
-      week_count: weekResult.count || 0,
-      month_count: monthResult.count || 0,
-      pending_count: pendingResult.count || 0,
+      today_count: todayCount,
+      week_count: weekCount,
+      month_count: monthCount,
+      pending_count: pendingCount,
     };
   }
 

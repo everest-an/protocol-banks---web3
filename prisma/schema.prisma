@@ -110,26 +110,45 @@ model Vendor {
 }
 
 model ApiKey {
-  id            String    @id @default(uuid())
-  name          String
-  key_hash      String    @unique
-  key_prefix    String
-  owner_address String
-  permissions   String[]  // Array of permissions
-  rate_limit_per_minute Int @default(60)
-  rate_limit_per_day    Int @default(1000)
-  allowed_ips    String[] @default([])
-  allowed_origins String[] @default([])
-  usage_count    Int      @default(0)
-  is_active      Boolean  @default(true)
-  expires_at     DateTime?
-  last_used_at   DateTime?
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  name                  String
+  key_hash              String   @unique
+  key_prefix            String
+  owner_address         String
+  permissions           String[]  // Array of permissions
+  rate_limit_per_minute Int      @default(60)
+  rate_limit_per_day    Int      @default(10000)
+  allowed_ips           String[] @default([])
+  allowed_origins       String[] @default([])
+  usage_count           Int      @default(0)
+  is_active             Boolean  @default(true)
+  expires_at            DateTime?
+  last_used_at          DateTime?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  usage_logs            ApiKeyUsageLog[]
 
   @@index([key_prefix])
   @@index([owner_address])
   @@map("api_keys")
+}
+
+model ApiKeyUsageLog {
+  id               String   @id @default(uuid())
+  api_key_id       String
+  endpoint         String
+  method           String
+  status_code      Int
+  response_time_ms Int
+  ip_address       String?
+  user_agent       String?
+  created_at       DateTime @default(now())
+
+  api_key          ApiKey   @relation(fields: [api_key_id], references: [id], onDelete: Cascade)
+
+  @@index([api_key_id])
+  @@map("api_key_usage_logs")
 }
 
 model NotificationPreference {
@@ -612,4 +631,78 @@ model AgentWebhookDelivery {
   @@index([agent_id])
   @@index([status])
   @@map("agent_webhook_deliveries")
+}
+
+model SubscriptionPlan {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  price_monthly Float
+  limits        Json
+  features      String[]
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  subscriptions UserSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model UserSubscription {
+  id                   String   @id @default(uuid())
+  user_address         String   @unique
+  plan_id              String
+  status               String
+  current_period_start DateTime
+  current_period_end   DateTime
+  cancelled_at         DateTime?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  plan                 SubscriptionPlan @relation(fields: [plan_id], references: [id])
+
+  @@index([user_address])
+  @@map("user_subscriptions")
+}
+
+model BillingHistory {
+  id            String   @id @default(uuid())
+  user_address  String
+  event_type    String
+  amount        Float
+  description   String?
+  plan_id       String?
+  invoice_url   String?
+  created_at    DateTime @default(now())
+
+  @@index([user_address])
+  @@map("billing_history")
+}
+
+model UsageMetric {
+  id                        String   @id @default(uuid())
+  user_address              String
+  period_start              DateTime
+  recipients_used           Int      @default(0)
+  scheduled_payments_count  Int      @default(0)
+  team_members_count        Int      @default(0)
+  transactions_count        Int      @default(0)
+  total_volume              Float    @default(0)
+  updated_at                DateTime @updatedAt
+  
+  @@unique([user_address, period_start])
+  @@map("usage_metrics")
+}
+
+model TransactionFee {
+  id            String   @id @default(uuid())
+  user_address  String
+  payment_id    String
+  fee_amount    Float
+  fee_percentage Float
+  created_at    DateTime @default(now())
+
+  @@index([user_address])
+  @@index([payment_id])
+  @@map("transaction_fees")
 }

@@ -3,7 +3,7 @@
  * Generates accounting reports and exports in various formats (CSV, Excel, PDF)
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -79,7 +79,7 @@ export type ExportFormat = 'csv' | 'xlsx' | 'pdf';
 // ============================================
 
 export class ExportService {
-  private supabase = createClient();
+  constructor() {}
 
   // ============================================
   // Report Generation
@@ -91,39 +91,54 @@ export class ExportService {
   async generateAccountingReport(params: ReportParams): Promise<AccountingReport> {
     const { owner_address, start_date, end_date, include_pending } = params;
 
+    const whereBase = {
+      created_at: {
+        gte: new Date(start_date),
+        lte: new Date(end_date)
+      }
+    };
+    
+    const statusFilter = include_pending ? {} : { status: 'completed' };
+
     // Fetch sent payments
-    let sentQuery = this.supabase
-      .from('payments')
-      .select('*, vendor:vendors(name, category)')
-      .eq('from_address', owner_address)
-      .gte('timestamp', start_date)
-      .lte('timestamp', end_date);
-
-    if (!include_pending) {
-      sentQuery = sentQuery.eq('status', 'completed');
-    }
-
-    const { data: sentPayments, error: sentError } = await sentQuery;
-    if (sentError) throw new Error(`Failed to fetch sent payments: ${sentError.message}`);
+    const sentPayments = await prisma.payment.findMany({
+      where: {
+        from_address: owner_address,
+        ...whereBase,
+        ...statusFilter
+      },
+      include: {
+        vendor: {
+          select: { name: true, category: true }
+        }
+      }
+    });
 
     // Fetch received payments
-    let receivedQuery = this.supabase
-      .from('payments')
-      .select('*, vendor:vendors(name, category)')
-      .eq('to_address', owner_address)
-      .gte('timestamp', start_date)
-      .lte('timestamp', end_date);
+    const receivedPayments = await prisma.payment.findMany({
+      where: {
+        to_address: owner_address,
+        ...whereBase,
+        ...statusFilter
+      },
+      include: {
+        vendor: {
+          select: { name: true, category: true }
+        }
+      }
+    });
 
-    if (!include_pending) {
-      receivedQuery = receivedQuery.eq('status', 'completed');
-    }
-
-    const { data: receivedPayments, error: receivedError } = await receivedQuery;
-    if (receivedError) throw new Error(`Failed to fetch received payments: ${receivedError.message}`);
+    // Map to structure compatible with logic below (adding timestamp alias)
+    const mapPayment = (p: any) => ({
+      ...p,
+      timestamp: p.created_at.toISOString(),
+      amount_usd: p.amount_usd || 0, // Ensure numeric safety
+      amount: p.amount || 0
+    });
 
     // Process transactions
-    const sent = sentPayments || [];
-    const received = receivedPayments || [];
+    const sent = (sentPayments || []).map(mapPayment);
+    const received = (receivedPayments || []).map(mapPayment);
 
     // Calculate summary
     const total_outgoing = sent.reduce((sum: number, p: any) => sum + parseFloat(p.amount_usd || p.amount || 0), 0);
