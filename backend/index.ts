@@ -4,8 +4,8 @@
  */
 
 // Validation Services
-export * from './batch-validator.service'
-export * from './account-validator.service'
+export * from '@/services/batch-validator.service'
+export * from '@/services/account-validator.service'
 export * from './validity-window.service'
 
 // Fee Services
@@ -14,7 +14,7 @@ export * from './x402-fee-calculator.service'
 export * from './fee-distributor.service'
 
 // File Services
-export * from './file-parser.service'
+export * from '@/services/file-parser.service'
 // Re-export from lib for unified access
 export { parsePaymentFile, generateSampleCSV, generateSampleExcel } from '@/lib/excel-parser'
 

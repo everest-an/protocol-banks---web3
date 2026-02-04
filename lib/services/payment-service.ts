@@ -9,7 +9,7 @@ import {
   formatFee,
   generateBatchCsvReport,
   type BatchPaymentItem,
-} from "@/services"
+} from "@/backend"
 import { webhookTriggerService, type PaymentEventData, type BatchPaymentEventData } from "./webhook-trigger-service"
 import { vendorPaymentService } from "./vendor-payment-service"
 

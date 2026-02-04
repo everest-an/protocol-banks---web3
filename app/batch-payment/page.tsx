@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { useBatchPayment } from "@/hooks/use-batch-payment"
+import { useAsyncBatchPayment } from "@/hooks/use-async-batch-payment"
 import { BatchStatusTracker } from "@/components/batch-status-tracker"
 import { BatchTransferProgress, type BatchTransferStep } from "@/components/batch-transfer-progress"
 import { PaymentActivity } from "@/components/payment-activity"
@@ -75,6 +76,16 @@ export default function BatchPaymentPage() {
     loading: batchLoading,
     error: batchError,
   } = useBatchPayment()
+
+  // New Async Batch Payment Hook
+  const {
+    uploadFile: uploadAsyncFile,
+    executeBatch: executeAsyncBatch,
+    jobId: asyncJobId,
+    jobStatus: asyncJobStatus,
+    isUploading: isAsyncUploading,
+    isPolling: isAsyncPolling
+  } = useAsyncBatchPayment()
 
   const [activeTab, setActiveTab] = useState<"batch" | "auto" | "x402">("batch")
   const [isProcessing, setIsProcessing] = useState(false)
@@ -418,6 +429,11 @@ export default function BatchPaymentPage() {
       const file = e.target.files?.[0]
       if (!file) return
 
+      // V2 Async Architecture: Upload to server directly
+      await uploadAsyncFile(file)
+      
+      // Legacy Client-side logic commented out in favor of Async Pipeline
+      /*
       setIsProcessing(true)
       try {
         const result = await parsePaymentFile(file)
@@ -425,7 +441,6 @@ export default function BatchPaymentPage() {
         setImportResultOpen(true)
 
         if (result.success && result.recipients.length > 0) {
-          // Convert to PaymentRecipient format
           const newRecipients: PaymentRecipient[] = result.recipients.map((r, i) => ({
             id: Date.now().toString() + i,
             address: r.address,
@@ -445,9 +460,10 @@ export default function BatchPaymentPage() {
       } finally {
         setIsProcessing(false)
       }
+      */
     }
     input.click()
-  }, [toast])
+  }, [uploadAsyncFile, toast])
 
   const handleDownloadTemplate = useCallback(
     (format: "csv" | "xlsx") => {
@@ -1026,6 +1042,77 @@ export default function BatchPaymentPage() {
         {/* Personal Mode - Subscription Management - REMOVED */}
 
         <TabsContent value="batch" className="space-y-6">
+          
+          {/* Async Batch Job Monitor */}
+          {(isAsyncUploading || asyncJobStatus) && (
+            <Card className="border-blue-500/20 bg-blue-500/5 mb-6">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        {(isAsyncUploading || asyncJobStatus?.status === 'queued' || asyncJobStatus?.status === 'parsing' ||  asyncJobStatus?.status === 'processing') ? (
+                            <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                        ) : asyncJobStatus?.status === 'completed' ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        ) : (
+                            <FileSpreadsheet className="h-5 w-5 text-blue-500" />
+                        )}
+                        <CardTitle className="text-base">Batch Job: {asyncJobId?.slice(0, 8)}...</CardTitle>
+                    </div>
+                    <Badge variant={asyncJobStatus?.status === 'PENDING_APPROVAL' ? "default" : "outline"}>
+                        {isAsyncUploading ? 'UPLOADING' : asyncJobStatus?.status?.toUpperCase()}
+                    </Badge>
+                </div>
+                <CardDescription>
+                   {isAsyncUploading ? 'Uploading file to secure storage...' : 'Processing large batch file asynchronously'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                 <div className="space-y-4">
+                    {asyncJobStatus && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-background/50 p-4 rounded-lg border">
+                            <div>
+                                <div className="text-muted-foreground text-xs">Total Records</div>
+                                <div className="font-mono text-lg">{asyncJobStatus.totalLines}</div>
+                            </div>
+                            <div>
+                                <div className="text-muted-foreground text-xs">Valid</div>
+                                <div className="font-mono text-lg text-green-600">{asyncJobStatus.parsedCount}</div>
+                            </div>
+                            <div>
+                                <div className="text-muted-foreground text-xs">Invalid</div>
+                                <div className="font-mono text-lg text-red-500">{asyncJobStatus.invalidCount}</div>
+                            </div>
+                             <div>
+                                <div className="text-muted-foreground text-xs">Status</div>
+                                <div className="font-medium">{asyncJobStatus.status}</div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {asyncJobStatus?.status === 'PENDING_APPROVAL' && (
+                        <div className="flex flex-col gap-2 pt-2 border-t mt-2">
+                             <div className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4" />
+                                Please review the parsed counts above. Proceeding will initiate blockchain transactions.
+                             </div>
+                            <Button onClick={executeAsyncBatch} className="w-full sm:w-auto mt-2">
+                                <Play className="h-4 w-4 mr-2" />
+                                Approve & Execute Payment
+                            </Button>
+                        </div>
+                    )}
+
+                    {asyncJobStatus?.error && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{asyncJobStatus.error}</AlertDescription>
+                        </Alert>
+                    )}
+                 </div>
+              </CardContent>
+            </Card>
+          )}
+
           {multisigWallets.length > 0 && (
             <Card className="border-cyan-500/20">
               <CardHeader className="pb-3">

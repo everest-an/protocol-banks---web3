@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+
+model BatchJob {
+  id            String       @id @default(uuid())
+  user_id       String
+  status        String       @default("QUEUED")
+  total_lines   Int          @default(0)
+  parsed_count  Int          @default(0)
+  invalid_count Int          @default(0)
+  chunks        Int          @default(0)
+  error_message String?
+  file_url      String?
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+
+  batch_chunks  BatchChunk[]
+
+  @@map("batch_jobs")
+}
+
+model BatchChunk {
+  id              String   @id @default(uuid())
+  job_id          String
+  chunk_index     Int
+  recipient_count Int
+  status          String   @default("PENDING")
+  data            Json
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  job             BatchJob @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  @@index([job_id])
+  @@map("batch_chunks")
+}
+
+model Payment {
+  id           String    @id @default(uuid())
+  from_address String
+  to_address   String
+  amount       String
+  token        String
+  token_symbol String?
+  chain        String
+  status       String    @default("pending")
+  type         String    // "sent" | "received"
+  method       String?   // "eip3009" | "direct" | "batch"
+  tx_hash      String?
+  created_at   DateTime  @default(now())
+  completed_at DateTime?
+  created_by   String?
+  vendor_name  String?
+  category     String?
+  memo         String?
+  notes        String?
+  amount_usd   Float?
+  is_external  Boolean   @default(false)
+
+  @@index([created_by])
+  @@index([status])
+  @@index([type])
+  @@map("payments")
+}
