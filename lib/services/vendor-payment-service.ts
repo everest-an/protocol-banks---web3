@@ -3,7 +3,7 @@
  * Manages payment-vendor relationships and vendor statistics
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -45,10 +45,9 @@ export interface VendorStats {
 // ============================================
 
 export class VendorPaymentService {
-  private supabase;
-
+  
   constructor() {
-    this.supabase = createClient();
+    // Singleton, no init
   }
 
   /**
@@ -58,28 +57,31 @@ export class VendorPaymentService {
     const normalizedAddress = toAddress.toLowerCase();
 
     // Find vendor by wallet address (case-insensitive)
-    const { data: vendor, error: vendorError } = await this.supabase
-      .from('vendors')
-      .select('id')
-      .ilike('wallet_address', normalizedAddress)
-      .single();
+    const vendor = await prisma.vendor.findFirst({
+      where: {
+        wallet_address: {
+          mode: 'insensitive',
+          equals: normalizedAddress
+        }
+      },
+      select: { id: true }
+    });
 
-    if (vendorError || !vendor) {
+    if (!vendor) {
       return null;
     }
 
     // Update payment with vendor_id
-    const { error: updateError } = await this.supabase
-      .from('payments')
-      .update({ vendor_id: vendor.id })
-      .eq('id', paymentId);
-
-    if (updateError) {
-      console.error('[VendorPayment] Failed to link payment:', updateError);
+    try {
+      await prisma.payment.update({
+        where: { id: paymentId },
+        data: { vendor_id: vendor.id }
+      });
+      return vendor.id;
+    } catch (error) {
+      console.error('[VendorPayment] Failed to link payment:', error);
       return null;
     }
-
-    return vendor.id;
   }
 
   /**
@@ -87,13 +89,12 @@ export class VendorPaymentService {
    */
   async updateVendorStats(vendorId: string, amount: string): Promise<void> {
     // Get current vendor stats
-    const { data: vendor, error: getError } = await this.supabase
-      .from('vendors')
-      .select('monthly_volume, transaction_count')
-      .eq('id', vendorId)
-      .single();
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { monthly_volume: true, transaction_count: true }
+    });
 
-    if (getError || !vendor) {
+    if (!vendor) {
       throw new Error('Vendor not found');
     }
 
@@ -101,17 +102,17 @@ export class VendorPaymentService {
     const newTransactionCount = (vendor.transaction_count || 0) + 1;
 
     // Update vendor stats
-    const { error: updateError } = await this.supabase
-      .from('vendors')
-      .update({
-        monthly_volume: newMonthlyVolume,
-        transaction_count: newTransactionCount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', vendorId);
-
-    if (updateError) {
-      throw new Error(`Failed to update vendor stats: ${updateError.message}`);
+    try {
+       await prisma.vendor.update({
+        where: { id: vendorId },
+        data: {
+          monthly_volume: newMonthlyVolume,
+          transaction_count: newTransactionCount,
+          updated_at: new Date(),
+        }
+      });
+    } catch (error: any) {
+      throw new Error(`Failed to update vendor stats: ${error.message}`);
     }
   }
 
@@ -126,38 +127,57 @@ export class VendorPaymentService {
     const { limit = 50, offset = 0, status } = options;
 
     // Verify vendor ownership
-    const { data: vendor, error: vendorError } = await this.supabase
-      .from('vendors')
-      .select('id')
-      .eq('id', vendorId)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .single();
+    const vendor = await prisma.vendor.findFirst({
+      where: {
+        id: vendorId,
+        owner_address: {
+          mode: 'insensitive',
+          equals: ownerAddress.toLowerCase()
+        }
+      },
+      select: { id: true }
+    });
 
-    if (vendorError || !vendor) {
+    if (!vendor) {
       throw new Error('Vendor not found or access denied');
     }
 
-    // Build query
-    let query = this.supabase
-      .from('payments')
-      .select('*', { count: 'exact' })
-      .eq('vendor_id', vendorId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Build query conditions
+    const where: any = {
+      vendor_id: vendorId
+    };
 
     if (status) {
-      query = query.eq('status', status);
+      where.status = status;
     }
 
-    const { data, error, count } = await query;
+    const [payments, count] = await prisma.$transaction([
+      prisma.payment.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.payment.count({ where })
+    ]);
 
-    if (error) {
-      throw new Error(`Failed to get vendor payments: ${error.message}`);
-    }
+    // Map Prisma Payment to VendorPayment interface
+    const mappedPayments: VendorPayment[] = payments.map(p => ({
+      id: p.id,
+      vendor_id: p.vendor_id,
+      from_address: p.from_address,
+      to_address: p.to_address,
+      amount: p.amount,
+      token: p.token,
+      chain_id: parseInt(p.chain) || 0,
+      status: p.status,
+      tx_hash: p.tx_hash || undefined,
+      created_at: p.created_at.toISOString()
+    }));
 
     return {
-      payments: (data || []) as VendorPayment[],
-      total: count || 0,
+      payments: mappedPayments,
+      total: count,
     };
   }
 
@@ -166,35 +186,41 @@ export class VendorPaymentService {
    */
   async getVendorStats(vendorId: string, ownerAddress: string): Promise<VendorStats> {
     // Verify vendor ownership
-    const { data: vendor, error: vendorError } = await this.supabase
-      .from('vendors')
-      .select('monthly_volume, transaction_count')
-      .eq('id', vendorId)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .single();
+    const vendor = await prisma.vendor.findFirst({
+      where: {
+        id: vendorId,
+        owner_address: {
+          mode: 'insensitive',
+          equals: ownerAddress.toLowerCase()
+        }
+      },
+      select: {
+        monthly_volume: true,
+        transaction_count: true
+      }
+    });
 
-    if (vendorError || !vendor) {
+    if (!vendor) {
       throw new Error('Vendor not found or access denied');
     }
 
-    // Get total volume from all payments
-    const { data: payments, error: paymentsError } = await this.supabase
-      .from('payments')
-      .select('amount')
-      .eq('vendor_id', vendorId)
-      .eq('status', 'completed');
+    // Get total volume from all completed payments
+    // Using aggregation for better performance than fetching all records
+    const aggregator = await prisma.payment.aggregate({
+      _sum: {
+        amount: true
+      },
+      where: {
+        vendor_id: vendorId,
+        status: 'completed'
+      }
+    });
 
-    if (paymentsError) {
-      throw new Error(`Failed to get payment stats: ${paymentsError.message}`);
-    }
-
-    const totalVolume = (payments || []).reduce(
-      (sum: number, p: { amount: string }) => sum + parseFloat(p.amount || '0'),
-      0
-    );
-
+    const totalVolume = Number(aggregator._sum.amount || 0);
     const transactionCount = vendor.transaction_count || 0;
-    const monthlyVolume = parseFloat(vendor.monthly_volume || '0');
+    const monthlyVolume = Number(vendor.monthly_volume || 0);
+    
+    // Avoid division by zero
     const averageTransaction = transactionCount > 0 ? totalVolume / transactionCount : 0;
 
     return {
@@ -209,37 +235,31 @@ export class VendorPaymentService {
    * Handle vendor deletion - preserve payments but set vendor_id to null
    */
   async handleVendorDeletion(vendorId: string): Promise<number> {
-    const { data, error } = await this.supabase
-      .from('payments')
-      .update({ vendor_id: null })
-      .eq('vendor_id', vendorId)
-      .select('id');
+    const result = await prisma.payment.updateMany({
+      where: { vendor_id: vendorId },
+      data: { vendor_id: null }
+    });
 
-    if (error) {
-      throw new Error(`Failed to unlink payments: ${error.message}`);
-    }
-
-    return data?.length || 0;
+    return result.count;
   }
 
   /**
    * Reset monthly volume for all vendors (for monthly reset job)
    */
   async resetMonthlyVolumes(): Promise<number> {
-    const { data, error } = await this.supabase
-      .from('vendors')
-      .update({
-        monthly_volume: '0',
-        updated_at: new Date().toISOString(),
-      })
-      .neq('monthly_volume', '0')
-      .select('id');
+    const result = await prisma.vendor.updateMany({
+      where: {
+        monthly_volume: {
+          not: 0
+        }
+      },
+      data: {
+        monthly_volume: 0,
+        updated_at: new Date(),
+      }
+    });
 
-    if (error) {
-      throw new Error(`Failed to reset monthly volumes: ${error.message}`);
-    }
-
-    return data?.length || 0;
+    return result.count;
   }
 }
 
