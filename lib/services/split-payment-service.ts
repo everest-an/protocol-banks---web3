@@ -4,7 +4,7 @@
  * Users can set custom percentages for each recipient
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 import { publicBatchTransferService } from './public-batch-transfer-service';
 import type { WalletClient, PublicClient } from 'viem';
 import type {
@@ -29,7 +29,15 @@ export { validateSplitRecipients, calculateSplitAmounts } from '@/types/split-pa
 // ============================================
 
 export class SplitPaymentService {
-  private supabase = createClient();
+  private mapTemplate(t: any): SplitTemplate {
+    if (!t) return null as any;
+    return {
+        ...t,
+        recipients: t.recipients as any,
+        created_at: t.created_at.toISOString(),
+        updated_at: t.updated_at.toISOString()
+    };
+  }
 
   // ============================================
   // Calculation
@@ -72,39 +80,27 @@ export class SplitPaymentService {
       throw new Error(`Invalid recipients: ${validation.errors.join(', ')}`);
     }
 
-    const { data, error } = await this.supabase
-      .from('payment_split_templates')
-      .insert({
+    const template = await prisma.paymentSplitTemplate.create({
+      data: {
         owner_address: ownerAddress,
         team_id: input.team_id,
         name: input.name,
         description: input.description,
-        recipients: input.recipients,
-      })
-      .select()
-      .single();
+        recipients: input.recipients as any,
+      }
+    });
 
-    if (error) throw new Error(`Failed to create template: ${error.message}`);
-
-    return data;
+    return this.mapTemplate(template);
   }
 
   /**
    * Get template by ID
    */
   async getTemplate(templateId: string): Promise<SplitTemplate | null> {
-    const { data, error } = await this.supabase
-      .from('payment_split_templates')
-      .select('*')
-      .eq('id', templateId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to get template: ${error.message}`);
-    }
-
-    return data;
+    const template = await prisma.paymentSplitTemplate.findUnique({
+        where: { id: templateId }
+    });
+    return this.mapTemplate(template);
   }
 
   /**
@@ -124,31 +120,25 @@ export class SplitPaymentService {
       }
     }
 
-    const { data, error } = await this.supabase
-      .from('payment_split_templates')
-      .update({
-        ...input,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', templateId)
-      .select()
-      .single();
+    const updated = await prisma.paymentSplitTemplate.update({
+        where: { id: templateId },
+        data: {
+             ...input,
+             recipients: input.recipients as any,
+             updated_at: new Date()
+        }
+    });
 
-    if (error) throw new Error(`Failed to update template: ${error.message}`);
-
-    return data;
+    return this.mapTemplate(updated);
   }
 
   /**
    * Delete template
    */
   async deleteTemplate(templateId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('payment_split_templates')
-      .delete()
-      .eq('id', templateId);
-
-    if (error) throw new Error(`Failed to delete template: ${error.message}`);
+    await prisma.paymentSplitTemplate.delete({
+        where: { id: templateId }
+    });
   }
 
   /**
@@ -158,23 +148,24 @@ export class SplitPaymentService {
     ownerAddress: string,
     teamId?: string
   ): Promise<SplitTemplate[]> {
-    let query = this.supabase
-      .from('payment_split_templates')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-
+    const where: any = {
+        is_active: true
+    };
     if (teamId) {
-      query = query.or(`owner_address.eq.${ownerAddress},team_id.eq.${teamId}`);
+        where.OR = [
+            { owner_address: ownerAddress },
+            { team_id: teamId }
+        ];
     } else {
-      query = query.eq('owner_address', ownerAddress);
+        where.owner_address = ownerAddress;
     }
 
-    const { data, error } = await query;
+    const templates = await prisma.paymentSplitTemplate.findMany({
+        where,
+        orderBy: { created_at: 'desc' }
+    });
 
-    if (error) throw new Error(`Failed to list templates: ${error.message}`);
-
-    return data || [];
+    return templates.map(t => this.mapTemplate(t));
   }
 
   // ============================================
@@ -206,24 +197,25 @@ export class SplitPaymentService {
     const calculatedRecipients = calculateSplitAmounts(input.total_amount, input.recipients);
 
     // Create execution record
-    const { data, error } = await this.supabase
-      .from('payment_split_executions')
-      .insert({
+    const execution = await prisma.paymentSplitExecution.create({
+      data: {
         owner_address: input.owner_address,
         template_id: input.template_id,
         team_id: input.team_id,
         total_amount: input.total_amount,
         token: input.token,
         chain_id: input.chain_id,
-        recipients: calculatedRecipients,
+        recipients: calculatedRecipients as any,
         status: 'pending',
-      })
-      .select()
-      .single();
+      }
+    });
 
-    if (error) throw new Error(`Failed to create split execution: ${error.message}`);
-
-    return data;
+    return {
+        ...execution,
+        recipients: execution.recipients as any,
+        created_at: execution.created_at.toISOString(),
+        updated_at: execution.updated_at.toISOString()
+    };
   }
 
   // ============================================
@@ -264,23 +256,17 @@ export class SplitPaymentService {
     const calculatedRecipients = calculateSplitAmounts(input.total_amount, recipients);
 
     // Create execution record
-    const { data: execution, error: createError } = await this.supabase
-      .from('payment_split_executions')
-      .insert({
+    const execution = await prisma.paymentSplitExecution.create({
+      data: {
         template_id: input.template_id,
         owner_address: ownerAddress,
         total_amount: input.total_amount,
         token: input.token,
         chain_id: input.chain_id || 42161,
-        recipients: calculatedRecipients,
+        recipients: calculatedRecipients as any,
         status: 'processing',
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      throw new Error(`Failed to create execution record: ${createError.message}`);
-    }
+      }
+    });
 
     try {
       // Convert to batch transfer format
@@ -299,9 +285,9 @@ export class SplitPaymentService {
       );
 
       // Update execution record
-      const updateData: Partial<SplitExecution> = {
+      const updateData: any = {
         status: result.success ? 'completed' : 'failed',
-        executed_at: new Date().toISOString(),
+        updated_at: new Date()
       };
 
       if (result.txHash) {
@@ -312,10 +298,10 @@ export class SplitPaymentService {
         updateData.error_message = result.errorMessage;
       }
 
-      await this.supabase
-        .from('payment_split_executions')
-        .update(updateData)
-        .eq('id', execution.id);
+      await prisma.paymentSplitExecution.update({
+          where: { id: execution.id },
+          data: updateData
+      });
 
       return {
         success: result.success,
@@ -327,13 +313,13 @@ export class SplitPaymentService {
       };
     } catch (error: any) {
       // Update execution as failed
-      await this.supabase
-        .from('payment_split_executions')
-        .update({
-          status: 'failed',
-          error_message: error.message,
-        })
-        .eq('id', execution.id);
+      await prisma.paymentSplitExecution.update({
+          where: { id: execution.id },
+          data: {
+              status: 'failed',
+              error_message: error.message
+          }
+      });
 
       return {
         success: false,
@@ -357,51 +343,41 @@ export class SplitPaymentService {
       offset?: number;
     }
   ): Promise<SplitExecution[]> {
-    let query = this.supabase
-      .from('payment_split_executions')
-      .select('*')
-      .eq('owner_address', ownerAddress)
-      .order('created_at', { ascending: false });
+      const where: any = { owner_address: ownerAddress };
+      if (options?.templateId) where.template_id = options.templateId;
+      if (options?.status) where.status = options.status;
 
-    if (options?.templateId) {
-      query = query.eq('template_id', options.templateId);
-    }
+      const executions = await prisma.paymentSplitExecution.findMany({
+          where,
+          orderBy: { created_at: 'desc' },
+          take: options?.limit,
+          skip: options?.offset
+      });
 
-    if (options?.status) {
-      query = query.eq('status', options.status);
-    }
-
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-
-    if (options?.offset) {
-      query = query.range(options.offset, options.offset + (options.limit || 20) - 1);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw new Error(`Failed to get execution history: ${error.message}`);
-
-    return data || [];
+      return executions.map(e => ({
+          ...e,
+          recipients: e.recipients as any,
+          created_at: e.created_at.toISOString(),
+          updated_at: e.updated_at.toISOString()
+      }));
   }
 
   /**
    * Get execution by ID
    */
   async getExecution(executionId: string): Promise<SplitExecution | null> {
-    const { data, error } = await this.supabase
-      .from('payment_split_executions')
-      .select('*')
-      .eq('id', executionId)
-      .single();
+    const execution = await prisma.paymentSplitExecution.findUnique({
+        where: { id: executionId }
+    });
 
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to get execution: ${error.message}`);
-    }
+    if (!execution) return null;
 
-    return data;
+    return {
+        ...execution,
+        recipients: execution.recipients as any,
+        created_at: execution.created_at.toISOString(),
+        updated_at: execution.updated_at.toISOString()
+    };
   }
 }
 

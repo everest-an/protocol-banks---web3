@@ -9,7 +9,7 @@
  */
 
 import { createHash, randomBytes } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -178,32 +178,24 @@ export const agentService = {
     // Use database or fallback to in-memory
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context for owner
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: input.owner_address.toLowerCase(),
-        });
-
         // Insert agent
-        const { data, error } = await supabase
-          .from('agents')
-          .insert(agentData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Agent Service] Database insert error:', error);
-          throw new Error(`Failed to create agent: ${error.message}`);
-        }
+        const data = await prisma.agent.create({
+          data: {
+             ...agentData,
+             status: agentData.status as string,
+             auto_execute_rules: agentData.auto_execute_rules as any
+          }
+        });
 
         // Convert database dates to Date objects
         const agent: Agent = {
           ...data,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
-          last_active_at: data.last_active_at ? new Date(data.last_active_at) : undefined,
+          type: data.type as AgentType,
+          status: data.status as AgentStatus,
+          auto_execute_rules: data.auto_execute_rules as AutoExecuteRules,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          last_active_at: data.last_active_at ? data.last_active_at : undefined,
         };
 
         return { agent, apiKey, webhookSecret };
@@ -233,31 +225,20 @@ export const agentService = {
   async list(ownerAddress: string): Promise<Agent[]> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
+        const data = await prisma.agent.findMany({
+            where: { owner_address: ownerAddress.toLowerCase() },
+            orderBy: { created_at: 'desc' }
         });
 
-        const { data, error } = await supabase
-          .from('agents')
-          .select('*')
-          .eq('owner_address', ownerAddress.toLowerCase())
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('[Agent Service] List error:', error);
-          throw new Error(`Failed to list agents: ${error.message}`);
-        }
-
         // Convert database dates to Date objects
-        return (data || []).map((agent) => ({
+        return data.map((agent) => ({
           ...agent,
-          created_at: new Date(agent.created_at),
-          updated_at: new Date(agent.updated_at),
-          last_active_at: agent.last_active_at ? new Date(agent.last_active_at) : undefined,
+          type: agent.type as AgentType,
+          status: agent.status as AgentStatus,
+          auto_execute_rules: agent.auto_execute_rules as AutoExecuteRules,
+          created_at: agent.created_at,
+          updated_at: agent.updated_at,
+          last_active_at: agent.last_active_at ? agent.last_active_at : undefined,
         }));
       } catch (error) {
         console.error('[Agent Service] Failed to list agents:', error);
@@ -281,36 +262,24 @@ export const agentService = {
   async get(id: string, ownerAddress: string): Promise<Agent | null> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
+        const data = await prisma.agent.findFirst({
+            where: {
+                id: id,
+                owner_address: ownerAddress.toLowerCase()
+            }
         });
 
-        const { data, error } = await supabase
-          .from('agents')
-          .select('*')
-          .eq('id', id)
-          .eq('owner_address', ownerAddress.toLowerCase())
-          .single();
-
-        if (error) {
-          if (error.code === 'PGRST116') {
-            // Not found
-            return null;
-          }
-          console.error('[Agent Service] Get error:', error);
-          throw new Error(`Failed to get agent: ${error.message}`);
-        }
+        if (!data) return null;
 
         // Convert database dates to Date objects
         return {
           ...data,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
-          last_active_at: data.last_active_at ? new Date(data.last_active_at) : undefined,
+          type: data.type as AgentType,
+          status: data.status as AgentStatus,
+          auto_execute_rules: data.auto_execute_rules as AutoExecuteRules,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          last_active_at: data.last_active_at ? data.last_active_at : undefined,
         };
       } catch (error) {
         console.error('[Agent Service] Failed to get agent:', error);
@@ -333,29 +302,21 @@ export const agentService = {
   async getById(id: string): Promise<Agent | null> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.agent.findUnique({
+            where: { id: id }
+        });
 
-        const { data, error } = await supabase
-          .from('agents')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) {
-          if (error.code === 'PGRST116') {
-            // Not found
-            return null;
-          }
-          console.error('[Agent Service] GetById error:', error);
-          return null;
-        }
+        if (!data) return null;
 
         // Convert database dates to Date objects
         return {
           ...data,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
-          last_active_at: data.last_active_at ? new Date(data.last_active_at) : undefined,
+          type: data.type as AgentType,
+          status: data.status as AgentStatus,
+          auto_execute_rules: data.auto_execute_rules as AutoExecuteRules,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          last_active_at: data.last_active_at ? data.last_active_at : undefined,
         };
       } catch (error) {
         console.error('[Agent Service] Failed to get agent by id:', error);
@@ -373,14 +334,6 @@ export const agentService = {
   async update(id: string, ownerAddress: string, input: UpdateAgentInput): Promise<Agent> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
-        });
-
         // Check agent exists
         const agent = await this.get(id, ownerAddress);
         if (!agent) {
@@ -406,28 +359,21 @@ export const agentService = {
         if (input.auto_execute_rules !== undefined) updates.auto_execute_rules = input.auto_execute_rules;
         if (input.rate_limit_per_minute !== undefined) updates.rate_limit_per_minute = input.rate_limit_per_minute;
 
-        updates.updated_at = new Date().toISOString();
-
         // Update in database
-        const { data, error } = await supabase
-          .from('agents')
-          .update(updates)
-          .eq('id', id)
-          .eq('owner_address', ownerAddress.toLowerCase())
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Agent Service] Update error:', error);
-          throw new Error(`Failed to update agent: ${error.message}`);
-        }
+        const data = await prisma.agent.update({
+          where: { id },
+          data: updates
+        });
 
         // Convert database dates to Date objects
         return {
           ...data,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
-          last_active_at: data.last_active_at ? new Date(data.last_active_at) : undefined,
+          type: data.type as AgentType,
+          status: data.status as AgentStatus,
+          auto_execute_rules: data.auto_execute_rules as AutoExecuteRules,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          last_active_at: data.last_active_at ? data.last_active_at : undefined,
         };
       } catch (error) {
         console.error('[Agent Service] Failed to update agent:', error);
@@ -471,14 +417,6 @@ export const agentService = {
   async deactivate(id: string, ownerAddress: string): Promise<void> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
-        });
-
         // Check agent exists
         const agent = await this.get(id, ownerAddress);
         if (!agent) {
@@ -486,19 +424,11 @@ export const agentService = {
         }
 
         // Update status to deactivated
-        const { error } = await supabase
-          .from('agents')
-          .update({
-            status: 'deactivated',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', id)
-          .eq('owner_address', ownerAddress.toLowerCase());
+        await prisma.agent.update({
+          where: { id },
+          data: { status: 'deactivated' }
+        });
 
-        if (error) {
-          console.error('[Agent Service] Deactivate error:', error);
-          throw new Error(`Failed to deactivate agent: ${error.message}`);
-        }
       } catch (error) {
         console.error('[Agent Service] Failed to deactivate agent:', error);
         throw error;
@@ -533,29 +463,23 @@ export const agentService = {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
         // Find agent by API key hash
-        const { data, error } = await supabase
-          .from('agents')
-          .select('*')
-          .eq('api_key_hash', hash)
-          .single();
+        const data = await prisma.agent.findUnique({
+          where: { api_key_hash: hash }
+        });
 
-        if (error) {
-          if (error.code === 'PGRST116') {
-            // Not found
-            return { valid: false, error: 'API key not found' };
-          }
-          console.error('[Agent Service] Validate error:', error);
-          return { valid: false, error: 'Failed to validate API key' };
+        if (!data) {
+          return { valid: false, error: 'API key not found' };
         }
 
         const agent: Agent = {
           ...data,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
-          last_active_at: data.last_active_at ? new Date(data.last_active_at) : undefined,
+          type: data.type as AgentType,
+          status: data.status as AgentStatus,
+          auto_execute_rules: data.auto_execute_rules as AutoExecuteRules,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          last_active_at: data.last_active_at ? data.last_active_at : undefined,
         };
 
         // Check status
@@ -604,12 +528,10 @@ export const agentService = {
   async updateLastActive(id: string): Promise<void> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        await supabase
-          .from('agents')
-          .update({ last_active_at: new Date().toISOString() })
-          .eq('id', id);
+        await prisma.agent.update({
+          where: { id },
+          data: { last_active_at: new Date() }
+        });
       } catch (error) {
         console.error('[Agent Service] Failed to update last active:', error);
         // Don't throw error for this non-critical operation
@@ -630,31 +552,19 @@ export const agentService = {
   async pauseAll(ownerAddress: string): Promise<number> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
-        });
-
-        const { data, error } = await supabase
-          .from('agents')
-          .update({
+        const { count } = await prisma.agent.updateMany({
+          where: {
+            owner_address: ownerAddress.toLowerCase(),
+            status: 'active'
+          },
+          data: {
             status: 'paused',
             auto_execute_enabled: false,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('owner_address', ownerAddress.toLowerCase())
-          .eq('status', 'active')
-          .select('id');
+            updated_at: new Date()
+          }
+        });
 
-        if (error) {
-          console.error('[Agent Service] Pause all error:', error);
-          throw new Error(`Failed to pause agents: ${error.message}`);
-        }
-
-        return data?.length || 0;
+        return count;
       } catch (error) {
         console.error('[Agent Service] Failed to pause all agents:', error);
         throw error;
@@ -681,30 +591,18 @@ export const agentService = {
   async resumeAll(ownerAddress: string): Promise<number> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
+        const { count } = await prisma.agent.updateMany({
+          where: {
+            owner_address: ownerAddress.toLowerCase(),
+            status: 'paused'
+          },
+          data: {
+            status: 'active',
+            updated_at: new Date()
+          }
         });
 
-        const { data, error } = await supabase
-          .from('agents')
-          .update({
-            status: 'active',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('owner_address', ownerAddress.toLowerCase())
-          .eq('status', 'paused')
-          .select('id');
-
-        if (error) {
-          console.error('[Agent Service] Resume all error:', error);
-          throw new Error(`Failed to resume agents: ${error.message}`);
-        }
-
-        return data?.length || 0;
+        return count;
       } catch (error) {
         console.error('[Agent Service] Failed to resume all agents:', error);
         throw error;
@@ -730,31 +628,17 @@ export const agentService = {
   async getCount(ownerAddress: string): Promise<{ total: number; active: number; paused: number }> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
+        const total = await prisma.agent.count({
+          where: { owner_address: ownerAddress.toLowerCase() }
+        });
+        const active = await prisma.agent.count({
+          where: { owner_address: ownerAddress.toLowerCase(), status: 'active' }
+        });
+        const paused = await prisma.agent.count({
+          where: { owner_address: ownerAddress.toLowerCase(), status: 'paused' }
         });
 
-        // Get all agents for owner
-        const { data, error } = await supabase
-          .from('agents')
-          .select('status')
-          .eq('owner_address', ownerAddress.toLowerCase());
-
-        if (error) {
-          console.error('[Agent Service] Get count error:', error);
-          throw new Error(`Failed to get agent count: ${error.message}`);
-        }
-
-        const agents = data || [];
-        return {
-          total: agents.length,
-          active: agents.filter((a) => a.status === 'active').length,
-          paused: agents.filter((a) => a.status === 'paused').length,
-        };
+        return { total, active, paused };
       } catch (error) {
         console.error('[Agent Service] Failed to get agent count:', error);
         throw error;

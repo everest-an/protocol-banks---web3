@@ -3,7 +3,7 @@
  * Manages multisig wallet transactions and confirmations
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 import { WebhookTriggerService } from './webhook-trigger-service';
 import { ethers } from 'ethers';
 
@@ -111,11 +111,9 @@ export function hasReachedThreshold(
 // ============================================
 
 export class MultisigService {
-  private supabase;
   private webhookTrigger: WebhookTriggerService;
 
   constructor() {
-    this.supabase = createClient();
     this.webhookTrigger = new WebhookTriggerService();
   }
 
@@ -123,19 +121,20 @@ export class MultisigService {
    * Get a multisig wallet by ID
    */
   async getWallet(id: string, ownerAddress: string): Promise<MultisigWallet | null> {
-    const { data, error } = await this.supabase
-      .from('multisig_wallets')
-      .select('*')
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .single();
+    const data = await prisma.multisigWallet.findFirst({
+        where: {
+            id,
+            owner_address: ownerAddress.toLowerCase()
+        }
+    });
 
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to get multisig wallet: ${error.message}`);
-    }
+    if (!data) return null;
 
-    return data as MultisigWallet;
+    return {
+        ...data,
+        created_at: data.created_at.toISOString(),
+        updated_at: data.updated_at.toISOString()
+    } as MultisigWallet;
   }
 
   /**
@@ -143,48 +142,36 @@ export class MultisigService {
    */
   async createTransaction(input: CreateTransactionInput): Promise<MultisigTransaction> {
     // Get multisig wallet
-    const { data: wallet, error: walletError } = await this.supabase
-      .from('multisig_wallets')
-      .select('*')
-      .eq('id', input.multisig_id)
-      .single();
+    const wallet = await prisma.multisigWallet.findUnique({
+      where: { id: input.multisig_id }
+    });
 
-    if (walletError || !wallet) {
+    if (!wallet) {
       throw new Error('Multisig wallet not found');
     }
 
     // Get next nonce
-    const { data: lastTx } = await this.supabase
-      .from('multisig_transactions')
-      .select('nonce')
-      .eq('multisig_id', input.multisig_id)
-      .order('nonce', { ascending: false })
-      .limit(1)
-      .single();
+    const lastTx = await prisma.multisigTransaction.findFirst({
+      where: { multisig_id: input.multisig_id },
+      orderBy: { nonce: 'desc' },
+      select: { nonce: true }
+    });
 
     const nonce = lastTx ? lastTx.nonce + 1 : 0;
 
     // Create transaction
-    const transactionData = {
-      multisig_id: input.multisig_id,
-      to_address: input.to_address.toLowerCase(),
-      value: input.value,
-      data: input.data || '0x',
-      nonce,
-      status: 'pending' as MultisigTransactionStatus,
-      threshold: wallet.threshold,
-      created_by: input.created_by.toLowerCase(),
-    };
-
-    const { data, error } = await this.supabase
-      .from('multisig_transactions')
-      .insert([transactionData])
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create transaction: ${error.message}`);
-    }
+    const data = await prisma.multisigTransaction.create({
+      data: {
+        multisig_id: input.multisig_id,
+        to_address: input.to_address.toLowerCase(),
+        value: input.value,
+        data: input.data || '0x',
+        nonce,
+        status: 'pending',
+        threshold: wallet.threshold,
+        created_by: input.created_by.toLowerCase(),
+      }
+    });
 
     // Trigger webhook
     await this.webhookTrigger.triggerMultisigProposalCreated(wallet.owner_address, {
@@ -196,10 +183,17 @@ export class MultisigService {
       status: 'pending',
       threshold: wallet.threshold,
       confirmations: 0,
-      created_at: data.created_at,
+      created_at: data.created_at.toISOString(),
     });
 
-    return { ...data, confirmations: [] } as MultisigTransaction;
+    return {
+      ...data,
+      confirmations: [],
+      execution_tx_hash: data.execution_tx_hash || undefined,
+      error_message: data.error_message || undefined,
+      created_at: data.created_at.toISOString(),
+      updated_at: data.updated_at.toISOString()
+    } as MultisigTransaction;
   }
 
   /**
@@ -211,20 +205,16 @@ export class MultisigService {
     signature: string
   ): Promise<MultisigTransaction> {
     // Get transaction with wallet info
-    const { data: transaction, error: txError } = await this.supabase
-      .from('multisig_transactions')
-      .select(`
-        *,
-        multisig_wallets!inner(*)
-      `)
-      .eq('id', transactionId)
-      .single();
+    const transaction = await prisma.multisigTransaction.findUnique({
+      where: { id: transactionId },
+      include: { multisig_wallet: true }
+    });
 
-    if (txError || !transaction) {
+    if (!transaction) {
       throw new Error('Transaction not found');
     }
 
-    const wallet = transaction.multisig_wallets as MultisigWallet;
+    const wallet = transaction.multisig_wallet;
 
     // Verify signer is authorized
     const normalizedSigner = signerAddress.toLowerCase();
@@ -241,7 +231,7 @@ export class MultisigService {
       wallet.address,
       transaction.to_address,
       transaction.value,
-      transaction.data,
+      transaction.data || '0x',
       transaction.nonce,
       wallet.chain_id
     );
@@ -251,47 +241,43 @@ export class MultisigService {
     }
 
     // Check if already confirmed by this signer
-    const { data: existingConfirmation } = await this.supabase
-      .from('multisig_confirmations')
-      .select('id')
-      .eq('transaction_id', transactionId)
-      .eq('signer_address', normalizedSigner)
-      .single();
+    const existingConfirmation = await prisma.multisigConfirmation.findUnique({
+      where: {
+        transaction_id_signer_address: {
+          transaction_id: transactionId,
+          signer_address: normalizedSigner
+        }
+      }
+    });
 
     if (existingConfirmation) {
       throw new Error('Transaction already confirmed by this signer');
     }
 
     // Add confirmation
-    const { error: confirmError } = await this.supabase
-      .from('multisig_confirmations')
-      .insert([{
+    await prisma.multisigConfirmation.create({
+      data: {
         transaction_id: transactionId,
         signer_address: normalizedSigner,
         signature,
-      }]);
-
-    if (confirmError) {
-      throw new Error(`Failed to add confirmation: ${confirmError.message}`);
-    }
+        confirmed_at: new Date()
+      }
+    });
 
     // Get updated confirmation count
-    const { count } = await this.supabase
-      .from('multisig_confirmations')
-      .select('*', { count: 'exact', head: true })
-      .eq('transaction_id', transactionId);
-
-    const confirmationCount = count || 0;
+    const confirmationCount = await prisma.multisigConfirmation.count({
+      where: { transaction_id: transactionId }
+    });
 
     // Check if threshold reached
     if (hasReachedThreshold(confirmationCount, transaction.threshold)) {
-      await this.supabase
-        .from('multisig_transactions')
-        .update({
+      await prisma.multisigTransaction.update({
+        where: { id: transactionId },
+        data: {
           status: 'confirmed',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', transactionId);
+          updated_at: new Date()
+        }
+      });
     }
 
     // Return updated transaction
@@ -302,25 +288,25 @@ export class MultisigService {
    * Get a transaction by ID
    */
   async getTransaction(id: string): Promise<MultisigTransaction> {
-    const { data: transaction, error } = await this.supabase
-      .from('multisig_transactions')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const transaction = await prisma.multisigTransaction.findUnique({
+      where: { id },
+      include: { confirmations: true }
+    });
 
-    if (error || !transaction) {
+    if (!transaction) {
       throw new Error('Transaction not found');
     }
 
-    // Get confirmations
-    const { data: confirmations } = await this.supabase
-      .from('multisig_confirmations')
-      .select('*')
-      .eq('transaction_id', id);
-
     return {
       ...transaction,
-      confirmations: confirmations || [],
+      execution_tx_hash: transaction.execution_tx_hash || undefined,
+      error_message: transaction.error_message || undefined,
+      created_at: transaction.created_at.toISOString(),
+      updated_at: transaction.updated_at.toISOString(),
+      confirmations: transaction.confirmations.map(c => ({
+        ...c,
+        confirmed_at: c.confirmed_at.toISOString()
+      })),
     } as MultisigTransaction;
   }
 
@@ -339,13 +325,11 @@ export class MultisigService {
     }
 
     // Get wallet
-    const { data: wallet, error: walletError } = await this.supabase
-      .from('multisig_wallets')
-      .select('*')
-      .eq('id', transaction.multisig_id)
-      .single();
+    const wallet = await prisma.multisigWallet.findUnique({
+      where: { id: transaction.multisig_id }
+    });
 
-    if (walletError || !wallet) {
+    if (!wallet) {
       throw new Error('Multisig wallet not found');
     }
 
@@ -354,7 +338,7 @@ export class MultisigService {
       wallet.address,
       transaction.to_address,
       transaction.value,
-      transaction.data,
+      transaction.data || '0x',
       transaction.nonce,
       wallet.chain_id
     );
@@ -371,14 +355,14 @@ export class MultisigService {
       const txHash = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
 
       // Update transaction status
-      await this.supabase
-        .from('multisig_transactions')
-        .update({
+      await prisma.multisigTransaction.update({
+        where: { id: transactionId },
+        data: {
           status: 'executed',
           execution_tx_hash: txHash,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', transactionId);
+          updated_at: new Date()
+        }
+      });
 
       // Trigger webhook
       await this.webhookTrigger.triggerMultisigExecuted(wallet.owner_address, {
@@ -397,14 +381,14 @@ export class MultisigService {
       return { txHash };
     } catch (error: any) {
       // Update transaction with error
-      await this.supabase
-        .from('multisig_transactions')
-        .update({
+      await prisma.multisigTransaction.update({
+        where: { id: transactionId },
+        data: {
           status: 'failed',
           error_message: error.message,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', transactionId);
+          updated_at: new Date()
+        }
+      });
 
       throw error;
     }
@@ -414,51 +398,46 @@ export class MultisigService {
    * Get pending transactions for a multisig
    */
   async getPendingTransactions(multisigId: string): Promise<MultisigTransaction[]> {
-    const { data, error } = await this.supabase
-      .from('multisig_transactions')
-      .select('*')
-      .eq('multisig_id', multisigId)
-      .in('status', ['pending', 'confirmed'])
-      .order('nonce', { ascending: true });
+    const transactions = await prisma.multisigTransaction.findMany({
+      where: {
+        multisig_id: multisigId,
+        status: { in: ['pending', 'confirmed'] }
+      },
+      orderBy: { nonce: 'asc' },
+      include: { confirmations: true }
+    });
 
-    if (error) {
-      throw new Error(`Failed to get pending transactions: ${error.message}`);
-    }
-
-    // Get confirmations for each transaction
-    const transactions = await Promise.all(
-      (data || []).map(async (tx: any) => {
-        const { data: confirmations } = await this.supabase
-          .from('multisig_confirmations')
-          .select('*')
-          .eq('transaction_id', tx.id);
-
-        return {
-          ...tx,
-          confirmations: confirmations || [],
-        } as MultisigTransaction;
-      })
-    );
-
-    return transactions;
+    return transactions.map(tx => ({
+        ...tx,
+        execution_tx_hash: tx.execution_tx_hash || undefined,
+        error_message: tx.error_message || undefined,
+        created_at: tx.created_at.toISOString(),
+        updated_at: tx.updated_at.toISOString(),
+        confirmations: tx.confirmations.map(c => ({
+            ...c,
+            confirmed_at: c.confirmed_at.toISOString()
+        }))
+    })) as MultisigTransaction[];
   }
 
   /**
    * Get confirmed transactions ready for execution
    */
   async getConfirmedTransactions(limit: number = 50): Promise<MultisigTransaction[]> {
-    const { data, error } = await this.supabase
-      .from('multisig_transactions')
-      .select('*')
-      .eq('status', 'confirmed')
-      .order('created_at', { ascending: true })
-      .limit(limit);
+    const transactions = await prisma.multisigTransaction.findMany({
+      where: { status: 'confirmed' },
+      orderBy: { created_at: 'asc' },
+      take: limit,
+    });
 
-    if (error) {
-      throw new Error(`Failed to get confirmed transactions: ${error.message}`);
-    }
-
-    return (data || []).map((tx: any) => ({ ...tx, confirmations: [] })) as MultisigTransaction[];
+    return transactions.map(tx => ({
+      ...tx,
+      confirmations: [],
+      execution_tx_hash: tx.execution_tx_hash || undefined,
+      error_message: tx.error_message || undefined,
+      created_at: tx.created_at.toISOString(),
+      updated_at: tx.updated_at.toISOString()
+    })) as MultisigTransaction[];
   }
 }
 

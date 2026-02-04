@@ -4,7 +4,7 @@
  * Supports daily, weekly, bi-weekly, and monthly schedules
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 import type {
   ScheduledPayment,
   ScheduledPaymentLog,
@@ -30,7 +30,7 @@ export { calculateNextExecution, getScheduleDescription } from '@/types/schedule
 // ============================================
 
 export class ScheduledPaymentService {
-  private supabase = createClient();
+  constructor() {}
 
   // ============================================
   // CRUD Operations
@@ -57,47 +57,58 @@ export class ScheduledPaymentService {
       startDate
     );
 
-    const { data, error } = await this.supabase
-      .from('scheduled_payments')
-      .insert({
+    const payment = await prisma.scheduledPayment.create({
+      data: {
         owner_address: ownerAddress,
         team_id: input.team_id,
         name: input.name,
         description: input.description,
-        recipients: input.recipients,
+        recipients: input.recipients as any,
         schedule_type: input.schedule_type,
-        schedule_config: input.schedule_config,
+        schedule_config: (input.schedule_config) as any,
         timezone: input.timezone || 'UTC',
-        next_execution: nextExecution.toISOString(),
+        next_execution: nextExecution,
         max_executions: input.max_executions,
         chain_id: input.chain_id || 42161,
         token: input.token || 'USDT',
         status: 'active',
-      })
-      .select()
-      .single();
+      }
+    });
 
-    if (error) throw new Error(`Failed to create scheduled payment: ${error.message}`);
-
-    return data;
+    return {
+        ...payment,
+        recipients: payment.recipients as any,
+        schedule_config: payment.schedule_config as any,
+        schedule_type: payment.schedule_type as ScheduleType,
+        status: payment.status as ScheduledPaymentStatus,
+        timezone: payment.timezone || 'UTC',
+        next_execution: payment.next_execution.toISOString(),
+        created_at: payment.created_at.toISOString(),
+        updated_at: payment.updated_at.toISOString()
+    };
   }
 
   /**
    * Get scheduled payment by ID
    */
   async get(paymentId: string): Promise<ScheduledPayment | null> {
-    const { data, error } = await this.supabase
-      .from('scheduled_payments')
-      .select('*')
-      .eq('id', paymentId)
-      .single();
+    const payment = await prisma.scheduledPayment.findUnique({
+      where: { id: paymentId }
+    });
 
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to get scheduled payment: ${error.message}`);
-    }
+    if (!payment) return null;
 
-    return data;
+    return {
+        ...payment,
+        recipients: payment.recipients as any,
+        schedule_config: payment.schedule_config as any,
+        schedule_type: payment.schedule_type as ScheduleType,
+        status: payment.status as ScheduledPaymentStatus,
+        timezone: payment.timezone || 'UTC',
+        next_execution: payment.next_execution.toISOString(),
+        created_at: payment.created_at.toISOString(),
+        updated_at: payment.updated_at.toISOString()
+    };
   }
 
   /**
@@ -110,16 +121,24 @@ export class ScheduledPaymentService {
     const payment = await this.get(paymentId);
     if (!payment) return null;
 
-    const { data: logs } = await this.supabase
-      .from('scheduled_payment_logs')
-      .select('*')
-      .eq('scheduled_payment_id', paymentId)
-      .order('execution_time', { ascending: false })
-      .limit(logLimit);
+    const logs = await prisma.scheduledPaymentLog.findMany({
+      where: { scheduled_payment_id: paymentId },
+      orderBy: { execution_time: 'desc' },
+      take: logLimit
+    });
+
+    const mappedLogs: ScheduledPaymentLog[] = logs.map(l => ({
+        ...l,
+        execution_time: l.execution_time.toISOString(),
+        created_at: l.created_at.toISOString(),
+        status: l.status as ExecutionStatus,
+        tx_hash: l.tx_hash || undefined,
+        error_message: l.error_message || undefined
+    }));
 
     return {
       ...payment,
-      recent_logs: logs || [],
+      recent_logs: mappedLogs,
     };
   }
 
@@ -130,9 +149,9 @@ export class ScheduledPaymentService {
     paymentId: string,
     input: UpdateScheduledPaymentInput
   ): Promise<ScheduledPayment> {
-    const updateData: Record<string, unknown> = {
+    const updateData: any = {
       ...input,
-      updated_at: new Date().toISOString(),
+      updated_at: new Date(),
     };
 
     // Recalculate next execution if schedule changed
@@ -143,32 +162,35 @@ export class ScheduledPaymentService {
         const scheduleType = input.schedule_type || current.schedule_type;
         const scheduleConfig = input.schedule_config || current.schedule_config;
         const nextExecution = calculateNextExecution(scheduleType, scheduleConfig);
-        updateData.next_execution = nextExecution.toISOString();
+        updateData.next_execution = nextExecution;
       }
     }
 
-    const { data, error } = await this.supabase
-      .from('scheduled_payments')
-      .update(updateData)
-      .eq('id', paymentId)
-      .select()
-      .single();
+    const payment = await prisma.scheduledPayment.update({
+      where: { id: paymentId },
+      data: updateData
+    });
 
-    if (error) throw new Error(`Failed to update scheduled payment: ${error.message}`);
-
-    return data;
+    return {
+        ...payment,
+        recipients: payment.recipients as any,
+        schedule_config: payment.schedule_config as any,
+        schedule_type: payment.schedule_type as ScheduleType,
+        status: payment.status as ScheduledPaymentStatus,
+        timezone: payment.timezone || 'UTC',
+        next_execution: payment.next_execution.toISOString(),
+        created_at: payment.created_at.toISOString(),
+        updated_at: payment.updated_at.toISOString()
+    };
   }
 
   /**
    * Delete scheduled payment
    */
   async delete(paymentId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('scheduled_payments')
-      .delete()
-      .eq('id', paymentId);
-
-    if (error) throw new Error(`Failed to delete scheduled payment: ${error.message}`);
+    await prisma.scheduledPayment.delete({
+      where: { id: paymentId }
+    });
   }
 
   /**
@@ -182,30 +204,38 @@ export class ScheduledPaymentService {
       limit?: number;
     }
   ): Promise<ScheduledPayment[]> {
-    let query = this.supabase
-      .from('scheduled_payments')
-      .select('*')
-      .order('next_execution', { ascending: true });
-
+    const where: any = {};
+    
     if (options?.teamId) {
-      query = query.or(`owner_address.eq.${ownerAddress},team_id.eq.${options.teamId}`);
+        where.OR = [
+            { owner_address: ownerAddress },
+            { team_id: options.teamId }
+        ];
     } else {
-      query = query.eq('owner_address', ownerAddress);
+        where.owner_address = ownerAddress;
     }
 
     if (options?.status) {
-      query = query.eq('status', options.status);
+        where.status = options.status;
     }
 
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
+    const payments = await prisma.scheduledPayment.findMany({
+      where,
+      orderBy: { next_execution: 'asc' },
+      take: options?.limit
+    });
 
-    const { data, error } = await query;
-
-    if (error) throw new Error(`Failed to list scheduled payments: ${error.message}`);
-
-    return data || [];
+    return payments.map(payment => ({
+        ...payment,
+        recipients: payment.recipients as any,
+        schedule_config: payment.schedule_config as any,
+        schedule_type: payment.schedule_type as ScheduleType,
+        status: payment.status as ScheduledPaymentStatus,
+        timezone: payment.timezone || 'UTC',
+        next_execution: payment.next_execution.toISOString(),
+        created_at: payment.created_at.toISOString(),
+        updated_at: payment.updated_at.toISOString()
+    }));
   }
 
   // ============================================
@@ -233,20 +263,26 @@ export class ScheduledPaymentService {
       payment.schedule_config
     );
 
-    const { data, error } = await this.supabase
-      .from('scheduled_payments')
-      .update({
+    const updatedPayment = await prisma.scheduledPayment.update({
+      where: { id: paymentId },
+      data: {
         status: 'active',
-        next_execution: nextExecution.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', paymentId)
-      .select()
-      .single();
+        next_execution: nextExecution,
+        updated_at: new Date(),
+      }
+    });
 
-    if (error) throw new Error(`Failed to resume scheduled payment: ${error.message}`);
-
-    return data;
+    return {
+        ...updatedPayment,
+        recipients: updatedPayment.recipients as any,
+        schedule_config: updatedPayment.schedule_config as any,
+        schedule_type: updatedPayment.schedule_type as ScheduleType,
+        status: updatedPayment.status as ScheduledPaymentStatus,
+        timezone: updatedPayment.timezone || 'UTC',
+        next_execution: updatedPayment.next_execution.toISOString(),
+        created_at: updatedPayment.created_at.toISOString(),
+        updated_at: updatedPayment.updated_at.toISOString()
+    };
   }
 
   /**
@@ -264,17 +300,28 @@ export class ScheduledPaymentService {
    * Get all due scheduled payments
    */
   async getDuePayments(limit: number = 100): Promise<ScheduledPayment[]> {
-    const { data, error } = await this.supabase
-      .from('scheduled_payments')
-      .select('*')
-      .eq('status', 'active')
-      .lte('next_execution', new Date().toISOString())
-      .order('next_execution', { ascending: true })
-      .limit(limit);
+    const payments = await prisma.scheduledPayment.findMany({
+      where: {
+        status: 'active',
+        next_execution: {
+           lte: new Date()
+        }
+      },
+      orderBy: { next_execution: 'asc' },
+      take: limit
+    });
 
-    if (error) throw new Error(`Failed to get due payments: ${error.message}`);
-
-    return data || [];
+    return payments.map(payment => ({
+        ...payment,
+        recipients: payment.recipients as any,
+        schedule_config: payment.schedule_config as any,
+        schedule_type: payment.schedule_type as ScheduleType,
+        status: payment.status as ScheduledPaymentStatus,
+        timezone: payment.timezone || 'UTC',
+        next_execution: payment.next_execution.toISOString(),
+        created_at: payment.created_at.toISOString(),
+        updated_at: payment.updated_at.toISOString()
+    }));
   }
 
   /**
@@ -315,16 +362,15 @@ export class ScheduledPaymentService {
     }
 
     // Calculate total amount
-    const recipients = payment.recipients as ScheduledRecipient[];
+    const recipients = payment.recipients as any as ScheduledRecipient[];
     const totalAmount = recipients.reduce(
       (sum, r) => sum + parseFloat(r.amount || '0'),
       0
     );
 
     // Create log entry
-    const { data: log, error: logError } = await this.supabase
-      .from('scheduled_payment_logs')
-      .insert({
+    const log = await prisma.scheduledPaymentLog.create({
+      data: {
         scheduled_payment_id: paymentId,
         status: 'success',  // Will be updated after actual execution
         total_amount: totalAmount.toString(),
@@ -335,14 +381,9 @@ export class ScheduledPaymentService {
           address: r.address,
           amount: r.amount,
           status: 'pending',
-        })),
-      })
-      .select()
-      .single();
-
-    if (logError) {
-      throw new Error(`Failed to create execution log: ${logError.message}`);
-    }
+        })) as any,
+      }
+    });
 
     // Calculate next execution
     const { calculateNextExecution } = require('@/types/scheduled-payment');
@@ -352,15 +393,15 @@ export class ScheduledPaymentService {
     );
 
     // Update payment record
-    await this.supabase
-      .from('scheduled_payments')
-      .update({
-        last_execution: new Date().toISOString(),
-        next_execution: nextExecution.toISOString(),
+    await prisma.scheduledPayment.update({
+      where: { id: paymentId },
+      data: {
+        last_execution: new Date(),
+        next_execution: nextExecution,
         total_executions: payment.total_executions + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', paymentId);
+        updated_at: new Date(),
+      }
+    });
 
     return {
       payment_id: paymentId,
@@ -386,12 +427,13 @@ export class ScheduledPaymentService {
       details?: Array<{ address: string; amount: string; status: string; error?: string }>;
     }
   ): Promise<void> {
-    const { error } = await this.supabase
-      .from('scheduled_payment_logs')
-      .update(result)
-      .eq('id', logId);
-
-    if (error) throw new Error(`Failed to update execution log: ${error.message}`);
+    await prisma.scheduledPaymentLog.update({
+        where: { id: logId },
+        data: {
+            ...result,
+            details: result.details as any
+        }
+    });
   }
 
   /**
@@ -449,16 +491,18 @@ export class ScheduledPaymentService {
     paymentId: string,
     limit: number = 20
   ): Promise<ScheduledPaymentLog[]> {
-    const { data, error } = await this.supabase
-      .from('scheduled_payment_logs')
-      .select('*')
-      .eq('scheduled_payment_id', paymentId)
-      .order('execution_time', { ascending: false })
-      .limit(limit);
+    const logs = await prisma.scheduledPaymentLog.findMany({
+      where: { scheduled_payment_id: paymentId },
+      orderBy: { executed_at: 'desc' },
+      take: limit
+    });
 
-    if (error) throw new Error(`Failed to get logs: ${error.message}`);
-
-    return data || [];
+    return logs.map(log => ({
+      ...log,
+      execution_time: log.executed_at.toISOString(),
+      created_at: log.executed_at.toISOString(),
+      details: log.details as any
+    }));
   }
 }
 
