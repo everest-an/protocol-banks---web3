@@ -36,20 +36,23 @@ async function fetchPrices(): Promise<TokenPrices> {
     return cachedPrices
   }
 
-  // Use default prices - avoids rate limiting from CoinGecko
-  // In production, you would use a paid API or your own price oracle
-  const prices = { ...DEFAULT_PRICES }
-  
-  // Ensure stablecoins are always $1
-  for (const stable of STABLE_COINS) {
-    prices[stable] = 1
+  try {
+    const res = await fetch("/api/prices")
+    if (!res.ok) throw new Error("Price fetch failed")
+    const prices = await res.json()
+
+    // Ensure stablecoins are always $1
+    for (const stable of STABLE_COINS) {
+      prices[stable] = 1
+    }
+
+    cachedPrices = prices
+    cacheTimestamp = Date.now()
+    return prices
+  } catch {
+    // Fallback to defaults on any error
+    return { ...DEFAULT_PRICES }
   }
-
-  // Update cache
-  cachedPrices = prices
-  cacheTimestamp = Date.now()
-
-  return prices
 }
 
 export function useTokenPrices() {

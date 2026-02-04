@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { createPublicClient, http, formatUnits, type Address } from "viem"
 import { mainnet, polygon, arbitrum, base, optimism, bsc } from "viem/chains"
-import type { WalletBalance, TokenBalance, ChainDistribution } from "@/types"
+import type { WalletBalance, TokenBalance, ChainDistribution, TokenDistribution } from "@/types"
 import { useTokenPrices, getTokenPrice } from "@/hooks/use-token-prices"
 
 // ERC20 ABI for balanceOf
@@ -33,7 +33,7 @@ const TOKENS: Record<string, { decimals: number; addresses: Record<number, strin
     decimals: 6,
     addresses: {
       1: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-      137: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+      137: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
       42161: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       8453: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       10: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
@@ -51,9 +51,10 @@ const TOKENS: Record<string, { decimals: number; addresses: Record<number, strin
   DAI: {
     decimals: 18,
     addresses: {
-      1: "0x6B175474E89094C44Da98b954EesacdBE2c2D3",
+      1: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
       137: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
       42161: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      10: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
     },
   },
   WETH: {
@@ -63,6 +64,14 @@ const TOKENS: Record<string, { decimals: number; addresses: Record<number, strin
       42161: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       8453: "0x4200000000000000000000000000000000000006",
       10: "0x4200000000000000000000000000000000000006",
+    },
+  },
+  WBTC: {
+    decimals: 8,
+    addresses: {
+      1: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+      137: "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
+      42161: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
     },
   },
 }
@@ -85,6 +94,11 @@ const DEMO_BALANCE: WalletBalance = {
     { chain: "Polygon", chainId: 137, totalUSD: 30000, percentage: 23.9, tokenCount: 2 },
     { chain: "Arbitrum", chainId: 42161, totalUSD: 15000, percentage: 12.0, tokenCount: 2 },
     { chain: "Base", chainId: 8453, totalUSD: 5450.32, percentage: 4.3, tokenCount: 2 },
+  ],
+  tokenDistribution: [
+    { token: "USDC", totalBalance: 87000, totalUSD: 87000, percentage: 69.3, price: 1.0, chains: ["Ethereum", "Polygon", "Arbitrum", "Base"] },
+    { token: "ETH", totalBalance: 8.125, totalUSD: 28450.32, percentage: 22.7, price: 3500, chains: ["Ethereum", "Arbitrum", "Base"] },
+    { token: "MATIC", totalBalance: 20000, totalUSD: 10000, percentage: 8.0, price: 0.5, chains: ["Polygon"] },
   ],
   lastUpdated: new Date().toISOString(),
 }
@@ -234,10 +248,34 @@ export function useBalance(options: UseBalanceOptions = {}) {
         .filter((c) => c.totalUSD > 0)
         .sort((a, b) => b.totalUSD - a.totalUSD)
 
+      // Build token distribution (aggregate by token symbol across chains)
+      const tokenAgg: Record<string, { totalUSD: number; totalBalance: number; price: number; chains: Set<string> }> = {}
+      for (const t of tokens) {
+        if (!tokenAgg[t.token]) {
+          tokenAgg[t.token] = { totalUSD: 0, totalBalance: 0, price: t.price, chains: new Set() }
+        }
+        tokenAgg[t.token].totalUSD += t.balanceUSD
+        tokenAgg[t.token].totalBalance += Number.parseFloat(t.balance)
+        tokenAgg[t.token].chains.add(t.chain)
+      }
+
+      const tokenDistribution: TokenDistribution[] = Object.entries(tokenAgg)
+        .map(([token, data]) => ({
+          token,
+          totalBalance: data.totalBalance,
+          totalUSD: data.totalUSD,
+          percentage: totalUSD > 0 ? (data.totalUSD / totalUSD) * 100 : 0,
+          price: data.price,
+          chains: Array.from(data.chains),
+        }))
+        .filter((t) => t.totalUSD > 0.01)
+        .sort((a, b) => b.totalUSD - a.totalUSD)
+
       setBalance({
         totalUSD,
         tokens: tokens.sort((a, b) => b.balanceUSD - a.balanceUSD),
         chainDistribution,
+        tokenDistribution,
         lastUpdated: new Date().toISOString(),
       })
     } catch (err) {
