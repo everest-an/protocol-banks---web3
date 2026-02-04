@@ -3,7 +3,7 @@
  * Manages recurring payment subscriptions
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 import { calculateNextPaymentDate, formatSubscriptionForDisplay, validateSubscription } from '@/lib/subscription-helpers';
 import type { Subscription as UISubscription, SubscriptionInput, SubscriptionFrequency as UIFrequency } from '@/types';
 
@@ -60,6 +60,18 @@ export interface UpdateSubscriptionInput {
 // Helper Functions
 // ============================================
 
+function mapToSubscription(data: any): Subscription {
+  if (!data) return null as any;
+  return {
+    ...data,
+    recipient_address: data.wallet_address,
+    next_payment_date: data.next_payment_date ? data.next_payment_date.toISOString() : null,
+    last_payment_date: data.last_payment_date ? data.last_payment_date.toISOString() : null,
+    created_at: data.created_at.toISOString(),
+    updated_at: data.updated_at.toISOString(),
+  };
+}
+
 /**
  * Check if a subscription is due for payment
  */
@@ -81,11 +93,7 @@ export function isSubscriptionDue(subscription: Subscription): boolean {
 // ============================================
 
 export class SubscriptionService {
-  private supabase;
-
-  constructor() {
-    this.supabase = createClient();
-  }
+  constructor() {}
 
   /**
    * Create a new subscription
@@ -94,124 +102,98 @@ export class SubscriptionService {
     const startDate = input.start_date ? new Date(input.start_date) : new Date();
     const nextPaymentDate = calculateNextPaymentDate(startDate, input.frequency);
 
-    const subscriptionData = {
-      owner_address: input.owner_address.toLowerCase(),
-      service_name: input.service_name,
-      wallet_address: input.wallet_address.toLowerCase(),
-      amount: input.amount,
-      token: input.token,
-      frequency: input.frequency,
-      status: 'active' as SubscriptionStatus,
-      next_payment_date: nextPaymentDate.toISOString(),
-      last_payment_date: null,
-      total_paid: '0',
-      payment_count: 0,
-      chain_id: input.chain_id,
-      memo: input.memo || null,
-    };
+    const subscription = await prisma.subscription.create({
+      data: {
+        owner_address: input.owner_address.toLowerCase(),
+        service_name: input.service_name,
+        wallet_address: input.wallet_address.toLowerCase(),
+        amount: input.amount,
+        token: input.token,
+        frequency: input.frequency,
+        status: 'active',
+        next_payment_date: nextPaymentDate,
+        last_payment_date: null,
+        total_paid: '0',
+        payment_count: 0,
+        chain_id: input.chain_id,
+        memo: input.memo || null,
+      }
+    });
 
-    const { data, error } = await this.supabase
-      .from('subscriptions')
-      .insert([subscriptionData])
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create subscription: ${error.message}`);
-    }
-
-    return data as Subscription;
+    return mapToSubscription(subscription);
   }
 
   /**
    * List all subscriptions for an owner
    */
   async list(ownerAddress: string, options: { status?: SubscriptionStatus } = {}): Promise<Subscription[]> {
-    let query = this.supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .order('created_at', { ascending: false });
-
+    const where: any = {
+      owner_address: ownerAddress.toLowerCase()
+    };
     if (options.status) {
-      query = query.eq('status', options.status);
+      where.status = options.status;
     }
 
-    const { data, error } = await query;
+    const subscriptions = await prisma.subscription.findMany({
+      where,
+      orderBy: { created_at: 'desc' }
+    });
 
-    if (error) {
-      throw new Error(`Failed to list subscriptions: ${error.message}`);
-    }
-
-    return (data || []) as Subscription[];
+    return subscriptions.map(mapToSubscription);
   }
 
   /**
    * Get a single subscription by ID
    */
   async getById(id: string, ownerAddress: string): Promise<Subscription | null> {
-    const { data, error } = await this.supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .single();
+    const subscription = await prisma.subscription.findFirst({
+        where: {
+            id,
+            owner_address: ownerAddress.toLowerCase()
+        }
+    });
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null;
-      }
-      throw new Error(`Failed to get subscription: ${error.message}`);
-    }
-
-    return data as Subscription;
+    return mapToSubscription(subscription);
   }
 
   /**
    * Update a subscription
    */
   async update(id: string, ownerAddress: string, input: UpdateSubscriptionInput): Promise<Subscription> {
-    const updateData: Record<string, any> = {
-      updated_at: new Date().toISOString(),
-    };
+    const existing = await prisma.subscription.findFirst({
+         where: { id, owner_address: ownerAddress.toLowerCase() }
+    });
+    if (!existing) throw new Error('Subscription not found');
 
-    if (input.service_name !== undefined) updateData.service_name = input.service_name;
-    if (input.amount !== undefined) updateData.amount = input.amount;
-    if (input.frequency !== undefined) updateData.frequency = input.frequency;
-    if (input.status !== undefined) updateData.status = input.status;
-    if (input.memo !== undefined) updateData.memo = input.memo;
+    const data: any = {};
+    if (input.service_name !== undefined) data.service_name = input.service_name;
+    if (input.amount !== undefined) data.amount = input.amount;
+    if (input.frequency !== undefined) data.frequency = input.frequency;
+    if (input.status !== undefined) data.status = input.status;
+    if (input.memo !== undefined) data.memo = input.memo;
 
-    const { data, error } = await this.supabase
-      .from('subscriptions')
-      .update(updateData)
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .select()
-      .single();
+    const subscription = await prisma.subscription.update({
+      where: { id },
+      data
+    });
 
-    if (error) {
-      throw new Error(`Failed to update subscription: ${error.message}`);
-    }
-
-    return data as Subscription;
+    return mapToSubscription(subscription);
   }
 
   /**
    * Cancel a subscription
    */
   async cancel(id: string, ownerAddress: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('subscriptions')
-      .update({
-        status: 'cancelled',
-        next_payment_date: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase());
+    const { count } = await prisma.subscription.updateMany({
+        where: { id, owner_address: ownerAddress.toLowerCase() },
+        data: {
+            status: 'cancelled',
+            next_payment_date: null
+        }
+    });
 
-    if (error) {
-      throw new Error(`Failed to cancel subscription: ${error.message}`);
+    if (count === 0) {
+      throw new Error('Failed to cancel subscription: Not found');
     }
   }
 
@@ -219,17 +201,13 @@ export class SubscriptionService {
    * Pause a subscription
    */
   async pause(id: string, ownerAddress: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('subscriptions')
-      .update({
-        status: 'paused',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase());
+    const { count } = await prisma.subscription.updateMany({
+        where: { id, owner_address: ownerAddress.toLowerCase() },
+        data: { status: 'paused' }
+    });
 
-    if (error) {
-      throw new Error(`Failed to pause subscription: ${error.message}`);
+    if (count === 0) {
+       throw new Error('Failed to pause subscription: Not found');
     }
   }
 
@@ -250,104 +228,80 @@ export class SubscriptionService {
     // Calculate new next payment date from now
     const nextPaymentDate = calculateNextPaymentDate(new Date(), subscription.frequency);
 
-    const { data, error } = await this.supabase
-      .from('subscriptions')
-      .update({
-        status: 'active',
-        next_payment_date: nextPaymentDate.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .eq('owner_address', ownerAddress.toLowerCase())
-      .select()
-      .single();
+    const updated = await prisma.subscription.update({
+        where: { id },
+        data: {
+            status: 'active',
+            next_payment_date: nextPaymentDate,
+            updated_at: new Date()
+        }
+    });
 
-    if (error) {
-      throw new Error(`Failed to resume subscription: ${error.message}`);
-    }
-
-    return data as Subscription;
+    return mapToSubscription(updated);
   }
 
   /**
    * Get due subscriptions (for payment processing)
    */
   async getDueSubscriptions(limit: number = 100): Promise<Subscription[]> {
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const { data, error } = await this.supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('status', 'active')
-      .lte('next_payment_date', now)
-      .order('next_payment_date', { ascending: true })
-      .limit(limit);
+    const subscriptions = await prisma.subscription.findMany({
+      where: {
+        status: 'active',
+        next_payment_date: {
+           lte: now
+        }
+      },
+      orderBy: { next_payment_date: 'asc' },
+      take: limit
+    });
 
-    if (error) {
-      throw new Error(`Failed to get due subscriptions: ${error.message}`);
-    }
-
-    return (data || []) as Subscription[];
+    return subscriptions.map(mapToSubscription);
   }
 
   /**
    * Record a successful payment
    */
   async recordPayment(id: string, amount: string, txHash?: string): Promise<Subscription> {
-    // Get current subscription
-    const { data: subscription, error: getError } = await this.supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const subscription = await prisma.subscription.findUnique({ where: { id } });
+    if (!subscription) throw new Error('Subscription not found');
 
-    if (getError || !subscription) {
-      throw new Error('Subscription not found');
-    }
-
+    const currentTotal = parseFloat(subscription.total_paid || '0');
+    const newTotal = currentTotal + parseFloat(amount);
+    
     // Calculate next payment date
-    const nextPaymentDate = calculateNextPaymentDate(new Date(), subscription.frequency);
-    const newTotalPaid = (parseFloat(subscription.total_paid || '0') + parseFloat(amount)).toString();
+    // Note: Use Date object for Prisma
+    const nextPaymentDate = calculateNextPaymentDate(new Date(), subscription.frequency as any);
 
-    const updateData: Record<string, any> = {
-      last_payment_date: new Date().toISOString(),
-      next_payment_date: nextPaymentDate.toISOString(),
-      total_paid: newTotalPaid,
-      payment_count: (subscription.payment_count || 0) + 1,
-      status: 'active', // Reset from payment_failed if applicable
-      updated_at: new Date().toISOString(),
-    };
-
-    if (txHash) {
-      updateData.last_tx_hash = txHash;
-    }
-
-    const { data, error } = await this.supabase
-      .from('subscriptions')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to record payment: ${error.message}`);
-    }
+    const updated = await prisma.subscription.update({
+        where: { id },
+        data: {
+            last_payment_date: new Date(),
+            next_payment_date: nextPaymentDate,
+            total_paid: newTotal.toString(),
+            payment_count: { increment: 1 },
+            last_tx_hash: txHash,
+            status: 'active',
+            updated_at: new Date()
+        }
+    });
 
     // Also record in subscription_payments table for history
     try {
-      await this.supabase.from('subscription_payments').insert({
-        subscription_id: id,
-        amount: amount,
-        tx_hash: txHash,
-        status: 'completed',
-        created_at: new Date().toISOString(),
+      await prisma.subscriptionPayment.create({
+        data: {
+            subscription_id: id,
+            amount: amount,
+            tx_hash: txHash,
+            status: 'completed'
+        }
       });
     } catch (historyError) {
-      // Don't fail if history recording fails
       console.warn('[SubscriptionService] Failed to record payment history:', historyError);
     }
 
-    return data as Subscription;
+    return mapToSubscription(updated);
   }
 
   /**
@@ -355,41 +309,36 @@ export class SubscriptionService {
    */
   async recordPaymentFailure(id: string, errorMessage: string): Promise<void> {
     // Get subscription details for notification
-    const { data: subscription, error: getError } = await this.supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const subscription = await prisma.subscription.findUnique({ where: { id } });
 
-    if (getError) {
-      console.error('[SubscriptionService] Failed to get subscription for failure recording:', getError);
+    if (!subscription) {
+      console.error('[SubscriptionService] Failed to get subscription for failure recording');
     }
 
     // Calculate retry date (24 hours from now)
     const retryDate = new Date();
     retryDate.setHours(retryDate.getHours() + 24);
 
-    const { error } = await this.supabase
-      .from('subscriptions')
-      .update({
-        status: 'payment_failed',
-        next_payment_date: retryDate.toISOString(), // Schedule retry in 24 hours
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-
-    if (error) {
-      throw new Error(`Failed to record payment failure: ${error.message}`);
+    if (subscription) {
+        await prisma.subscription.update({
+            where: { id },
+            data: {
+                status: 'payment_failed',
+                next_payment_date: retryDate,
+                updated_at: new Date()
+            }
+        });
     }
 
     // Record failure in payment history
     try {
-      await this.supabase.from('subscription_payments').insert({
-        subscription_id: id,
-        amount: subscription?.amount || '0',
-        status: 'failed',
-        error_message: errorMessage,
-        created_at: new Date().toISOString(),
+      await prisma.subscriptionPayment.create({
+        data: {
+            subscription_id: id,
+            amount: subscription?.amount || '0',
+            status: 'failed',
+            error_message: errorMessage
+        }
       });
     } catch (historyError) {
       console.warn('[SubscriptionService] Failed to record payment failure history:', historyError);
@@ -428,38 +377,31 @@ export class SubscriptionService {
    * Get subscriptions that need retry (payment_failed status with past next_payment_date)
    */
   async getRetryDueSubscriptions(limit = 100): Promise<Subscription[]> {
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const { data, error } = await this.supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('status', 'payment_failed')
-      .lte('next_payment_date', now)
-      .order('next_payment_date', { ascending: true })
-      .limit(limit);
+    const subscriptions = await prisma.subscription.findMany({
+        where: {
+            status: 'payment_failed',
+            next_payment_date: { lte: now }
+        },
+        orderBy: { next_payment_date: 'asc' },
+        take: limit
+    });
 
-    if (error) {
-      throw new Error(`Failed to get retry due subscriptions: ${error.message}`);
-    }
-
-    return (data || []) as Subscription[];
+    return subscriptions.map(mapToSubscription);
   }
 
   /**
    * Reset subscription status after successful retry
    */
   async resetAfterRetry(id: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('subscriptions')
-      .update({
-        status: 'active',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-
-    if (error) {
-      throw new Error(`Failed to reset subscription after retry: ${error.message}`);
-    }
+    await prisma.subscription.update({
+        where: { id },
+        data: {
+            status: 'active',
+            updated_at: new Date()
+        }
+    });
   }
 }
 

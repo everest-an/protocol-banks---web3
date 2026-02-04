@@ -3,7 +3,7 @@
  * Manages push notifications and user preferences
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 
 // Web Push types (optional dependency)
 let webpush: any = null;
@@ -91,11 +91,7 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreferences, 'id' | 'user_address' |
 // ============================================
 
 export class NotificationService {
-  private supabase;
-
   constructor() {
-    this.supabase = createClient();
-    
     // Configure web-push with VAPID keys (should be from env)
     if (webpush) {
       const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
@@ -108,6 +104,19 @@ export class NotificationService {
     }
   }
 
+  private mapPushSubscription(sub: any): PushSubscription {
+      return {
+          id: sub.id,
+          user_address: sub.user_address,
+          endpoint: sub.endpoint,
+          keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth
+          },
+          created_at: sub.created_at.toISOString()
+      };
+  }
+
   /**
    * Subscribe a user to push notifications
    */
@@ -118,65 +127,57 @@ export class NotificationService {
     const normalizedAddress = userAddress.toLowerCase();
 
     // Check if subscription already exists
-    const { data: existing } = await this.supabase
-      .from('push_subscriptions')
-      .select('*')
-      .eq('user_address', normalizedAddress)
-      .eq('endpoint', subscription.endpoint)
-      .single();
+    const existing = await prisma.pushSubscription.findUnique({
+         where: { endpoint: subscription.endpoint }
+    });
 
     if (existing) {
-      return existing as PushSubscription;
+        // If endpoint exists but user mismatches, update it
+        if (existing.user_address !== normalizedAddress) {
+             const updated = await prisma.pushSubscription.update({
+                 where: { id: existing.id },
+                 data: { user_address: normalizedAddress }
+             });
+             return this.mapPushSubscription(updated);
+        }
+        return this.mapPushSubscription(existing);
     }
 
     // Create new subscription
-    const { data, error } = await this.supabase
-      .from('push_subscriptions')
-      .insert([{
+    const created = await prisma.pushSubscription.create({
+      data: {
         user_address: normalizedAddress,
         endpoint: subscription.endpoint,
-        keys: subscription.keys,
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create subscription: ${error.message}`);
-    }
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+      }
+    });
 
     // Ensure default preferences exist
     await this.ensurePreferences(normalizedAddress);
 
-    return data as PushSubscription;
+    return this.mapPushSubscription(created);
   }
 
   /**
    * Unsubscribe a user from push notifications
    */
   async unsubscribe(userAddress: string, endpoint: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('push_subscriptions')
-      .delete()
-      .eq('user_address', userAddress.toLowerCase())
-      .eq('endpoint', endpoint);
-
-    if (error) {
-      throw new Error(`Failed to unsubscribe: ${error.message}`);
-    }
+    await prisma.pushSubscription.deleteMany({
+        where: {
+            user_address: userAddress.toLowerCase(),
+            endpoint: endpoint
+        }
+    });
   }
 
   /**
    * Unsubscribe all devices for a user
    */
   async unsubscribeAll(userAddress: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('push_subscriptions')
-      .delete()
-      .eq('user_address', userAddress.toLowerCase());
-
-    if (error) {
-      throw new Error(`Failed to unsubscribe all: ${error.message}`);
-    }
+    await prisma.pushSubscription.deleteMany({
+        where: { user_address: userAddress.toLowerCase() }
+    });
   }
 
   /**
@@ -184,22 +185,15 @@ export class NotificationService {
    */
   async getPreferences(userAddress: string): Promise<NotificationPreferences> {
     const normalizedAddress = userAddress.toLowerCase();
-
-    const { data, error } = await this.supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_address', normalizedAddress)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Failed to get preferences: ${error.message}`);
+    const prefs = await prisma.notificationPreference.findUnique({
+        where: { user_address: normalizedAddress }
+    });
+    
+    if (!prefs) {
+        return this.ensurePreferences(normalizedAddress);
     }
-
-    if (!data) {
-      return this.ensurePreferences(normalizedAddress);
-    }
-
-    return data as NotificationPreferences;
+    
+    return this.mapPreferences(prefs);
   }
 
   /**
@@ -212,23 +206,29 @@ export class NotificationService {
     const normalizedAddress = userAddress.toLowerCase();
 
     // Ensure preferences exist
-    await this.ensurePreferences(normalizedAddress);
+    const current = await this.ensurePreferences(normalizedAddress);
 
-    const { data, error } = await this.supabase
-      .from('notification_preferences')
-      .update({
-        ...preferences,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_address', normalizedAddress)
-      .select()
-      .single();
+    // Merge preferences
+    const { id, user_address, created_at, updated_at, ...currentJson } = current;
+    const newJson = { ...currentJson, ...preferences };
 
-    if (error) {
-      throw new Error(`Failed to update preferences: ${error.message}`);
-    }
+    const updated = await prisma.notificationPreference.update({
+        where: { user_address: normalizedAddress },
+        data: { preferences: newJson, updated_at: new Date() }
+    });
 
-    return data as NotificationPreferences;
+    return this.mapPreferences(updated);
+  }
+
+  private mapPreferences(model: any): NotificationPreferences {
+      const prefs = model.preferences as any || DEFAULT_PREFERENCES;
+      return {
+          id: model.id,
+          user_address: model.user_address,
+          ...prefs,
+          created_at: model.created_at.toISOString(),
+          updated_at: model.updated_at.toISOString()
+      };
   }
 
   /**
@@ -250,14 +250,9 @@ export class NotificationService {
     }
 
     // Get all subscriptions for user
-    const { data: subscriptions, error } = await this.supabase
-      .from('push_subscriptions')
-      .select('*')
-      .eq('user_address', normalizedAddress);
-
-    if (error) {
-      throw new Error(`Failed to get subscriptions: ${error.message}`);
-    }
+    const subscriptions = await prisma.pushSubscription.findMany({
+      where: { user_address: normalizedAddress }
+    });
 
     if (!subscriptions || subscriptions.length === 0) {
       return results;
@@ -584,30 +579,22 @@ export class NotificationService {
    * Ensure preferences exist for a user
    */
   private async ensurePreferences(userAddress: string): Promise<NotificationPreferences> {
-    const { data: existing } = await this.supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_address', userAddress)
-      .single();
+    const existing = await prisma.notificationPreference.findUnique({
+      where: { user_address: userAddress }
+    });
 
     if (existing) {
-      return existing as NotificationPreferences;
+      return this.mapPreferences(existing);
     }
 
-    const { data, error } = await this.supabase
-      .from('notification_preferences')
-      .insert([{
+    const newPrefs = await prisma.notificationPreference.create({
+      data: {
         user_address: userAddress,
-        ...DEFAULT_PREFERENCES,
-      }])
-      .select()
-      .single();
+        preferences: DEFAULT_PREFERENCES,
+      }
+    });
 
-    if (error) {
-      throw new Error(`Failed to create preferences: ${error.message}`);
-    }
-
-    return data as NotificationPreferences;
+    return this.mapPreferences(newPrefs);
   }
 
   /**

@@ -10,7 +10,7 @@
  * Based on x402 Protocol (ERC-3009 TransferWithAuthorization)
  */
 
-import { createClient } from "@/lib/supabase/server"
+import { prisma } from "@/lib/prisma"
 
 // ============================================================================
 // Types
@@ -118,8 +118,6 @@ export async function openPaymentChannel(params: {
   autoSettleInterval?: number
   durationSeconds?: number
 }): Promise<PaymentChannel> {
-  const supabase = await createClient()
-
   const id = `ch_${generateRandomHex(16)}`
   const now = new Date()
   const expiresAt = new Date(now.getTime() + (params.durationSeconds || 30 * 24 * 3600) * 1000)
@@ -140,25 +138,23 @@ export async function openPaymentChannel(params: {
     createdAt: now,
   }
 
-  const { error } = await supabase.from("payment_channels").insert({
-    id: channel.id,
-    provider_id: channel.providerId,
-    consumer_id: channel.consumerId,
-    consumer_address: channel.consumerAddress,
-    session_key_public_key: channel.sessionKeyPublicKey,
-    deposit_amount: channel.depositAmount,
-    spent_amount: channel.spentAmount,
-    pending_amount: channel.pendingAmount,
-    settlement_threshold: channel.settlementThreshold,
-    auto_settle_interval: channel.autoSettleInterval,
-    status: channel.status,
-    expires_at: channel.expiresAt.toISOString(),
-    created_at: channel.createdAt.toISOString(),
+  await prisma.paymentChannel.create({
+    data: {
+      id: channel.id,
+      provider_id: channel.providerId,
+      consumer_id: channel.consumerId,
+      consumer_address: channel.consumerAddress,
+      session_key_public_key: channel.sessionKeyPublicKey,
+      deposit_amount: channel.depositAmount,
+      spent_amount: channel.spentAmount,
+      pending_amount: channel.pendingAmount,
+      settlement_threshold: channel.settlementThreshold,
+      auto_settle_interval: channel.autoSettleInterval,
+      status: channel.status,
+      expires_at: channel.expiresAt,
+      created_at: channel.createdAt,
+    }
   })
-
-  if (error) {
-    throw new Error(`Failed to open payment channel: ${error.message}`)
-  }
 
   return channel
 }
@@ -167,25 +163,19 @@ export async function openPaymentChannel(params: {
  * Get payment channel by ID
  */
 export async function getPaymentChannel(channelId: string): Promise<PaymentChannel | null> {
-  const supabase = await createClient()
+  const channel = await prisma.paymentChannel.findUnique({
+    where: { id: channelId }
+  })
 
-  const { data, error } = await supabase
-    .from("payment_channels")
-    .select("*")
-    .eq("id", channelId)
-    .single()
+  if (!channel) return null
 
-  if (error || !data) return null
-
-  return mapDbToChannel(data)
+  return mapDbToChannel(channel)
 }
 
 /**
  * Close a payment channel (settle remaining and close)
  */
 export async function closePaymentChannel(channelId: string, consumerId: string): Promise<SettlementResult> {
-  const supabase = await createClient()
-
   const channel = await getPaymentChannel(channelId)
   if (!channel) {
     return { success: false, error: "Channel not found" }
@@ -201,13 +191,13 @@ export async function closePaymentChannel(channelId: string, consumerId: string)
   }
 
   // Close channel
-  await supabase
-    .from("payment_channels")
-    .update({
+  await prisma.paymentChannel.update({
+    where: { id: channelId },
+    data: {
       status: "closed",
-      closed_at: new Date().toISOString(),
-    })
-    .eq("id", channelId)
+      closed_at: new Date(),
+    }
+  })
 
   return { success: true, settledAmount: channel.pendingAmount }
 }
@@ -221,8 +211,6 @@ export async function closePaymentChannel(channelId: string, consumerId: string)
  * This is the core function called by the HTTP 402 middleware
  */
 export async function processMicropayment(request: MicropaymentRequest): Promise<MicropaymentResult> {
-  const supabase = await createClient()
-
   // Get channel
   const channel = await getPaymentChannel(request.channelId)
   if (!channel) {
@@ -236,7 +224,10 @@ export async function processMicropayment(request: MicropaymentRequest): Promise
 
   // Check expiration
   if (new Date() > channel.expiresAt) {
-    await supabase.from("payment_channels").update({ status: "expired" }).eq("id", channel.id)
+    await prisma.paymentChannel.update({
+      where: { id: channel.id },
+      data: { status: "expired" }
+    })
     return { success: false, error: "Channel has expired" }
   }
 
@@ -264,24 +255,26 @@ export async function processMicropayment(request: MicropaymentRequest): Promise
   const paymentId = `mp_${generateRandomHex(16)}`
   const newPending = pending + amount
 
-  await supabase.from("channel_payments").insert({
-    id: paymentId,
-    channel_id: channel.id,
-    amount: request.amount,
-    resource: request.resource,
-    metadata: request.metadata ? JSON.stringify(request.metadata) : null,
-    status: "accumulated",
-    created_at: new Date().toISOString(),
-  })
-
-  // Update channel pending amount
-  await supabase
-    .from("payment_channels")
-    .update({
-      pending_amount: newPending.toString(),
-      last_activity_at: new Date().toISOString(),
+  await prisma.$transaction([
+    prisma.channelPayment.create({
+      data: {
+        id: paymentId,
+        channel_id: channel.id,
+        amount: request.amount,
+        resource: request.resource,
+        metadata: request.metadata ? request.metadata as any : undefined,
+        status: "accumulated",
+        created_at: new Date()
+      }
+    }),
+    prisma.paymentChannel.update({
+      where: { id: channel.id },
+      data: {
+        pending_amount: newPending.toString(),
+        last_activity_at: new Date()
+      }
     })
-    .eq("id", channel.id)
+  ])
 
   // Check if settlement threshold reached
   const requiresSettlement = newPending >= parseFloat(channel.settlementThreshold)
@@ -331,8 +324,6 @@ export function generatePaymentRequiredResponse(params: {
  * Settle accumulated payments on-chain
  */
 export async function settleChannel(channelId: string): Promise<SettlementResult> {
-  const supabase = await createClient()
-
   const channel = await getPaymentChannel(channelId)
   if (!channel) {
     return { success: false, error: "Channel not found" }
@@ -344,21 +335,23 @@ export async function settleChannel(channelId: string): Promise<SettlementResult
   }
 
   // Mark channel as settling
-  await supabase
-    .from("payment_channels")
-    .update({ status: "settling" })
-    .eq("id", channelId)
+  await prisma.paymentChannel.update({
+    where: { id: channelId },
+    data: { status: "settling" }
+  })
 
   try {
     // Create settlement record
     const settlementId = `stl_${generateRandomHex(16)}`
 
-    await supabase.from("channel_settlements").insert({
-      id: settlementId,
-      channel_id: channelId,
-      amount: channel.pendingAmount,
-      status: "processing",
-      created_at: new Date().toISOString(),
+    await prisma.channelSettlement.create({
+      data: {
+        id: settlementId,
+        channel_id: channelId,
+        amount: channel.pendingAmount,
+        status: "processing",
+        created_at: new Date()
+      }
     })
 
     // Execute on-chain settlement
@@ -371,37 +364,39 @@ export async function settleChannel(channelId: string): Promise<SettlementResult
     })
 
     // Update settlement record
-    await supabase
-      .from("channel_settlements")
-      .update({
+    await prisma.channelSettlement.update({
+      where: { id: settlementId },
+      data: {
         status: "completed",
         transaction_hash: txHash,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", settlementId)
+        completed_at: new Date()
+      }
+    })
 
     // Update channel payments as settled
-    await supabase
-      .from("channel_payments")
-      .update({
+    await prisma.channelPayment.updateMany({
+      where: {
+        channel_id: channelId,
+        status: "accumulated"
+      },
+      data: {
         status: "settled",
-        settled_in_batch: settlementId,
-      })
-      .eq("channel_id", channelId)
-      .eq("status", "accumulated")
+        settled_in_batch: settlementId
+      }
+    })
 
     // Update channel balances
     const newSpent = parseFloat(channel.spentAmount) + pendingAmount
 
-    await supabase
-      .from("payment_channels")
-      .update({
+    await prisma.paymentChannel.update({
+      where: { id: channelId },
+      data: {
         spent_amount: newSpent.toString(),
         pending_amount: "0",
         status: "open",
-        last_settlement_at: new Date().toISOString(),
-      })
-      .eq("id", channelId)
+        last_settlement_at: new Date()
+      }
+    })
 
     return {
       success: true,
@@ -411,10 +406,10 @@ export async function settleChannel(channelId: string): Promise<SettlementResult
     }
   } catch (error: any) {
     // Revert channel status
-    await supabase
-      .from("payment_channels")
-      .update({ status: "open" })
-      .eq("id", channelId)
+    await prisma.paymentChannel.update({
+      where: { id: channelId },
+      data: { status: "open" }
+    })
 
     return { success: false, error: error.message }
   }
@@ -466,25 +461,18 @@ export async function getConsumerChannels(
   consumerId: string,
   options?: { status?: ChannelStatus; limit?: number },
 ): Promise<PaymentChannel[]> {
-  const supabase = await createClient()
-
-  let query = supabase
-    .from("payment_channels")
-    .select("*")
-    .eq("consumer_id", consumerId)
-    .order("created_at", { ascending: false })
-
+  const where: any = { consumer_id: consumerId };
   if (options?.status) {
-    query = query.eq("status", options.status)
+    where.status = options.status;
   }
 
-  if (options?.limit) {
-    query = query.limit(options.limit)
-  }
+  const channels = await prisma.paymentChannel.findMany({
+    where,
+    orderBy: { created_at: 'desc' },
+    take: options?.limit
+  });
 
-  const { data } = await query
-
-  return (data || []).map(mapDbToChannel)
+  return channels.map(mapDbToChannel);
 }
 
 /**
@@ -494,25 +482,18 @@ export async function getProviderChannels(
   providerId: string,
   options?: { status?: ChannelStatus; limit?: number },
 ): Promise<PaymentChannel[]> {
-  const supabase = await createClient()
-
-  let query = supabase
-    .from("payment_channels")
-    .select("*")
-    .eq("provider_id", providerId)
-    .order("created_at", { ascending: false })
-
+  const where: any = { provider_id: providerId };
   if (options?.status) {
-    query = query.eq("status", options.status)
+    where.status = options.status;
   }
 
-  if (options?.limit) {
-    query = query.limit(options.limit)
-  }
+  const channels = await prisma.paymentChannel.findMany({
+    where,
+    orderBy: { created_at: 'desc' },
+    take: options?.limit
+  });
 
-  const { data } = await query
-
-  return (data || []).map(mapDbToChannel)
+  return channels.map(mapDbToChannel);
 }
 
 /**
@@ -522,23 +503,20 @@ export async function getChannelPayments(
   channelId: string,
   limit = 100,
 ): Promise<ChannelPayment[]> {
-  const supabase = await createClient()
+  const payments = await prisma.channelPayment.findMany({
+    where: { channel_id: channelId },
+    orderBy: { created_at: 'desc' },
+    take: limit
+  });
 
-  const { data } = await supabase
-    .from("channel_payments")
-    .select("*")
-    .eq("channel_id", channelId)
-    .order("created_at", { ascending: false })
-    .limit(limit)
-
-  return (data || []).map((d) => ({
+  return payments.map((d) => ({
     id: d.id,
     channelId: d.channel_id,
     amount: d.amount,
     resource: d.resource,
-    status: d.status,
-    settledInBatch: d.settled_in_batch,
-    createdAt: new Date(d.created_at),
+    status: d.status as any,
+    settledInBatch: d.settled_in_batch || undefined,
+    createdAt: d.created_at,
   }))
 }
 
@@ -551,12 +529,10 @@ export async function getChannelStats(channelId: string): Promise<{
   avgPaymentAmount: string
   pendingSettlement: string
 }> {
-  const supabase = await createClient()
-
-  const { data: payments } = await supabase
-    .from("channel_payments")
-    .select("amount")
-    .eq("channel_id", channelId)
+  const payments = await prisma.channelPayment.findMany({
+    where: { channel_id: channelId },
+    select: { amount: true }
+  });
 
   const channel = await getPaymentChannel(channelId)
 
@@ -612,14 +588,13 @@ export async function checkPaymentRequired(
 
   // If not found, try to find by session key
   if (!channel) {
-    const supabase = await createClient()
-    const { data } = await supabase
-      .from("payment_channels")
-      .select("*")
-      .eq("session_key_public_key", sessionKeyOrChannelId)
-      .eq("provider_id", providerId)
-      .eq("status", "open")
-      .single()
+    const data = await prisma.paymentChannel.findFirst({
+        where: {
+            session_key_public_key: sessionKeyOrChannelId,
+            provider_id: providerId,
+            status: "open"
+        }
+    });
 
     if (data) {
       channel = mapDbToChannel(data)

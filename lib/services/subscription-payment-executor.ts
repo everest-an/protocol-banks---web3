@@ -19,7 +19,7 @@ import {
 import { agentX402Service } from './agent-x402-service'
 import { notificationService } from './notification-service'
 import { relayerService, isRelayerConfigured } from './relayer-service'
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 import type { Hex, Address } from 'viem'
 
@@ -233,33 +233,30 @@ export class SubscriptionPaymentExecutor {
     authorization: TransferWithAuthorization
   ): Promise<string> {
     try {
-      const supabase = await createClient()
-
       // Look up stored authorization signature for this subscription
-      const { data, error } = await supabase
-        .from('subscription_authorizations')
-        .select('signature')
-        .eq('subscription_id', subscriptionId)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      const auth = await prisma.subscriptionAuthorization.findFirst({
+        where: {
+            subscription_id: subscriptionId,
+            status: 'active'
+        },
+        orderBy: { created_at: 'desc' }
+      });
 
-      if (!error && data?.signature) {
-        return data.signature
+      if (auth?.signature) {
+        return auth.signature
       }
 
       // Fallback: check x402_authorizations table for a matching pre-authorization
-      const { data: x402Data } = await supabase
-        .from('x402_authorizations')
-        .select('signature')
-        .eq('from_address', authorization.from.toLowerCase())
-        .eq('to_address', authorization.to.toLowerCase())
-        .eq('status', 'signed')
-        .gt('valid_before', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      const now = new Date();
+      const x402Data = await prisma.x402Authorization.findFirst({
+        where: {
+            from_address: authorization.from.toLowerCase(),
+            to_address: authorization.to.toLowerCase(),
+            status: 'signed',
+            valid_before: { gt: now }
+        },
+        orderBy: { created_at: 'desc' }
+      });
 
       if (x402Data?.signature) {
         return x402Data.signature
