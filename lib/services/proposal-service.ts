@@ -833,26 +833,13 @@ export class ProposalService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: normalizedOwner,
+        const count = await prisma.paymentProposal.count({
+            where: {
+                owner_address: normalizedOwner,
+                status: 'pending'
+            }
         });
-
-        const { count, error } = await supabase
-          .from('payment_proposals')
-          .select('*', { count: 'exact', head: true })
-          .eq('owner_address', normalizedOwner)
-          .eq('status', 'pending');
-
-        if (error) {
-          console.error('[Proposal Service] Get pending count error:', error);
-          throw new Error(`Failed to get pending count: ${error.message}`);
-        }
-
-        return count || 0;
+        return count;
       } catch (error) {
         console.error('[Proposal Service] Failed to get pending count:', error);
         throw error;
