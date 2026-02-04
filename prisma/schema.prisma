@@ -62,9 +62,76 @@ model Payment {
   notes        String?
   amount_usd   Float?
   is_external  Boolean   @default(false)
+  tags         String[]  @default([])
+  vendor_id    String?
+
+  vendor       Vendor?   @relation(fields: [vendor_id], references: [id])
 
   @@index([created_by])
   @@index([status])
   @@index([type])
+  @@index([vendor_id])
   @@map("payments")
+}
+
+model Vendor {
+  id                String    @id @default(uuid())
+  name              String
+  wallet_address    String
+  owner_address     String
+  company_name      String?
+  category          String?   // "subsidiary" | "partner"
+  monthly_volume    String?
+  transaction_count Int       @default(0)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  payments          Payment[]
+
+  @@map("vendors")
+}
+
+model ApiKey {
+  id            String    @id @default(uuid())
+  name          String
+  key_hash      String    @unique
+  key_prefix    String
+  owner_address String
+  permissions   String[]  // Array of permissions
+  rate_limit_per_minute Int @default(60)
+  rate_limit_per_day    Int @default(1000)
+  allowed_ips    String[] @default([])
+  allowed_origins String[] @default([])
+  usage_count    Int      @default(0)
+  is_active      Boolean  @default(true)
+  expires_at     DateTime?
+  last_used_at   DateTime?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([key_prefix])
+  @@index([owner_address])
+  @@map("api_keys")
+}
+
+model NotificationPreference {
+  id              String   @id @default(uuid())
+  user_address    String   @unique
+  preferences     Json     // Stores all boolean flags
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+model PushSubscription {
+  id           String   @id @default(uuid())
+  user_address String
+  endpoint     String   @unique
+  p256dh       String
+  auth         String
+  created_at   DateTime @default(now())
+
+  @@index([user_address])
+  @@map("push_subscriptions")
 }
