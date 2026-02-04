@@ -382,9 +382,9 @@ export class WebhookService {
       errorMessage?: string;
     } = {}
   ): Promise<void> {
-    const updateData: Record<string, any> = {
+    const updateData: any = {
       status,
-      last_attempt_at: new Date().toISOString(),
+      last_attempt_at: new Date(),
     };
 
     if (details.responseStatus !== undefined) {
@@ -398,15 +398,14 @@ export class WebhookService {
     }
 
     if (status === 'delivered') {
-      updateData.delivered_at = new Date().toISOString();
+      updateData.delivered_at = new Date();
     }
 
     // Get current delivery to increment attempts
-    const { data: delivery } = await this.supabase
-      .from('webhook_deliveries')
-      .select('attempts')
-      .eq('id', deliveryId)
-      .single();
+    const delivery = await prisma.webhookDelivery.findUnique({
+      where: { id: deliveryId },
+      select: { attempts: true }
+    });
 
     if (delivery) {
       updateData.attempts = delivery.attempts + 1;
@@ -416,34 +415,43 @@ export class WebhookService {
       }
     }
 
-    const { error } = await this.supabase
-      .from('webhook_deliveries')
-      .update(updateData)
-      .eq('id', deliveryId);
-
-    if (error) {
-      throw new Error(`Failed to update delivery status: ${error.message}`);
-    }
+    await prisma.webhookDelivery.update({
+      where: { id: deliveryId },
+      data: updateData
+    });
   }
 
   /**
    * Get pending deliveries for retry
    */
   async getPendingDeliveries(limit: number = 100): Promise<WebhookDelivery[]> {
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const { data, error } = await this.supabase
-      .from('webhook_deliveries')
-      .select('*')
-      .or(`status.eq.pending,and(status.eq.retrying,next_retry_at.lte.${now})`)
-      .order('created_at', { ascending: true })
-      .limit(limit);
+    const deliveries = await prisma.webhookDelivery.findMany({
+      where: {
+        OR: [
+          { status: 'pending' },
+          {
+            status: 'retrying',
+            next_retry_at: {
+              lte: now
+            }
+          }
+        ]
+      },
+      orderBy: { created_at: 'asc' },
+      take: limit
+    });
 
-    if (error) {
-      throw new Error(`Failed to get pending deliveries: ${error.message}`);
-    }
-
-    return (data || []) as WebhookDelivery[];
+    return deliveries.map((d: any) => ({
+      ...d,
+      event_type: d.event_type as WebhookEvent,
+      status: d.status as any,
+      created_at: d.created_at.toISOString(),
+      delivered_at: d.delivered_at?.toISOString(),
+      last_attempt_at: d.last_attempt_at?.toISOString(),
+      next_retry_at: d.next_retry_at?.toISOString()
+    }));
   }
 }
 

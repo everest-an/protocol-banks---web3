@@ -3,7 +3,7 @@
  * Manages teams and team member permissions (Owner/Viewer)
  */
 
-import { createClient } from '@/lib/supabase-client';
+import { prisma } from '@/lib/prisma';
 import type {
   Team,
   TeamMember,
@@ -23,7 +23,7 @@ import type {
 // ============================================
 
 export class TeamService {
-  private supabase = createClient();
+  constructor() {}
 
   // ============================================
   // Alias Methods for API Compatibility
@@ -54,79 +54,97 @@ export class TeamService {
     ownerAddress: string,
     input: CreateTeamInput
   ): Promise<Team> {
-    const { data, error } = await this.supabase
-      .from('teams')
-      .insert({
-        name: input.name,
-        description: input.description,
-        owner_address: ownerAddress,
-      })
-      .select()
-      .single();
+    
+    const result = await prisma.$transaction(async (tx) => {
+        // Create team
+        const team = await tx.team.create({
+            data: {
+                name: input.name,
+                description: input.description,
+                owner_address: ownerAddress,
+            }
+        });
 
-    if (error) throw new Error(`Failed to create team: ${error.message}`);
+        // Add owner as member
+        await tx.teamMember.create({
+            data: {
+                team_id: team.id,
+                member_address: ownerAddress,
+                role: 'owner',
+                status: 'active',
+                invited_by: ownerAddress,
+                accepted_at: new Date(),
+            }
+        });
 
-    // Auto-add owner as a member with 'owner' role
-    await this.supabase.from('team_members').insert({
-      team_id: data.id,
-      member_address: ownerAddress,
-      role: 'owner',
-      status: 'active',
-      invited_by: ownerAddress,
-      accepted_at: new Date().toISOString(),
+        // Log action (will handle this separately or inline if logAction logic is simple)
+        // Reusing logAction helper logic here manually because it's private and async
+        await tx.teamAuditLog.create({
+            data: {
+                team_id: team.id,
+                user_address: ownerAddress,
+                action: 'team_created',
+                details: { name: input.name },
+            }
+        });
+
+        return team;
     });
 
-    // Log the action
-    await this.logAction(data.id, ownerAddress, 'team_created', { name: input.name });
-
-    return data;
+    return {
+        ...result,
+        created_at: result.created_at.toISOString(),
+        updated_at: result.updated_at.toISOString()
+    };
   }
 
   /**
    * Get team by ID
    */
   async getTeam(teamId: string): Promise<Team | null> {
-    const { data, error } = await this.supabase
-      .from('teams')
-      .select('*')
-      .eq('id', teamId)
-      .single();
+    const team = await prisma.team.findUnique({
+      where: { id: teamId }
+    });
 
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to get team: ${error.message}`);
-    }
+    if (!team) return null;
 
-    return data;
+    return {
+        ...team,
+        created_at: team.created_at.toISOString(),
+        updated_at: team.updated_at.toISOString()
+    };
   }
 
   /**
    * Get team with members
    */
   async getTeamWithMembers(teamId: string): Promise<TeamWithMembers | null> {
-    const { data: team, error: teamError } = await this.supabase
-      .from('teams')
-      .select('*')
-      .eq('id', teamId)
-      .single();
+    const team = await prisma.team.findUnique({
+      where: { id: teamId }
+    });
 
-    if (teamError) {
-      if (teamError.code === 'PGRST116') return null;
-      throw new Error(`Failed to get team: ${teamError.message}`);
-    }
+    if (!team) return null;
 
-    const { data: members, error: membersError } = await this.supabase
-      .from('team_members')
-      .select('*')
-      .eq('team_id', teamId)
-      .neq('status', 'removed')
-      .order('invited_at', { ascending: true });
+    const members = await prisma.teamMember.findMany({
+      where: {
+        team_id: teamId,
+        status: { not: 'removed' }
+      },
+      orderBy: { invited_at: 'asc' }
+    });
 
-    if (membersError) throw new Error(`Failed to get members: ${membersError.message}`);
+    const mappedMembers: TeamMember[] = members.map(m => ({
+        ...m,
+        invited_at: m.invited_at.toISOString(),
+        accepted_at: m.accepted_at ? m.accepted_at.toISOString() : undefined,
+        status: m.status as MemberStatus
+    }));
 
     return {
       ...team,
-      members: members || [],
+      created_at: team.created_at.toISOString(),
+      updated_at: team.updated_at.toISOString(),
+      members: mappedMembers,
     };
   }
 
@@ -144,21 +162,21 @@ export class TeamService {
       throw new Error('Only team owners can update team settings');
     }
 
-    const { data, error } = await this.supabase
-      .from('teams')
-      .update({
+    const team = await prisma.team.update({
+      where: { id: teamId },
+      data: {
         ...input,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', teamId)
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to update team: ${error.message}`);
+        updated_at: new Date(),
+      }
+    });
 
     await this.logAction(teamId, userAddress, 'team_updated', input as Record<string, unknown>);
 
-    return data;
+    return {
+        ...team,
+        created_at: team.created_at.toISOString(),
+        updated_at: team.updated_at.toISOString()
+    };
   }
 
   /**
@@ -171,12 +189,9 @@ export class TeamService {
       throw new Error('Only the team owner can delete the team');
     }
 
-    const { error } = await this.supabase
-      .from('teams')
-      .delete()
-      .eq('id', teamId);
-
-    if (error) throw new Error(`Failed to delete team: ${error.message}`);
+    await prisma.team.delete({
+      where: { id: teamId }
+    });
   }
 
   /**
@@ -184,42 +199,34 @@ export class TeamService {
    */
   async listTeamsForUser(userAddress: string): Promise<Team[]> {
     // Get teams where user is owner
-    const { data: ownedTeams, error: ownedError } = await this.supabase
-      .from('teams')
-      .select('*')
-      .eq('owner_address', userAddress);
-
-    if (ownedError) throw new Error(`Failed to list owned teams: ${ownedError.message}`);
+    const ownedTeams = await prisma.team.findMany({
+      where: { owner_address: userAddress }
+    });
 
     // Get teams where user is a member
-    const { data: memberTeams, error: memberError } = await this.supabase
-      .from('team_members')
-      .select('team_id')
-      .eq('member_address', userAddress)
-      .eq('status', 'active');
+    const memberTeams = await prisma.teamMember.findMany({
+      where: {
+        member_address: userAddress,
+        status: 'active'
+      },
+      include: {
+        team: true
+      }
+    });
 
-    if (memberError) throw new Error(`Failed to list member teams: ${memberError.message}`);
-
-    const memberTeamIds = memberTeams?.map((m: any) => m.team_id) || [];
-
-    if (memberTeamIds.length === 0) {
-      return ownedTeams || [];
-    }
-
-    const { data: memberTeamData, error: teamDataError } = await this.supabase
-      .from('teams')
-      .select('*')
-      .in('id', memberTeamIds);
-
-    if (teamDataError) throw new Error(`Failed to get member team data: ${teamDataError.message}`);
+    const memberTeamData = memberTeams.map(mt => mt.team);
 
     // Merge and deduplicate
-    const allTeams = [...(ownedTeams || []), ...(memberTeamData || [])];
+    const allTeams = [...ownedTeams, ...memberTeamData];
     const uniqueTeams = allTeams.filter(
       (team, index, self) => index === self.findIndex((t) => t.id === team.id)
     );
 
-    return uniqueTeams;
+    return uniqueTeams.map(t => ({
+        ...t,
+        created_at: t.created_at.toISOString(),
+        updated_at: t.updated_at.toISOString()
+    }));
   }
 
   // ============================================
@@ -241,71 +248,92 @@ export class TeamService {
     }
 
     // Check if member already exists
-    const { data: existing } = await this.supabase
-      .from('team_members')
-      .select('*')
-      .eq('team_id', teamId)
-      .eq('member_address', input.member_address)
-      .single();
+    const existing = await prisma.teamMember.findUnique({
+      where: {
+        team_id_member_address: {
+            team_id: teamId,
+            member_address: input.member_address
+        }
+      }
+    });
 
     if (existing && existing.status !== 'removed') {
       throw new Error('Member already exists in the team');
     }
 
     // Create or update member
-    const memberData = {
-      team_id: teamId,
-      member_address: input.member_address,
-      role: input.role,
-      status: 'pending' as MemberStatus,
-      invited_by: inviterAddress,
-      invited_at: new Date().toISOString(),
-    };
-
-    const { data, error } = existing
-      ? await this.supabase
-          .from('team_members')
-          .update(memberData)
-          .eq('id', existing.id)
-          .select()
-          .single()
-      : await this.supabase
-          .from('team_members')
-          .insert(memberData)
-          .select()
-          .single();
-
-    if (error) throw new Error(`Failed to invite member: ${error.message}`);
+    const member = await prisma.teamMember.upsert({
+      where: {
+        team_id_member_address: {
+            team_id: teamId,
+            member_address: input.member_address
+        }
+      },
+      update: {
+        role: input.role,
+        status: 'pending',
+        invited_by: inviterAddress,
+        invited_at: new Date(),
+      },
+      create: {
+        team_id: teamId,
+        member_address: input.member_address,
+        role: input.role,
+        status: 'pending',
+        invited_by: inviterAddress,
+        invited_at: new Date(),
+      }
+    });
 
     await this.logAction(teamId, inviterAddress, 'member_invited', {
       member_address: input.member_address,
       role: input.role,
     });
 
-    return data;
+    return {
+        ...member,
+        invited_at: member.invited_at.toISOString(),
+        accepted_at: member.accepted_at?.toISOString(),
+        status: member.status as MemberStatus
+    };
   }
 
   /**
    * Accept team invitation
    */
   async acceptInvitation(teamId: string, memberAddress: string): Promise<TeamMember> {
-    const { data, error } = await this.supabase
-      .from('team_members')
-      .update({
-        status: 'active',
-        accepted_at: new Date().toISOString(),
-      })
-      .eq('team_id', teamId)
-      .eq('member_address', memberAddress)
-      .eq('status', 'pending')
-      .select()
-      .single();
+    
+    // Check pending status first to ensure we are updating a pending invite
+    const existing = await prisma.teamMember.findFirst({
+        where: {
+            team_id: teamId,
+            member_address: memberAddress,
+            status: 'pending'
+        }
+    });
 
-    if (error) throw new Error(`Failed to accept invitation: ${error.message}`);
+    if (!existing) {
+        throw new Error('No pending invitation found');
+    }
+
+    const member = await prisma.teamMember.update({
+      where: {
+        id: existing.id
+      },
+      data: {
+        status: 'active',
+        accepted_at: new Date(),
+      }
+    });
 
     await this.logAction(teamId, memberAddress, 'member_accepted', {});
 
-    return data;
+    return {
+        ...member,
+        invited_at: member.invited_at.toISOString(),
+        accepted_at: member.accepted_at?.toISOString(),
+        status: member.status as MemberStatus
+    };
   }
 
   /**
@@ -328,13 +356,13 @@ export class TeamService {
       throw new Error('Cannot remove the original team owner');
     }
 
-    const { error } = await this.supabase
-      .from('team_members')
-      .update({ status: 'removed' })
-      .eq('team_id', teamId)
-      .eq('member_address', memberAddress);
-
-    if (error) throw new Error(`Failed to remove member: ${error.message}`);
+    await prisma.teamMember.updateMany({
+      where: {
+        team_id: teamId,
+        member_address: memberAddress
+      },
+      data: { status: 'removed' }
+    });
 
     await this.logAction(teamId, removerAddress, 'member_removed', {
       member_address: memberAddress,
@@ -362,37 +390,62 @@ export class TeamService {
       throw new Error('Cannot demote the original team owner');
     }
 
-    const { data, error } = await this.supabase
-      .from('team_members')
-      .update({ role: newRole })
-      .eq('team_id', teamId)
-      .eq('member_address', memberAddress)
-      .select()
-      .single();
+    // Use updateMany trick or find first then update
+    // Prefer find first + update as updateMany doesn't return data
+    const memberRecord = await prisma.teamMember.findFirst({
+        where: {
+            team_id: teamId,
+            member_address: memberAddress
+        }
+    });
 
-    if (error) throw new Error(`Failed to change role: ${error.message}`);
+    if (!memberRecord) {
+        throw new Error('Member not found');
+    }
+
+    const member = await prisma.teamMember.update({
+      where: { id: memberRecord.id },
+      data: { role: newRole }
+    });
 
     await this.logAction(teamId, changerAddress, 'role_changed', {
       member_address: memberAddress,
       new_role: newRole,
     });
 
-    return data;
+    return {
+        ...member,
+        invited_at: member.invited_at.toISOString(),
+        accepted_at: member.accepted_at?.toISOString(),
+        status: member.status as MemberStatus
+    };
   }
 
   /**
    * Get pending invitations for a user
    */
   async getPendingInvitations(userAddress: string): Promise<(TeamMember & { team: Team })[]> {
-    const { data, error } = await this.supabase
-      .from('team_members')
-      .select('*, team:teams(*)')
-      .eq('member_address', userAddress)
-      .eq('status', 'pending');
+    const invitations = await prisma.teamMember.findMany({
+      where: {
+        member_address: userAddress,
+        status: 'pending'
+      },
+      include: {
+        team: true
+      }
+    });
 
-    if (error) throw new Error(`Failed to get invitations: ${error.message}`);
-
-    return data || [];
+    return invitations.map(inv => ({
+        ...inv,
+        invited_at: inv.invited_at.toISOString(),
+        accepted_at: inv.accepted_at?.toISOString(),
+        status: inv.status as MemberStatus,
+        team: {
+            ...inv.team,
+            created_at: inv.team.created_at.toISOString(),
+            updated_at: inv.team.updated_at.toISOString()
+        }
+    }));
   }
 
   // ============================================
@@ -408,50 +461,51 @@ export class TeamService {
     if (team?.owner_address === userAddress) return true;
 
     // Check if user has owner role
-    const { data } = await this.supabase
-      .from('team_members')
-      .select('role')
-      .eq('team_id', teamId)
-      .eq('member_address', userAddress)
-      .eq('status', 'active')
-      .eq('role', 'owner')
-      .single();
+    const member = await prisma.teamMember.findFirst({
+        where: {
+            team_id: teamId,
+            member_address: userAddress,
+            status: 'active',
+            role: 'owner'
+        }
+    });
 
-    return !!data;
+    return !!member;
   }
 
   /**
    * Check if user is a team member
    */
   async isTeamMember(teamId: string, userAddress: string): Promise<boolean> {
-    const { data } = await this.supabase
-      .from('team_members')
-      .select('id')
-      .eq('team_id', teamId)
-      .eq('member_address', userAddress)
-      .eq('status', 'active')
-      .single();
+    const member = await prisma.teamMember.findFirst({
+        where: {
+            team_id: teamId,
+            member_address: userAddress,
+            status: 'active'
+        }
+    });
 
-    return !!data;
+    return !!member;
   }
 
   /**
    * Get user's permissions for a team
    */
   async getPermissions(teamId: string, userAddress: string): Promise<TeamPermission> {
-    const member = await this.supabase
-      .from('team_members')
-      .select('role')
-      .eq('team_id', teamId)
-      .eq('member_address', userAddress)
-      .eq('status', 'active')
-      .single();
+    const member = await prisma.teamMember.findFirst({
+        where: {
+            team_id: teamId,
+            member_address: userAddress,
+            status: 'active'
+        },
+        select: { role: true }
+    });
 
-    if (!member.data) {
+    if (!member) {
       return { can_read: false, can_write: false, role: null };
     }
 
-    const role = member.data.role as TeamRole;
+    const role = member.role as TeamRole;
     return {
       can_read: true,
       can_write: role === 'owner',
@@ -472,11 +526,13 @@ export class TeamService {
     action: TeamAuditAction,
     details: Record<string, unknown>
   ): Promise<void> {
-    await this.supabase.from('team_audit_logs').insert({
+    await prisma.teamAuditLog.create({
+        data: {
       team_id: teamId,
       user_address: userAddress,
       action,
       details,
+        }
     });
   }
 
@@ -487,16 +543,17 @@ export class TeamService {
     teamId: string,
     limit: number = 50
   ): Promise<TeamAuditLog[]> {
-    const { data, error } = await this.supabase
-      .from('team_audit_logs')
-      .select('*')
-      .eq('team_id', teamId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw new Error(`Failed to get audit logs: ${error.message}`);
-
-    return data || [];
+    const logs = await prisma.teamAuditLog.findMany({
+      where: { team_id: teamId },
+      orderBy: { created_at: 'desc' },
+      take: limit
+    });
+    
+    return logs.map(l => ({
+        ...l,
+        created_at: l.created_at.toISOString(),
+        details: l.details || {}
+    }));
   }
 }
 
