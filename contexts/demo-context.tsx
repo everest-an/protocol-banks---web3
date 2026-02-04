@@ -14,17 +14,18 @@ interface DemoContextType {
 const DemoContext = createContext<DemoContextType | undefined>(undefined)
 
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [isDemoMode, setIsDemoMode] = useState(false)
+  // Default to test mode when no wallet is connected
+  const [isDemoMode, setIsDemoMode] = useState(true)
   const [demoModeBlocked, setDemoModeBlocked] = useState(false)
   const [demoBlockReason, setDemoBlockReason] = useState<string | null>(null)
   const [walletConnected, setWalletConnectedState] = useState(false)
 
   useEffect(() => {
     const allowDemoMode = process.env.NEXT_PUBLIC_ALLOW_DEMO_MODE
-    // Only completely disable demo mode if explicitly set to "false"
+    // Only completely disable test mode if explicitly set to "false"
     if (allowDemoMode === "false") {
       setDemoModeBlocked(true)
-      setDemoBlockReason("Demo mode is disabled in production")
+      setDemoBlockReason("Test mode is disabled in production")
       setIsDemoMode(false)
     }
   }, [])
@@ -34,12 +35,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     if (connected) {
       // Wallet connected, switch to real mode
       setIsDemoMode(false)
+    } else {
+      // Wallet disconnected, auto-enable test mode
+      setIsDemoMode(true)
     }
   }
 
   const toggleDemoMode = () => {
     if (walletConnected && !isDemoMode) {
-      console.warn("[v0] Cannot enable demo mode when wallet is connected")
+      console.warn("[v0] Cannot enable test mode when wallet is connected")
       return
     }
 
@@ -50,9 +54,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     )
 
     if (!result.allowed) {
-      console.warn("[v0] Demo mode toggle blocked:", result.error)
+      console.warn("[v0] Test mode toggle blocked:", result.error)
       setDemoModeBlocked(true)
-      setDemoBlockReason(result.error || "Demo mode toggle not allowed")
+      setDemoBlockReason(result.error || "Test mode toggle not allowed")
       return
     }
 

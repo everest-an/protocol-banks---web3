@@ -107,7 +107,7 @@ export function Header() {
                   })}
                 </div>
 
-                {/* Demo Toggle */}
+                {/* Test Toggle */}
                 <div className="pt-4 border-t border-border">
                   <Button
                     variant="outline"
@@ -125,12 +125,12 @@ export function Header() {
                     {isDemoMode ? (
                       <>
                         <StopCircle className="mr-2 h-4 w-4" />
-                        Exit Demo Mode
+                        Exit Test Mode
                       </>
                     ) : (
                       <>
                         <Play className="mr-2 h-4 w-4" />
-                        Try Demo Mode
+                        Try Test Mode
                       </>
                     )}
                   </Button>
@@ -154,10 +154,34 @@ export function Header() {
               variant="outline"
               className="hidden lg:inline-flex border-primary text-primary animate-pulse whitespace-nowrap text-xs"
             >
-              DEMO
+              TEST
             </Badge>
           )}
         </div>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-1">
+          {navItems
+            .filter((item) => item.href !== "/" && item.href !== "/products")
+            .map((item) => {
+              const Icon = item.icon
+              const isActive = isActivePath(item.href)
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    size="sm"
+                    className={`gap-1.5 text-xs ${
+                      isActive ? "font-medium" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {item.label}
+                  </Button>
+                </Link>
+              )
+            })}
+        </nav>
 
         <div className="flex items-center gap-2 shrink-0">
           <SoundSettings />
@@ -175,12 +199,12 @@ export function Header() {
             {isDemoMode ? (
               <>
                 <StopCircle className="mr-2 h-4 w-4" />
-                <span className="hidden lg:inline">Exit Demo</span>
+                <span className="hidden lg:inline">Exit Test</span>
               </>
             ) : (
               <>
                 <Play className="mr-2 h-4 w-4" />
-                <span className="hidden lg:inline">Try Demo</span>
+                <span className="hidden lg:inline">Try Test</span>
               </>
             )}
           </Button>

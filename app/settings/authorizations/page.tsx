@@ -160,7 +160,7 @@ export default function AuthorizationsPage() {
       setAuthorizations((prev) =>
         prev.map((a) => (a.id === auth.id ? { ...a, status: "cancelled" as const } : a))
       )
-      toast({ title: "Success", description: "Authorization cancelled (Demo)" })
+      toast({ title: "Success", description: "Authorization cancelled (Test)" })
       return
     }
 

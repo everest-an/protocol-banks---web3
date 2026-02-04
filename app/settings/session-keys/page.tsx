@@ -150,7 +150,7 @@ export default function SessionKeysPage() {
         total_transactions: 0,
       }
       setSessionKeys((prev) => [newKey, ...prev])
-      toast({ title: "Success", description: "Session key created (Demo)" })
+      toast({ title: "Success", description: "Session key created (Test)" })
       setCreateDialogOpen(false)
       return
     }
@@ -187,7 +187,7 @@ export default function SessionKeysPage() {
       setSessionKeys((prev) =>
         prev.map((k) => (k.id === key.id ? { ...k, is_active: !k.is_active } : k))
       )
-      toast({ title: "Success", description: `Session key ${key.is_active ? "deactivated" : "activated"} (Demo)` })
+      toast({ title: "Success", description: `Session key ${key.is_active ? "deactivated" : "activated"} (Test)` })
       return
     }
 
@@ -214,7 +214,7 @@ export default function SessionKeysPage() {
 
     if (isDemoMode) {
       setSessionKeys((prev) => prev.filter((k) => k.id !== selectedKey.id))
-      toast({ title: "Success", description: "Session key deleted (Demo)" })
+      toast({ title: "Success", description: "Session key deleted (Test)" })
       setDeleteDialogOpen(false)
       setSelectedKey(null)
       return

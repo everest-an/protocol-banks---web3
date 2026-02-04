@@ -553,7 +553,7 @@ export default function BatchPaymentPage() {
         updateRecipient(editingRecipientId, "address", newVendor.wallet_address)
       }
 
-      toast({ title: "Success", description: "Wallet tagged successfully (Demo Mode)" })
+      toast({ title: "Success", description: "Wallet tagged successfully (Test Mode)" })
       setTagDialogOpen(false)
       return
     }

@@ -112,8 +112,8 @@ export const POST = withPaymentRequired({
  */
 export async function GET() {
   return NextResponse.json({
-    name: "AI Demo API",
-    description: "Demo API protected by HTTP 402 Payment Required",
+    name: "AI Test API",
+    description: "Test API protected by HTTP 402 Payment Required",
     pricing: {
       pricePerRequest: "0.05",
       currency: "USDC",

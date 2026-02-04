@@ -230,7 +230,7 @@ export function useBatchPayment(): UseBatchPaymentReturn {
 
           toast({
             title: "Batch Payment Complete",
-            description: `${recipients.length} payments successful (Demo Mode)`,
+            description: `${recipients.length} payments successful (Test Mode)`,
           })
           return
         }

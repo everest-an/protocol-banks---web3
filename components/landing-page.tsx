@@ -46,7 +46,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               </Button>
               <Button size="lg" variant="outline" onClick={onTryDemo} className="text-base px-8 py-6">
                 <Play className="mr-2 h-4 w-4" />
-                Try Live Demo
+                Try Live Test
               </Button>
               <Link href="/contact">
                 <Button size="lg" variant="ghost" className="text-base px-8 py-6 text-muted-foreground w-full sm:w-auto">
@@ -415,7 +415,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </Button>
             <Button size="lg" variant="outline" onClick={onTryDemo} className="text-base px-8 py-6">
               <Play className="mr-2 h-4 w-4" />
-              Explore Demo
+              Explore Test
             </Button>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mt-8 text-sm text-muted-foreground">

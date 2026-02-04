@@ -109,7 +109,7 @@ export default function SubscriptionsPage() {
 
   const handlePayNow = async (subscription: Subscription) => {
     if (isDemoMode) {
-      toast({ title: "Demo", description: "Payment simulated successfully" })
+      toast({ title: "Test", description: "Payment simulated successfully" })
       return
     }
 

@@ -236,7 +236,7 @@ export async function GET(request: NextRequest) {
         amount: '100.00',
         token: 'USDC',
         description: 'Payment for services',
-        merchant_name: 'Protocol Banks Demo',
+        merchant_name: 'Protocol Banks Test',
         recipient_address: '0x1234567890abcdef1234567890abcdef12345678',
         status: 'pending',
         amount_fiat: '100.00',

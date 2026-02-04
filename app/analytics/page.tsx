@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
       timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
       status: "completed",
       tags: Math.random() > 0.7 ? ["Tag", "Monthly"] : [],
-      vendor: { name: `Demo Tag ${i + 1}` },
+      vendor: { name: `Test Tag ${i + 1}` },
     }))
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
@@ -761,7 +761,7 @@ export default function AnalyticsPage() {
               <CardTitle className="text-foreground">Recent Payments</CardTitle>
               <CardDescription className="text-muted-foreground">
                 {isDemoMode
-                  ? "Showing demo transaction data"
+                  ? "Showing test transaction data"
                   : displayPayments.length === payments.length
                     ? `Your last ${displayPayments.length} transactions`
                     : `Showing ${displayPayments.length} filtered transactions`}

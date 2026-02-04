@@ -320,7 +320,7 @@ export default function CardPage() {
     cvv: "742",
     balance: 2450.0,
     spendLimit: 10000,
-    cardholderName: "DEMO USER",
+    cardholderName: "TEST USER",
   })
 
   const [formData, setFormData] = useState({

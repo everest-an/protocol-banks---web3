@@ -26,23 +26,23 @@ export const metadata: Metadata = {
   title: "Protocol Banks - Crypto Batch Payment Platform",
   description:
     "Efficiently manage and execute batch cryptocurrency payments with vendor tracking and financial analytics",
-  generator: "v0.app",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Protocol Banks",
-    startupImage: "/logo.png",
+    startupImage: "/apple-icon.png",
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
     icon: [
-      { url: "/logo.png", sizes: "32x32", type: "image/png" },
-      { url: "/logo.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-dark-32x32.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-light-32x32.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
     ],
-    shortcut: "/logo.png",
+    shortcut: "/icon-dark-32x32.png",
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
@@ -75,7 +75,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Protocol Banks" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
-        <link rel="apple-touch-startup-image" href="/logo.png" />
+        <link rel="apple-touch-startup-image" href="/apple-icon.png" />
       </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
