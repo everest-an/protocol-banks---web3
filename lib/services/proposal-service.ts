@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { notificationService } from './notification-service';
 
 // ============================================
@@ -164,26 +164,31 @@ export class ProposalService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: input.owner_address.toLowerCase(),
+        const data = await prisma.paymentProposal.create({
+          data: {
+            agent_id: input.agent_id,
+            owner_address: input.owner_address.toLowerCase(),
+            recipient_address: input.recipient_address.toLowerCase(),
+            amount: input.amount,
+            token: input.token.toUpperCase(),
+            chain_id: input.chain_id,
+            reason: input.reason,
+            metadata: input.metadata || undefined,
+            status: 'pending',
+            budget_id: input.budget_id,
+          }
         });
 
-        const { data, error } = await supabase
-          .from('payment_proposals')
-          .insert(proposalData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Proposal Service] Insert error:', error);
-          throw new Error(`Failed to create proposal: ${error.message}`);
-        }
-
-        proposal = convertDbProposal(data);
+        proposal = {
+            ...data,
+            reason: data.reason || "",
+            status: data.status as ProposalStatus,
+            metadata: (data.metadata as Record<string, any>) || undefined,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            approved_at: data.approved_at || undefined,
+            executed_at: data.executed_at || undefined
+        };
       } catch (error) {
         console.error('[Proposal Service] Failed to create proposal:', error);
         throw error;
@@ -265,48 +270,40 @@ export class ProposalService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const where: any = {
+            owner_address: normalizedOwner
+        };
 
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: normalizedOwner,
-        });
-
-        let query = supabase
-          .from('payment_proposals')
-          .select('*')
-          .eq('owner_address', normalizedOwner);
-
-        // Apply filters
         if (filters?.status) {
-          query = query.eq('status', filters.status);
+            where.status = filters.status;
         }
         if (filters?.agentId) {
-          query = query.eq('agent_id', filters.agentId);
+            where.agent_id = filters.agentId;
         }
         if (filters?.startDate) {
-          query = query.gte('created_at', filters.startDate.toISOString());
+            where.created_at = { gte: filters.startDate };
         }
         if (filters?.endDate) {
-          query = query.lte('created_at', filters.endDate.toISOString());
+            where.created_at = { lte: filters.endDate };
         }
 
-        // Sort and paginate
-        query = query.order('created_at', { ascending: false });
+        const data = await prisma.paymentProposal.findMany({
+            where,
+            orderBy: { created_at: 'desc' },
+            skip: filters?.offset || 0,
+            take: filters?.limit || 50
+        });
 
-        const offset = filters?.offset ?? 0;
-        const limit = filters?.limit ?? 50;
-        query = query.range(offset, offset + limit - 1);
-
-        const { data, error } = await query;
-
-        if (error) {
-          console.error('[Proposal Service] List error:', error);
-          throw new Error(`Failed to list proposals: ${error.message}`);
-        }
-
-        return (data || []).map(convertDbProposal);
+        return data.map(d => ({
+            ...d,
+            reason: d.reason || "",
+            status: d.status as ProposalStatus,
+            metadata: (d.metadata as Record<string, any>) || undefined,
+            created_at: d.created_at,
+            updated_at: d.updated_at,
+            approved_at: d.approved_at || undefined,
+            executed_at: d.executed_at || undefined
+        }));
       } catch (error) {
         console.error('[Proposal Service] Failed to list proposals:', error);
         throw error;
@@ -353,39 +350,37 @@ export class ProposalService {
   async listByAgent(agentId: string, filters?: ProposalFilters): Promise<PaymentProposal[]> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const where: any = {
+            agent_id: agentId
+        };
 
-        let query = supabase
-          .from('payment_proposals')
-          .select('*')
-          .eq('agent_id', agentId);
-
-        // Apply filters
         if (filters?.status) {
-          query = query.eq('status', filters.status);
+            where.status = filters.status;
         }
         if (filters?.startDate) {
-          query = query.gte('created_at', filters.startDate.toISOString());
+            where.created_at = { gte: filters.startDate };
         }
         if (filters?.endDate) {
-          query = query.lte('created_at', filters.endDate.toISOString());
+            where.created_at = { lte: filters.endDate };
         }
 
-        // Sort and paginate
-        query = query.order('created_at', { ascending: false });
+        const data = await prisma.paymentProposal.findMany({
+            where,
+            orderBy: { created_at: 'desc' },
+            skip: filters?.offset || 0,
+            take: filters?.limit || 50
+        });
 
-        const offset = filters?.offset ?? 0;
-        const limit = filters?.limit ?? 50;
-        query = query.range(offset, offset + limit - 1);
-
-        const { data, error } = await query;
-
-        if (error) {
-          console.error('[Proposal Service] List by agent error:', error);
-          throw new Error(`Failed to list proposals: ${error.message}`);
-        }
-
-        return (data || []).map(convertDbProposal);
+        return data.map(d => ({
+            ...d,
+            reason: d.reason || "",
+            status: d.status as ProposalStatus,
+            metadata: (d.metadata as Record<string, any>) || undefined,
+            created_at: d.created_at,
+            updated_at: d.updated_at,
+            approved_at: d.approved_at || undefined,
+            executed_at: d.executed_at || undefined
+        }));
       } catch (error) {
         console.error('[Proposal Service] Failed to list proposals by agent:', error);
         throw error;
@@ -429,23 +424,22 @@ export class ProposalService {
   async get(proposalId: string): Promise<PaymentProposal | null> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.paymentProposal.findUnique({
+             where: { id: proposalId }
+        });
 
-        const { data, error } = await supabase
-          .from('payment_proposals')
-          .select('*')
-          .eq('id', proposalId)
-          .single();
+        if (!data) return null;
 
-        if (error) {
-          if (error.code === 'PGRST116') {
-            return null;
-          }
-          console.error('[Proposal Service] Get error:', error);
-          return null;
-        }
-
-        return convertDbProposal(data);
+        return {
+            ...data,
+            reason: data.reason || "",
+            status: data.status as ProposalStatus,
+            metadata: (data.metadata as Record<string, any>) || undefined,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            approved_at: data.approved_at || undefined,
+            executed_at: data.executed_at || undefined
+        };
       } catch (error) {
         console.error('[Proposal Service] Failed to get proposal:', error);
         return null;
@@ -484,28 +478,28 @@ export class ProposalService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
+        const data = await prisma.paymentProposal.update({
+             where: {
+                 id: proposalId,
+                 owner_address: ownerAddress.toLowerCase()
+             },
+             data: {
+                 status: 'approved',
+                 approved_at: new Date(),
+                 updated_at: new Date()
+             }
         });
 
-        const { data, error } = await supabase
-          .from('payment_proposals')
-          .update(updates)
-          .eq('id', proposalId)
-          .eq('owner_address', ownerAddress.toLowerCase())
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Proposal Service] Approve error:', error);
-          throw new Error(`Failed to approve proposal: ${error.message}`);
-        }
-
-        updatedProposal = convertDbProposal(data);
+        updatedProposal = {
+            ...data,
+            reason: data.reason || "",
+            status: data.status as ProposalStatus,
+            metadata: (data.metadata as Record<string, any>) || undefined,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            approved_at: data.approved_at || undefined,
+            executed_at: data.executed_at || undefined
+        };
       } catch (error) {
         console.error('[Proposal Service] Failed to approve proposal:', error);
         throw error;
@@ -566,28 +560,28 @@ export class ProposalService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
+        const data = await prisma.paymentProposal.update({
+             where: {
+                 id: proposalId,
+                 owner_address: ownerAddress.toLowerCase()
+             },
+             data: {
+                 status: 'rejected',
+                 rejection_reason: reason,
+                 updated_at: new Date()
+             }
         });
 
-        const { data, error } = await supabase
-          .from('payment_proposals')
-          .update(updates)
-          .eq('id', proposalId)
-          .eq('owner_address', ownerAddress.toLowerCase())
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Proposal Service] Reject error:', error);
-          throw new Error(`Failed to reject proposal: ${error.message}`);
-        }
-
-        updatedProposal = convertDbProposal(data);
+        updatedProposal = {
+            ...data,
+            reason: data.reason || "",
+            status: data.status as ProposalStatus,
+            metadata: (data.metadata as Record<string, any>) || undefined,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            approved_at: data.approved_at || undefined,
+            executed_at: data.executed_at || undefined
+        };
       } catch (error) {
         console.error('[Proposal Service] Failed to reject proposal:', error);
         throw error;
@@ -638,24 +632,28 @@ export class ProposalService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.paymentProposal.update({
+             where: { id: proposalId },
+             data: {
+                 status: 'executing',
+                 updated_at: new Date()
+             }
+        });
 
-        const { data, error } = await supabase
-          .from('payment_proposals')
-          .update({
-            status: 'executing',
-            updated_at: now.toISOString(),
-          })
-          .eq('id', proposalId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Proposal Service] Start execution error:', error);
-          throw new Error(`Failed to start execution: ${error.message}`);
-        }
-
-        return convertDbProposal(data);
+        return {
+            ...data,
+            reason: data.reason || "",
+            status: data.status as ProposalStatus,
+            metadata: (data.metadata as Record<string, any>) || undefined,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            approved_at: data.approved_at || undefined,
+            executed_at: data.executed_at || undefined
+        };
+      } catch (error) {
+        console.error('[Proposal Service] Start execution error:', error);
+        throw new Error(`Failed to start execution`);
+      }
       } catch (error) {
         console.error('[Proposal Service] Failed to start execution:', error);
         throw error;
@@ -698,27 +696,27 @@ export class ProposalService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.paymentProposal.update({
+             where: { id: proposalId },
+             data: {
+                 status: 'executed',
+                 tx_hash: txHash,
+                 x402_authorization_id: x402AuthId,
+                 executed_at: new Date(),
+                 updated_at: new Date()
+             }
+        });
 
-        const { data, error } = await supabase
-          .from('payment_proposals')
-          .update({
-            status: 'executed',
-            tx_hash: txHash,
-            x402_authorization_id: x402AuthId,
-            executed_at: now.toISOString(),
-            updated_at: now.toISOString(),
-          })
-          .eq('id', proposalId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Proposal Service] Mark executed error:', error);
-          throw new Error(`Failed to mark as executed: ${error.message}`);
-        }
-
-        updatedProposal = convertDbProposal(data);
+        updatedProposal = {
+            ...data,
+            reason: data.reason || "",
+            status: data.status as ProposalStatus,
+            metadata: (data.metadata as Record<string, any>) || undefined,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            approved_at: data.approved_at || undefined,
+            executed_at: data.executed_at || undefined
+        };
       } catch (error) {
         console.error('[Proposal Service] Failed to mark as executed:', error);
         throw error;
@@ -774,25 +772,25 @@ export class ProposalService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.paymentProposal.update({
+             where: { id: proposalId },
+             data: {
+                 status: 'failed',
+                 rejection_reason: reason,
+                 updated_at: new Date()
+             }
+        });
 
-        const { data, error } = await supabase
-          .from('payment_proposals')
-          .update({
-            status: 'failed',
-            rejection_reason: reason,
-            updated_at: now.toISOString(),
-          })
-          .eq('id', proposalId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Proposal Service] Mark failed error:', error);
-          throw new Error(`Failed to mark as failed: ${error.message}`);
-        }
-
-        updatedProposal = convertDbProposal(data);
+        updatedProposal = {
+            ...data,
+            reason: data.reason || "",
+            status: data.status as ProposalStatus,
+            metadata: (data.metadata as Record<string, any>) || undefined,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            approved_at: data.approved_at || undefined,
+            executed_at: data.executed_at || undefined
+        };
       } catch (error) {
         console.error('[Proposal Service] Failed to mark as failed:', error);
         throw error;
