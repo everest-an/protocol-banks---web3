@@ -1,13 +1,17 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import { useWeb3 } from "@/contexts/web3-context"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   ArrowDownLeft,
+  ArrowUpRight,
   Send,
   CreditCard,
   Users,
@@ -17,12 +21,15 @@ import {
   Clock,
   ChevronRight,
   Zap,
-  Grid3X3
+  Grid3X3,
+  ExternalLink,
+  Inbox,
 } from "lucide-react"
 import { useBalance } from "@/hooks/use-balance"
+import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { BalanceDistribution } from "@/components/balance-distribution"
-import { DashboardActivity } from "@/components/dashboard-activity"
 import { LandingPage } from "@/components/landing-page"
+import type { Payment } from "@/types"
 
 // Quick action buttons for the dashboard
 const quickActions = [
@@ -32,10 +39,44 @@ const quickActions = [
   { href: "/batch-payment", label: "Batch", icon: Users, color: "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20" },
 ]
 
+// Chain explorer base URLs for tx links
+const CHAIN_EXPLORERS: Record<string, string> = {
+  Ethereum: "https://etherscan.io/tx/",
+  Polygon: "https://polygonscan.com/tx/",
+  Arbitrum: "https://arbiscan.io/tx/",
+  Base: "https://basescan.org/tx/",
+  Optimism: "https://optimistic.etherscan.io/tx/",
+  BNB: "https://bscscan.com/tx/",
+}
+
+function formatAddr(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHr = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHr / 24)
+
+  if (diffMin < 1) return "Just now"
+  if (diffMin < 60) return `${diffMin}m ago`
+  if (diffHr < 24) return `${diffHr}h ago`
+  if (diffDay < 7) return `${diffDay}d ago`
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+}
+
 export default function HomePage() {
   const { isConnected, connectWallet, wallet } = useWeb3()
   const { isDemoMode, setWalletConnected, toggleDemoMode } = useDemo()
   const { balance, loading: balanceLoading } = useBalance({ isDemoMode, walletAddress: wallet || undefined })
+  const { payments, loading: paymentsLoading } = usePaymentHistory({
+    isDemoMode,
+    walletAddress: wallet || undefined,
+  })
+  const [activityTab, setActivityTab] = useState("all")
 
   useEffect(() => {
     setWalletConnected(isConnected)
@@ -45,6 +86,14 @@ export default function HomePage() {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
+
+  // Filter payments by tab
+  const filteredPayments = useMemo(() => {
+    const recent = payments.slice(0, 10) // Show latest 10
+    if (activityTab === "payouts") return recent.filter((p) => p.type === "sent")
+    if (activityTab === "topups") return recent.filter((p) => p.type === "received")
+    return recent
+  }, [payments, activityTab])
 
   // Show landing page for visitors who haven't connected a wallet and aren't in demo mode
   if (!isConnected && !isDemoMode) {
@@ -169,9 +218,9 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* Recent Activity — Stripe-style Payouts / Top-ups / All */}
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-muted-foreground" />
@@ -186,12 +235,112 @@ export default function HomePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <DashboardActivity 
-              walletAddress={wallet || undefined} 
-              limit={5} 
-              showTabs={false}
-              compact={true}
-            />
+            <Tabs value={activityTab} onValueChange={setActivityTab}>
+              <TabsList className="mb-4 h-9">
+                <TabsTrigger value="all" className="text-xs px-3">All activity</TabsTrigger>
+                <TabsTrigger value="payouts" className="text-xs px-3">Payouts</TabsTrigger>
+                <TabsTrigger value="topups" className="text-xs px-3">Top-ups</TabsTrigger>
+              </TabsList>
+
+              {/* Shared content for all tabs */}
+              <div>
+                {paymentsLoading ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between py-3 border-b last:border-0">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <div className="space-y-1.5">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-32" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredPayments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                    <Inbox className="h-10 w-10 mb-3 opacity-40" />
+                    <p className="text-sm font-medium">No transactions yet</p>
+                    <p className="text-xs mt-1">
+                      {activityTab === "payouts"
+                        ? "Outgoing payments will appear here"
+                        : activityTab === "topups"
+                          ? "Incoming payments will appear here"
+                          : "Your transaction history will appear here"}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Column headers */}
+                    <div className="grid grid-cols-3 text-xs text-muted-foreground font-medium px-1 pb-2 border-b">
+                      <span>Amount</span>
+                      <span>Destination</span>
+                      <span className="text-right">Date</span>
+                    </div>
+
+                    {/* Transaction rows */}
+                    <div className="divide-y">
+                      {filteredPayments.slice(0, 5).map((payment) => {
+                        const isSent = payment.type === "sent"
+                        const counterparty = isSent ? payment.to_address : payment.from_address
+                        const displayName = payment.vendor_name || formatAddr(counterparty)
+                        const explorerBase = CHAIN_EXPLORERS[payment.chain]
+                        const txUrl = payment.tx_hash && explorerBase ? `${explorerBase}${payment.tx_hash}` : null
+
+                        return (
+                          <div
+                            key={payment.id}
+                            className="grid grid-cols-3 items-center py-3 px-1 text-sm hover:bg-muted/30 rounded-sm transition-colors"
+                          >
+                            {/* Amount */}
+                            <div className="flex items-center gap-2">
+                              <div className={`p-1.5 rounded-full ${isSent ? "bg-red-500/10" : "bg-green-500/10"}`}>
+                                {isSent ? (
+                                  <ArrowUpRight className="h-3.5 w-3.5 text-red-500" />
+                                ) : (
+                                  <ArrowDownLeft className="h-3.5 w-3.5 text-green-500" />
+                                )}
+                              </div>
+                              <div>
+                                <p className={`font-medium font-mono tabular-nums ${isSent ? "text-foreground" : "text-green-600 dark:text-green-400"}`}>
+                                  {isSent ? "-" : "+"}{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {payment.token_symbol || payment.token} · {payment.chain}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Destination / Source */}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-sm truncate">{displayName}</span>
+                              {txUrl && (
+                                <a href={txUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground hover:text-foreground">
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              )}
+                              <Badge
+                                variant={payment.status === "completed" ? "secondary" : payment.status === "failed" ? "destructive" : "outline"}
+                                className="text-[10px] px-1.5 py-0 h-4 shrink-0"
+                              >
+                                {payment.status}
+                              </Badge>
+                            </div>
+
+                            {/* Date */}
+                            <p className="text-xs text-muted-foreground text-right tabular-nums">
+                              {formatDate(payment.timestamp || payment.created_at)}
+                            </p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </Tabs>
           </CardContent>
         </Card>
 

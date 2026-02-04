@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -41,7 +41,7 @@ const SUPPORTED_CHAINS = [
 ]
 
 export default function MultisigPage() {
-  const { address, signMessage } = useWeb3()
+  const { address, signMessage } = useUnifiedWallet()
   const { toast } = useToast()
   const isMobile = useMediaQuery("(max-width: 768px)")
   const [wallets, setWallets] = useState<MultisigWallet[]>([])

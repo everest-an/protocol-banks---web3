@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Send, Users, ArrowRight, Zap, Globe, CreditCard, Wallet, Building2, User } from "lucide-react"
 import Link from "next/link"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useUserType } from "@/contexts/user-type-context"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function SendPage() {
-  const { isConnected } = useWeb3()
+  const { isConnected } = useUnifiedWallet()
   const { translateTerm } = useUserType()
   const [userMode, setUserMode] = useState<"personal" | "business">("personal")
 

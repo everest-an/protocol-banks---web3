@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -62,7 +62,7 @@ import { createWalletClient, createPublicClient, http, custom } from "viem"
 import { arbitrum } from "viem/chains"
 
 export default function BatchPaymentPage() {
-  const { wallets, sendToken, signERC3009Authorization, isConnected } = useWeb3()
+  const { wallets, address: unifiedAddress, sendToken, signERC3009Authorization, isConnected } = useUnifiedWallet()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const supabase = createClient() // Initialize Supabase client here
@@ -92,7 +92,7 @@ export default function BatchPaymentPage() {
   const [currentBatchId, setCurrentBatchId] = useState<string | null>(null)
   const [vendors, setVendors] = useState<Vendor[]>([])
   const activeChain = "EVM"
-  const currentWallet = wallets[activeChain]
+  const currentWallet = unifiedAddress || wallets[activeChain]
 
   // Batch transfer progress state
   const [batchProgressOpen, setBatchProgressOpen] = useState(false)

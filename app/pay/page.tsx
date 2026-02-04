@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Wallet, CheckCircle2, AlertCircle, ShieldAlert, ShieldCheck, Eye } from "lucide-react"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useToast } from "@/hooks/use-toast"
 import { getTokenAddress, signERC3009Authorization, executeERC3009Transfer, sendToken, getTokenBalance } from "@/lib/web3"
 import { FeePreview } from "@/components/fee-preview"
@@ -122,7 +122,7 @@ interface TransactionLock {
 
 function PaymentContent() {
   const searchParams = useSearchParams()
-  const { isConnected, wallets, activeChain, chainId } = useWeb3()
+  const { isConnected, address: activeAddress, wallets, activeChain, chainId } = useUnifiedWallet()
   const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -276,7 +276,7 @@ function PaymentContent() {
   )
 
   const handlePayment = async () => {
-    if (!isConnected || !wallets.EVM) {
+    if (!isConnected || !activeAddress) {
       toast({
         title: "Connect Wallet",
         description: "Please connect your wallet to continue.",

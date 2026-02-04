@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Download, ArrowUpRight, ArrowDownLeft, ExternalLink, Calendar } from "lucide-react"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { getSupabase } from "@/lib/supabase"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
@@ -17,7 +17,7 @@ import { BusinessMetrics } from "@/components/business-metrics"
 import { PaymentActivity } from "@/components/payment-activity"
 
 export default function HistoryPage() {
-  const { isConnected, wallet, chainId } = useWeb3()
+  const { isConnected, address: wallet, chainId } = useUnifiedWallet()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")

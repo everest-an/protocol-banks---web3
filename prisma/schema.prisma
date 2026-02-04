@@ -366,15 +366,28 @@ model SubscriptionAuthorization {
 
 model X402Authorization {
   id              String   @id @default(uuid())
+  proposal_id     String
+  version         String   @default("1.0")
+  network         String
+  payment_address String
   from_address    String
-  to_address      String
-  status          String
+  amount          String
+  token           String
+  chain_id        Int
+  memo            String?
+  nonce           String
+  valid_after     DateTime
   valid_before    DateTime
-  signature       String
+  signature       String?
+  status          String
+  tx_hash         String?
+  transfer_id     String?
+  expires_at      DateTime
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
-  @@index([from_address, to_address])
+  @@index([proposal_id])
+  @@index([from_address, payment_address])
   @@index([status])
   @@map("x402_authorizations")
 }
@@ -535,5 +548,68 @@ model Agent {
   updated_at            DateTime @updatedAt
   last_active_at        DateTime?
   
+  budgets               AgentBudget[]
+  activities            AgentActivity[]
+  webhook_deliveries    AgentWebhookDelivery[]
+  
   @@map("agents")
+}
+
+model AgentBudget {
+  id               String   @id @default(uuid())
+  agent_id         String
+  owner_address    String
+  amount           String
+  token            String
+  chain_id         Int?
+  period           String
+  used_amount      String   @default("0")
+  remaining_amount String
+  period_start     DateTime
+  period_end       DateTime?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  agent            Agent    @relation(fields: [agent_id], references: [id])
+  
+  @@map("agent_budgets")
+}
+
+model AgentActivity {
+  id            String   @id @default(uuid())
+  agent_id      String
+  owner_address String
+  action        String
+  details       Json
+  ip_address    String?
+  user_agent    String?
+  created_at    DateTime @default(now())
+
+  // Relations
+  agent         Agent    @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
+  @@index([agent_id])
+  @@index([owner_address])
+  @@map("agent_activities")
+}
+
+model AgentWebhookDelivery {
+  id              String    @id @default(uuid())
+  agent_id        String
+  event_type      String
+  payload         Json
+  status          String    @default("pending")
+  attempts        Int       @default(0)
+  last_attempt_at DateTime?
+  next_retry_at   DateTime?
+  response_status Int?
+  error_message   String?
+  created_at      DateTime  @default(now())
+  delivered_at    DateTime?
+
+  agent           Agent     @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
+  @@index([agent_id])
+  @@index([status])
+  @@map("agent_webhook_deliveries")
 }

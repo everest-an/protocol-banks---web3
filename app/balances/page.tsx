@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,6 +39,7 @@ import { useBalance } from "@/hooks/use-balance"
 import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { BalanceDistribution } from "@/components/balance-distribution"
 import { categorizeTransaction, CATEGORY_COLORS, calculateRunway, type Category } from "@/lib/business-logic"
+import { AuthGateway } from "@/components/auth"
 import type { TokenBalance } from "@/types"
 
 // Token colors for charts and icons
@@ -104,18 +105,19 @@ interface TokenGroup {
 }
 
 export default function BalancesPage() {
-  const { isConnected, wallet, connectWallet } = useWeb3()
+  const { isConnected, address: activeAddress, connectWallet } = useUnifiedWallet()
   const { isDemoMode, setWalletConnected } = useDemo()
-  const { balance, loading, error, refresh } = useBalance({ isDemoMode, walletAddress: wallet || undefined })
+  const { balance, loading, error, refresh } = useBalance({ isDemoMode, walletAddress: activeAddress })
   const { stats: paymentStats, payments, loading: paymentsLoading, getMonthlyData } = usePaymentHistory({
     isDemoMode,
-    walletAddress: wallet || undefined,
+    walletAddress: activeAddress,
   })
   const [hideBalance, setHideBalance] = useState(false)
   const [copiedAddress, setCopiedAddress] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [expandedTokens, setExpandedTokens] = useState<Set<string>>(new Set())
+  const [showAuthGateway, setShowAuthGateway] = useState(false)
 
   useEffect(() => {
     setWalletConnected(isConnected)
@@ -162,8 +164,8 @@ export default function BalancesPage() {
   }
 
   const copyAddress = () => {
-    if (wallet) {
-      navigator.clipboard.writeText(wallet)
+    if (activeAddress) {
+      navigator.clipboard.writeText(activeAddress)
       setCopiedAddress(true)
       setTimeout(() => setCopiedAddress(false), 2000)
     }
@@ -303,12 +305,19 @@ export default function BalancesPage() {
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">
                 Connect your wallet to view your balances across all chains.
               </p>
-              <Button onClick={() => connectWallet()}>
+              <Button onClick={() => setShowAuthGateway(true)}>
                 Connect Wallet
               </Button>
             </CardContent>
           </Card>
         </div>
+        {showAuthGateway && (
+          <AuthGateway
+            isOpen={showAuthGateway}
+            onClose={() => setShowAuthGateway(false)}
+            onSuccess={() => setShowAuthGateway(false)}
+          />
+        )}
       </div>
     )
   }
@@ -372,9 +381,9 @@ export default function BalancesPage() {
                 {hideBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
-            {wallet && (
+            {activeAddress && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="font-mono">{formatAddress(wallet)}</span>
+                <span className="font-mono">{formatAddress(activeAddress)}</span>
                 <Button
                   variant="ghost"
                   size="icon"

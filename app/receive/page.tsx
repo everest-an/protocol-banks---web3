@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,7 +46,7 @@ interface ClipboardRecord {
 }
 
 export default function ReceivePage() {
-  const { isConnected, wallets, activeChain } = useWeb3()
+  const { isConnected, address: unifiedAddress, wallets, activeChain } = useUnifiedWallet()
   const { toast } = useToast()
 
   const [address, setAddress] = useState("")
@@ -60,10 +60,10 @@ export default function ReceivePage() {
   const [showQRCode, setShowQRCode] = useState(false)
 
   useEffect(() => {
-    if (isConnected && wallets[activeChain as keyof typeof wallets]) {
-      setAddress(wallets[activeChain as keyof typeof wallets] || "")
+    if (isConnected && unifiedAddress) {
+      setAddress(unifiedAddress)
     }
-  }, [isConnected, wallets, activeChain])
+  }, [isConnected, unifiedAddress])
 
   useEffect(() => {
     if (address && !isValidAddress(address)) {

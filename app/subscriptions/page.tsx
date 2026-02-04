@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useWeb3 } from "@/contexts/web3-context"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { useSubscriptions } from "@/hooks/use-subscriptions"
 import { usePaymentHistory } from "@/hooks/use-payment-history"
@@ -24,10 +24,9 @@ import { useToast } from "@/hooks/use-toast"
 import type { Subscription } from "@/types"
 
 export default function SubscriptionsPage() {
-  const { wallets, activeChain } = useWeb3()
+  const { address: currentWallet } = useUnifiedWallet()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
-  const currentWallet = wallets[activeChain]
 
   const { subscriptions, loading, stats, addSubscription, updateStatus, deleteSubscription } = useSubscriptions({
     isDemoMode,

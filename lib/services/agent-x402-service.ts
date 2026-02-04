@@ -8,7 +8,7 @@
  */
 
 import { randomUUID, randomBytes } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { PaymentProposal } from './proposal-service';
 import { relayerService, isRelayerConfigured } from './relayer-service';
 import type { Address, Hex } from 'viem';
@@ -148,50 +148,46 @@ export class AgentX402Service {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
         // Store in x402_authorizations table
-        const { data, error } = await supabase
-          .from('x402_authorizations')
-          .insert({
+        const data = await prisma.x402Authorization.create({
+          data: {
+            proposal_id: authData.proposal_id,
+            version: authData.version,
+            network: authData.network,
+            payment_address: authData.payment_address,
             from_address: authData.from_address,
-            to_address: authData.payment_address,
             amount: authData.amount,
             token: authData.token,
             chain_id: authData.chain_id,
-            nonce: 0, // DB nonce counter
-            valid_after: authData.valid_after,
-            valid_before: authData.valid_before,
+            memo: authData.memo,
+            nonce: authData.nonce,
+            valid_after: new Date(authData.valid_after),
+            valid_before: new Date(authData.valid_before),
             status: 'pending',
             transfer_id: transferId,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[x402 Service] Insert error:', error);
-          throw new Error(`Failed to create authorization: ${error.message}`);
-        }
+            expires_at: new Date(authData.expires_at),
+          }
+        });
 
         return {
           id: data.id,
-          proposal_id: proposal.id,
+          proposal_id: data.proposal_id,
           version: '1.0',
-          network,
-          payment_address: authData.payment_address,
-          from_address: authData.from_address,
-          amount: authData.amount,
-          token: authData.token,
-          chain_id: proposal.chain_id,
-          memo: proposal.reason,
-          nonce,
-          valid_after: validAfter,
-          valid_before: validBefore,
+          network: data.network,
+          payment_address: data.payment_address,
+          from_address: data.from_address,
+          amount: data.amount,
+          token: data.token,
+          chain_id: data.chain_id,
+          memo: data.memo || undefined,
+          nonce: data.nonce,
+          valid_after: data.valid_after,
+          valid_before: data.valid_before,
           status: 'pending',
-          transfer_id: transferId,
-          expires_at: validBefore,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at || data.created_at),
+          transfer_id: data.transfer_id || undefined,
+          expires_at: data.expires_at,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
         };
       } catch (error) {
         console.error('[x402 Service] Failed to create authorization:', error);
@@ -235,23 +231,14 @@ export class AgentX402Service {
   ): Promise<X402Authorization> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        const { data, error } = await supabase
-          .from('x402_authorizations')
-          .update({
+        const data = await prisma.x402Authorization.update({
+          where: { id: authorizationId },
+          data: {
             signature,
             status: 'signed',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', authorizationId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[x402 Service] Store signature error:', error);
-          throw new Error(`Failed to store signature: ${error.message}`);
-        }
+            updated_at: new Date(),
+          }
+        });
 
         return convertDbAuth(data);
       } catch (error) {
@@ -282,12 +269,9 @@ export class AgentX402Service {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-        const { data } = await supabase
-          .from('x402_authorizations')
-          .select('*')
-          .eq('id', authorizationId)
-          .single();
+        const data = await prisma.x402Authorization.findUnique({
+          where: { id: authorizationId }
+        });
         if (data) auth = convertDbAuth(data);
       } catch {
         // Fall through

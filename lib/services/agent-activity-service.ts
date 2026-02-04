@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -90,32 +90,9 @@ export class AgentActivityService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: ownerAddress.toLowerCase(),
+        const data = await prisma.agentActivity.create({
+          data: activityData
         });
-
-        const { data, error } = await supabase
-          .from('agent_activities')
-          .insert(activityData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Activity Service] Insert error:', error);
-          // Don't throw - activity logging should not break the main flow
-          // Fall back to in-memory
-          const activity: AgentActivity = {
-            id: randomUUID(),
-            ...activityData,
-            created_at: new Date(),
-          };
-          activityStore.set(activity.id, activity);
-          return activity;
-        }
 
         return convertDbActivity(data);
       } catch (error) {
@@ -148,21 +125,13 @@ export class AgentActivityService {
   async getActivities(agentId: string, limit: number = 50): Promise<AgentActivity[]> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.agentActivity.findMany({
+          where: { agent_id: agentId },
+          orderBy: { created_at: 'desc' },
+          take: limit
+        });
 
-        const { data, error } = await supabase
-          .from('agent_activities')
-          .select('*')
-          .eq('agent_id', agentId)
-          .order('created_at', { ascending: false })
-          .limit(limit);
-
-        if (error) {
-          console.error('[Activity Service] Get activities error:', error);
-          return [];
-        }
-
-        return (data || []).map(convertDbActivity);
+        return data.map(convertDbActivity);
       } catch (error) {
         console.error('[Activity Service] Failed to get activities:', error);
         return [];
@@ -191,27 +160,13 @@ export class AgentActivityService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: normalizedOwner,
+        const data = await prisma.agentActivity.findMany({
+          where: { owner_address: normalizedOwner },
+          orderBy: { created_at: 'desc' },
+          take: limit
         });
 
-        const { data, error } = await supabase
-          .from('agent_activities')
-          .select('*')
-          .eq('owner_address', normalizedOwner)
-          .order('created_at', { ascending: false })
-          .limit(limit);
-
-        if (error) {
-          console.error('[Activity Service] Get owner activities error:', error);
-          return [];
-        }
-
-        return (data || []).map(convertDbActivity);
+        return data.map(convertDbActivity);
       } catch (error) {
         console.error('[Activity Service] Failed to get owner activities:', error);
         return [];
@@ -244,46 +199,28 @@ export class AgentActivityService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: normalizedOwner,
+        // Get payment_executed activities for spending analytics
+        const paymentActivities = await prisma.agentActivity.findMany({
+          where: {
+            owner_address: normalizedOwner,
+            action: 'payment_executed',
+            created_at: { gte: monthStart }
+          }
         });
 
-        // Get payment_executed activities for spending analytics
-        const { data: paymentActivities, error: paymentError } = await supabase
-          .from('agent_activities')
-          .select('*')
-          .eq('owner_address', normalizedOwner)
-          .eq('action', 'payment_executed')
-          .gte('created_at', monthStart.toISOString());
-
-        if (paymentError) {
-          console.error('[Activity Service] Analytics payment query error:', paymentError);
-        }
-
         // Get pending proposals count
-        const { count: pendingCount, error: pendingError } = await supabase
-          .from('payment_proposals')
-          .select('*', { count: 'exact', head: true })
-          .eq('owner_address', normalizedOwner)
-          .eq('status', 'pending');
-
-        if (pendingError) {
-          console.error('[Activity Service] Analytics pending query error:', pendingError);
-        }
+        const pendingCount = await prisma.paymentProposal.count({
+          where: {
+            owner_address: normalizedOwner,
+            status: 'pending'
+          }
+        });
 
         // Get agent counts
-        const { data: agentData, error: agentError } = await supabase
-          .from('agents')
-          .select('status')
-          .eq('owner_address', normalizedOwner);
-
-        if (agentError) {
-          console.error('[Activity Service] Analytics agent query error:', agentError);
-        }
+        const agents = await prisma.agent.findMany({
+          where: { owner_address: normalizedOwner },
+          select: { status: true }
+        });
 
         // Process payment data
         let totalSpentToday = 0;
@@ -291,10 +228,11 @@ export class AgentActivityService {
         const spendingByAgent = new Map<string, { name: string; amount: number }>();
         const recipientSpending = new Map<string, { amount: number; count: number }>();
 
-        for (const activity of paymentActivities || []) {
-          const amount = parseFloat(activity.details?.amount || '0');
-          const recipient = activity.details?.recipient_address?.toLowerCase();
-          const agentName = activity.details?.agent_name || 'Unknown';
+        for (const activity of paymentActivities) {
+          const details = activity.details as any;
+          const amount = parseFloat(details?.amount || '0');
+          const recipient = details?.recipient_address?.toLowerCase();
+          const agentName = details?.agent_name || 'Unknown';
           const createdAt = new Date(activity.created_at);
 
           if (createdAt >= today) {
@@ -315,8 +253,6 @@ export class AgentActivityService {
             recipientSpending.set(recipient, recData);
           }
         }
-
-        const agents = agentData || [];
 
         // Convert maps to arrays
         const spending_by_agent = Array.from(spendingByAgent.entries())

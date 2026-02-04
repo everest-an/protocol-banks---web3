@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -173,31 +173,17 @@ export class BudgetService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        // Set RLS context
-        await supabase.rpc('set_config', {
-          setting: 'app.current_user_address',
-          value: input.owner_address.toLowerCase(),
+        const data = await prisma.agentBudget.create({
+          data: budgetData
         });
-
-        const { data, error } = await supabase
-          .from('agent_budgets')
-          .insert(budgetData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Budget Service] Insert error:', error);
-          throw new Error(`Failed to create budget: ${error.message}`);
-        }
 
         return {
           ...data,
-          period_start: new Date(data.period_start),
-          period_end: data.period_end ? new Date(data.period_end) : undefined,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
+          period: data.period as BudgetPeriod,
+          period_start: data.period_start,
+          period_end: data.period_end ? data.period_end : undefined,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
         };
       } catch (error) {
         console.error('[Budget Service] Failed to create budget:', error);
@@ -225,28 +211,21 @@ export class BudgetService {
   async list(agentId: string): Promise<AgentBudget[]> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        const { data, error } = await supabase
-          .from('agent_budgets')
-          .select('*')
-          .eq('agent_id', agentId)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('[Budget Service] List error:', error);
-          throw new Error(`Failed to list budgets: ${error.message}`);
-        }
+        const data = await prisma.agentBudget.findMany({
+          where: { agent_id: agentId },
+          orderBy: { created_at: 'desc' }
+        });
 
         // Convert dates and check for expired periods
         const budgets: AgentBudget[] = [];
         for (const b of data || []) {
           let budget: AgentBudget = {
             ...b,
-            period_start: new Date(b.period_start),
-            period_end: b.period_end ? new Date(b.period_end) : undefined,
-            created_at: new Date(b.created_at),
-            updated_at: new Date(b.updated_at),
+            period: b.period as BudgetPeriod,
+            period_start: b.period_start,
+            period_end: b.period_end ? b.period_end : undefined,
+            created_at: b.created_at,
+            updated_at: b.updated_at,
           };
 
           // Check if period needs reset
@@ -254,16 +233,16 @@ export class BudgetService {
             const resetBudget = resetBudgetPeriod(budget);
 
             // Update in database
-            await supabase
-              .from('agent_budgets')
-              .update({
+            await prisma.agentBudget.update({
+              where: { id: budget.id },
+              data: {
                 used_amount: resetBudget.used_amount,
                 remaining_amount: resetBudget.remaining_amount,
-                period_start: resetBudget.period_start.toISOString(),
-                period_end: resetBudget.period_end?.toISOString(),
-                updated_at: resetBudget.updated_at.toISOString(),
-              })
-              .eq('id', budget.id);
+                period_start: resetBudget.period_start,
+                period_end: resetBudget.period_end,
+                updated_at: resetBudget.updated_at,
+              }
+            });
 
             budgets.push(resetBudget);
           } else {
@@ -305,28 +284,19 @@ export class BudgetService {
   async get(budgetId: string): Promise<AgentBudget | null> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.agentBudget.findUnique({
+          where: { id: budgetId }
+        });
 
-        const { data, error } = await supabase
-          .from('agent_budgets')
-          .select('*')
-          .eq('id', budgetId)
-          .single();
-
-        if (error) {
-          if (error.code === 'PGRST116') {
-            return null;
-          }
-          console.error('[Budget Service] Get error:', error);
-          return null;
-        }
+        if (!data) return null;
 
         let budget: AgentBudget = {
           ...data,
-          period_start: new Date(data.period_start),
-          period_end: data.period_end ? new Date(data.period_end) : undefined,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
+          period: data.period as BudgetPeriod,
+          period_start: data.period_start,
+          period_end: data.period_end ? data.period_end : undefined,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
         };
 
         // Check if period needs reset
@@ -334,16 +304,16 @@ export class BudgetService {
           const resetBudget = resetBudgetPeriod(budget);
 
           // Update in database
-          await supabase
-            .from('agent_budgets')
-            .update({
+          await prisma.agentBudget.update({
+            where: { id: budgetId },
+            data: {
               used_amount: resetBudget.used_amount,
               remaining_amount: resetBudget.remaining_amount,
-              period_start: resetBudget.period_start.toISOString(),
-              period_end: resetBudget.period_end?.toISOString(),
-              updated_at: resetBudget.updated_at.toISOString(),
-            })
-            .eq('id', budgetId);
+              period_start: resetBudget.period_start,
+              period_end: resetBudget.period_end,
+              updated_at: resetBudget.updated_at,
+            }
+          });
 
           return resetBudget;
         }
@@ -393,23 +363,18 @@ export class BudgetService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
         // Get current budget
-        const { data: currentBudget, error: getError } = await supabase
-          .from('agent_budgets')
-          .select('*')
-          .eq('id', budgetId)
-          .single();
+        const currentBudget = await prisma.agentBudget.findUnique({
+          where: { id: budgetId }
+        });
 
-        if (getError) {
-          console.error('[Budget Service] Get budget for update error:', getError);
+        if (!currentBudget) {
           throw new Error('Budget not found');
         }
 
         const now = new Date();
-        const updates: Record<string, any> = {
-          updated_at: now.toISOString(),
+        const updates: any = {
+          updated_at: now,
         };
 
         if (input.amount !== undefined) {
@@ -427,27 +392,21 @@ export class BudgetService {
 
         if (input.period !== undefined && input.period !== currentBudget.period) {
           updates.period = input.period;
-          updates.period_end = calculatePeriodEnd(input.period, new Date(currentBudget.period_start))?.toISOString();
+          updates.period_end = calculatePeriodEnd(input.period, currentBudget.period_start);
         }
 
-        const { data, error } = await supabase
-          .from('agent_budgets')
-          .update(updates)
-          .eq('id', budgetId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Budget Service] Update error:', error);
-          throw new Error(`Failed to update budget: ${error.message}`);
-        }
+        const data = await prisma.agentBudget.update({
+          where: { id: budgetId },
+          data: updates
+        });
 
         return {
           ...data,
-          period_start: new Date(data.period_start),
-          period_end: data.period_end ? new Date(data.period_end) : undefined,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
+          period: data.period as BudgetPeriod,
+          period_start: data.period_start,
+          period_end: data.period_end ? data.period_end : undefined,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
         };
       } catch (error) {
         console.error('[Budget Service] Failed to update budget:', error);
@@ -494,17 +453,9 @@ export class BudgetService {
   async delete(budgetId: string): Promise<void> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        const { error } = await supabase
-          .from('agent_budgets')
-          .delete()
-          .eq('id', budgetId);
-
-        if (error) {
-          console.error('[Budget Service] Delete error:', error);
-          throw new Error(`Failed to delete budget: ${error.message}`);
-        }
+        await prisma.agentBudget.delete({
+          where: { id: budgetId }
+        });
       } catch (error) {
         console.error('[Budget Service] Failed to delete budget:', error);
         throw error;
@@ -571,17 +522,12 @@ export class BudgetService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
         // Get current budget
-        const { data: budget, error: getError } = await supabase
-          .from('agent_budgets')
-          .select('*')
-          .eq('id', budgetId)
-          .single();
+        const budget = await prisma.agentBudget.findUnique({
+          where: { id: budgetId }
+        });
 
-        if (getError) {
-          console.error('[Budget Service] Get budget for deduction error:', getError);
+        if (!budget) {
           throw new Error('Budget not found');
         }
 
@@ -596,28 +542,22 @@ export class BudgetService {
         const newRemaining = currentRemaining - deductAmount;
 
         // Update budget
-        const { data, error } = await supabase
-          .from('agent_budgets')
-          .update({
+        const data = await prisma.agentBudget.update({
+          where: { id: budgetId },
+          data: {
             used_amount: newUsed.toString(),
             remaining_amount: newRemaining.toString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', budgetId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Budget Service] Deduct error:', error);
-          throw new Error(`Failed to deduct from budget: ${error.message}`);
-        }
+            updated_at: new Date(),
+          }
+        });
 
         return {
           ...data,
-          period_start: new Date(data.period_start),
-          period_end: data.period_end ? new Date(data.period_end) : undefined,
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at),
+          period: data.period as BudgetPeriod,
+          period_start: data.period_start,
+          period_end: data.period_end ? data.period_end : undefined,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
         };
       } catch (error) {
         console.error('[Budget Service] Failed to deduct from budget:', error);

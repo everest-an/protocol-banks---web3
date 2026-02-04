@@ -7,7 +7,7 @@
  */
 
 import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // Types
@@ -128,28 +128,14 @@ export class AgentWebhookService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.agentWebhookDelivery.create({
+          data: deliveryData
+        });
 
-        const { data, error } = await supabase
-          .from('agent_webhook_deliveries')
-          .insert(deliveryData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[Webhook Service] Insert error:', error);
-          // Fall back to in-memory
-          delivery = {
-            id: randomUUID(),
-            ...deliveryData,
-            created_at: new Date(),
-          };
-          deliveryStore.set(delivery.id, delivery);
-        } else {
-          delivery = convertDbDelivery(data);
-        }
+        delivery = convertDbDelivery(data);
       } catch (error) {
         console.error('[Webhook Service] Failed to create delivery:', error);
+        // Fall back to in-memory
         delivery = {
           id: randomUUID(),
           ...deliveryData,
@@ -172,12 +158,9 @@ export class AgentWebhookService {
     // Return latest state
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-        const { data } = await supabase
-          .from('agent_webhook_deliveries')
-          .select('*')
-          .eq('id', delivery.id)
-          .single();
+        const data = await prisma.agentWebhookDelivery.findUnique({
+          where: { id: delivery.id }
+        });
         if (data) return convertDbDelivery(data);
       } catch {
         // Fall through
@@ -199,12 +182,9 @@ export class AgentWebhookService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-        const { data } = await supabase
-          .from('agent_webhook_deliveries')
-          .select('*')
-          .eq('id', deliveryId)
-          .single();
+        const data = await prisma.agentWebhookDelivery.findUnique({
+          where: { id: deliveryId }
+        });
         if (data) delivery = convertDbDelivery(data);
       } catch {
         // Fall through to in-memory
@@ -272,20 +252,18 @@ export class AgentWebhookService {
   private async saveDelivery(delivery: AgentWebhookDelivery): Promise<void> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
-
-        await supabase
-          .from('agent_webhook_deliveries')
-          .update({
+        await prisma.agentWebhookDelivery.update({
+          where: { id: delivery.id },
+          data: {
             status: delivery.status,
             attempts: delivery.attempts,
-            last_attempt_at: delivery.last_attempt_at?.toISOString(),
-            next_retry_at: delivery.next_retry_at?.toISOString(),
+            last_attempt_at: delivery.last_attempt_at,
+            next_retry_at: delivery.next_retry_at,
             response_status: delivery.response_status,
             error_message: delivery.error_message,
-            delivered_at: delivery.delivered_at?.toISOString(),
-          })
-          .eq('id', delivery.id);
+            delivered_at: delivery.delivered_at,
+          }
+        });
       } catch (error) {
         console.error('[Webhook Service] Failed to save delivery:', error);
         // Fall back to in-memory
@@ -347,21 +325,13 @@ export class AgentWebhookService {
   async getDeliveries(agentId: string, limit: number = 50): Promise<AgentWebhookDelivery[]> {
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.agentWebhookDelivery.findMany({
+          where: { agent_id: agentId },
+          orderBy: { created_at: 'desc' },
+          take: limit
+        });
 
-        const { data, error } = await supabase
-          .from('agent_webhook_deliveries')
-          .select('*')
-          .eq('agent_id', agentId)
-          .order('created_at', { ascending: false })
-          .limit(limit);
-
-        if (error) {
-          console.error('[Webhook Service] Get deliveries error:', error);
-          return [];
-        }
-
-        return (data || []).map(convertDbDelivery);
+        return data.map(convertDbDelivery);
       } catch (error) {
         console.error('[Webhook Service] Failed to get deliveries:', error);
         return [];
@@ -389,21 +359,17 @@ export class AgentWebhookService {
 
     if (useDatabaseStorage) {
       try {
-        const supabase = await createClient();
+        const data = await prisma.agentWebhookDelivery.findMany({
+          where: {
+            status: 'pending',
+            next_retry_at: {
+              not: null,
+              lte: now
+            }
+          }
+        });
 
-        const { data, error } = await supabase
-          .from('agent_webhook_deliveries')
-          .select('*')
-          .eq('status', 'pending')
-          .not('next_retry_at', 'is', null)
-          .lte('next_retry_at', now.toISOString());
-
-        if (error) {
-          console.error('[Webhook Service] Get pending retries error:', error);
-          return [];
-        }
-
-        return (data || []).map(convertDbDelivery);
+        return data.map(convertDbDelivery);
       } catch (error) {
         console.error('[Webhook Service] Failed to get pending retries:', error);
         return [];
