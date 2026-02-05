@@ -116,9 +116,8 @@ export const receivingProducts: ProductItem[] = [
     description: "Professional crypto invoices with tracking",
     icon: FileText,
     color: "bg-indigo-500/10 text-indigo-500",
-    badge: "Coming Soon",
-    badgeColor: "bg-gray-500/20 text-gray-500",
-    disabled: true,
+    badge: "New",
+    badgeColor: "bg-indigo-500/20 text-indigo-500",
   },
   {
     href: "/terminal",
