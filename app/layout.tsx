@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter, JetBrains_Mono } from "next/font/google"
+import { JetBrains_Mono } from "next/font/google"
+import localFont from "next/font/local"
 import "./globals.css"
 import { Web3Provider } from "@/contexts/web3-context"
 import { ReownProvider } from "@/contexts/reown-provider"
@@ -19,7 +20,21 @@ import { NotificationPrompt } from "@/components/notification-prompt"
 
 export const dynamic = "force-dynamic"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+// Aeonik font with multiple weights
+const aeonik = localFont({
+  src: [
+    { path: '../public/fonts/Aeonik-Thin.otf', weight: '100', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Air.otf', weight: '200', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Light.otf', weight: '300', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Regular.otf', weight: '400', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Medium.otf', weight: '500', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Bold.otf', weight: '700', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Black.otf', weight: '900', style: 'normal' },
+  ],
+  variable: '--font-aeonik',
+  display: 'swap',
+})
+
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" })
 
 export const metadata: Metadata = {
@@ -79,7 +94,7 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/apple-icon.png" />
       </head>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${aeonik.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <UserTypeProvider>

@@ -89,6 +89,7 @@ function CheckoutContent() {
   const orderNo = searchParams.get("order");
   const brandColorParam = searchParams.get("brandColor");
   const logoParam = searchParams.get("logo");
+  const isDemo = !orderNo || orderNo === "demo";
 
   // Set branding from URL params
   useEffect(() => {
@@ -96,9 +97,36 @@ function CheckoutContent() {
     if (logoParam) setMerchantLogo(decodeURIComponent(logoParam));
   }, [brandColorParam, logoParam]);
 
-  // Fetch order information
+  // Fetch order information (or load demo data)
   useEffect(() => {
-    if (!orderNo) {
+    if (isDemo) {
+      // Demo mode — create a realistic mock order
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+      const demoOrder: AcquiringOrder & { merchant_name: string; merchant_wallet_address: string } = {
+        id: "demo-order-001",
+        order_no: "ORD-DEMO-20260206-001",
+        merchant_id: "merchant-demo-acme",
+        merchant_name: "Acme Store",
+        merchant_wallet_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18",
+        amount: 99.00,
+        currency: "USD",
+        token: "USDC",
+        chain_id: CHAIN_IDS.BASE,
+        status: "pending",
+        expires_at: expiresAt.toISOString(),
+        return_url: "/acquiring/orders",
+        metadata: {
+          brandColor: "#6366f1",
+          items: [
+            { name: "Premium Plan (Monthly)", qty: 1, price: 99.00 }
+          ],
+        },
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      };
+      setOrder(demoOrder as any);
+      if (!brandColorParam) setBrandColor("#6366f1");
       setLoading(false);
       return;
     }
@@ -131,7 +159,7 @@ function CheckoutContent() {
       .finally(() => {
         setLoading(false);
       });
-  }, [orderNo, toast, brandColorParam, logoParam]);
+  }, [orderNo, isDemo, toast, brandColorParam, logoParam]);
 
   // Countdown timer
   useEffect(() => {
@@ -154,9 +182,9 @@ function CheckoutContent() {
     return () => clearInterval(interval);
   }, [order]);
 
-  // Monitor transactions when QR code is shown
+  // Monitor transactions when QR code is shown (skip in demo mode)
   useEffect(() => {
-    if (!showQRCode || !order || completed || !selectedNetwork) return;
+    if (!showQRCode || !order || completed || !selectedNetwork || isDemo) return;
 
     const targetChainId = NETWORK_CHAIN_IDS[selectedNetwork];
     if (!targetChainId) return;
@@ -404,6 +432,13 @@ function CheckoutContent() {
     <div className="container max-w-lg mx-auto py-10 px-4">
       <Card className="border-border shadow-lg">
         <CardHeader className="text-center border-b border-border/50 pb-6">
+          {isDemo && (
+            <div className="flex justify-center mb-3">
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 px-3 py-1">
+                DEMO MODE — No real payment will be processed
+              </Badge>
+            </div>
+          )}
           {merchantLogo && (
             <div className="flex justify-center mb-3">
               <Image
@@ -637,6 +672,24 @@ function CheckoutContent() {
                    <p>Please send the exact amount to the address above.</p>
                    <p className="mt-1">The page will automatically update once payment is detected.</p>
                </div>
+
+               {isDemo && (
+                 <Button
+                   className="w-full bg-green-600 hover:bg-green-700"
+                   onClick={() => {
+                     setCompleted(true);
+                     setShowQRCode(false);
+                     setOrder(prev => prev ? { ...prev, status: "paid" as const, tx_hash: "0xdemo...a]b3f7e92c4d1a8b5e6f0123456789abcdef0123456789abcdef01234567" } : prev);
+                     toast({
+                       title: "Payment Successful (Demo)",
+                       description: "Simulated transaction detected and confirmed",
+                     });
+                   }}
+                 >
+                   <CheckCircle2 className="w-4 h-4 mr-2" />
+                   Simulate Payment (Demo)
+                 </Button>
+               )}
             </div>
           )}
 
