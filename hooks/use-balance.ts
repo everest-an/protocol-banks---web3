@@ -78,7 +78,7 @@ const TOKENS: Record<string, { decimals: number; addresses: Record<number, strin
 
 // Demo balance data
 const DEMO_BALANCE: WalletBalance = {
-  totalUSD: 125450.32,
+  totalUSD: 145450.32,
   tokens: [
     { token: "USDC", chain: "Ethereum", balance: "50000", balanceUSD: 50000, price: 1.0 },
     { token: "ETH", chain: "Ethereum", balance: "7.14", balanceUSD: 25000, price: 3500 },
@@ -88,17 +88,20 @@ const DEMO_BALANCE: WalletBalance = {
     { token: "ETH", chain: "Arbitrum", balance: "0.857", balanceUSD: 3000, price: 3500 },
     { token: "USDC", chain: "Base", balance: "5000", balanceUSD: 5000, price: 1.0 },
     { token: "ETH", chain: "Base", balance: "0.128", balanceUSD: 450.32, price: 3500 },
+    { token: "USDT", chain: "Tron", balance: "20000", balanceUSD: 20000, price: 1.0 },
   ],
   chainDistribution: [
-    { chain: "Ethereum", chainId: 1, totalUSD: 75000, percentage: 59.8, tokenCount: 2 },
-    { chain: "Polygon", chainId: 137, totalUSD: 30000, percentage: 23.9, tokenCount: 2 },
-    { chain: "Arbitrum", chainId: 42161, totalUSD: 15000, percentage: 12.0, tokenCount: 2 },
-    { chain: "Base", chainId: 8453, totalUSD: 5450.32, percentage: 4.3, tokenCount: 2 },
+    { chain: "Ethereum", chainId: 1, totalUSD: 75000, percentage: 51.6, tokenCount: 2 },
+    { chain: "Polygon", chainId: 137, totalUSD: 30000, percentage: 20.6, tokenCount: 2 },
+    { chain: "Tron", chainId: 728126428, totalUSD: 20000, percentage: 13.8, tokenCount: 1 },
+    { chain: "Arbitrum", chainId: 42161, totalUSD: 15000, percentage: 10.3, tokenCount: 2 },
+    { chain: "Base", chainId: 8453, totalUSD: 5450.32, percentage: 3.7, tokenCount: 2 },
   ],
   tokenDistribution: [
-    { token: "USDC", totalBalance: 87000, totalUSD: 87000, percentage: 69.3, price: 1.0, chains: ["Ethereum", "Polygon", "Arbitrum", "Base"] },
-    { token: "ETH", totalBalance: 8.125, totalUSD: 28450.32, percentage: 22.7, price: 3500, chains: ["Ethereum", "Arbitrum", "Base"] },
-    { token: "MATIC", totalBalance: 20000, totalUSD: 10000, percentage: 8.0, price: 0.5, chains: ["Polygon"] },
+    { token: "USDC", totalBalance: 87000, totalUSD: 87000, percentage: 59.8, price: 1.0, chains: ["Ethereum", "Polygon", "Arbitrum", "Base"] },
+    { token: "ETH", totalBalance: 8.125, totalUSD: 28450.32, percentage: 19.6, price: 3500, chains: ["Ethereum", "Arbitrum", "Base"] },
+    { token: "USDT", totalBalance: 20000, totalUSD: 20000, percentage: 13.8, price: 1.0, chains: ["Tron"] },
+    { token: "MATIC", totalBalance: 20000, totalUSD: 10000, percentage: 6.9, price: 0.5, chains: ["Polygon"] },
   ],
   lastUpdated: new Date().toISOString(),
 }

@@ -5,6 +5,7 @@ import {
   connectWallet as connectWeb3Wallet,
   connectSolana,
   connectBitcoin,
+  connectTron,
   getTokenBalance,
   getTokenAddress,
   getChainId,
@@ -31,6 +32,7 @@ interface Web3ContextType {
     EVM: string | null
     SOLANA: string | null
     BITCOIN: string | null
+    TRON: string | null
   }
   // Convenience aliases
   address: string | null  // Alias for wallets.EVM
@@ -82,10 +84,12 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     EVM: string | null
     SOLANA: string | null
     BITCOIN: string | null
+    TRON: string | null
   }>({
     EVM: null,
     SOLANA: null,
     BITCOIN: null,
+    TRON: null,
   })
 
   const [activeChain, setActiveChain] = useState<ChainType>("EVM")
@@ -118,14 +122,14 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     chainId === CHAIN_IDS.ARBITRUM
 
   const refreshBalances = useCallback(async () => {
-    if (!wallets.EVM) {
+    if (!wallets.EVM && !wallets.TRON) {
       setUsdtBalance("0")
       setUsdcBalance("0")
       setDaiBalance("0")
       return
     }
 
-    if (activeChain === "EVM" || wallets.EVM) {
+    if (wallets.EVM) {
       try {
         const currentChainId = await getChainId()
         setChainId(currentChainId)
@@ -160,7 +164,26 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         console.error("[v0] Failed to refresh balances:", error)
       }
     }
-  }, [wallets.EVM, activeChain, sessionId])
+
+    if (activeChain === "TRON" && wallets.TRON) {
+        try {
+            if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+                const trc20ContractAddress = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT Mainnet
+                try {
+                  const contract = await window.tronWeb.contract().at(trc20ContractAddress);
+                  const balance = await contract.balanceOf(wallets.TRON).call();
+                  // USDT on Tron has 6 decimals
+                  const formatted = (parseInt(balance.toString()) / 1000000).toString();
+                  setUsdtBalance(formatted);
+                } catch (e) {
+                   console.warn("Failed to fetch TRC20 balance", e);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch Tron balances", err)
+        }
+    }
+  }, [wallets, activeChain, sessionId]) // updated deps
 
   const verifyBeforeTransaction = useCallback(async (): Promise<{ allowed: boolean; errors: string[] }> => {
     const errors: string[] = []
@@ -246,6 +269,8 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         address = await connectSolana()
       } else if (type === "BITCOIN") {
         address = await connectBitcoin()
+      } else if (type === "TRON") {
+        address = await connectTron()
       }
 
       if (address) {
@@ -309,7 +334,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         if (otherChain) setActiveChain(otherChain)
       }
     } else {
-      setWallets({ EVM: null, SOLANA: null, BITCOIN: null })
+      setWallets({ EVM: null, SOLANA: null, BITCOIN: null, TRON: null })
       setEvmSigner(null)
       setUsdtBalance("0")
       setUsdcBalance("0")
@@ -422,12 +447,12 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   }, [sessionId])
 
   useEffect(() => {
-    if (wallets.EVM) {
+    if (wallets.EVM || wallets.TRON) {
       refreshBalances()
       const interval = setInterval(refreshBalances, 60000)
       return () => clearInterval(interval)
     }
-  }, [wallets.EVM, refreshBalances])
+  }, [wallets.EVM, wallets.TRON, refreshBalances])
 
   // Stub functions for compatibility
   const signMessage = useCallback(async (message: string): Promise<string> => {
@@ -442,8 +467,39 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   }, [wallets.EVM])
 
   const sendToken = useCallback(async (to: string, amount: string, token: string): Promise<string> => {
+    // 1. Check TRON Logic
+    if (activeChain === "TRON") {
+      if (!wallets.TRON) throw new Error('Tron Wallet not connected')
+      if (typeof window === "undefined" || !window.tronWeb) throw new Error('TronLink not installed')
+
+      try {
+        console.log('[Web3] sendToken (Tron) called:', { to, amount, token })
+        
+        // Only support USDT for now on Tron
+        if (token.toUpperCase() !== 'USDT') {
+           throw new Error(`Token ${token} not supported on Tron yet`)
+        }
+
+        const trc20ContractAddress = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT Mainnet
+        const contract = await window.tronWeb.contract().at(trc20ContractAddress);
+        
+        // Amount logic: USDT is 6 decimals
+        // We assume 'amount' string is a human readable number e.g. "10.5"
+        const amountInUnits = Number(amount) * 1_000_000;
+        
+        const txHash = await contract.transfer(to, amountInUnits).send();
+        console.log('[Web3] Tron Transaction sent:', txHash)
+        return txHash;
+
+      } catch (error: any) {
+        console.error('[Web3] sendToken (Tron) error:', error)
+        throw new Error(error.message || 'Tron Transfer failed')
+      }
+    }
+
+    // 2. Default EVM Logic
     if (!wallets.EVM) {
-      throw new Error('Wallet not connected')
+      throw new Error('EVM Wallet not connected')
     }
 
     if (typeof window === 'undefined' || !window.ethereum) {
@@ -507,7 +563,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       console.error('[Web3] sendToken error:', error)
       throw new Error(error.message || 'Transfer failed')
     }
-  }, [wallets.EVM])
+  }, [wallets.EVM, wallets.TRON, activeChain])
 
   const signERC3009Authorization = useCallback(async (params: {
     tokenAddress: string
@@ -545,8 +601,8 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     <Web3Context.Provider
       value={{
         wallets,
-        address: wallets.EVM,
-        wallet: wallets.EVM,
+        address: wallets[activeChain],
+        wallet: wallets[activeChain],
         signer: evmSigner,
         signMessage,
         sendToken,

@@ -7,6 +7,7 @@ import {
   createVendorIntegrityHash,
   createAuditLog,
 } from "@/lib/security/security"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 const ADDRESS_CHANGE_COOLDOWN_MS = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -20,11 +21,20 @@ export async function GET(
 ) {
   const { id } = await params
   const { searchParams } = new URL(request.url)
-  const owner = searchParams.get("owner")
+  const ownerParam = searchParams.get("owner")
 
-  if (!owner) {
-    return NextResponse.json({ error: "owner parameter is required" }, { status: 400 })
+  // Security: Enforce authentication
+  const authenticatedAddress = await getAuthenticatedAddress(request);
+  if (!authenticatedAddress) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  // If specific owner param provided, it must match
+  if (ownerParam && ownerParam.toLowerCase() !== authenticatedAddress.toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const owner = authenticatedAddress;
 
   const ownerValidation = validateAndChecksumAddress(owner)
   if (!ownerValidation.valid) {
@@ -64,12 +74,21 @@ export async function PUT(
 ) {
   const { id } = await params
 
+  // Security: Enforce authentication
+  const authenticatedAddress = await getAuthenticatedAddress(request);
+  if (!authenticatedAddress) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
-    const { owner_address: ownerAddr, address_change_signature, address_change_message, ...updates } = body
+    const { owner_address: ownerAddrFromBody, address_change_signature, address_change_message, ...updates } = body
 
-    if (!ownerAddr) {
-      return NextResponse.json({ error: "owner_address is required" }, { status: 400 })
+    // Use authenticated address as the owner
+    const ownerAddr = authenticatedAddress;
+
+    if (ownerAddrFromBody && ownerAddrFromBody.toLowerCase() !== authenticatedAddress.toLowerCase()) {
+         return NextResponse.json({ error: "Forbidden: You cannot update another user's vendor" }, { status: 403 })
     }
 
     const ownerValidation = validateAndChecksumAddress(ownerAddr)
@@ -249,12 +268,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const { searchParams } = new URL(request.url)
-  const owner = searchParams.get("owner")
-
-  if (!owner) {
-    return NextResponse.json({ error: "owner parameter is required" }, { status: 400 })
+  
+  // Security: Enforce authentication
+  const authenticatedAddress = await getAuthenticatedAddress(request);
+  if (!authenticatedAddress) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const owner = authenticatedAddress;
 
   const ownerValidation = validateAndChecksumAddress(owner)
   if (!ownerValidation.valid) {

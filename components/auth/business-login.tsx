@@ -79,12 +79,29 @@ export function BusinessLogin({ onConnect, isLoading = false }: BusinessLoginPro
                 <Wallet className="h-6 w-6 text-purple-400" />
               </div>
               <div>
-                <p className="font-medium text-white text-sm">Software Wallet</p>
+                <p className="font-medium text-white text-sm">EVM Wallet</p>
                 <p className="text-xs text-white/50">MetaMask, etc.</p>
               </div>
             </div>
           </button>
         </div>
+
+        {/* Tron Wallet Option */}
+        <button
+          className="w-full bg-red-500/10 hover:bg-red-500/20 rounded-2xl p-3 transition-colors group text-left disabled:opacity-50 mt-3"
+          onClick={() => onConnect("tron" as BusinessConnectType)}
+          disabled={isLoading}
+        >
+          <div className="flex items-center gap-3">
+             <div className="h-10 w-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+               <span className="font-bold text-red-500 text-xs">TRX</span>
+             </div>
+             <div>
+                <p className="font-medium text-white text-sm">Tron Network</p>
+                <p className="text-xs text-white/50">Connect via TronLink</p>
+             </div>
+          </div>
+        </button>
       </div>
 
       {/* Security Note */}

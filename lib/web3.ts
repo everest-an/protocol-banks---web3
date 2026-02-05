@@ -1,7 +1,14 @@
 import { ethers } from "ethers"
+import TronWeb from "tronweb"
 
 // Chain type definition
-export type ChainType = "EVM" | "SOLANA" | "BITCOIN"
+export type ChainType = "EVM" | "SOLANA" | "BITCOIN" | "TRON"
+
+declare global {
+  interface Window {
+    tronWeb: any
+  }
+}
 
 // Re-export service layer functions for unified access
 export {
@@ -520,6 +527,29 @@ export async function connectBitcoin(): Promise<string> {
   } catch (err: any) {
     throw new Error(err.message || "User rejected the request.")
   }
+}
+
+export async function connectTron(): Promise<string> {
+    if (typeof window === "undefined") return ""
+
+    // Wait for TronLink injection (sometimes it takes a moment)
+    let tries = 0;
+    while (!window.tronWeb && tries < 10) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tries++;
+    }
+
+    if (!window.tronWeb || !window.tronWeb.defaultAddress.base58) {
+         window.open("https://www.tronlink.org/", "_blank")
+         throw new Error("Please install TronLink wallet")
+    }
+
+    if (window.tronWeb.request) {
+        // Modern TronLink
+        await window.tronWeb.request({ method: 'tron_requestAccounts' });
+    }
+
+    return window.tronWeb.defaultAddress.base58;
 }
 
 export async function signERC3009Authorization(

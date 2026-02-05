@@ -31,6 +31,7 @@ import { PurposeTagSelector } from "@/components/purpose-tag-selector"
 import { PaymentGroupSelector } from "@/components/payment-group-selector"
 import { recordFee, calculateFee } from "@/lib/protocol-fees"
 import { sonicBranding } from "@/lib/sonic-branding"
+import { getVendorDisplayName } from "@/lib/utils"
 
 interface Invoice {
   invoice_id: string
@@ -854,7 +855,7 @@ function PaymentContent() {
                           className="w-full text-left px-3 py-2 hover:bg-muted/50 text-sm flex justify-between items-center border-b last:border-b-0"
                           onClick={() => { setFormTo(vendor.wallet_address); setShowContacts(false) }}
                         >
-                          <span className="font-medium">{vendor.company_name || vendor.name || "Unknown"}</span>
+                          <span className="font-medium">{getVendorDisplayName(vendor)}</span>
                           <span className="font-mono text-xs text-muted-foreground truncate max-w-[140px]">
                             {vendor.wallet_address.slice(0, 6)}...{vendor.wallet_address.slice(-4)}
                           </span>

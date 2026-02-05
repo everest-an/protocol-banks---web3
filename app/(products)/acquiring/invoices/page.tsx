@@ -604,7 +604,7 @@ export default function InvoicesPage() {
                 </Tabs>
 
                 <div className="flex gap-2 mt-8">
-                  <Button type="submit" disabled={creating} className="w-full">
+                  <Button type="submit" disabled={creating} className="flex-1">
                     {creating ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

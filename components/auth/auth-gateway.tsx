@@ -134,7 +134,7 @@ export function AuthGateway({ isOpen, onClose, onSuccess }: AuthGatewayProps) {
     onClose()
   }
 
-  const handleBusinessConnect = async (type: BusinessConnectType) => {
+  const handleBusinessConnect = async (type: BusinessConnectType | "tron") => {
     setIsLoading(true)
     setUserType("web3")
 
@@ -145,6 +145,9 @@ export function AuthGateway({ isOpen, onClose, onSuccess }: AuthGatewayProps) {
       } else if (type === "email") {
         // Use our custom email auth for business too
         setStep("email")
+      } else if (type === "tron") {
+        play("business-connect")
+        await connectWallet("TRON")
       } else {
         play("business-connect")
         await connectWallet("EVM")

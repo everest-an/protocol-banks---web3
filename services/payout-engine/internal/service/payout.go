@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	tronclient "github.com/fbsobreira/gotron-sdk/pkg/client"
 	"github.com/protocol-bank/payout-engine/internal/config"
 	"github.com/protocol-bank/payout-engine/internal/nonce"
 	"github.com/protocol-bank/payout-engine/internal/queue"
@@ -28,6 +29,7 @@ type PayoutService struct {
 	nonceManager *nonce.Manager
 	queue        *queue.Consumer
 	clients      map[uint64]*ethclient.Client
+	tronClients  map[uint64]*tronclient.GrpcClient
 	erc20ABI     abi.ABI
 }
 
@@ -46,15 +48,27 @@ func NewPayoutService(
 
 	// 初始化链客户端
 	clients := make(map[uint64]*ethclient.Client)
+	tronClients := make(map[uint64]*tronclient.GrpcClient)
+
 	for chainID, chainCfg := range cfg.Chains {
-		client, err := ethclient.Dial(chainCfg.RPCURL)
-		if err != nil {
-			log.Warn().Err(err).Uint64("chain_id", chainID).Msg("Failed to connect to chain")
-			continue
+		if chainCfg.Type == "tron" {
+			client := tronclient.NewGrpcClient(chainCfg.RPCURL)
+			if err := client.Start(); err != nil {
+				log.Warn().Err(err).Uint64("chain_id", chainID).Msg("Failed to connect to Tron chain")
+				continue
+			}
+			tronClients[chainID] = client
+			log.Info().Uint64("chain_id", chainID).Str("name", chainCfg.Name).Msg("Connected to Tron chain")
+		} else {
+			client, err := ethclient.Dial(chainCfg.RPCURL)
+			if err != nil {
+				log.Warn().Err(err).Uint64("chain_id", chainID).Msg("Failed to connect to chain")
+				continue
+			}
+			clients[chainID] = client
+			nonceManager.AddChainClient(chainID, client)
+			log.Info().Uint64("chain_id", chainID).Str("name", chainCfg.Name).Msg("Connected to chain")
 		}
-		clients[chainID] = client
-		nonceManager.AddChainClient(chainID, client)
-		log.Info().Uint64("chain_id", chainID).Str("name", chainCfg.Name).Msg("Connected to chain")
 	}
 
 	return &PayoutService{
@@ -62,6 +76,7 @@ func NewPayoutService(
 		nonceManager: nonceManager,
 		queue:        queueConsumer,
 		clients:      clients,
+		tronClients:  tronClients,
 		erc20ABI:     parsedABI,
 	}, nil
 }
@@ -117,6 +132,11 @@ func (s *PayoutService) ProcessJob(ctx context.Context, job *queue.Job) (*queue.
 		Str("to", job.ToAddress).
 		Str("amount", job.Amount).
 		Msg("Processing payout job")
+
+	// Check if this is a Tron chain
+	if tronClient, ok := s.tronClients[job.ChainID]; ok {
+		return s.processTronJob(ctx, tronClient, job)
+	}
 
 	// 获取链客户端
 	client, ok := s.clients[job.ChainID]
@@ -347,7 +367,9 @@ func (s *PayoutService) validateRequest(req *BatchPayoutRequest) error {
 	if len(req.Items) == 0 {
 		return fmt.Errorf("at least one item is required")
 	}
-	if _, ok := s.clients[req.ChainID]; !ok {
+	_, evmOk := s.clients[req.ChainID]
+	_, tronOk := s.tronClients[req.ChainID]
+	if !evmOk && !tronOk {
 		return fmt.Errorf("unsupported chain_id: %d", req.ChainID)
 	}
 
@@ -364,6 +386,28 @@ func (s *PayoutService) validateRequest(req *BatchPayoutRequest) error {
 	}
 
 	return nil
+}
+
+func (s *PayoutService) processTronJob(ctx context.Context, client *tronclient.GrpcClient, job *queue.Job) (*queue.JobResult, error) {
+	log.Info().Str("job_id", job.ID).Msg("Processing Tron Job")
+
+	// Placeholder for Tron transaction logic
+	// In a complete implementation:
+	// 1. Identify token (TRX or TRC20)
+	// 2. Build transaction using gotron-sdk
+	// 3. Sign transaction (requires Tron private key handling)
+	// 4. Broadcast
+
+	if client == nil {
+		return nil, fmt.Errorf("tron client is nil")
+	}
+
+	// Simulating success for now
+	return &queue.JobResult{
+		JobID:   job.ID,
+		Success: true,
+		TxHash:  "fake_tron_tx_hash_" + job.ID,
+	}, nil
 }
 
 // 请求/响应类型

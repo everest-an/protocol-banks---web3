@@ -15,14 +15,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { recipients, token, chainId, fromAddress, memo } = body
+    const { recipients, token, chainId, fromAddress: bodyFromAddress, memo } = body
+
+    // Enforce fromAddress matches caller
+    const fromAddress = callerAddress;
+
+    if (bodyFromAddress && bodyFromAddress.toLowerCase() !== callerAddress.toLowerCase()) {
+         return NextResponse.json({ error: "Forbidden: Cannot create batch for another address" }, { status: 403 })
+    }
 
     if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json({ error: "Recipients array required" }, { status: 400 })
-    }
-
-    if (!fromAddress) {
-      return NextResponse.json({ error: "fromAddress required" }, { status: 400 })
     }
 
     // Validate batch
@@ -96,9 +99,14 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const callerAddress = await getAuthenticatedAddress(request);
+    if (!callerAddress) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url)
     const batchId = searchParams.get("batchId")
-    const fromAddress = searchParams.get("fromAddress")
+    const fromAddressParam = searchParams.get("fromAddress")
 
     if (batchId) {
       // Get specific batch
@@ -110,14 +118,26 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Batch not found" }, { status: 404 })
       }
 
+      // Security: Ensure the batch belongs to the caller
+      if (batch.from_address.toLowerCase() !== callerAddress.toLowerCase()) {
+         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+
       return NextResponse.json({ batch })
     }
 
-    if (fromAddress) {
+    // Default to caller address if fromAddress not specific (or enforce it matches)
+    const targetAddress = callerAddress;
+
+    if (fromAddressParam && fromAddressParam.toLowerCase() !== callerAddress.toLowerCase()) {
+         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    if (targetAddress) {
       // Get all batches for address
       try {
         const batches = await prisma.batchPayment.findMany({
-          where: { from_address: fromAddress.toLowerCase() },
+          where: { from_address: targetAddress.toLowerCase() },
           orderBy: { created_at: "desc" },
           take: 50,
         })

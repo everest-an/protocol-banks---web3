@@ -277,10 +277,10 @@ export async function GET(request: NextRequest) {
             type: 'vendor_added',
             timestamp: vendor.created_at?.toISOString() || new Date().toISOString(),
             title: 'Vendor Added',
-            description: `New vendor: ${vendor.name}`,
+            description: `New vendor: ${vendor.name || vendor.company_name || 'Unknown'}`,  
             status: 'success',
             metadata: {
-              vendor_name: vendor.name,
+              vendor_name: vendor.name || vendor.company_name || 'Unknown',
             },
           });
         }

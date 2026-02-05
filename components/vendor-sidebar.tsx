@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Users, ArrowUpRight } from "lucide-react"
 import Link from "next/link"
 import type { Vendor } from "@/types/vendor"
+import { getVendorDisplayName, getVendorInitials } from "@/lib/utils"
 
 interface VendorSidebarProps {
   vendors: Vendor[]
@@ -46,10 +47,10 @@ export function VendorSidebar({ vendors, loading }: VendorSidebarProps) {
                   <div className="flex items-center gap-3 overflow-hidden">
                     <Avatar className="h-9 w-9 border border-border">
                       <AvatarImage src={`https://avatar.vercel.sh/${vendor.wallet_address}`} />
-                      <AvatarFallback>{(vendor.name || vendor.company_name || "??").substring(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>{getVendorInitials(vendor)}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col overflow-hidden">
-                      <span className="font-medium text-sm truncate text-foreground">{vendor.name || vendor.company_name || "Unknown"}</span>
+                      <span className="font-medium text-sm truncate text-foreground">{getVendorDisplayName(vendor)}</span>
                       <span className="text-xs text-muted-foreground truncate font-mono">
                         {vendor.wallet_address.substring(0, 6)}...{vendor.wallet_address.substring(38)}
                       </span>

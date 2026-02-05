@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { teamService } from '@/lib/services/team-service';
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 /**
  * GET /api/teams
@@ -7,7 +8,7 @@ import { teamService } from '@/lib/services/team-service';
  */
 export async function GET(request: NextRequest) {
   try {
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(

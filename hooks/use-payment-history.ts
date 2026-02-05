@@ -3,98 +3,59 @@
 import { useState, useEffect, useCallback } from "react"
 import type { Payment, PaymentHistory, MonthlyPaymentData } from "@/types"
 
-// Demo payment history
-const DEMO_PAYMENTS: Payment[] = [
-  {
-    id: "1",
-    from_address: "0xMyWallet",
-    to_address: "0xAPAC...",
-    amount: "50000",
-    token: "USDC",
-    chain: "Ethereum",
-    status: "completed",
-    type: "sent",
-    method: "eip3009",
-    tx_hash: "0xabc...",
-    created_at: "2024-03-15T10:30:00Z",
-    timestamp: "2024-03-15T10:30:00Z",
-    completed_at: "2024-03-15T10:31:00Z",
-    created_by: "demo",
-    vendor_name: "APAC Division",
-    category: "subsidiary",
-  },
-  {
-    id: "2",
-    from_address: "0xVendor...",
-    to_address: "0xMyWallet",
-    amount: "25000",
-    token: "USDC",
-    chain: "Polygon",
-    status: "completed",
-    type: "received",
-    method: "direct",
-    tx_hash: "0xdef...",
-    created_at: "2024-03-14T14:20:00Z",
-    timestamp: "2024-03-14T14:20:00Z",
-    completed_at: "2024-03-14T14:21:00Z",
-    created_by: "demo",
-    vendor_name: "Salesforce",
-    category: "partner",
-  },
-  {
-    id: "3",
-    from_address: "0xMyWallet",
-    to_address: "0xVendor...",
-    amount: "12500",
-    token: "USDC",
-    chain: "Arbitrum",
-    status: "completed",
-    type: "sent",
-    method: "batch",
-    created_at: "2024-03-13T09:15:00Z",
-    timestamp: "2024-03-13T09:15:00Z",
-    completed_at: "2024-03-13T09:16:00Z",
-    created_by: "demo",
-    vendor_name: "AWS Services",
-    category: "partner",
-  },
-  {
-    id: "4",
-    from_address: "0xMyWallet",
-    to_address: "0xEMEA...",
-    amount: "75000",
-    token: "USDC",
-    chain: "Base",
-    status: "pending",
-    type: "sent",
-    method: "eip3009",
-    created_at: "2024-03-16T16:45:00Z",
-    timestamp: "2024-03-16T16:45:00Z",
-    created_by: "demo",
-    vendor_name: "EMEA Operations",
-    category: "subsidiary",
-  },
-  {
-    id: "5",
-    from_address: "0xPartner...",
-    to_address: "0xMyWallet",
-    amount: "33000",
-    token: "USDC",
-    chain: "Ethereum",
-    status: "completed",
-    type: "received",
-    method: "direct",
-    tx_hash: "0xghi...",
-    created_at: "2024-03-12T11:00:00Z",
-    timestamp: "2024-03-12T11:00:00Z",
-    completed_at: "2024-03-12T11:01:00Z",
-    created_by: "demo",
-    vendor_name: "Stripe Inc",
-    category: "partner",
-  },
-]
+// Generate realistic demo payment history
+const GENERATED_DEMO_PAYMENTS: Payment[] = (() => {
+  const payments: Payment[] = []
+  const now = new Date()
+  const entities = [
+    { name: "APAC Division", type: "subsidiary" },
+    { name: "EMEA Operations", type: "subsidiary" },
+    { name: "North America HQ", type: "subsidiary" },
+    { name: "Salesforce", type: "partner" },
+    { name: "AWS Services", type: "partner" },
+    { name: "Google Cloud", type: "partner" },
+    { name: "Stripe Inc", type: "partner" },
+    { name: "Deel", type: "partner" },
+    { name: "Binance Payout", type: "exchange" },
+    { name: "Asia Pacific Supplier", type: "supplier" },
+  ]
+  
+  const tokens = ["USDC", "USDT", "DAI"]
+  const chains = ["Ethereum", "Polygon", "Arbitrum", "Base", "Optimism", "Tron"]
 
-const EMPTY_PAYMENTS: Payment[] = []
+  // Generate 200 transactions over the last 90 days
+  for (let i = 0; i < 200; i++) {
+    const daysAgo = Math.floor(Math.random() * 90)
+    const date = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000)
+    date.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60))
+    
+    const isReceived = Math.random() > 0.6 // 40% sent, 60% received
+    const entity = entities[Math.floor(Math.random() * entities.length)]
+    
+    payments.push({
+      id: `demo-${i}`,
+      from_address: isReceived ? `0x${Math.random().toString(16).slice(2, 10)}...` : "0xMyWallet",
+      to_address: isReceived ? "0xMyWallet" : `0x${Math.random().toString(16).slice(2, 10)}...`,
+      amount: Math.floor(Math.random() * (isReceived ? 50000 : 20000) + 100).toString(),
+      token: tokens[Math.floor(Math.random() * tokens.length)],
+      chain: chains[Math.floor(Math.random() * chains.length)],
+      status: Math.random() > 0.95 ? "pending" : "completed",
+      type: isReceived ? "received" : "sent",
+      method: "direct",
+      tx_hash: `0x${Math.random().toString(16).slice(2)}`,
+      created_at: date.toISOString(),
+      timestamp: date.toISOString(),
+      completed_at: date.toISOString(),
+      created_by: "demo",
+      vendor_name: entity.name,
+      category: entity.type,
+    })
+  }
+  
+  return payments.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+})()
+
+const DEMO_PAYMENTS = GENERATED_DEMO_PAYMENTS
 
 interface UsePaymentHistoryOptions {
   isDemoMode?: boolean

@@ -362,7 +362,7 @@ export async function secureDeleteVendor(
     target: vendorId,
     details: {
       success: true,
-      vendor_name: currentVendor.name,
+      vendor_name: currentVendor.name || currentVendor.company_name || 'Unknown',
       wallet_address: currentVendor.wallet_address,
     },
   })

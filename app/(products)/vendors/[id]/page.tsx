@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { getSupabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 import type { Vendor } from "@/types/vendor"
+import { getVendorDisplayName } from "@/lib/utils"
 
 // Demo data for when vendor is not found in database
 const demoVendors: Record<string, Vendor> = {
@@ -188,7 +189,7 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl md:text-3xl font-bold">{vendor.company_name || vendor.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold">{getVendorDisplayName(vendor)}</h1>
               <Badge variant="outline" className={getTierColor(vendor.tier)}>
                 {vendor.tier || "vendor"}
               </Badge>

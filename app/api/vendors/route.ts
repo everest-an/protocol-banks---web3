@@ -15,11 +15,26 @@ import { getAuthenticatedAddress } from "@/lib/api-auth"
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const owner = searchParams.get("owner")
-
-  if (!owner) {
-    return NextResponse.json({ error: "owner parameter is required" }, { status: 400 })
+  const ownerParam = searchParams.get("owner")
+  
+  // Security: Enforce authentication
+  const authenticatedAddress = await getAuthenticatedAddress(request);
+  
+  // If no auth, deny access. (Or allow strictly public data if designed, but here we want isolation)
+  if (!authenticatedAddress) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  // If a specific owner is requested, it MUST match the authenticated user
+  if (ownerParam) {
+    const ownerValidation = validateAndChecksumAddress(ownerParam)
+    if (!ownerValidation.valid || ownerValidation.checksummed?.toLowerCase() !== authenticatedAddress.toLowerCase()) {
+       return NextResponse.json({ error: "Forbidden: You can only access your own vendors" }, { status: 403 })
+    }
+  }
+
+  // Use the authenticated address as the source of truth
+  const owner = authenticatedAddress
 
   const ownerValidation = validateAndChecksumAddress(owner)
   if (!ownerValidation.valid) {
@@ -89,15 +104,21 @@ export async function POST(request: NextRequest) {
       created_by,
     } = body
 
-    if (!name || !wallet_address || !created_by) {
+    if (!name || !wallet_address) {
       return NextResponse.json(
-        { error: "name, wallet_address, and created_by are required" },
+        { error: "name and wallet_address are required" },
         { status: 400 },
       )
     }
 
-    // Validate addresses
-    const creatorValidation = validateAndChecksumAddress(created_by)
+    // Security: Enforce creator is the authenticated caller
+    const creatorValidation = validateAndChecksumAddress(callerAddress)
+    
+    // Check if body.created_by matches (optional validation, but we override it)
+    if (created_by && created_by.toLowerCase() !== callerAddress.toLowerCase()) {
+        return NextResponse.json({ error: "Forbidden: Cannot create vendor for another user" }, { status: 403 })
+    }
+
     if (!creatorValidation.valid) {
       return NextResponse.json({ error: `Invalid creator address: ${creatorValidation.error}` }, { status: 400 })
     }

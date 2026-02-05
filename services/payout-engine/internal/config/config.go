@@ -37,6 +37,7 @@ type ChainConfig struct {
 	ExplorerURL string
 	NativeToken string
 	Decimals    int
+	Type        string // "evm" or "tron"
 }
 
 func Load() (*Config, error) {

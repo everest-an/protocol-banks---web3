@@ -9,14 +9,25 @@ import { getAuthenticatedAddress } from "@/lib/api-auth"
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const walletAddress = searchParams.get("wallet")
+    const walletParam = searchParams.get("wallet")
     const type = searchParams.get("type") // "sent" | "received" | "all"
     const groupId = searchParams.get("group_id")
 
-    if (!walletAddress) {
-      return NextResponse.json({ error: "Missing wallet address" }, { status: 400 })
+    // Security: Enforce authentication
+    const authAddress = await getAuthenticatedAddress(request);
+    if (!authAddress) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // If wallet param is provided, it must match auth address
+    // (unless we are an admin, but for now we enforce strict isolation)
+    if (walletParam && walletParam.toLowerCase() !== authAddress.toLowerCase()) {
+        return NextResponse.json({ error: "Forbidden: Access denied to other wallets" }, { status: 403 })
+    }
+    
+    // Use the authenticated address
+    const walletAddress = authAddress;
+    
     // Default: find payments where user is sender OR receiver (if type is not specified or 'all')
     let where: Record<string, unknown> = {}
 

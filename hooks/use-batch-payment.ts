@@ -65,14 +65,14 @@ const initialState: BatchPaymentState = {
 }
 
 export function useBatchPayment(): UseBatchPaymentReturn {
-  const { wallets } = useUnifiedWallet()
+  const { wallets, activeChain } = useUnifiedWallet()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const [state, setState] = useState<BatchPaymentState>(initialState)
   const [batchStatus, setBatchStatus] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const currentWallet = wallets.EVM
+  const currentWallet = wallets[activeChain] || wallets.EVM
 
   const uploadFile = useCallback(async (file: File): Promise<PaymentRecipient[]> => {
     // Parse CSV/Excel file and return recipients

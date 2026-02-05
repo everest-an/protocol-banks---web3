@@ -25,7 +25,10 @@
       "Bash(pnpm dev)",
       "Bash(curl:*)",
       "Bash(where:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(ls:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)"
     ]
   }
 }
