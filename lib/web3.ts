@@ -81,6 +81,12 @@ export const TOKEN_ADDRESSES = {
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // Native USDC (Circle)
     DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", // Bridged DAI
   },
+  [CHAIN_IDS.BSC]: {
+    USDT: "0x55d398326f99059fF775485246999027B3197955", // BSC-USD (Binance-Peg BUSD-T)
+    USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", // Binance-Peg USD Coin
+    DAI: "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3", // Binance-Peg Dai Token
+  },
+  // HASHKEY (177): Token addresses to be added when stablecoins are officially deployed
 } as const
 
 export const ERC20_ABI = [
@@ -251,8 +257,8 @@ export async function connectWallet(type: ChainType, preferredWallet?: "MetaMask
 export function getTokenAddress(chainId: number, symbol: string): string | undefined {
   const chainAddresses = TOKEN_ADDRESSES[chainId as keyof typeof TOKEN_ADDRESSES]
   if (!chainAddresses) {
-    // Default to Mainnet if chain not found
-    return (TOKEN_ADDRESSES[CHAIN_IDS.MAINNET] as any)[symbol]
+    console.warn(`[Web3] No token addresses configured for chain ${chainId}`)
+    return undefined
   }
   return (chainAddresses as any)[symbol]
 }
@@ -320,8 +326,9 @@ export async function switchNetwork(chainId: number) {
   }
 }
 
-// Simple cache to prevent spamming RPC with getCode for same address
-const contractExistsCache: Record<string, boolean> = {}
+// Cache with TTL to prevent spamming RPC with getCode for same address
+const CONTRACT_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const contractExistsCache: Record<string, { exists: boolean; timestamp: number }> = {}
 
 export async function getTokenBalance(walletAddress: string, tokenAddress: string): Promise<string> {
   if (typeof window === "undefined" || !window.ethereum) {
@@ -338,11 +345,13 @@ export async function getTokenBalance(walletAddress: string, tokenAddress: strin
     const network = await provider.getNetwork()
     const chainId = Number(network.chainId)
 
-    // Check cache first
-    if (contractExistsCache[tokenAddress] === undefined) {
+    // Check cache first (with TTL expiry)
+    const cached = contractExistsCache[tokenAddress]
+    const cacheValid = cached && (Date.now() - cached.timestamp) < CONTRACT_CACHE_TTL_MS
+    if (!cacheValid) {
       try {
         const code = await provider.getCode(tokenAddress)
-        contractExistsCache[tokenAddress] = code !== "0x"
+        contractExistsCache[tokenAddress] = { exists: code !== "0x", timestamp: Date.now() }
       } catch (e: any) {
         // If getCode fails with rate limit, assume it exists for now to try balance, or return 0
         if (e?.error?.code === -32002 || e?.info?.error?.code === -32002) {
@@ -354,7 +363,7 @@ export async function getTokenBalance(walletAddress: string, tokenAddress: strin
     }
 
     // If contract doesn't exist on this chain, return 0 immediately
-    if (!contractExistsCache[tokenAddress]) {
+    if (!contractExistsCache[tokenAddress]?.exists) {
       return "0"
     }
 
@@ -398,15 +407,11 @@ export async function sendToken(tokenAddress: string, toAddress: string, amount:
   console.log("[Web3] sendToken called with:", { tokenAddress, toAddress, amount })
 
   if (tokenAddress === "SOL") {
-    console.log("[Web3] Simulating Solana transaction...")
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    return "5U3bHwJ6e5..." // Mock Solana signature
+    throw new Error("Solana transfers are not yet supported. Please use an EVM chain.")
   }
 
   if (tokenAddress === "BTC") {
-    console.log("[Web3] Simulating Bitcoin transaction...")
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    return "a1b2c3d4..." // Mock Bitcoin tx hash
+    throw new Error("Bitcoin transfers are not yet supported. Please use an EVM chain.")
   }
 
   if (typeof window === "undefined" || !window.ethereum) {

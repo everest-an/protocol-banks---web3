@@ -185,10 +185,12 @@ export class ZetaChainService {
         minOutput: minOutput.toString(),
       })
 
-      // 4. 返回交易参数供前端签名
+      // TODO: Integrate with ZetaChain Gateway contract for real cross-chain execution
+      // Currently returns transaction parameters for the frontend to sign,
+      // but actual on-chain execution requires Gateway ABI encoding
       return {
-        success: true,
-        estimatedTime: this.estimateCrossChainTime(fromChain, toChain),
+        success: false,
+        error: "Cross-chain swap is not yet available. ZetaChain Gateway integration in progress.",
       }
     } catch (error) {
       return {
@@ -213,19 +215,10 @@ export class ZetaChainService {
     fee: string
     route: string[]
   }> {
-    // 这里需要调用 ZunoDex 或其他 DEX 的 API
-    // 暂时返回模拟数据
-    const mockRate = fromToken === "ETH" && toToken === "BTC" ? 0.05 : 1
-    const outputAmount = (Number.parseFloat(amount) * mockRate).toFixed(8)
-
-    return {
-      inputAmount: amount,
-      outputAmount,
-      rate: mockRate.toString(),
-      priceImpact: "0.1",
-      fee: "0.3",
-      route: [fromToken, "ZETA", toToken],
-    }
+    // TODO: Integrate ZunoDex or Eddy Finance API for real quotes
+    throw new Error(
+      "Cross-chain swap quotes are not yet available. DEX API integration in progress."
+    )
   }
 
   /**
@@ -385,8 +378,8 @@ export class ZetaChainService {
     recipient: string
     minOutput: string
   }): string {
-    // 编码 swap 调用数据
-    return "0x" // 实际实现需要 ABI 编码
+    // TODO: Implement ABI encoding for Gateway swap call
+    throw new Error("Swap data encoding not yet implemented")
   }
 
   private encodeDepositNative(receiver: string): string {
@@ -395,13 +388,13 @@ export class ZetaChainService {
   }
 
   private encodeDepositERC20(receiver: string, token: string, amount: string): string {
-    // deposit(address receiver, uint256 amount, address asset, bytes message)
-    return "0x" // 实际实现需要完整 ABI 编码
+    // TODO: Implement full ABI encoding for deposit(address receiver, uint256 amount, address asset, bytes message)
+    throw new Error("ERC20 deposit encoding not yet implemented")
   }
 
   private encodeWithdraw(receiver: string, amount: string): string {
-    // withdraw(bytes memory to, uint256 amount)
-    return "0x" // 实际实现需要完整 ABI 编码
+    // TODO: Implement full ABI encoding for withdraw(bytes memory to, uint256 amount)
+    throw new Error("Withdraw encoding not yet implemented")
   }
 
   private estimateCrossChainTime(fromChain: number | string, toChain: number | string): number {

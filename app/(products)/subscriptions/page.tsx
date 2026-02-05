@@ -28,7 +28,7 @@ export default function SubscriptionsPage() {
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
 
-  const { subscriptions, loading, stats, addSubscription, updateStatus, deleteSubscription } = useSubscriptions({
+  const { subscriptions, loading, stats, addSubscription, updateSubscription, updateStatus, deleteSubscription } = useSubscriptions({
     isDemoMode,
     walletAddress: currentWallet ?? undefined,
   })
@@ -145,9 +145,10 @@ export default function SubscriptionsPage() {
 
         // Update next payment date
         const nextDate = calculateNextPaymentDate(new Date(), subscription.frequency)
-
-        // You could update the subscription's next_payment here
-        // await updateSubscription(subscription.id, { next_payment: nextDate.toISOString() })
+        await updateSubscription(subscription.id, {
+          next_payment: nextDate.toISOString(),
+          last_payment: new Date().toISOString(),
+        })
 
         toast({ title: "Success", description: "Payment processed successfully" })
       } else {

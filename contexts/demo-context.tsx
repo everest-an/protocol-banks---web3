@@ -13,12 +13,27 @@ interface DemoContextType {
 
 const DemoContext = createContext<DemoContextType | undefined>(undefined)
 
+const TEST_MODE_STORAGE_KEY = "protocol-bank-test-mode"
+
 export function DemoProvider({ children }: { children: ReactNode }) {
-  // Default to test mode when no wallet is connected
+  // Default to test mode when no wallet is connected; restore from localStorage if available
   const [isDemoMode, setIsDemoMode] = useState(true)
   const [demoModeBlocked, setDemoModeBlocked] = useState(false)
   const [demoBlockReason, setDemoBlockReason] = useState<string | null>(null)
   const [walletConnected, setWalletConnectedState] = useState(false)
+
+  // Restore persisted test mode preference on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(TEST_MODE_STORAGE_KEY)
+    if (stored !== null) {
+      setIsDemoMode(stored === "true")
+    }
+  }, [])
+
+  // Persist test mode changes to localStorage
+  useEffect(() => {
+    localStorage.setItem(TEST_MODE_STORAGE_KEY, String(isDemoMode))
+  }, [isDemoMode])
 
   useEffect(() => {
     const allowDemoMode = process.env.NEXT_PUBLIC_ALLOW_DEMO_MODE

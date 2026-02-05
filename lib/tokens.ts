@@ -25,6 +25,7 @@ export const COMMON_TOKENS: Record<
       42161: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       8453: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       10: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      // 177: HashKey Chain USDC - add when officially deployed
     },
   },
   USDT: {
@@ -35,6 +36,7 @@ export const COMMON_TOKENS: Record<
       137: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
       42161: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
       56: "0x55d398326f99059fF775485246999027B3197955",
+      // 177: HashKey Chain USDT - add when officially deployed
     },
   },
   DAI: {

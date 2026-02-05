@@ -61,6 +61,7 @@ function TerminalContent() {
   const [online, setOnline] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [merchantName, setMerchantName] = useState("Protocol Banks POS");
+  const [paymentMode, setPaymentMode] = useState<"crypto" | "fiat">("crypto");
 
   // Load settings from URL params or localStorage
   useEffect(() => {
@@ -275,6 +276,22 @@ function TerminalContent() {
   };
 
   const getQRValue = () => {
+    // Demo Fiat On-Ramp URL (Transak)
+    if (paymentMode === "fiat") {
+      // Basic Transak URL for demo. In production, this would use an API Key and sign the request.
+      const baseUrl = "https://global.transak.com";
+      const params = new URLSearchParams({
+        // apiKey: "YOUR_API_KEY", // Hidden for demo
+        walletAddress: recipientAddress,
+        fiatCurrency: "USD",
+        fiatAmount: amount,
+        cryptoCurrencyCode: token,
+        network: network === "eth" ? "ethereum" : network, // Simple mapping
+        redirectURL: "https://protocol-banks.com/success", // Placeholder
+      });
+      return `${baseUrl}?${params.toString()}`;
+    }
+
     const chainId = NETWORK_CHAIN_IDS[network];
     if (!chainId) return recipientAddress;
     const tokenAddress = getTokenAddress(chainId, token);
@@ -352,6 +369,32 @@ function TerminalContent() {
       <div className="flex-1 flex flex-col">
         {mode === "input" && (
           <>
+
+              {/* Payment Mode Switcher */}
+              <div className="flex justify-center mt-6 mb-2">
+                <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+                  <button
+                    onClick={() => setPaymentMode("crypto")}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      paymentMode === "crypto"
+                        ? "bg-zinc-800 text-white shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-400"
+                    }`}
+                  >
+                    Crypto
+                  </button>
+                  <button
+                    onClick={() => setPaymentMode("fiat")}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      paymentMode === "fiat"
+                        ? "bg-blue-600/20 text-blue-400 shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-400"
+                    }`}
+                  >
+                    Fiat / Card
+                  </button>
+                </div>
+              </div>
             {/* Amount Display */}
             <div className="flex-1 flex flex-col items-center justify-center px-4">
               <div className="text-sm text-zinc-500 mb-2">CHARGE AMOUNT</div>

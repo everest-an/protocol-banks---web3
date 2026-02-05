@@ -424,8 +424,11 @@ class RangoService {
       return { routes, routeId: data.routeId }
     } catch (error) {
       console.error("Failed to get routes:", error)
-      // Return mock routes for demo
-      return this.getMockRoutes(from, to, amount)
+      throw new Error(
+        error instanceof Error
+          ? `Swap route fetch failed: ${error.message}`
+          : "Failed to fetch swap routes. Please check your network and try again."
+      )
     }
   }
 
@@ -568,95 +571,6 @@ class RangoService {
     return Math.abs(((inputUsd - outputUsd) / inputUsd) * 100)
   }
 
-  private getMockRoutes(from: RangoAsset, to: RangoAsset, amount: string): { routes: RangoRoute[]; routeId: string } {
-    const inputAmount = Number.parseFloat(amount)
-    const mockRate =
-      from.symbol === to.symbol
-        ? 1
-        : from.symbol === "BTC"
-          ? 40000
-          : from.symbol === "ETH"
-            ? 2500
-            : to.symbol === "BTC"
-              ? 1 / 40000
-              : to.symbol === "ETH"
-                ? 1 / 2500
-                : 1
-
-    const baseOutput = inputAmount * mockRate
-
-    return {
-      routeId: `mock-${Date.now()}`,
-      routes: [
-        {
-          requestId: `mock-1-${Date.now()}`,
-          outputAmount: (baseOutput * 0.998).toFixed(6),
-          outputAmountUsd: baseOutput * 0.998,
-          swaps: [
-            {
-              swapperId: "ZetaChain",
-              swapperLogo: "https://raw.githubusercontent.com/rango-exchange/assets/main/blockchains/ZETA/icon.svg",
-              swapperType: "BRIDGE",
-              from: { ...from, logo: `https://rango.vip/tokens/ALL/${from.symbol}.png` },
-              to: { ...to, logo: `https://rango.vip/tokens/ALL/${to.symbol}.png` },
-              fromAmount: amount,
-              toAmount: (baseOutput * 0.998).toFixed(6),
-              fee: [{ name: "Network Fee", amount: "0.001", asset: from, expenseType: "FROM_SOURCE_WALLET" }],
-              estimatedTimeInSeconds: 120,
-            },
-          ],
-          tags: [{ label: "Best Price", value: "RECOMMENDED" }],
-          estimatedTimeInSeconds: 120,
-          totalFeeUsd: 2.5,
-          priceImpact: 0.2,
-        },
-        {
-          requestId: `mock-2-${Date.now()}`,
-          outputAmount: (baseOutput * 0.995).toFixed(6),
-          outputAmountUsd: baseOutput * 0.995,
-          swaps: [
-            {
-              swapperId: "Stargate",
-              swapperLogo: "https://raw.githubusercontent.com/rango-exchange/assets/main/swappers/Stargate/icon.svg",
-              swapperType: "BRIDGE",
-              from: { ...from, logo: `https://rango.vip/tokens/ALL/${from.symbol}.png` },
-              to: { ...to, logo: `https://rango.vip/tokens/ALL/${to.symbol}.png` },
-              fromAmount: amount,
-              toAmount: (baseOutput * 0.995).toFixed(6),
-              fee: [{ name: "Bridge Fee", amount: "0.002", asset: from, expenseType: "FROM_SOURCE_WALLET" }],
-              estimatedTimeInSeconds: 60,
-            },
-          ],
-          tags: [{ label: "Fastest", value: "FASTEST" }],
-          estimatedTimeInSeconds: 60,
-          totalFeeUsd: 5.0,
-          priceImpact: 0.5,
-        },
-        {
-          requestId: `mock-3-${Date.now()}`,
-          outputAmount: (baseOutput * 0.992).toFixed(6),
-          outputAmountUsd: baseOutput * 0.992,
-          swaps: [
-            {
-              swapperId: "LayerZero",
-              swapperLogo: "https://raw.githubusercontent.com/rango-exchange/assets/main/swappers/LayerZero/icon.svg",
-              swapperType: "BRIDGE",
-              from: { ...from, logo: `https://rango.vip/tokens/ALL/${from.symbol}.png` },
-              to: { ...to, logo: `https://rango.vip/tokens/ALL/${to.symbol}.png` },
-              fromAmount: amount,
-              toAmount: (baseOutput * 0.992).toFixed(6),
-              fee: [{ name: "Protocol Fee", amount: "0.0005", asset: from, expenseType: "FROM_SOURCE_WALLET" }],
-              estimatedTimeInSeconds: 180,
-            },
-          ],
-          tags: [{ label: "Lowest Fee", value: "LOWEST_FEE" }],
-          estimatedTimeInSeconds: 180,
-          totalFeeUsd: 1.2,
-          priceImpact: 0.8,
-        },
-      ],
-    }
-  }
 }
 
 export const rangoService = new RangoService()

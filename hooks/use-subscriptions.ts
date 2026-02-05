@@ -225,6 +225,31 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
     [isDemoMode],
   )
 
+  // Update subscription fields via REST API
+  const updateSubscription = useCallback(
+    async (id: string, updates: Partial<Subscription>) => {
+      if (isDemoMode) {
+        setSubscriptions((prev) =>
+          prev.map((s) => (s.id === id ? { ...s, ...updates, updated_at: new Date().toISOString() } : s)),
+        )
+        return
+      }
+
+      await apiRequest<{ success: boolean }>(
+        `/api/subscriptions/${id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(updates),
+        }
+      )
+
+      setSubscriptions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, ...updates, updated_at: new Date().toISOString() } : s)),
+      )
+    },
+    [isDemoMode],
+  )
+
   // Update subscription status via REST API
   const updateSubscriptionStatus = useCallback(
     async (id: string, status: SubscriptionStatus) => {
@@ -296,6 +321,7 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
     stats,
     refresh: loadSubscriptions,
     addSubscription,
+    updateSubscription,
     updateStatus: updateSubscriptionStatus,
     deleteSubscription,
   }

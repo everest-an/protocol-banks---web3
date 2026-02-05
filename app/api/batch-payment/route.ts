@@ -65,7 +65,13 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       console.error("[BatchPayment] DB error:", dbError)
-      // Continue even if DB fails (demo mode support)
+      return NextResponse.json(
+        {
+          error: "Failed to save batch to database",
+          details: dbError.message,
+        },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({
