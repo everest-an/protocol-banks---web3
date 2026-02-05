@@ -16,6 +16,11 @@ import {
   CreditCard,
   ShoppingBag,
   PieChart,
+  Store,
+  Banknote,
+  Wallet,
+  Code,
+  Settings,
 } from "lucide-react"
 
 export interface ProductItem {
@@ -52,6 +57,13 @@ export const overviewItems: ProductItem[] = [
     icon: ShoppingBag,
     color: "bg-orange-500/10 text-orange-500",
   },
+  {
+    href: "/settings",
+    title: "Settings",
+    description: "API keys, webhooks, and preferences",
+    icon: Settings,
+    color: "bg-gray-500/10 text-gray-500",
+  },
 ]
 
 // 💳 Payments - 支付
@@ -87,6 +99,15 @@ export const paymentProducts: ProductItem[] = [
     color: "bg-purple-500/10 text-purple-500",
   },
   {
+    href: "/card",
+    title: "Card",
+    description: "Virtual crypto debit card",
+    icon: Wallet,
+    color: "bg-rose-500/10 text-rose-500",
+    badge: "New",
+    badgeColor: "bg-rose-500/20 text-rose-500",
+  },
+  {
     href: "/history",
     title: "Transactions",
     description: "Payment history and activity",
@@ -104,6 +125,13 @@ export const paymentProducts: ProductItem[] = [
 
 // 📥 Receiving - 收款
 export const receivingProducts: ProductItem[] = [
+  {
+    href: "/acquiring",
+    title: "Acquiring",
+    description: "Merchant SDK, orders, and payment acceptance",
+    icon: Store,
+    color: "bg-teal-500/10 text-teal-500",
+  },
   {
     href: "/receive",
     title: "Payment Links",
@@ -158,6 +186,13 @@ export const defiProducts: ProductItem[] = [
     badge: "Beta",
     badgeColor: "bg-cyan-500/20 text-cyan-500",
   },
+  {
+    href: "/offramp",
+    title: "Off-ramp",
+    description: "Convert crypto to fiat currency",
+    icon: Banknote,
+    color: "bg-green-500/10 text-green-500",
+  },
 ]
 
 // 🤖 Advanced - 高级功能
@@ -179,5 +214,12 @@ export const advancedProducts: ProductItem[] = [
     color: "bg-violet-500/10 text-violet-500",
     badge: "Beta",
     badgeColor: "bg-violet-500/20 text-violet-500",
+  },
+  {
+    href: "/embed",
+    title: "SDK / Embed",
+    description: "Integrate payments into your app",
+    icon: Code,
+    color: "bg-slate-500/10 text-slate-500",
   },
 ]
