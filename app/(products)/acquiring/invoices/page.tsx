@@ -604,6 +604,7 @@ export default function InvoicesPage() {
                 </Tabs>
 
                 <div className="flex gap-2 mt-8">
+                  {/* Form actions */}
                   <Button type="submit" disabled={creating} className="flex-1">
                     {creating ? (
                       <>
