@@ -481,9 +481,6 @@ export default function SplitPaymentsPage() {
               <SplitPaymentForm
                 userAddress={address || ""}
                 onExecute={(result) => {
-                  if (result.success) {
-                    console.log("Split payment executed:", result.tx_hash)
-                  }
                 }}
               />
             </CardContent>

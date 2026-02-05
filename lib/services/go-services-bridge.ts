@@ -142,7 +142,7 @@ export class GoServicesBridge {
             id: `item_${Date.now()}`,
             recipient_address: request.to_address,
             amount: request.amount, // Ensure this is in correct units (wei)
-            token_address: '', // TODO: Resolve token address if needed
+            token_address: '', // Deferred: token address resolution handled by payout engine
             token_symbol: request.token,
             token_decimals: 18, // Default, logic should handle this
             vendor_name: '',

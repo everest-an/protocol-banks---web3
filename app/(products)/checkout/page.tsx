@@ -181,8 +181,6 @@ function CheckoutContent() {
         contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
         const recipientAddress = (order as any).merchant_wallet_address || order.merchant_id;
 
-        console.log(`Monitoring ${selectedNetwork} (${targetChainId}) transfers to:`, recipientAddress);
-
         // Filter for Transfer events to the recipient
         const filter = contract.filters.Transfer(null, recipientAddress);
 
@@ -193,13 +191,9 @@ function CheckoutContent() {
             const decimals = await contract!.decimals();
             const formattedAmount = ethers.formatUnits(value, decimals);
             
-            console.log(`Detected transfer: ${formattedAmount} ${order.token} from ${from}`);
-
             // Check if amount matches (or is greater/equal)
             // Note: In production, we should also check the timestamp/block to ensure it's new
             if (parseFloat(formattedAmount) >= order.amount) {
-              console.log("Payment detected!");
-              
               // Update order status
               await fetch(`/api/acquiring/orders/${order.order_no}`, {
                 method: "PATCH",

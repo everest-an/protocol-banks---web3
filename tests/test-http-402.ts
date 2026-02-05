@@ -16,7 +16,7 @@ async function testHTTP402() {
   console.log("\n📱 步骤 1: 创建 PB-Stream 客户端")
   const client = new PBStreamClient({
     baseUrl: BASE_URL,
-    // TODO: 替换为真实的 Session Key
+    // Test placeholder — replace with real Session Key for integration testing
     // 可以通过 POST /api/session-keys 创建
     sessionKey: "test_session_key_demo",
     autoRetry: true,

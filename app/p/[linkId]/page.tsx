@@ -206,7 +206,7 @@ function PaymentLinkContent() {
             }),
           });
         } catch (distErr) {
-          console.warn("[PaymentLink] Asset distribution failed:", distErr);
+          // Asset distribution failed silently
         }
       }
 

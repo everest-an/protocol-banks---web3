@@ -48,13 +48,6 @@ export function PWAInstallPrompt() {
     const alreadyInstalled = isStandalone()
     const alreadyDismissed = localStorage.getItem("pwa-prompt-dismissed")
 
-    console.log("[v0] PWA Prompt Check:", {
-      isMobile,
-      alreadyInstalled,
-      alreadyDismissed,
-      userAgent: navigator.userAgent,
-    })
-
     // Detect browser type
     if (isSafari()) {
       setBrowserType("safari")
@@ -66,7 +59,6 @@ export function PWAInstallPrompt() {
 
     if (isMobile && !alreadyInstalled && !alreadyDismissed) {
       const timer = setTimeout(() => {
-        console.log("[v0] Showing PWA prompt")
         setShowPrompt(true)
       }, 2000)
       return () => clearTimeout(timer)

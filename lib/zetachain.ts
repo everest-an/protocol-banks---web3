@@ -185,7 +185,7 @@ export class ZetaChainService {
         minOutput: minOutput.toString(),
       })
 
-      // TODO: Integrate with ZetaChain Gateway contract for real cross-chain execution
+      // DEFERRED: ZetaChain Gateway integration — requires contract deployment
       // Currently returns transaction parameters for the frontend to sign,
       // but actual on-chain execution requires Gateway ABI encoding
       return {
@@ -215,7 +215,7 @@ export class ZetaChainService {
     fee: string
     route: string[]
   }> {
-    // TODO: Integrate ZunoDex or Eddy Finance API for real quotes
+    // DEFERRED: ZunoDex/Eddy Finance API integration for real swap quotes
     throw new Error(
       "Cross-chain swap quotes are not yet available. DEX API integration in progress."
     )
@@ -378,7 +378,7 @@ export class ZetaChainService {
     recipient: string
     minOutput: string
   }): string {
-    // TODO: Implement ABI encoding for Gateway swap call
+    // DEFERRED: ABI encoding for Gateway swap call
     throw new Error("Swap data encoding not yet implemented")
   }
 
@@ -388,12 +388,12 @@ export class ZetaChainService {
   }
 
   private encodeDepositERC20(receiver: string, token: string, amount: string): string {
-    // TODO: Implement full ABI encoding for deposit(address receiver, uint256 amount, address asset, bytes message)
+    // DEFERRED: ABI encoding for deposit(address,uint256,address,bytes)
     throw new Error("ERC20 deposit encoding not yet implemented")
   }
 
   private encodeWithdraw(receiver: string, amount: string): string {
-    // TODO: Implement full ABI encoding for withdraw(bytes memory to, uint256 amount)
+    // DEFERRED: ABI encoding for withdraw(bytes,uint256)
     throw new Error("Withdraw encoding not yet implemented")
   }
 

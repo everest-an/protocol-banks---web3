@@ -26,6 +26,7 @@ import {
   TrendingUp,
   Clock,
   ChevronRight,
+  AlertCircle,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { NetworkGraph } from "@/components/network-graph"
@@ -56,6 +57,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { BatchVendorEditDialog } from "@/components/batch-vendor-edit-dialog"
 
 import type { Vendor, VendorCategory, ReputationTag } from "@/types/vendor"
+import { getVendorDisplayName, getVendorInitials } from "@/lib/utils"
 
 // Categories
 const categories = ["Infrastructure", "Services", "Payroll", "Marketing", "Legal", "Software", "Logistics", "R&D"]
@@ -100,13 +102,14 @@ const CHAIN_COLORS: Record<string, string> = {
   Base: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30",
   Optimism: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30",
   BSC: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30",
+  Tron: "bg-red-600/10 text-red-700 dark:text-red-400 border-red-600/30",
 }
 
 // Generate demo data with Web3-enhanced fields
 const generateEnterpriseDemoData = (): Vendor[] => {
   const vendors: Vendor[] = []
-  const chains = ["Ethereum", "Polygon", "Arbitrum", "Base", "Optimism"]
-  const walletTypes = ["MetaMask", "Safe", "OKX Wallet", "Coinbase Wallet", "Rainbow"]
+  const chains = ["Ethereum", "Polygon", "Arbitrum", "Base", "Optimism", "Tron"]
+  const walletTypes = ["MetaMask", "Safe", "OKX Wallet", "Coinbase Wallet", "Rainbow", "TronLink"]
   const ensNames = ["treasury.eth", "ops.eth", "finance.eth", null, null, null]
 
   // 1. Subsidiaries (Tier 1)
@@ -352,7 +355,7 @@ export default function VendorsPage() {
   }
 
   const handlePaymentRequest = (vendor: Vendor) => {
-    const url = `/batch-payment?recipient=${vendor.wallet_address}&name=${encodeURIComponent(vendor.name || vendor.company_name || "")}`
+    const url = `/batch-payment?recipient=${vendor.wallet_address}&name=${encodeURIComponent(getVendorDisplayName(vendor))}`
     router.push(url)
   }
 
@@ -827,7 +830,7 @@ export default function VendorsPage() {
                 const tag = vendor.reputation_tag || "active"
                 const tagConfig = REPUTATION_CONFIG[tag]
                 const chainColor = CHAIN_COLORS[vendor.last_chain || vendor.chain] || CHAIN_COLORS.Ethereum
-                const displayName = vendor.ens_name || vendor.name || vendor.company_name || "Unknown"
+                const displayName = getVendorDisplayName(vendor)
                 const shortAddr = `${vendor.wallet_address.substring(0, 6)}...${vendor.wallet_address.substring(38)}`
                 const hasActiveCooldown = vendor.address_changed_at &&
                   (Date.now() - new Date(vendor.address_changed_at).getTime()) < 24 * 60 * 60 * 1000
@@ -861,38 +864,59 @@ export default function VendorsPage() {
                         <Avatar className="h-10 w-10 border border-border shrink-0">
                           <AvatarImage src={`https://avatar.vercel.sh/${vendor.wallet_address}`} />
                           <AvatarFallback className="text-xs">
-                            {(vendor.name || vendor.company_name || "??").substring(0, 2).toUpperCase()}
+                            {getVendorInitials(vendor)}
                           </AvatarFallback>
                         </Avatar>
 
                         {/* Identity: ENS / Address + Name */}
                         <div className="flex-1 min-w-0">
+                          {/* Row 1: Name + (Mobile LTV) */}
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-sm truncate">{displayName}</span>
+                            {/* LTV - mobile only */}
+                            <span className="md:hidden text-xs text-muted-foreground ml-auto whitespace-nowrap pl-2">
+                                ${(vendor.ltv || vendor.totalReceived || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+
+                          {/* Row 2: ENS Name + Desktop Reputation + Desktop Alerts */}
+                          <div className="flex items-center gap-2 mt-0.5 h-5">
                             {vendor.ens_name && vendor.name && (
-                              <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                              <span className="text-xs text-muted-foreground truncate hidden sm:inline mr-1">
                                 ({vendor.name})
                               </span>
                             )}
-                            {/* Reputation Tag */}
-                            <Badge variant="outline" className={`text-[10px] h-5 px-1.5 shrink-0 ${tagConfig.bg} ${tagConfig.color}`}>
+                            {/* Reputation Tag - Desktop */}
+                             <Badge variant="outline" className={`hidden sm:inline-flex text-[10px] h-5 px-1.5 shrink-0 ${tagConfig.bg} ${tagConfig.color}`}>
                               {tagConfig.label}
                             </Badge>
-                            {/* Address Change Cooldown Warning */}
-                            {hasActiveCooldown && (
-                              <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                             {/* Address Change Cooldown Warning - Desktop */}
+                             {hasActiveCooldown && (
+                              <Badge variant="outline" className="hidden sm:inline-flex text-[10px] h-5 px-1.5 shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
                                 Address recently changed
                               </Badge>
                             )}
                           </div>
+                          
+                          {/* Row 3: Address + Mobile Tags */}
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="font-mono text-xs text-muted-foreground">{shortAddr}</span>
-                            <button
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                             <span className="font-mono text-xs text-muted-foreground truncate max-w-[140px] sm:max-w-none">{shortAddr}</span>
+                             <button
+                              className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 -ml-1"
                               onClick={(e) => { e.stopPropagation(); copyAddress(vendor.wallet_address) }}
                             >
                               <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                             </button>
+                             {/* Reputation Tag - Mobile */}
+                            <Badge variant="outline" className={`sm:hidden text-[10px] h-4 px-1 shrink-0 ${tagConfig.bg} ${tagConfig.color}`}>
+                              {tagConfig.label}
+                            </Badge>
+                             {/* Address Change Cooldown Warning - Mobile (Icon only or shortened) */}
+                             {hasActiveCooldown && (
+                               <div className="sm:hidden text-amber-500" title="Address recently changed">
+                                  <AlertCircle className="w-3 h-3" />
+                               </div>
+                            )}
                           </div>
                         </div>
 
@@ -914,8 +938,8 @@ export default function VendorsPage() {
                           </p>
                         </div>
 
-                        {/* LTV */}
-                        <div className="text-right shrink-0 w-28">
+                        {/* LTV - hidden on mobile, shown on md+ to avoid overlapping */}
+                        <div className="hidden md:block text-right shrink-0 w-28">
                           <p className="text-xs text-muted-foreground">LTV</p>
                           <p className="font-mono text-sm font-medium">
                             ${(vendor.ltv || vendor.totalReceived || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}

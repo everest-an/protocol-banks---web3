@@ -78,19 +78,9 @@ export function UnifiedWalletButton() {
   const hasZeroBalance = totalBalance === 0
 
   const handleDisconnect = async () => {
-    console.log(
-      "[v0] Disconnect clicked, isReownConnected:",
-      isReownConnected,
-      "isWeb3Connected:",
-      isWeb3Connected,
-      "isAuthenticated:",
-      isAuthenticated,
-    )
-
     if (isAuthenticated) {
       try {
         await authLogout()
-        console.log("[v0] Auth logged out")
       } catch (error) {
         console.error("[v0] Failed to logout:", error)
       }
@@ -99,14 +89,12 @@ export function UnifiedWalletButton() {
     if (isReownConnected) {
       try {
         await reownDisconnect()
-        console.log("[v0] Reown disconnected")
       } catch (error) {
         console.error("[v0] Failed to disconnect Reown:", error)
       }
     }
 
     disconnectWallet()
-    console.log("[v0] Web3 disconnected")
   }
 
   if (!isConnected) {
@@ -114,7 +102,6 @@ export function UnifiedWalletButton() {
       <>
         <Button
           onClick={() => {
-            console.log("[v0] Sign In button clicked, setting showAuthGateway to true")
             setShowAuthGateway(true)
           }}
           disabled={isConnecting}
@@ -130,11 +117,9 @@ export function UnifiedWalletButton() {
           <AuthGateway
             isOpen={showAuthGateway}
             onClose={() => {
-              console.log("[v0] AuthGateway onClose called")
               setShowAuthGateway(false)
             }}
             onSuccess={() => {
-              console.log("[v0] AuthGateway onSuccess called")
               setShowAuthGateway(false)
             }}
           />

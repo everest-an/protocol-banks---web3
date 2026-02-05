@@ -62,6 +62,7 @@ import { multisigService, type MultisigWallet } from "@/lib/multisig"
 import { publicBatchTransferService } from "@/lib/services/public-batch-transfer-service"
 import { createWalletClient, createPublicClient, http, custom } from "viem"
 import { arbitrum } from "viem/chains"
+import { getVendorDisplayName, getVendorInitials } from "@/lib/utils"
 
 export default function BatchPaymentPage() {
   const { wallets, address: unifiedAddress, sendToken, signERC3009Authorization, isConnected } = useUnifiedWallet()
@@ -206,6 +207,22 @@ export default function BatchPaymentPage() {
       type: "Subsidiary",
       chain: "Polygon",
     },
+    {
+      id: "v9",
+      name: "Asia Pacific Supplier",
+      wallet_address: "TSupplier123456789012345678901234",
+      category: "Manufacturing",
+      type: "Vendor",
+      chain: "Tron",
+    },
+    {
+      id: "v10",
+      name: "Binance OTC Desk",
+      wallet_address: "TBinanceOTC98765432109876543210",
+      category: "Exchange",
+      type: "Partner",
+      chain: "Tron",
+    },
   ]
 
   const demoAutoPayments: AutoPayment[] = [
@@ -311,6 +328,19 @@ export default function BatchPaymentPage() {
       notes: "Quarterly transfer to APAC",
       vendor: { name: "APAC Division" },
     },
+    {
+      id: "p6",
+      timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      from_address: currentWallet || "TMyTronWallet123456789012345678901234",
+      to_address: "TSupplier123456789012345678901234",
+      amount: "8000",
+      amount_usd: 8000,
+      status: "completed",
+      token_symbol: "USDT",
+      tx_hash: "0xtron123abc456...",
+      notes: "Tron network supplier payment",
+      vendor: { name: "Asia Pacific Supplier" },
+    },
   ]
 
   // Use demo or real data
@@ -357,12 +387,10 @@ export default function BatchPaymentPage() {
   // Load payment history
   const loadPaymentHistory = useCallback(async () => {
     if (!currentWallet) {
-      console.log('[PaymentHistory] No wallet connected')
       setPaymentHistory([])
       return
     }
 
-    console.log('[PaymentHistory] Loading payment history for:', currentWallet)
     setHistoryLoading(true)
     try {
       if (!supabase) {
@@ -385,7 +413,6 @@ export default function BatchPaymentPage() {
         throw error
       }
 
-      console.log('[PaymentHistory] Loaded payments:', data)
       setPaymentHistory(data || [])
     } catch (err) {
       console.error("[PaymentHistory] Failed to load payment history:", err)
@@ -626,7 +653,7 @@ export default function BatchPaymentPage() {
     const vendor = displayVendors.find((v) => v.id === vendorId)
     if (vendor) {
       updateRecipient(recipientId, "vendorId", vendor.id)
-      updateRecipient(recipientId, "vendorName", vendor.name)
+      updateRecipient(recipientId, "vendorName", getVendorDisplayName(vendor))
       updateRecipient(recipientId, "address", vendor.wallet_address)
     }
   }
@@ -738,8 +765,6 @@ export default function BatchPaymentPage() {
                   notes: recipient.vendorName ? `Payment to ${recipient.vendorName}` : undefined,
                 }
 
-                console.log('[IndividualPayment] Attempting to save payment:', paymentData)
-
                 const { data: insertedData, error: dbError } = await supabase
                   .from('payments')
                   .insert(paymentData)
@@ -763,7 +788,6 @@ export default function BatchPaymentPage() {
                     })
                   }
                 } else {
-                  console.log('[IndividualPayment] Payment record saved successfully:', insertedData)
                   // 重新加载支付历史
                   await loadPaymentHistory()
                 }
@@ -851,11 +875,6 @@ export default function BatchPaymentPage() {
 
       const tokenSymbol = validRecipients[0]?.token || 'USDT'
 
-      console.log('[BatchPayment] Starting batch transfer...')
-      console.log('  Recipients:', recipientCount)
-      console.log('  Token:', tokenSymbol)
-      console.log('  From:', currentWallet)
-
       toast({
         title: "准备批量转账",
         description: `准备向 ${recipientCount} 个地址发送 ${tokenSymbol}`,
@@ -887,8 +906,6 @@ export default function BatchPaymentPage() {
       setBatchTransferStep('approving')
       setIsApproving(true)
 
-      console.log('[BatchPayment] Executing batch transfer...')
-
       // 执行批量转账
       const result = await publicBatchTransferService.batchTransfer(
         walletClient,
@@ -907,10 +924,6 @@ export default function BatchPaymentPage() {
         // 保存批量转账记录到数据库
         if (supabase && result.txHash) {
           try {
-            console.log('[BatchPayment] Saving batch payment records to database...')
-            console.log('[BatchPayment] Transaction hash:', result.txHash)
-            console.log('[BatchPayment] Number of recipients:', validRecipients.length)
-
             // 为每个收款人创建一条支付记录
             // 由于 tx_hash 有 UNIQUE 约束，我们为每条记录添加唯一后缀
             const paymentRecords = validRecipients.map((recipient, index) => ({
@@ -929,15 +942,12 @@ export default function BatchPaymentPage() {
                 : `Batch payment ${index + 1}/${recipientCount} (tx: ${result.txHash})`,
             }))
 
-            console.log('[BatchPayment] Payment records to insert:', JSON.stringify(paymentRecords, null, 2))
-
             // 逐条插入，避免批量插入可能的问题
             let successCount = 0
             let failCount = 0
 
             for (let i = 0; i < paymentRecords.length; i++) {
               const record = paymentRecords[i]
-              console.log(`[BatchPayment] Inserting record ${i + 1}/${paymentRecords.length}...`)
 
               const { data: insertedData, error: dbError } = await supabase
                 .from('payments')
@@ -956,11 +966,8 @@ export default function BatchPaymentPage() {
                 })
               } else {
                 successCount++
-                console.log(`[BatchPayment] Payment record ${i + 1} saved successfully:`, insertedData)
               }
             }
-
-            console.log(`[BatchPayment] Batch save completed: ${successCount} success, ${failCount} failed`)
 
             if (failCount > 0) {
               toast({
@@ -969,7 +976,6 @@ export default function BatchPaymentPage() {
                 variant: "default",
               })
             } else {
-              console.log('[BatchPayment] All payment records saved successfully')
               // 重新加载支付历史
               await loadPaymentHistory()
             }
@@ -1289,9 +1295,14 @@ export default function BatchPaymentPage() {
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between bg-transparent">
-                                  {recipient.vendorName || "Select contact..."}
-                                  <ChevronDown className="h-4 w-4 ml-2" />
+                                <Button 
+                                  variant="outline" 
+                                  className={`w-full justify-between bg-transparent ${recipient.vendorName ? 'text-foreground' : 'text-muted-foreground'}`}
+                                >
+                                  <span className="truncate">
+                                    {recipient.vendorName || "Select contact..."}
+                                  </span>
+                                  <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent className="w-[280px]" align="start">
@@ -1311,10 +1322,10 @@ export default function BatchPaymentPage() {
                                     >
                                       <div className="flex items-center gap-2 w-full">
                                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                                          {(vendor.name || vendor.company_name || 'V').charAt(0)}
+                                          {getVendorInitials(vendor).charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                          <div className="font-medium truncate">{vendor.name || vendor.company_name}</div>
+                                          <div className="font-medium truncate">{getVendorDisplayName(vendor)}</div>
                                           <div className="text-xs text-muted-foreground font-mono truncate">
                                             {vendor.wallet_address.slice(0, 10)}...
                                           </div>
