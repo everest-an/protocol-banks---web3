@@ -16,7 +16,7 @@ Reown (formerly WalletConnect) AppKit is an all-in-one SDK that enables:
 
 ### For Users Without Crypto Wallets
 
-1. **Click "Email / Social Login"** button on homepage
+1. **Click "Start Now"** on the landing page to open the wallet connection modal
 2. **Enter email address** or choose a social login provider
 3. **Verify via email** (receive verification code)
 4. **Wallet created automatically** - users get an Ethereum address without installing anything

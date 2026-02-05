@@ -8,7 +8,7 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Go](https://img.shields.io/badge/Go-1.21-00ADD8?logo=go)](https://golang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma)](https://www.prisma.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [English](#overview) | [中文](#中文文档)
@@ -44,7 +44,8 @@ Protocol Banks is a non-custodial, multi-chain payment solution designed for DAO
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                          API Layer (Next.js API Routes)                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  /api/auth  │  /api/agents  │  /api/payments  │  /api/webhooks  │  /api/x402│
+│  /api/agents  │  /api/payments  │  /api/vendors  │  /api/webhooks          │
+│  /api/subscriptions  │  /api/x402  │  /api/invoice  │  /api/batch-payment  │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                     ┌───────────────┼───────────────┐
@@ -66,7 +67,7 @@ Protocol Banks is a non-custodial, multi-chain payment solution designed for DAO
 │                          Data Layer                                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │  Supabase   │  │   Redis     │  │  Vault      │  │ Blockchain  │        │
+│  │  Prisma 7   │  │   Redis     │  │  Vault      │  │ Blockchain  │        │
 │  │ (PostgreSQL)│  │  (Queue)    │  │  (Secrets)  │  │  (Multi)    │        │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -85,6 +86,9 @@ Protocol Banks is a non-custodial, multi-chain payment solution designed for DAO
 | **AI Agent API** | Agent budget management, x402 protocol, auto-execute | Done |
 | **Webhooks** | Event notifications with HMAC signature verification | Done |
 | **Analytics** | Real-time balance, transaction history, network visualization | Done |
+| **Vendor Security** | Address change signature verification, 24h cooldown, notifications | Done |
+| **Invoice System** | On-chain invoice generation with blockchain tx linking | Done |
+| **Acquiring (POS)** | Merchant payment acceptance, payment links | Done |
 
 ## AI Agent Integration
 
@@ -185,7 +189,7 @@ const response = await fetch('/api/agents/proposals', {
 | Base | EVM L2 | Done |
 | Optimism | EVM L2 | Done |
 | BNB Chain | EVM | Done |
-| Solana | SVM | Done |
+| Solana | SVM | Partial (address validation, no transfers) |
 | Bitcoin | UTXO | Planned |
 | Aptos (MSafe) | Move | Planned |
 
@@ -203,9 +207,9 @@ const response = await fetch('/api/agents/proposals', {
 
 **Backend:**
 - Next.js API Routes
-- Go 1.21 (High-performance microservices)
-- gRPC
-- Supabase (PostgreSQL + RLS)
+- Prisma 7 (Serverless ORM with pg adapter)
+- PostgreSQL (via Supabase with RLS)
+- Vercel Cron (scheduled jobs)
 - Redis (Upstash)
 
 **Security:**
@@ -218,37 +222,48 @@ const response = await fetch('/api/agents/proposals', {
 
 ```
 protocol-banks/
-├── app/                    # Next.js pages and API routes
-│   ├── api/               # REST API endpoints
-│   │   ├── agents/        # AI Agent management
-│   │   ├── auth/          # Authentication
-│   │   ├── batch-payment/ # Batch payments
-│   │   ├── subscriptions/ # Subscriptions
-│   │   ├── webhooks/      # Webhooks
-│   │   └── x402/          # x402 protocol
-│   ├── agents/            # Agent dashboard pages
-│   ├── batch-payment/     # Batch payment pages
-│   ├── pay/               # Payment pages
-│   └── settings/          # Settings pages
-├── components/            # React components
-├── contexts/              # React Context
-├── hooks/                 # Custom Hooks
-├── lib/                   # Core libraries
-│   ├── auth/             # Auth logic (Shamir)
-│   ├── services/         # Business services
-│   │   ├── agent-service.ts
-│   │   ├── budget-service.ts
-│   │   ├── proposal-service.ts
-│   │   └── agent-x402-service.ts
-│   ├── middleware/       # API middleware
-│   └── grpc/             # gRPC client
-├── services/              # Go microservices
-│   ├── payout-engine/    # Payment engine
-│   ├── event-indexer/    # Event indexer
-│   └── webhook-handler/  # Webhook handler
-├── k8s/                   # Kubernetes configs
-├── scripts/               # Database migrations
-└── docs/                  # Documentation
+├── app/                          # Next.js App Router
+│   ├── page.tsx                  # Marketing landing page
+│   ├── (products)/               # Route group (with sidebar layout)
+│   │   ├── dashboard/            # User dashboard
+│   │   ├── pay/                  # Send payment
+│   │   ├── receive/              # Receive payment
+│   │   ├── batch-payment/        # Batch payments
+│   │   ├── balances/             # Multi-chain balances
+│   │   ├── history/              # Transaction history
+│   │   ├── vendors/              # Contacts / Wallet tags
+│   │   ├── agents/               # AI Agent dashboard
+│   │   ├── swap/                 # Token swap (Rango)
+│   │   ├── omnichain/            # Cross-chain vault
+│   │   ├── checkout/             # Payment checkout
+│   │   ├── subscriptions/        # Subscription management
+│   │   ├── acquiring/            # POS / Merchant acquiring
+│   │   ├── terminal/             # Payment terminal
+│   │   ├── analytics/            # Analytics dashboard
+│   │   └── products/             # Products overview
+│   ├── api/                      # REST API endpoints
+│   │   ├── agents/               # AI Agent management
+│   │   ├── payments/             # Payment processing
+│   │   ├── vendors/              # Vendor CRUD + batch update
+│   │   ├── subscriptions/        # Subscription management
+│   │   ├── webhooks/             # Webhook delivery
+│   │   ├── invoice/              # Invoice system
+│   │   ├── x402/                 # x402 protocol
+│   │   └── notifications/        # Email + push notifications
+│   ├── admin/                    # Admin panel
+│   └── settings/                 # User settings
+├── components/                   # React components
+├── contexts/                     # React Context
+├── hooks/                        # Custom Hooks
+├── lib/                          # Core libraries
+│   ├── auth/                     # Auth logic (Shamir)
+│   ├── services/                 # Business services
+│   ├── security/                 # Security middleware + utilities
+│   └── prisma.ts                 # Prisma client (serverless)
+├── prisma/                       # Prisma schema
+│   └── schema.prisma             # Database schema
+├── scripts/                      # SQL migrations
+└── docs/                         # Documentation
 ```
 
 ## Quick Start
@@ -274,10 +289,10 @@ cp .env.example .env.local
 
 Edit `.env.local`:
 ```env
-# Supabase
+# Database (Prisma + Supabase PostgreSQL)
+DATABASE_URL=your_postgresql_connection_string
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # Reown AppKit (Wallet Connection)
 NEXT_PUBLIC_REOWN_PROJECT_ID=your_project_id
@@ -361,19 +376,23 @@ Layer 4: Keys
 | Document | Description |
 |----------|-------------|
 | [WHITEPAPER.md](WHITEPAPER.md) | Project whitepaper |
-| [docs/TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md) | Full technical architecture |
 | [docs/FEATURES_DOCUMENTATION.md](docs/FEATURES_DOCUMENTATION.md) | Feature usage guide |
 | [docs/GO_SERVICES_ARCHITECTURE.md](docs/GO_SERVICES_ARCHITECTURE.md) | Go services architecture |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security architecture |
+| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) | Security audit report |
 | [ENV_SETUP.md](ENV_SETUP.md) | Environment configuration |
+| [REOWN_SETUP.md](REOWN_SETUP.md) | Reown AppKit integration guide |
 
 ## Roadmap
 
 - [x] **Q4 2024** - Core payment features
 - [x] **Q1 2025** - Multi-sig wallets, AI Agent API
-- [ ] **Q2 2025** - MSafe (Aptos) integration
-- [ ] **Q3 2025** - Fiat on/off ramp (Transak/Rain)
-- [ ] **Q4 2025** - HSM hardware security module
+- [x] **Q2 2025** - Invoice system, POS acquiring, vendor security hardening
+- [x] **Q3 2025** - Prisma migration, Vercel Cron, multi-chain balance dashboard
+- [x] **Q4 2025** - Omnichain vault, session keys, subscription MCP
+- [ ] **Q1 2026** - MSafe (Aptos) integration, Solana transfers
+- [ ] **Q2 2026** - Fiat on/off ramp (Transak/Rain)
+- [ ] **Q3 2026** - HSM hardware security module
 
 ---
 
@@ -395,6 +414,9 @@ Protocol Banks 是一个非托管、多链支付解决方案，专为 DAO、AI A
 | **订阅管理** | 定期支付，自动扣款，余额监控 | 已完成 |
 | **AI Agent API** | Agent 预算管理，x402 协议，自动执行 | 已完成 |
 | **Webhook** | 事件通知，HMAC 签名验证 | 已完成 |
+| **联系人安全** | 地址变更签名验证、24h 冷却期、邮件/推送通知 | 已完成 |
+| **发票系统** | 链上发票生成，区块链交易关联 | 已完成 |
+| **收单 (POS)** | 商户收款、支付链接 | 已完成 |
 
 ### AI Agent 功能
 
@@ -428,9 +450,10 @@ pnpm dev
 ### 详细文档
 
 - [白皮书](WHITEPAPER.md)
-- [技术架构](docs/TECHNICAL_ARCHITECTURE.md)
 - [功能文档](docs/FEATURES_DOCUMENTATION.md)
+- [Go 服务架构](docs/GO_SERVICES_ARCHITECTURE.md)
 - [安全架构](docs/SECURITY.md)
+- [安全审计](docs/SECURITY_AUDIT.md)
 
 ---
 

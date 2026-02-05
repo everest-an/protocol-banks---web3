@@ -8,41 +8,47 @@ Protocol Banks is an enterprise-grade crypto payment infrastructure providing no
 
 **Tech Stack:**
 - **Frontend:** Next.js 15 (App Router), TypeScript 5, Tailwind CSS v4, shadcn/ui
-- **Backend Services:** Go microservices (gRPC), Next.js API routes
+- **Backend Services:** Next.js API routes, Go microservices (gRPC, optional)
 - **Web3:** viem, ethers.js, Reown AppKit, Safe Protocol
-- **Database:** Supabase (PostgreSQL with RLS)
-- **Infrastructure:** Docker, Kubernetes, Redis, Prometheus + Grafana
+- **Database:** Prisma 7 (Serverless, pg adapter) → PostgreSQL (Supabase with RLS)
+- **Infrastructure:** Vercel, Docker, Kubernetes, Redis, Prometheus + Grafana
 
 ## Common Commands
 
 ### Next.js Development
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run development server
-npm run dev
+pnpm dev
 
 # Build for production
-npm run build
+pnpm build
 
 # Start production server
-npm start
+pnpm start
 
 # Run linter
-npm run lint
+pnpm lint
 
 # Run all tests
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm run test:watch
+pnpm test:watch
 
 # Run tests with coverage
-npm run test:coverage
+pnpm test:coverage
 
 # Run tests in CI mode
-npm run test:ci
+pnpm test:ci
+
+# Generate Prisma client
+pnpm prisma generate
+
+# Push schema changes to database
+pnpm prisma db push
 ```
 
 ### Go Services Development
@@ -142,7 +148,7 @@ ENABLE_GO_SERVICES=false  # Fallback to TypeScript implementations
 - Deployment: Kubernetes (`k8s/` directory)
 
 **TypeScript Services (Fallback):**
-- Located in `services/*.service.ts`
+- Located in `lib/services/*.service.ts`
 - Same functionality as Go services but lower throughput
 - Automatically used when Go services fail or are disabled
 
@@ -159,7 +165,7 @@ ENABLE_GO_SERVICES=false  # Fallback to TypeScript implementations
 - Concurrent processing via Go payout-engine
 - Progress tracking, retry mechanism
 - Optional multi-signature approval flow
-- Files: `app/batch-payment/`, `services/payout-engine/`
+- Files: `app/(products)/batch-payment/`, `services/payout-engine/`
 
 **Multi-Signature Wallets:**
 - Safe (Gnosis Safe) protocol integration (`lib/multisig.ts`)
@@ -176,11 +182,14 @@ ENABLE_GO_SERVICES=false  # Fallback to TypeScript implementations
 ### Security Architecture
 
 **Multi-Layer Protection:**
+
 - Rate limiting (per-user and global) via `lib/security-middleware.ts`
 - CSRF tokens, SQL injection prevention, XSS protection
 - Replay attack prevention, signature verification (HMAC-SHA256)
 - Row-Level Security (RLS) in Supabase for data isolation
 - Attack monitoring: `lib/security-monitor.ts`, `lib/advanced-attack-protection.ts`
+- Vendor address change: wallet signature verification + 24h cooldown + email/push notification
+- Vendor integrity hash: SHA-256 deterministic hash verified on every read
 
 **Secrets Management:**
 - Production: HashiCorp Vault integration
@@ -196,32 +205,58 @@ ENABLE_GO_SERVICES=false  # Fallback to TypeScript implementations
 ### File Structure Patterns
 
 ```
-app/                          # Next.js App Router pages
-├── [feature]/page.tsx        # Feature pages
-├── api/[feature]/route.ts    # API routes
-└── layout.tsx                # Root layout
+app/                              # Next.js App Router
+├── page.tsx                      # Marketing landing page (always shown at /)
+├── layout.tsx                    # Root layout
+├── (products)/                   # Route group with sidebar layout
+│   ├── layout.tsx                # Products layout (sidebar + content)
+│   ├── dashboard/page.tsx        # User dashboard
+│   ├── pay/page.tsx              # Send payment
+│   ├── batch-payment/page.tsx    # Batch payments
+│   ├── vendors/page.tsx          # Contacts / Wallet tags
+│   ├── balances/page.tsx         # Multi-chain balances
+│   ├── history/page.tsx          # Transaction history
+│   ├── agents/page.tsx           # AI Agent dashboard
+│   └── ...                       # Other product pages
+├── api/                          # REST API endpoints
+│   ├── agents/                   # AI Agent management
+│   ├── payments/                 # Payment processing
+│   ├── vendors/                  # Vendor CRUD + batch update
+│   ├── subscriptions/            # Subscription management
+│   ├── webhooks/                 # Webhook delivery
+│   ├── invoice/                  # Invoice system
+│   ├── x402/                     # x402 protocol
+│   └── notifications/            # Email + push notifications
+├── admin/                        # Admin panel
+└── settings/                     # User settings
 
-components/                   # React components
-├── ui/                       # shadcn/ui components
-└── auth/                     # Auth-specific components
+components/                       # React components
+├── ui/                           # shadcn/ui components
+└── auth/                         # Auth-specific components
 
-lib/                          # Core business logic
-├── auth/                     # Authentication (Shamir, crypto, sessions)
-├── grpc/                     # gRPC client bridges
-├── supabase/                 # Database clients
-├── *.service.ts              # TypeScript services (fallback)
-└── *-security.ts             # Security modules
+lib/                              # Core business logic
+├── auth/                         # Authentication (Shamir, crypto, sessions)
+├── services/                     # TypeScript services (fallback for Go)
+├── security/                     # Security middleware + utilities
+├── grpc/                         # gRPC client bridges
+├── prisma.ts                     # Prisma client (serverless)
+└── supabase.ts                   # Supabase client (legacy)
 
-services/                     # Go microservices
-├── proto/                    # gRPC proto definitions
-├── payout-engine/            # Payment processing service
-├── event-indexer/            # Blockchain indexer
-├── webhook-handler/          # Webhook integration
-└── shared/                   # Shared Go utilities
+prisma/                           # Prisma ORM
+└── schema.prisma                 # Database schema
 
-contexts/                     # React contexts
-k8s/                          # Kubernetes manifests
-docs/                         # Documentation
+services/                         # Go microservices (optional)
+├── proto/                        # gRPC proto definitions
+├── payout-engine/                # Payment processing service
+├── event-indexer/                # Blockchain indexer
+├── webhook-handler/              # Webhook integration
+└── shared/                       # Shared Go utilities
+
+contexts/                         # React contexts
+hooks/                            # Custom hooks
+k8s/                              # Kubernetes manifests
+scripts/                          # SQL migrations
+docs/                             # Documentation
 ```
 
 ## Key Integration Points
@@ -231,10 +266,14 @@ docs/                         # Documentation
 - Features controlled via Reown dashboard (not code)
 - Console notice "local configuration was ignored" is expected behavior
 
-**Supabase Setup:**
+**Database (Prisma + Supabase):**
+
+- Primary ORM: Prisma 7 with `@prisma/adapter-pg` (serverless)
+- Client: `lib/prisma.ts` (lazy initialization, server-only)
+- Schema: `prisma/schema.prisma`
+- Legacy Supabase client: `lib/supabase.ts` (still used for some features)
 - All tables use Row-Level Security (RLS)
-- Client initialization: `lib/supabase/` (client/server variants)
-- Schema tables: `auth_users`, `embedded_wallets`, `magic_links`, `auth_sessions`, `transactions`, `audit_logs`
+- Key tables: `Vendor`, `Transaction`, `AuditLog`, `PushSubscription`, `Invoice`
 
 **Payment Flow:**
 1. User initiates payment via UI
@@ -242,7 +281,7 @@ docs/                         # Documentation
 3. Optional: Multi-sig approval workflow
 4. Go payout-engine processes (or TS fallback)
 5. Event-indexer monitors blockchain confirmation
-6. Audit log created in Supabase
+6. Audit log created via Prisma
 7. User notification (email via Resend, push via PWA)
 
 ## Testing Strategy

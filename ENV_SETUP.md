@@ -60,8 +60,8 @@ This enables:
 **Get your keys from:** https://www.google.com/recaptcha/admin
 
 ```env
-RECAPTCHA_SITE_KEY=6Lcy2S4sAAAAAPvp87hb-Fd6Ilt5JKOEtDCP_Jdk
-RECAPTCHA_SECRET_KEY=6Lcy2S4sAAAAAH06AlrmdD_mCEK5Q8xM_L09GOv6
+RECAPTCHA_SITE_KEY=your_recaptcha_site_key
+RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
 ```
 
 - `RECAPTCHA_SITE_KEY`: Site key for reCAPTCHA (fetched via server action)
@@ -72,7 +72,7 @@ RECAPTCHA_SECRET_KEY=6Lcy2S4sAAAAAH06AlrmdD_mCEK5Q8xM_L09GOv6
 **Get your key from:** https://resend.com/api-keys
 
 ```env
-RESEND_API_KEY=re_7BVLS4Jr_FMx1W2TVUgX7dCskj1dnkm3s
+RESEND_API_KEY=your_resend_api_key
 ```
 
 This enables the contact form to send emails to `everest9812@gmail.com`.
@@ -214,9 +214,9 @@ CRON_SECRET=your_secure_random_string
 After adding the variables:
 
 1. **Test Email/Social Login**: 
-   - Visit homepage and click "Email / Social Login"
-   - Try logging in with email or social account
-   - Wallet should be created automatically
+   - Visit homepage and click "Start Now" to connect wallet
+   - Or click "Try Live Test" to enter demo mode
+   - Try connecting with email, social account, or existing wallet
 
 2. **Test Fiat On-Ramp**:
    - Connect wallet via Reown
