@@ -708,3 +708,37 @@ model TransactionFee {
   @@index([payment_id])
   @@map("transaction_fees")
 }
+
+model Invoice {
+  id                String    @id @default(uuid())
+  invoice_id        String    @unique
+  recipient_address String
+  amount            Float
+  amount_fiat       Float?
+  fiat_currency     String?
+  token             String    @default("USDC")
+  chain             String?   @default("Ethereum") // Ethereum, Polygon, BSC, Arbitrum, Optimism
+  description       String?
+  merchant_name     String?
+  status            String    @default("pending") // pending, paid, expired, cancelled
+  signature         String?
+  tx_hash           String?   // Transaction hash on chain
+  
+  // Customer Info
+  customer_name     String?
+  customer_email    String?
+  customer_wallet   String?
+  
+  // Metadata
+  metadata          Json?
+  
+  // Dates
+  paid_at           DateTime?
+  expires_at        DateTime
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([recipient_address])
+  @@index([invoice_id])
+  @@map("invoices")
+}

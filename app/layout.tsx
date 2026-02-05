@@ -23,14 +23,14 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" })
 
 export const metadata: Metadata = {
-  title: "Protocol Banks - Crypto Batch Payment Platform",
+  title: "Protocol Bank - Crypto Batch Payment Platform",
   description:
     "Efficiently manage and execute batch cryptocurrency payments with vendor tracking and financial analytics",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Protocol Banks",
+    title: "Protocol Bank",
     startupImage: "/apple-icon.png",
   },
   formatDetection: {
@@ -47,9 +47,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    title: "Protocol Banks",
+    title: "Protocol Bank",
     description: "Enterprise Crypto Batch Payment Platform",
-    siteName: "Protocol Banks",
+    siteName: "Protocol Bank",
   },
 }
 

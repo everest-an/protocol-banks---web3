@@ -54,6 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import Image from "next/image";
 import { useDemo } from "@/contexts/demo-context";
+import { InvoicePreview } from "@/components/invoice-preview";
 
 interface Invoice {
   id: string;
@@ -63,6 +64,7 @@ interface Invoice {
   amount_fiat?: number;
   fiat_currency?: string;
   token: string;
+  chain?: string;
   description?: string;
   merchant_name?: string;
   status: "pending" | "paid" | "expired" | "cancelled";
@@ -74,128 +76,6 @@ interface Invoice {
   created_at: string;
   metadata?: any;
 }
-
-const InvoicePreview = ({ data, isDemoMode }: { data: any, isDemoMode?: boolean }) => {
-  const date = new Date();
-  const dueDate = new Date();
-  dueDate.setHours(dueDate.getHours() + parseInt(data.expiresIn));
-
-  return (
-    <Card className="w-full bg-white text-black shadow-lg overflow-hidden border-0 relative">
-      {isDemoMode && (
-        <div className="absolute top-6 right-[-40px] rotate-45 bg-amber-400 text-amber-900 font-bold px-12 py-1 shadow-sm z-10 text-xs">
-          TEST MODE
-        </div>
-      )}
-      <div className="p-8 space-y-8">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="bg-black text-white p-2 rounded-lg">
-                <div className="h-6 w-6 relative flex items-center justify-center">
-                  <Image src="/icon.svg" width={20} height={20} alt="Logo" className="brightness-0 invert" />
-                </div>
-              </div>
-              <span className="font-bold text-xl tracking-tight">Protocol Bank</span>
-            </div>
-            {/* Merchant Info */}
-            <div className="text-sm text-gray-500 mt-4">
-              <p className="font-medium text-black">{data.merchantName || (isDemoMode ? "Test Merchant" : "Merchant Name")}</p>
-              {isDemoMode && <p className="text-xs text-amber-600 mt-1">Simulated Merchant Account</p>}
-            </div>
-          </div>
-          <div className="text-right space-y-1">
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Invoice</h2>
-            <p className="font-mono text-lg font-bold">{isDemoMode ? "TEST-0001" : "INV-0001"}</p> 
-            {isDemoMode && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Not a real invoice</span>}
-          </div>
-        </div>
-
-        {/* Dates & Bill To */}
-        <div className="grid grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs text-gray-500 uppercase font-medium">Bill to</p>
-              <p className="font-medium mt-1">{data.customerName || (isDemoMode ? "Test Customer" : "Customer Name")}</p>
-              <p className="text-sm text-gray-500">{data.customerEmail || (isDemoMode ? "test@example.com" : "customer@email.com")}</p>
-            </div>
-            {!isDemoMode && data.recipientAddress && (
-              <div className="pt-2">
-                 <p className="text-xs text-gray-500 uppercase font-medium">Pay to wallet</p>
-                 <p className="font-mono text-xs text-gray-600 truncate max-w-[200px]">{data.recipientAddress}</p>
-              </div>
-            )}
-            {isDemoMode && (
-              <div className="pt-2 p-2 bg-amber-50 rounded border border-amber-100">
-                 <p className="text-xs text-amber-800 font-medium">Test Wallet Address</p>
-                 <p className="font-mono text-xs text-amber-600 truncate">0xTest...Wallet123</p>
-              </div>
-            )}
-          </div>
-          <div className="space-y-2 text-right">
-             <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Date due</span>
-                <span className="font-medium">{dueDate.toLocaleDateString()}</span>
-             </div>
-             <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Invoice date</span>
-                <span className="font-medium">{date.toLocaleDateString()}</span>
-             </div>
-          </div>
-        </div>
-
-        {/* Line Items */}
-        <div className="mt-8">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left font-medium text-gray-500 pb-3">Description</th>
-                <th className="text-right font-medium text-gray-500 pb-3">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-gray-100">
-                <td className="py-4 font-medium">
-                  {data.description || (isDemoMode ? "Test Details: Consulting Services" : "Service Description")}
-                  {data.lineItems.length > 0 && <span className="text-xs text-gray-400 ml-2">({data.lineItems.length} items)</span>}
-                </td>
-                <td className="py-4 text-right">
-                  ${data.amountFiat || "0.00"}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Totals */}
-        <div className="flex flex-col items-end gap-2 pt-4">
-          <div className="w-1/2 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Subtotal</span>
-              <span>${data.amountFiat || "0.00"}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Amount due</span>
-              <span className="font-bold text-lg">${data.amountFiat || "0.00"} {data.fiatCurrency}</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Footer */}
-        <div className="pt-8 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-           <div className="flex items-center gap-1">
-             <span className={`inline-block w-2 h-2 rounded-full ${isDemoMode ? "bg-amber-400" : "bg-green-500"}`}></span>
-             <span>Protocol Bank {isDemoMode ? "Test Environment" : "Secure Payment"}</span>
-           </div>
-           <div>
-             {data.enablePostPaymentInvoice && <span>PDF Invoice Enabled</span>}
-           </div>
-        </div>
-      </div>
-    </Card>
-  );
-};
 
 export default function InvoicesPage() {
   const { isDemoMode } = useDemo();
@@ -221,6 +101,7 @@ export default function InvoicesPage() {
     amountFiat: "99.00",
     fiatCurrency: "USD",
     token: "USDC",
+    chain: "Ethereum",
     description: "Business credits",
     merchantName: "Protocol Bank",
     expiresIn: "24", // hours
@@ -251,11 +132,12 @@ export default function InvoicesPage() {
           amount_fiat: 100,
           fiat_currency: "USD",
           token: "USDC",
+          chain: "Ethereum",
           description: "Consulting Services - January 2024",
           merchant_name: "Protocol Bank",
           status: "paid",
           signature: "abc123",
-          tx_hash: "0xabc...def",
+          tx_hash: "0x71c66743905359db5a16d55d22228514930be82a17058564a51e51b312788e0c",
           paid_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 86400000).toISOString(),
           created_at: new Date(Date.now() - 86400000).toISOString(),
@@ -268,6 +150,7 @@ export default function InvoicesPage() {
           amount_fiat: 250,
           fiat_currency: "USD",
           token: "USDC",
+          chain: "Polygon",
           description: "Software License - Annual",
           merchant_name: "Protocol Bank",
           status: "pending",
@@ -293,6 +176,7 @@ export default function InvoicesPage() {
         recipientAddress: formData.recipientAddress,
         amount: formData.amount,
         token: formData.token,
+        chain: formData.chain,
         description: formData.description,
         merchantName: formData.merchantName,
         expiresIn: parseInt(formData.expiresIn) * 60 * 60 * 1000, // Convert hours to ms
@@ -349,6 +233,7 @@ export default function InvoicesPage() {
       amountFiat: "99.00",
       fiatCurrency: "USD",
       token: "USDC",
+      chain: "Ethereum",
       description: "Business credits",
       merchantName: "Protocol Bank",
       expiresIn: "24",
@@ -596,28 +481,50 @@ export default function InvoicesPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="token">Settlement Token</Label>
-                      <Select
-                        value={formData.token}
-                        onValueChange={(v) =>
-                          setFormData({ ...formData, token: v })
-                        }
-                      >
-                        <SelectTrigger>
-                          <div className="flex items-center gap-2">
-                            <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-                              {formData.token[0]}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="token">Settlement Token</Label>
+                        <Select
+                          value={formData.token}
+                          onValueChange={(v) =>
+                            setFormData({ ...formData, token: v })
+                          }
+                        >
+                          <SelectTrigger>
+                            <div className="flex items-center gap-2">
+                              <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                                {formData.token[0]}
+                              </div>
+                              <SelectValue />
                             </div>
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="USDC">USDC (USD Coin)</SelectItem>
-                          <SelectItem value="USDT">USDT (Tether)</SelectItem>
-                          <SelectItem value="DAI">DAI</SelectItem>
-                        </SelectContent>
-                      </Select>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="USDC">USDC (USD Coin)</SelectItem>
+                            <SelectItem value="USDT">USDT (Tether)</SelectItem>
+                            <SelectItem value="DAI">DAI</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="chain">Network</Label>
+                         <Select
+                          value={formData.chain}
+                          onValueChange={(v) =>
+                            setFormData({ ...formData, chain: v })
+                          }
+                        >
+                          <SelectTrigger>
+                             <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Ethereum">Ethereum</SelectItem>
+                            <SelectItem value="Polygon">Polygon</SelectItem>
+                            <SelectItem value="Arbitrum">Arbitrum</SelectItem>
+                            <SelectItem value="Optimism">Optimism</SelectItem>
+                            <SelectItem value="Base">Base</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
