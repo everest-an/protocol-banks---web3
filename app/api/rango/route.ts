@@ -1,10 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Rango API key is only accessible server-side
-const RANGO_API_KEY = process.env.RANGO_API_KEY || "c6381a79-2817-4602-83bf-6a641a409e32"
+// Rango API key should be set in environment variables
+const RANGO_API_KEY = process.env.RANGO_API_KEY
 const BASE_URL = "https://api.rango.exchange"
 
 export async function POST(request: NextRequest) {
+  if (!RANGO_API_KEY) {
+    console.error("RANGO_API_KEY is missing from environment variables")
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+  }
+
   try {
     const { action, ...params } = await request.json()
 
