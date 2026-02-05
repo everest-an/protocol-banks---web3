@@ -1,5 +1,6 @@
-export type SubscriptionStatus = "active" | "paused" | "cancelled"
+export type SubscriptionStatus = "active" | "paused" | "cancelled" | "payment_failed" | "authorization_expired"
 export type SubscriptionFrequency = "daily" | "weekly" | "monthly" | "yearly"
+export type AutoPayUseCase = "individual" | "enterprise"
 
 export interface SubscriptionInput {
   service_name: string
@@ -12,6 +13,15 @@ export interface SubscriptionInput {
   status: SubscriptionStatus
   next_payment: string
   created_by: string
+  // Auto Pay fields
+  use_case?: AutoPayUseCase
+  max_authorized_amount?: number
+  authorization_expires_at?: string
+  schedule_day?: number
+  schedule_time?: string
+  timezone?: string
+  description?: string
+  recipients?: Array<{ address: string; amount: string; name?: string }>
 }
 
 export interface Subscription {
@@ -29,6 +39,20 @@ export interface Subscription {
   created_by: string
   created_at: string
   updated_at: string
+  // Auto Pay fields
+  use_case: AutoPayUseCase
+  max_authorized_amount?: string
+  authorization_expires_at?: string
+  total_paid?: string
+  payment_count?: number
+  schedule_day?: number
+  schedule_time?: string
+  timezone?: string
+  description?: string
+  recipients?: Array<{ address: string; amount: string; name?: string }>
+  // Computed fields
+  remaining_quota?: string
+  authorization_valid?: boolean
 }
 
 export interface AutoPayment {

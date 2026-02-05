@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { subscriptionService, type Subscription } from "@/lib/services/subscription-service"
+import { checkAuthorizationValidity } from "@/lib/subscription-helpers"
 import { webhookTriggerService, type SubscriptionEventData } from "@/lib/services/webhook-trigger-service"
 import { submitBatchPayment } from "@/lib/grpc/payout-bridge"
 import { getTokenAddress, CHAIN_IDS } from "@/lib/web3"
@@ -186,6 +187,20 @@ async function executeSubscription(subscription: Subscription): Promise<Executio
     if (subscription.status !== "active") {
       result.status = "skipped"
       result.error = `Subscription status is ${subscription.status}`
+      return result
+    }
+
+    // Authorization validity check (spending cap + expiry)
+    const authCheck = checkAuthorizationValidity({
+      ...subscription,
+      next_payment: subscription.next_payment_date || undefined,
+      last_payment: subscription.last_payment_date || undefined,
+    } as any)
+
+    if (!authCheck.valid) {
+      result.status = "skipped"
+      result.error = authCheck.reason || "authorization_expired"
+      console.log(`[SubscriptionExecute] Skipping ${subscription.id}: ${authCheck.reason}`)
       return result
     }
 

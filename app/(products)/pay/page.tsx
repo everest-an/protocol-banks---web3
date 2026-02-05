@@ -8,17 +8,29 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Wallet, CheckCircle2, AlertCircle, ShieldAlert, ShieldCheck, Eye, Send, Users } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Loader2, Wallet, CheckCircle2, AlertCircle, ShieldAlert, ShieldCheck, Eye, Send, Users, Plus } from "lucide-react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useToast } from "@/hooks/use-toast"
 import { useDemo } from "@/contexts/demo-context"
 import { useVendors } from "@/hooks/use-vendors"
+import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { getTokenAddress, signERC3009Authorization, executeERC3009Transfer, sendToken, getTokenBalance } from "@/lib/web3"
 import { getChainInfo } from "@/lib/tokens"
 import { FeePreview } from "@/components/fee-preview"
 import { SettlementMethodBadge } from "@/components/settlement-method-badge"
+import { PaymentActivity } from "@/components/payment-activity"
+import { PurposeTagSelector } from "@/components/purpose-tag-selector"
+import { PaymentGroupSelector } from "@/components/payment-group-selector"
 import { recordFee, calculateFee } from "@/lib/protocol-fees"
+import { sonicBranding } from "@/lib/sonic-branding"
 
 interface Invoice {
   invoice_id: string
@@ -153,14 +165,25 @@ function PaymentContent() {
   const [invoiceLoading, setInvoiceLoading] = useState(false)
 
   // Form mode state
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [formTo, setFormTo] = useState("")
   const [formAmount, setFormAmount] = useState("")
   const [formToken, setFormToken] = useState<"USDC" | "USDT" | "DAI">("USDC")
+  const [formMemo, setFormMemo] = useState("")
+  const [formPurpose, setFormPurpose] = useState("")
+  const [formGroupId, setFormGroupId] = useState<string | undefined>()
   const [addressError, setAddressError] = useState("")
   const [amountError, setAmountError] = useState("")
   const [showContacts, setShowContacts] = useState(false)
   const [tokenBalance, setTokenBalance] = useState<string | null>(null)
   const [balanceLoading, setBalanceLoading] = useState(false)
+
+  // Payment history for form mode
+  const { payments: historyPayments, loading: historyLoading, refresh: refreshHistory } = usePaymentHistory({
+    isDemoMode,
+    walletAddress: wallets.EVM || undefined,
+    type: "sent",
+  })
 
   // Contacts for form mode
   const { vendors, loading: vendorsLoading } = useVendors({
@@ -420,7 +443,7 @@ function PaymentContent() {
 
       // Record payment to database
       try {
-        const payload = {
+        const payload: Record<string, unknown> = {
           tx_hash: hash,
           from_address: wallets.EVM,
           to_address: to,
@@ -431,6 +454,9 @@ function PaymentContent() {
           chain: chainId.toString(),
           type: "sent",
           status: "completed",
+          ...(formMemo && { memo: formMemo }),
+          ...(formPurpose && { purpose: formPurpose }),
+          ...(formGroupId && { group_id: formGroupId }),
         }
 
         const response = await fetch('/api/payments', {
@@ -496,10 +522,20 @@ function PaymentContent() {
     setFormTo("")
     setFormAmount("")
     setFormToken("USDC")
+    setFormMemo("")
+    setFormPurpose("")
+    setFormGroupId(undefined)
+    setShowPaymentDialog(false)
+    refreshHistory()
   }
 
   // === SUCCESS SCREEN (shared) ===
   if (completed) {
+    // Play success sound
+    useEffect(() => {
+      sonicBranding.play("personal-success")
+    }, [])
+    
     return (
       <div className="container max-w-md mx-auto py-20 px-4">
         <Card className="border-green-500/20 bg-green-500/5">
@@ -705,180 +741,244 @@ function PaymentContent() {
     )
   }
 
-  // === FORM MODE: Standalone payment form ===
+  // === FORM MODE: History-first with payment dialog ===
   const formIsValid = formTo && isValidAddress(formTo) && formAmount && isValidAmount(formAmount) && formToken && !addressError && !amountError
   const chainInfo = getChainInfo(chainId)
 
+  // Map history payments for PaymentActivity component
+  const activityPayments = historyPayments.map((p) => ({
+    id: p.id,
+    timestamp: p.timestamp || p.created_at,
+    from_address: p.from_address,
+    to_address: p.to_address,
+    amount: String(p.amount),
+    amount_usd: p.amount_usd || Number(p.amount),
+    status: p.status,
+    token_symbol: p.token_symbol || p.token,
+    tx_hash: p.tx_hash,
+    notes: p.notes,
+    memo: p.memo,
+    category: p.category,
+    vendor: p.vendor_name ? { name: p.vendor_name } : undefined,
+  }))
+
   return (
-    <div className="container max-w-lg mx-auto py-12 px-4">
-      <Card className="border-border shadow-lg">
-        <CardHeader className="border-b border-border/50 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+    <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
+      {/* Header with Initiate Payment button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Send className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold">Payments</h1>
+            <p className="text-sm text-muted-foreground">Send crypto to any wallet address</p>
+          </div>
+        </div>
+        <Button onClick={() => setShowPaymentDialog(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Initiate Payment
+        </Button>
+      </div>
+
+      {/* Test Mode Indicator */}
+      {isDemoMode && (
+        <Alert className="bg-yellow-500/5 border-yellow-500/20">
+          <AlertDescription className="text-sm text-yellow-600">
+            Test Mode — transactions will be simulated
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Payment History */}
+      <PaymentActivity
+        payments={activityPayments}
+        walletAddress={wallets.EVM}
+        loading={historyLoading}
+        showAll
+        title="Payment History"
+        description="Your sent payment activity"
+      />
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-xl">Send Payment</CardTitle>
-              <CardDescription>Send crypto to any wallet address</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
+              Send Payment
+            </DialogTitle>
+          </DialogHeader>
 
-        <CardContent className="pt-6 space-y-5">
-          {/* Current Network */}
-          <div className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-md">
-            <span className="text-muted-foreground">Network</span>
-            <Badge variant="secondary">{chainInfo?.name || `Chain ${chainId}`}</Badge>
-          </div>
-
-          {/* Recipient Address */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="recipient">Recipient Address</Label>
-              {vendors.length > 0 && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowContacts(!showContacts)}>
-                  <Users className="h-3 w-3 mr-1" />
-                  Contacts
-                </Button>
-              )}
+          <div className="space-y-5 pt-2">
+            {/* Current Network */}
+            <div className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-md">
+              <span className="text-muted-foreground">Network</span>
+              <Badge variant="secondary">{chainInfo?.name || `Chain ${chainId}`}</Badge>
             </div>
-            <Input
-              id="recipient"
-              placeholder="0x..."
-              value={formTo}
-              onChange={(e) => setFormTo(e.target.value.trim())}
-              className={`font-mono ${addressError ? "border-destructive" : ""}`}
-            />
-            {addressError && <p className="text-sm text-destructive">{addressError}</p>}
 
-            {/* Contact Picker */}
-            {showContacts && (
-              <div className="border rounded-md max-h-48 overflow-y-auto">
-                {vendorsLoading ? (
-                  <div className="p-3 text-sm text-muted-foreground">Loading contacts...</div>
-                ) : vendors.filter(v => v.wallet_address && isValidAddress(v.wallet_address)).length === 0 ? (
-                  <div className="p-3 text-sm text-muted-foreground">No contacts with valid addresses</div>
-                ) : (
-                  vendors
-                    .filter(v => v.wallet_address && isValidAddress(v.wallet_address))
-                    .slice(0, 10)
-                    .map((vendor) => (
-                      <button
-                        key={vendor.id}
-                        className="w-full text-left px-3 py-2 hover:bg-muted/50 text-sm flex justify-between items-center border-b last:border-b-0"
-                        onClick={() => { setFormTo(vendor.wallet_address); setShowContacts(false) }}
-                      >
-                        <span className="font-medium">{vendor.company_name || vendor.name || "Unknown"}</span>
-                        <span className="font-mono text-xs text-muted-foreground truncate max-w-[140px]">
-                          {vendor.wallet_address.slice(0, 6)}...{vendor.wallet_address.slice(-4)}
-                        </span>
-                      </button>
-                    ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Token + Amount */}
-          <div className="grid grid-cols-5 gap-3">
-            <div className="col-span-2 space-y-2">
-              <Label>Token</Label>
-              <Select value={formToken} onValueChange={(v) => setFormToken(v as "USDC" | "USDT" | "DAI")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USDC">USDC</SelectItem>
-                  <SelectItem value="USDT">USDT</SelectItem>
-                  <SelectItem value="DAI">DAI</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-3 space-y-2">
+            {/* Recipient Address */}
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="amount">Amount</Label>
-                {isConnected && tokenBalance !== null && (
-                  <button
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setFormAmount(tokenBalance)}
-                  >
-                    Bal: {balanceLoading ? "..." : parseFloat(tokenBalance).toFixed(2)} {formToken}
-                  </button>
+                <Label htmlFor="recipient">Recipient Address</Label>
+                {vendors.length > 0 && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowContacts(!showContacts)}>
+                    <Users className="h-3 w-3 mr-1" />
+                    Contacts
+                  </Button>
                 )}
               </div>
               <Input
-                id="amount"
-                type="number"
-                placeholder="0.00"
-                value={formAmount}
-                onChange={(e) => setFormAmount(e.target.value)}
-                className={amountError ? "border-destructive" : ""}
+                id="recipient"
+                placeholder="0x..."
+                value={formTo}
+                onChange={(e) => setFormTo(e.target.value.trim())}
+                className={`font-mono ${addressError ? "border-destructive" : ""}`}
               />
-              {amountError && <p className="text-sm text-destructive">{amountError}</p>}
+              {addressError && <p className="text-sm text-destructive">{addressError}</p>}
+
+              {/* Contact Picker */}
+              {showContacts && (
+                <div className="border rounded-md max-h-48 overflow-y-auto">
+                  {vendorsLoading ? (
+                    <div className="p-3 text-sm text-muted-foreground">Loading contacts...</div>
+                  ) : vendors.filter(v => v.wallet_address && isValidAddress(v.wallet_address)).length === 0 ? (
+                    <div className="p-3 text-sm text-muted-foreground">No contacts with valid addresses</div>
+                  ) : (
+                    vendors
+                      .filter(v => v.wallet_address && isValidAddress(v.wallet_address))
+                      .slice(0, 10)
+                      .map((vendor) => (
+                        <button
+                          key={vendor.id}
+                          className="w-full text-left px-3 py-2 hover:bg-muted/50 text-sm flex justify-between items-center border-b last:border-b-0"
+                          onClick={() => { setFormTo(vendor.wallet_address); setShowContacts(false) }}
+                        >
+                          <span className="font-medium">{vendor.company_name || vendor.name || "Unknown"}</span>
+                          <span className="font-mono text-xs text-muted-foreground truncate max-w-[140px]">
+                            {vendor.wallet_address.slice(0, 6)}...{vendor.wallet_address.slice(-4)}
+                          </span>
+                        </button>
+                      ))
+                  )}
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* Gasless Badge */}
-          {isGasless && (
-            <div className="flex items-center gap-2 py-2">
-              <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">x402 Protocol</Badge>
-              <span className="text-xs text-muted-foreground">Gasless payment enabled</span>
+            {/* Token + Amount */}
+            <div className="grid grid-cols-5 gap-3">
+              <div className="col-span-2 space-y-2">
+                <Label>Token</Label>
+                <Select value={formToken} onValueChange={(v) => setFormToken(v as "USDC" | "USDT" | "DAI")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USDC">USDC</SelectItem>
+                    <SelectItem value="USDT">USDT</SelectItem>
+                    <SelectItem value="DAI">DAI</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="amount">Amount</Label>
+                  {isConnected && tokenBalance !== null && (
+                    <button
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => setFormAmount(tokenBalance)}
+                    >
+                      Bal: {balanceLoading ? "..." : parseFloat(tokenBalance).toFixed(2)} {formToken}
+                    </button>
+                  )}
+                </div>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="0.00"
+                  value={formAmount}
+                  onChange={(e) => setFormAmount(e.target.value)}
+                  className={amountError ? "border-destructive" : ""}
+                />
+                {amountError && <p className="text-sm text-destructive">{amountError}</p>}
+              </div>
             </div>
-          )}
 
-          {/* Settlement Method */}
-          <div className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-md">
-            <span className="text-muted-foreground">Settlement</span>
-            <SettlementMethodBadge method={chainId === 8453 ? "cdp" : "relayer"} chainId={chainId} />
-          </div>
+            {/* Purpose Tag */}
+            <div className="space-y-2">
+              <Label>Purpose</Label>
+              <PurposeTagSelector value={formPurpose} onChange={setFormPurpose} />
+            </div>
 
-          {/* Fee Preview */}
-          {formAmount && Number(formAmount) > 0 && wallets.EVM && (
-            <FeePreview amount={Number(formAmount)} walletAddress={wallets.EVM} tokenSymbol={formToken} compact={true} />
-          )}
+            {/* Payment Group */}
+            <div className="space-y-2">
+              <Label>Payment Group (optional)</Label>
+              <PaymentGroupSelector
+                ownerAddress={wallets.EVM || ""}
+                value={formGroupId}
+                onChange={setFormGroupId}
+              />
+            </div>
 
-          {/* Test Mode Indicator */}
-          {isDemoMode && (
-            <Alert className="bg-yellow-500/5 border-yellow-500/20">
-              <AlertDescription className="text-sm text-yellow-600">
-                Test Mode — transactions will be simulated
-              </AlertDescription>
-            </Alert>
-          )}
+            {/* Memo */}
+            <div className="space-y-2">
+              <Label htmlFor="memo">Memo / Note</Label>
+              <Textarea
+                id="memo"
+                placeholder="Add a note for this payment..."
+                value={formMemo}
+                onChange={(e) => setFormMemo(e.target.value)}
+                rows={2}
+                className="resize-none"
+              />
+            </div>
 
-          {/* Connect Wallet Prompt */}
-          {!isConnected && !isDemoMode && (
-            <Alert className="bg-primary/5 border-primary/20">
-              <AlertTitle>Connect Wallet</AlertTitle>
-              <AlertDescription>Connect your wallet to send payments.</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Submit Button */}
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handlePayment}
-            disabled={(!isConnected && !isDemoMode) || processing || !formIsValid}
-          >
-            {processing ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Send {formAmount ? `${formAmount} ${formToken}` : "Payment"}
-              </>
+            {/* Gasless Badge */}
+            {isGasless && (
+              <div className="flex items-center gap-2 py-2">
+                <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">x402 Protocol</Badge>
+                <span className="text-xs text-muted-foreground">Gasless payment enabled</span>
+              </div>
             )}
-          </Button>
-        </CardContent>
-      </Card>
 
-      <div className="mt-6 text-center">
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <span>Powered by</span>
-          <span className="font-bold text-foreground">x402 Protocol</span>
-        </div>
-      </div>
+            {/* Settlement Method */}
+            <div className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-md">
+              <span className="text-muted-foreground">Settlement</span>
+              <SettlementMethodBadge method={chainId === 8453 ? "cdp" : "relayer"} chainId={chainId} />
+            </div>
+
+            {/* Fee Preview */}
+            {formAmount && Number(formAmount) > 0 && wallets.EVM && (
+              <FeePreview amount={Number(formAmount)} walletAddress={wallets.EVM} tokenSymbol={formToken} compact={true} />
+            )}
+
+            {/* Connect Wallet Prompt */}
+            {!isConnected && !isDemoMode && (
+              <Alert className="bg-primary/5 border-primary/20">
+                <AlertTitle>Connect Wallet</AlertTitle>
+                <AlertDescription>Connect your wallet to send payments.</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Submit Button */}
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={handlePayment}
+              disabled={(!isConnected && !isDemoMode) || processing || !formIsValid}
+            >
+              {processing ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send {formAmount ? `${formAmount} ${formToken}` : "Payment"}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

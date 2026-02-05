@@ -23,6 +23,8 @@ export interface Payment {
   notes?: string
   token_symbol?: string
   amount_usd?: number
+  group_id?: string
+  purpose?: string
   vendor?: {
     name: string
   }
@@ -110,4 +112,19 @@ export interface BatchReport {
   totalSuccess: number
   totalFailed: number
   totalAmount: string
+}
+
+export interface PaymentGroup {
+  id: string
+  name: string
+  description?: string
+  owner_address: string
+  purpose?: string
+  tags: string[]
+  total_amount: string
+  payment_count: number
+  status: "open" | "closed"
+  created_at: string
+  updated_at: string
+  payments?: Payment[]
 }

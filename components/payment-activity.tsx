@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowUpRight, ArrowDownLeft, Clock, CheckCircle2, XCircle, Loader2, ExternalLink } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { zhCN } from "date-fns/locale"
+import { PURPOSE_COLORS } from "@/lib/payment-constants"
 
 interface Payment {
   id: string
@@ -17,6 +18,8 @@ interface Payment {
   token_symbol?: string
   tx_hash?: string
   notes?: string
+  memo?: string
+  category?: string
   vendor?: {
     name: string
   }
@@ -178,14 +181,22 @@ export function PaymentActivity({
                       {payment.vendor?.name ||
                         (outgoing ? formatAddress(payment.to_address) : formatAddress(payment.from_address))}
                     </span>
+                    {payment.category && (
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 ${PURPOSE_COLORS[payment.category] || PURPOSE_COLORS.other}`}
+                      >
+                        {payment.category}
+                      </Badge>
+                    )}
                     {getStatusIcon(payment.status)}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>{timeAgo}</span>
-                    {payment.notes && (
+                    {(payment.memo || payment.notes) && (
                       <>
                         <span>•</span>
-                        <span className="truncate">{payment.notes}</span>
+                        <span className="truncate">{payment.memo || payment.notes}</span>
                       </>
                     )}
                   </div>

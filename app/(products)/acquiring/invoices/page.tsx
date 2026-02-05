@@ -383,7 +383,7 @@ export default function InvoicesPage() {
             <CardContent>
               <form onSubmit={handleCreate}>
                 <Tabs defaultValue="details" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-4">
+                  <TabsList className="grid w-full grid-cols-4 mb-4 h-auto">
                     <TabsTrigger value="details">Details</TabsTrigger>
                     <TabsTrigger value="payment">Payment</TabsTrigger>
                     <TabsTrigger value="customer">Client</TabsTrigger>

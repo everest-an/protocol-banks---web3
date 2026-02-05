@@ -81,8 +81,8 @@ export const paymentProducts: ProductItem[] = [
   },
   {
     href: "/subscriptions",
-    title: "Subscriptions",
-    description: "Recurring payments with ERC-3009",
+    title: "Auto Pay",
+    description: "Recurring payments & enterprise auto-pay",
     icon: Clock,
     color: "bg-purple-500/10 text-purple-500",
   },

@@ -64,13 +64,36 @@ model Payment {
   tags         String[]  @default([])
   vendor_id    String?
 
+  group_id     String?
   vendor       Vendor?   @relation(fields: [vendor_id], references: [id])
+  group        PaymentGroup? @relation(fields: [group_id], references: [id])
 
   @@index([created_by])
   @@index([status])
   @@index([type])
   @@index([vendor_id])
+  @@index([group_id])
   @@map("payments")
+}
+
+model PaymentGroup {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  owner_address String
+  purpose       String?
+  tags          String[]  @default([])
+  total_amount  String    @default("0")
+  payment_count Int       @default(0)
+  status        String    @default("open")
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  payments      Payment[]
+
+  @@index([owner_address])
+  @@index([status])
+  @@map("payment_groups")
 }
 
 model Vendor {
@@ -335,38 +358,55 @@ model ScheduledPaymentLog {
 }
 
 model Subscription {
-  id                String   @id @default(uuid())
-  owner_address     String
-  service_name      String
-  wallet_address    String
-  amount            String
-  token             String
-  frequency         String
-  status            String   @default("active")
-  next_payment_date DateTime?
-  last_payment_date DateTime?
-  last_tx_hash      String?
-  total_paid        String   @default("0")
-  payment_count     Int      @default(0)
-  chain_id          Int
-  memo              String?
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  id                       String   @id @default(uuid())
+  owner_address            String
+  service_name             String
+  wallet_address           String
+  amount                   String
+  token                    String
+  frequency                String
+  status                   String   @default("active")
+  next_payment_date        DateTime?
+  last_payment_date        DateTime?
+  last_tx_hash             String?
+  total_paid               String   @default("0")
+  payment_count            Int      @default(0)
+  chain_id                 Int
+  memo                     String?
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+
+  // Auto Pay fields
+  use_case                 String   @default("individual")
+  max_authorized_amount    String?
+  authorization_expires_at DateTime?
+  schedule_day             Int?
+  schedule_time            String?
+  timezone                 String   @default("UTC")
+  description              String?
+  recipients               Json?
+
+  payments                 SubscriptionPayment[]
+  authorizations           SubscriptionAuthorization[]
 
   @@index([owner_address])
   @@index([status])
+  @@index([use_case])
+  @@index([next_payment_date])
   @@map("subscriptions")
 }
 
 
 model SubscriptionPayment {
-  id              String   @id @default(uuid())
+  id              String       @id @default(uuid())
   subscription_id String
   amount          String
   tx_hash         String?
-  status          String   @default("completed")
+  status          String       @default("completed")
   error_message   String?
-  created_at      DateTime @default(now())
+  created_at      DateTime     @default(now())
+
+  subscription    Subscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
 
   @@index([subscription_id])
   @@map("subscription_payments")
@@ -374,11 +414,15 @@ model SubscriptionPayment {
 
 
 model SubscriptionAuthorization {
-  id              String   @id @default(uuid())
+  id              String       @id @default(uuid())
   subscription_id String
-  status          String   @default("active")
+  status          String       @default("active")
   signature       String
-  created_at      DateTime @default(now())
+  max_amount      String?
+  expires_at      DateTime?
+  created_at      DateTime     @default(now())
+
+  subscription    Subscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
 
   @@index([subscription_id])
   @@map("subscription_authorizations")

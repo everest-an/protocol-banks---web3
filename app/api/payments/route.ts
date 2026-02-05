@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const walletAddress = searchParams.get("wallet")
     const type = searchParams.get("type") // "sent" | "received" | "all"
+    const groupId = searchParams.get("group_id")
 
     if (!walletAddress) {
       return NextResponse.json({ error: "Missing wallet address" }, { status: 400 })
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Default: find payments where user is sender OR receiver (if type is not specified or 'all')
     let where: Record<string, unknown> = {}
-    
+
     if (type === 'sent') {
       where = {
         from_address: walletAddress
@@ -34,6 +35,11 @@ export async function GET(request: NextRequest) {
           { to_address: walletAddress }
         ]
       }
+    }
+
+    // Filter by payment group if specified
+    if (groupId) {
+      where.group_id = groupId
     }
     
     // Optional: filter by created_by if needed, but history usually wants all interactions
@@ -89,6 +95,9 @@ export async function POST(request: NextRequest) {
       notes,
       amount_usd,
       is_external,
+      group_id,
+      tags,
+      purpose,
     } = body
 
     if (!from_address || !to_address || !amount || !token || !chain || !type) {
@@ -112,11 +121,13 @@ export async function POST(request: NextRequest) {
         tx_hash,
         created_by,
         vendor_name,
-        category,
+        category: purpose || category,
         memo,
         notes,
         amount_usd: amount_usd ? Number(amount_usd) : undefined,
         is_external: is_external ?? false,
+        group_id,
+        tags: tags || [],
       },
     })
 

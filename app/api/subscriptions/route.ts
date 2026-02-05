@@ -38,7 +38,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { service_name, wallet_address, amount, token, frequency, chain_id, start_date, memo } = body;
+    const {
+      service_name, wallet_address, amount, token, frequency, chain_id, start_date, memo,
+      // Auto Pay fields
+      use_case, max_authorized_amount, authorization_expires_at,
+      schedule_day, schedule_time, timezone, description, recipients,
+    } = body;
 
     // Validate required fields
     if (!service_name || typeof service_name !== 'string' || service_name.trim().length === 0) {
@@ -104,6 +109,15 @@ export async function POST(request: NextRequest) {
       chain_id,
       start_date,
       memo,
+      // Auto Pay fields
+      use_case: use_case || 'individual',
+      max_authorized_amount: max_authorized_amount ? String(max_authorized_amount) : undefined,
+      authorization_expires_at,
+      schedule_day: schedule_day ? Number(schedule_day) : undefined,
+      schedule_time,
+      timezone: timezone || 'UTC',
+      description,
+      recipients,
     });
 
     return NextResponse.json({
@@ -118,6 +132,16 @@ export async function POST(request: NextRequest) {
         status: subscription.status,
         next_payment_date: subscription.next_payment_date,
         chain_id: subscription.chain_id,
+        use_case: subscription.use_case,
+        max_authorized_amount: subscription.max_authorized_amount,
+        authorization_expires_at: subscription.authorization_expires_at,
+        schedule_day: subscription.schedule_day,
+        schedule_time: subscription.schedule_time,
+        timezone: subscription.timezone,
+        description: subscription.description,
+        recipients: subscription.recipients,
+        remaining_quota: subscription.remaining_quota,
+        authorization_valid: subscription.authorization_valid,
         created_at: subscription.created_at,
       },
       message: 'Subscription created successfully',
@@ -158,8 +182,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as any;
+    const use_case = searchParams.get('use_case') as any;
 
-    const subscriptions = await subscriptionService.list(ownerAddress, { status });
+    const subscriptions = await subscriptionService.list(ownerAddress, { status, use_case });
 
     return NextResponse.json({
       success: true,
@@ -176,6 +201,16 @@ export async function GET(request: NextRequest) {
         total_paid: sub.total_paid,
         payment_count: sub.payment_count,
         chain_id: sub.chain_id,
+        use_case: sub.use_case,
+        max_authorized_amount: sub.max_authorized_amount,
+        authorization_expires_at: sub.authorization_expires_at,
+        schedule_day: sub.schedule_day,
+        schedule_time: sub.schedule_time,
+        timezone: sub.timezone,
+        description: sub.description,
+        recipients: sub.recipients,
+        remaining_quota: sub.remaining_quota,
+        authorization_valid: sub.authorization_valid,
         created_at: sub.created_at,
       })),
       count: subscriptions.length,

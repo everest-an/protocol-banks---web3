@@ -38,6 +38,7 @@ import {
 import { useBalance } from "@/hooks/use-balance"
 import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { BalanceDistribution } from "@/components/balance-distribution"
+import { BalanceActivity } from "@/components/balance-activity"
 import { categorizeTransaction, CATEGORY_COLORS, calculateRunway, type Category } from "@/lib/business-logic"
 import { AuthGateway } from "@/components/auth"
 import type { TokenBalance } from "@/types"
@@ -290,6 +291,18 @@ export default function BalancesPage() {
       pendingCount: payments.filter((p) => p.status === "pending").length,
     }
   }, [payments, paymentStats, balance?.totalUSD])
+
+  const activityTransactions = useMemo(() => {
+    return payments.map(p => ({
+      id: p.id,
+      type: p.type as "sent" | "received",
+      amount: parseFloat(String(p.amount)) || 0,
+      currency: p.token,
+      status: p.status as "completed" | "pending" | "failed",
+      timestamp: p.timestamp || p.created_at,
+      entity: p.vendor_name || (p.type === 'sent' ? p.to_address : p.from_address) || "Unknown"
+    }))
+  }, [payments])
 
   // ─── Not Connected ───
   if (!isConnected && !isDemoMode) {
@@ -862,159 +875,73 @@ export default function BalancesPage() {
 
             {/* ══════════ Activity Tab: Money Movement Insights ══════════ */}
             <TabsContent value="activity" className="space-y-4">
+              <BalanceActivity initialTransactions={activityTransactions} isDemoMode={isDemoMode} />
 
-              {/* Balance Summary: Opening → Changes → Closing */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Balance Summary</CardTitle>
-                  <CardDescription>Opening balance → money movement → current balance</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {paymentsLoading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Skeleton key={i} className="h-8 w-full" />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {/* Opening Balance */}
-                      <div className="flex items-center justify-between py-3 border-b border-dashed">
-                        <span className="text-sm text-muted-foreground">Estimated Opening Balance</span>
-                        <span className="font-mono text-sm" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {hideBalance ? "****" : `$${formatUSD(moneyMovement.estimatedOpening)}`}
-                        </span>
-                      </div>
-
-                      {/* Increases */}
-                      <div className="py-3 border-b">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded bg-green-500/10">
-                              <ArrowDownLeft className="h-3 w-3 text-green-500" />
-                            </div>
-                            <span className="text-sm font-medium">Increases (Inflows)</span>
-                          </div>
-                          <span className="font-mono text-sm text-green-500" style={{ fontVariantNumeric: "tabular-nums" }}>
-                            {hideBalance ? "****" : `+$${formatUSD(moneyMovement.totalReceived)}`}
-                          </span>
-                        </div>
-                        <div className="ml-8 space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Payments received</span>
-                            <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                              {hideBalance ? "****" : `$${formatUSD(moneyMovement.totalReceived)}`}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Decreases */}
-                      <div className="py-3 border-b">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded bg-red-500/10">
-                              <ArrowUpRight className="h-3 w-3 text-red-500" />
-                            </div>
-                            <span className="text-sm font-medium">Decreases (Outflows)</span>
-                          </div>
-                          <span className="font-mono text-sm text-red-500" style={{ fontVariantNumeric: "tabular-nums" }}>
-                            {hideBalance ? "****" : `-$${formatUSD(moneyMovement.totalSent)}`}
-                          </span>
-                        </div>
-                        <div className="ml-8 space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Payments sent</span>
-                            <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                              {hideBalance ? "****" : `$${formatUSD(moneyMovement.totalSent)}`}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Net Change */}
-                      <div className="flex items-center justify-between py-3 border-b border-dashed">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1 rounded bg-blue-500/10">
-                            {moneyMovement.netFlow >= 0 ? (
-                              <TrendingUp className="h-3 w-3 text-blue-500" />
-                            ) : (
-                              <TrendingDown className="h-3 w-3 text-blue-500" />
-                            )}
-                          </div>
-                          <span className="text-sm font-medium">Net Change</span>
-                        </div>
-                        <span
-                          className={`font-mono text-sm font-semibold ${moneyMovement.netFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}
-                          style={{ fontVariantNumeric: "tabular-nums" }}
-                        >
-                          {hideBalance ? "****" : `${moneyMovement.netFlow >= 0 ? '+' : '-'}$${formatUSD(Math.abs(moneyMovement.netFlow))}`}
-                        </span>
-                      </div>
-
-                      {/* Closing Balance */}
-                      <div className="flex items-center justify-between py-3">
-                        <span className="text-sm font-semibold">Current Balance</span>
-                        <span className="font-mono text-base font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {hideBalance ? "****" : `$${formatUSD(moneyMovement.currentBalance)}`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Monthly Inflow/Outflow Chart + Spending Categories */}
-              <div className="grid gap-4 lg:grid-cols-2">
-                {/* Monthly Flow Bar Chart */}
+              {/* Financial Health Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
-                    <CardDescription>Inflows vs outflows over the last 6 months</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {moneyMovement.monthlyFlow.some((m) => m.Inflow > 0 || m.Outflow > 0) ? (
-                      <div className="h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={moneyMovement.monthlyFlow} barGap={4}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis
-                              dataKey="month"
-                              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                              axisLine={{ stroke: "hsl(var(--border))" }}
-                            />
-                            <YAxis
-                              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                              axisLine={{ stroke: "hsl(var(--border))" }}
-                              tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                            />
-                            <Tooltip
-                              formatter={(value: number, name: string) => [
-                                `$${value.toLocaleString()}`,
-                                name,
-                              ]}
-                              contentStyle={{
-                                backgroundColor: "hsl(var(--card))",
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: "8px",
-                                color: "hsl(var(--foreground))",
-                              }}
-                            />
-                            <Legend />
-                            <Bar dataKey="Inflow" fill="#10b981" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="Outflow" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-red-500/10">
+                        <Flame className="h-4 w-4 text-red-500" />
                       </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-[250px] text-muted-foreground">
-                        <Activity className="h-10 w-10 mb-3 opacity-50" />
-                        <p className="text-sm">No transaction history yet</p>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Burn Rate (30d)</p>
+                        <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {hideBalance ? "****" : `$${formatUSD(moneyMovement.burnRate, 0)}`}
+                        </p>
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-blue-500/10">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Runway</p>
+                        <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {moneyMovement.runway >= 999 ? "∞" : `${moneyMovement.runway.toFixed(1)} mo`}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-green-500/10">
+                        <Activity className="h-4 w-4 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Transactions</p>
+                        <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {moneyMovement.txCount}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-yellow-500/10">
+                        <Clock className="h-4 w-4 text-yellow-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Pending</p>
+                        <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {moneyMovement.pendingCount}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
+               <div className="grid gap-4 lg:grid-cols-2">
                 {/* Spending Category Pie Chart */}
                 <Card>
                   <CardHeader>
@@ -1088,71 +1015,6 @@ export default function BalancesPage() {
                     )}
                   </CardContent>
                 </Card>
-              </div>
-
-              {/* Financial Health Metrics */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-red-500/10">
-                        <Flame className="h-4 w-4 text-red-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Burn Rate (30d)</p>
-                        <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {hideBalance ? "****" : `$${formatUSD(moneyMovement.burnRate, 0)}`}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-blue-500/10">
-                        <Clock className="h-4 w-4 text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Runway</p>
-                        <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {moneyMovement.runway >= 999 ? "∞" : `${moneyMovement.runway.toFixed(1)} mo`}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-green-500/10">
-                        <Activity className="h-4 w-4 text-green-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Transactions</p>
-                        <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {moneyMovement.txCount}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-yellow-500/10">
-                        <Clock className="h-4 w-4 text-yellow-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Pending</p>
-                        <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {moneyMovement.pendingCount}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
 
               {/* Month-over-Month Comparison */}
               <Card>
@@ -1196,6 +1058,7 @@ export default function BalancesPage() {
                   )}
                 </CardContent>
               </Card>
+              </div>
             </TabsContent>
           </Tabs>
         )}

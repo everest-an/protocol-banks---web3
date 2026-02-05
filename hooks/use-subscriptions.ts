@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import type { Subscription, SubscriptionStatus } from "@/types"
+import type { Subscription, SubscriptionStatus, AutoPayUseCase } from "@/types"
 
 // ============================================
 // Demo Data
 // ============================================
 
 const DEMO_SUBSCRIPTIONS: Subscription[] = [
+  // Individual subscriptions
   {
     id: "1",
     service_name: "Netflix Premium",
@@ -18,11 +19,12 @@ const DEMO_SUBSCRIPTIONS: Subscription[] = [
     frequency: "monthly",
     status: "active",
     max_amount: "20",
-    next_payment: "2024-04-01",
-    last_payment: "2024-03-01",
+    next_payment: "2027-04-01",
+    last_payment: "2027-03-01",
     created_by: "demo",
-    created_at: "2024-01-01",
-    updated_at: "2024-03-01",
+    created_at: "2027-01-01",
+    updated_at: "2027-03-01",
+    use_case: "individual",
   },
   {
     id: "2",
@@ -34,11 +36,12 @@ const DEMO_SUBSCRIPTIONS: Subscription[] = [
     frequency: "monthly",
     status: "active",
     max_amount: "20",
-    next_payment: "2024-04-05",
-    last_payment: "2024-03-05",
+    next_payment: "2027-04-05",
+    last_payment: "2027-03-05",
     created_by: "demo",
-    created_at: "2024-01-05",
-    updated_at: "2024-03-05",
+    created_at: "2027-01-05",
+    updated_at: "2027-03-05",
+    use_case: "individual",
   },
   {
     id: "3",
@@ -50,45 +53,14 @@ const DEMO_SUBSCRIPTIONS: Subscription[] = [
     frequency: "monthly",
     status: "paused",
     max_amount: "10",
-    last_payment: "2024-02-10",
+    last_payment: "2027-02-10",
     created_by: "demo",
-    created_at: "2024-01-10",
-    updated_at: "2024-02-15",
+    created_at: "2027-01-10",
+    updated_at: "2027-02-15",
+    use_case: "individual",
   },
   {
     id: "4",
-    service_name: "AWS Services",
-    recipient_address: "0xAWS...",
-    amount: "250",
-    token: "USDC",
-    chain: "Arbitrum",
-    frequency: "monthly",
-    status: "active",
-    max_amount: "500",
-    next_payment: "2024-04-01",
-    last_payment: "2024-03-01",
-    created_by: "demo",
-    created_at: "2024-01-01",
-    updated_at: "2024-03-01",
-  },
-  {
-    id: "5",
-    service_name: "Gym Membership",
-    recipient_address: "0xGym...",
-    amount: "50",
-    token: "USDC",
-    chain: "Ethereum",
-    frequency: "monthly",
-    status: "active",
-    max_amount: "60",
-    next_payment: "2024-04-15",
-    last_payment: "2024-03-15",
-    created_by: "demo",
-    created_at: "2024-01-15",
-    updated_at: "2024-03-15",
-  },
-  {
-    id: "6",
     service_name: "OpenAI Plus",
     recipient_address: "0xOpenAI...",
     amount: "20",
@@ -97,11 +69,95 @@ const DEMO_SUBSCRIPTIONS: Subscription[] = [
     frequency: "monthly",
     status: "active",
     max_amount: "25",
-    next_payment: "2024-04-20",
-    last_payment: "2024-03-20",
+    next_payment: "2027-04-20",
+    last_payment: "2027-03-20",
     created_by: "demo",
-    created_at: "2024-01-20",
-    updated_at: "2024-03-20",
+    created_at: "2027-01-20",
+    updated_at: "2027-03-20",
+    use_case: "individual",
+  },
+  // Enterprise auto-pay
+  {
+    id: "5",
+    service_name: "Engineering Payroll",
+    recipient_address: "0xPayroll...",
+    amount: "15000",
+    token: "USDC",
+    chain: "Ethereum",
+    frequency: "monthly",
+    status: "active",
+    next_payment: "2027-04-05",
+    last_payment: "2027-03-05",
+    created_by: "demo",
+    created_at: "2027-01-01",
+    updated_at: "2027-03-05",
+    use_case: "enterprise",
+    max_authorized_amount: "200000",
+    authorization_expires_at: "2027-12-31",
+    total_paid: "45000",
+    payment_count: 3,
+    schedule_day: 5,
+    schedule_time: "09:00",
+    timezone: "UTC",
+    description: "Monthly payroll for engineering team",
+    recipients: [
+      { address: "0xAlice...", amount: "5000", name: "Alice Chen" },
+      { address: "0xBob...", amount: "5000", name: "Bob Wang" },
+      { address: "0xCarol...", amount: "5000", name: "Carol Li" },
+    ],
+    remaining_quota: "155000",
+    authorization_valid: true,
+  },
+  {
+    id: "6",
+    service_name: "AWS Cloud Services",
+    recipient_address: "0xAWS...",
+    amount: "2500",
+    token: "USDC",
+    chain: "Arbitrum",
+    frequency: "monthly",
+    status: "active",
+    next_payment: "2027-04-01",
+    last_payment: "2027-03-01",
+    created_by: "demo",
+    created_at: "2027-01-01",
+    updated_at: "2027-03-01",
+    use_case: "enterprise",
+    max_authorized_amount: "10000",
+    authorization_expires_at: "2027-06-30",
+    total_paid: "7500",
+    payment_count: 3,
+    schedule_day: 1,
+    schedule_time: "00:00",
+    timezone: "UTC",
+    description: "Monthly cloud infrastructure payment",
+    remaining_quota: "2500",
+    authorization_valid: true,
+  },
+  {
+    id: "7",
+    service_name: "Marketing Agency",
+    recipient_address: "0xAgency...",
+    amount: "3000",
+    token: "USDC",
+    chain: "Base",
+    frequency: "monthly",
+    status: "authorization_expired",
+    last_payment: "2027-02-15",
+    created_by: "demo",
+    created_at: "2027-01-15",
+    updated_at: "2027-03-15",
+    use_case: "enterprise",
+    max_authorized_amount: "9000",
+    authorization_expires_at: "2027-03-15",
+    total_paid: "9000",
+    payment_count: 3,
+    schedule_day: 15,
+    schedule_time: "10:00",
+    timezone: "America/New_York",
+    description: "Monthly retainer for marketing services",
+    remaining_quota: "0",
+    authorization_valid: false,
   },
 ]
 
@@ -144,6 +200,7 @@ async function apiRequest<T>(url: string, options?: RequestInit): Promise<T> {
 interface UseSubscriptionsOptions {
   isDemoMode?: boolean
   walletAddress?: string
+  useCase?: AutoPayUseCase
 }
 
 // ============================================
@@ -302,16 +359,36 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
     loadSubscriptions()
   }, [loadSubscriptions])
 
-  // Calculate stats
+  // Filter by use_case if specified
+  const filteredSubscriptions = options.useCase
+    ? subscriptions.filter((s) => s.use_case === options.useCase)
+    : subscriptions
+
+  // Calculate enhanced stats
+  const activeSubs = filteredSubscriptions.filter((s) => s.status === "active")
   const stats = {
-    active: subscriptions.filter((s) => s.status === "active").length,
-    paused: subscriptions.filter((s) => s.status === "paused").length,
-    monthlyTotal: subscriptions
-      .filter((s) => s.status === "active" && s.frequency === "monthly")
+    active: activeSubs.length,
+    paused: filteredSubscriptions.filter((s) => s.status === "paused").length,
+    monthlyTotal: activeSubs
+      .filter((s) => s.frequency === "monthly")
       .reduce((sum, s) => sum + Number.parseFloat(s.amount), 0),
-    nextPayment: subscriptions
-      .filter((s) => s.status === "active" && s.next_payment)
+    nextPayment: activeSubs
+      .filter((s) => s.next_payment)
       .sort((a, b) => new Date(a.next_payment!).getTime() - new Date(b.next_payment!).getTime())[0]?.next_payment,
+    // Auto Pay enhanced stats
+    totalPaymentCount: filteredSubscriptions.reduce((sum, s) => sum + (s.payment_count || 0), 0),
+    enterpriseCount: subscriptions.filter((s) => s.use_case === "enterprise").length,
+    individualCount: subscriptions.filter((s) => s.use_case === "individual" || !s.use_case).length,
+    totalRemainingQuota: filteredSubscriptions
+      .filter((s) => s.remaining_quota)
+      .reduce((sum, s) => sum + Number.parseFloat(s.remaining_quota || "0"), 0),
+    expiringAuthorizations: activeSubs.filter((s) => {
+      if (!s.authorization_expires_at) return false
+      const expiresAt = new Date(s.authorization_expires_at)
+      const sevenDaysFromNow = new Date()
+      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+      return expiresAt <= sevenDaysFromNow
+    }).length,
   }
 
   return {

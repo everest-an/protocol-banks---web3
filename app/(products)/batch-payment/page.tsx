@@ -52,6 +52,8 @@ import {
   Users,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase-client"
+import { PurposeTagSelector } from "@/components/purpose-tag-selector"
+import { PaymentGroupSelector } from "@/components/payment-group-selector"
 import type { Vendor, PaymentRecipient, AutoPayment, VendorCategory } from "@/types"
 import { validatePaymentData, processBatchPayment as executeBatchPayment } from "@/lib/services/payment-service"
 import { validateVendorData } from "@/lib/services/vendor-service"
@@ -88,6 +90,10 @@ export default function BatchPaymentPage() {
   } = useAsyncBatchPayment()
 
   const [activeTab, setActiveTab] = useState<"batch" | "auto" | "x402">("batch")
+  const [showBatchForm, setShowBatchForm] = useState(false)
+  const [batchPurpose, setBatchPurpose] = useState("")
+  const [batchGroupId, setBatchGroupId] = useState<string | undefined>()
+  const [batchMemo, setBatchMemo] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [currentBatchId, setCurrentBatchId] = useState<string | null>(null)
   const [vendors, setVendors] = useState<Vendor[]>([])
@@ -1042,7 +1048,69 @@ export default function BatchPaymentPage() {
         {/* Personal Mode - Subscription Management - REMOVED */}
 
         <TabsContent value="batch" className="space-y-6">
-          
+
+          {!showBatchForm ? (
+            <>
+              {/* History-first: show batch history + create button */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Batch Payments</h2>
+                  <p className="text-sm text-muted-foreground">Create and manage batch payments</p>
+                </div>
+                <Button onClick={() => setShowBatchForm(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Batch Payment
+                </Button>
+              </div>
+              <PaymentActivity
+                payments={paymentHistory}
+                walletAddress={currentWallet}
+                loading={historyLoading}
+                showAll
+                title="Batch Payment History"
+                description="Recent batch payment activity"
+              />
+            </>
+          ) : (
+            <>
+              {/* Back button to return to history */}
+              <Button variant="ghost" size="sm" onClick={() => setShowBatchForm(false)} className="mb-2">
+                ← Back to History
+              </Button>
+
+              {/* Purpose, Group, Memo for the batch */}
+              <Card className="border-border">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Batch Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Purpose</Label>
+                    <PurposeTagSelector value={batchPurpose} onChange={setBatchPurpose} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Payment Group (optional)</Label>
+                      <PaymentGroupSelector
+                        ownerAddress={currentWallet || ""}
+                        value={batchGroupId}
+                        onChange={setBatchGroupId}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Memo / Note</Label>
+                      <Textarea
+                        placeholder="Batch payment note..."
+                        value={batchMemo}
+                        onChange={(e) => setBatchMemo(e.target.value)}
+                        rows={2}
+                        className="resize-none"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
           {/* Async Batch Job Monitor */}
           {(isAsyncUploading || asyncJobStatus) && (
             <Card className="border-blue-500/20 bg-blue-500/5 mb-6">
@@ -1412,6 +1480,8 @@ export default function BatchPaymentPage() {
               )}
             </Button>
           </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="auto" className="space-y-6">

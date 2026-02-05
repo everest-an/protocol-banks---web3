@@ -11,6 +11,7 @@
  */
 
 import { subscriptionService, type Subscription } from './subscription-service'
+import { checkAuthorizationValidity } from '@/lib/subscription-helpers'
 import {
   isERC3009Supported,
   createTransferAuthorization,
@@ -29,6 +30,8 @@ export interface PaymentExecutionResult {
   txHash?: string
   error?: string
   method: 'erc3009' | 'x402' | 'direct'
+  skipped?: boolean
+  skipReason?: 'authorization_expired' | 'cap_exceeded'
 }
 
 export interface PaymentExecutorConfig {
@@ -91,9 +94,30 @@ export class SubscriptionPaymentExecutor {
 
   /**
    * Execute a single subscription payment
+   * Checks authorization validity before proceeding.
    */
   async executePayment(subscription: Subscription): Promise<PaymentExecutionResult> {
     console.log(`[SubscriptionExecutor] Processing subscription ${subscription.id}`)
+
+    // Authorization gating: check expiry and spending cap before execution
+    const authCheck = checkAuthorizationValidity({
+      ...subscription,
+      next_payment: subscription.next_payment_date || undefined,
+      last_payment: subscription.last_payment_date || undefined,
+    } as any)
+
+    if (!authCheck.valid) {
+      console.log(`[SubscriptionExecutor] Skipping ${subscription.id}: ${authCheck.reason}`)
+      const skipReason = authCheck.reason?.includes('expired') ? 'authorization_expired' as const : 'cap_exceeded' as const
+      return {
+        subscriptionId: subscription.id,
+        success: false,
+        error: authCheck.reason,
+        method: 'direct',
+        skipped: true,
+        skipReason,
+      }
+    }
 
     try {
       // Determine payment method

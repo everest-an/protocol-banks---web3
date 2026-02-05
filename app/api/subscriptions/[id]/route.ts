@@ -68,6 +68,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         payment_count: subscription.payment_count,
         chain_id: subscription.chain_id,
         memo: subscription.memo,
+        use_case: subscription.use_case,
+        max_authorized_amount: subscription.max_authorized_amount,
+        authorization_expires_at: subscription.authorization_expires_at,
+        schedule_day: subscription.schedule_day,
+        schedule_time: subscription.schedule_time,
+        timezone: subscription.timezone,
+        description: subscription.description,
+        recipients: subscription.recipients,
+        remaining_quota: subscription.remaining_quota,
+        authorization_valid: subscription.authorization_valid,
         created_at: subscription.created_at,
         updated_at: subscription.updated_at,
       },
@@ -117,7 +127,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { service_name, amount, frequency, status, memo } = body;
+    const {
+      service_name, amount, frequency, status, memo,
+      // Auto Pay fields
+      max_authorized_amount, authorization_expires_at,
+      schedule_day, schedule_time, timezone, description, recipients,
+    } = body;
 
     // Validate fields if provided
     if (service_name !== undefined && (typeof service_name !== 'string' || service_name.trim().length === 0)) {
@@ -154,6 +169,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       frequency,
       status,
       memo,
+      // Auto Pay fields
+      max_authorized_amount: max_authorized_amount !== undefined ? String(max_authorized_amount) : undefined,
+      authorization_expires_at,
+      schedule_day: schedule_day !== undefined ? Number(schedule_day) : undefined,
+      schedule_time,
+      timezone,
+      description,
+      recipients,
     });
 
     return NextResponse.json({
@@ -168,6 +191,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         status: updatedSubscription.status,
         next_payment_date: updatedSubscription.next_payment_date,
         chain_id: updatedSubscription.chain_id,
+        use_case: updatedSubscription.use_case,
+        max_authorized_amount: updatedSubscription.max_authorized_amount,
+        authorization_expires_at: updatedSubscription.authorization_expires_at,
+        remaining_quota: updatedSubscription.remaining_quota,
+        authorization_valid: updatedSubscription.authorization_valid,
         updated_at: updatedSubscription.updated_at,
       },
       message: 'Subscription updated successfully',

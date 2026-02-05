@@ -1,18 +1,18 @@
 /**
  * Subscription Service
- * Manages recurring payment subscriptions
+ * Manages recurring payment subscriptions and enterprise auto-pay
  */
 
 import { prisma } from '@/lib/prisma';
-import { calculateNextPaymentDate, formatSubscriptionForDisplay, validateSubscription } from '@/lib/subscription-helpers';
-import type { Subscription as UISubscription, SubscriptionInput, SubscriptionFrequency as UIFrequency } from '@/types';
+import { calculateNextPaymentDate, checkAuthorizationValidity, getRemainingQuota } from '@/lib/subscription-helpers';
+import type { Subscription as UISubscription, SubscriptionInput, SubscriptionFrequency as UIFrequency, AutoPayUseCase } from '@/types';
 
 // ============================================
 // Types
 // ============================================
 
 export type SubscriptionFrequency = UIFrequency;
-export type SubscriptionStatus = 'active' | 'paused' | 'cancelled' | 'payment_failed';
+export type SubscriptionStatus = 'active' | 'paused' | 'cancelled' | 'payment_failed' | 'authorization_expired';
 
 export interface Subscription {
   id: string;
@@ -34,6 +34,18 @@ export interface Subscription {
   memo?: string;
   created_at: string;
   updated_at: string;
+  // Auto Pay fields
+  use_case: AutoPayUseCase;
+  max_authorized_amount?: string;
+  authorization_expires_at?: string;
+  schedule_day?: number;
+  schedule_time?: string;
+  timezone: string;
+  description?: string;
+  recipients?: Array<{ address: string; amount: string; name?: string }>;
+  // Computed fields
+  remaining_quota?: string;
+  authorization_valid?: boolean;
 }
 
 export interface CreateSubscriptionInput {
@@ -46,6 +58,15 @@ export interface CreateSubscriptionInput {
   chain_id: number;
   start_date?: string;
   memo?: string;
+  // Auto Pay fields
+  use_case?: AutoPayUseCase;
+  max_authorized_amount?: string;
+  authorization_expires_at?: string;
+  schedule_day?: number;
+  schedule_time?: string;
+  timezone?: string;
+  description?: string;
+  recipients?: Array<{ address: string; amount: string; name?: string }>;
 }
 
 export interface UpdateSubscriptionInput {
@@ -54,6 +75,14 @@ export interface UpdateSubscriptionInput {
   frequency?: SubscriptionFrequency;
   status?: SubscriptionStatus;
   memo?: string;
+  // Auto Pay fields
+  max_authorized_amount?: string;
+  authorization_expires_at?: string;
+  schedule_day?: number;
+  schedule_time?: string;
+  timezone?: string;
+  description?: string;
+  recipients?: Array<{ address: string; amount: string; name?: string }>;
 }
 
 // ============================================
@@ -62,14 +91,33 @@ export interface UpdateSubscriptionInput {
 
 function mapToSubscription(data: any): Subscription {
   if (!data) return null as any;
-  return {
+
+  const sub: Subscription = {
     ...data,
     recipient_address: data.wallet_address,
     next_payment_date: data.next_payment_date ? data.next_payment_date.toISOString() : null,
     last_payment_date: data.last_payment_date ? data.last_payment_date.toISOString() : null,
+    authorization_expires_at: data.authorization_expires_at
+      ? data.authorization_expires_at.toISOString()
+      : undefined,
+    recipients: data.recipients ?? undefined,
+    use_case: data.use_case || 'individual',
+    timezone: data.timezone || 'UTC',
     created_at: data.created_at.toISOString(),
     updated_at: data.updated_at.toISOString(),
   };
+
+  // Compute remaining_quota and authorization_valid
+  const uiSub = {
+    ...sub,
+    next_payment: sub.next_payment_date || undefined,
+    last_payment: sub.last_payment_date || undefined,
+  } as any;
+  sub.remaining_quota = getRemainingQuota(uiSub) ?? undefined;
+  const authCheck = checkAuthorizationValidity(uiSub);
+  sub.authorization_valid = authCheck.valid;
+
+  return sub;
 }
 
 /**
@@ -96,11 +144,14 @@ export class SubscriptionService {
   constructor() {}
 
   /**
-   * Create a new subscription
+   * Create a new subscription / auto pay
    */
   async create(input: CreateSubscriptionInput): Promise<Subscription> {
     const startDate = input.start_date ? new Date(input.start_date) : new Date();
-    const nextPaymentDate = calculateNextPaymentDate(startDate, input.frequency);
+    const nextPaymentDate = calculateNextPaymentDate(startDate, input.frequency, {
+      schedule_day: input.schedule_day,
+      schedule_time: input.schedule_time,
+    });
 
     const subscription = await prisma.subscription.create({
       data: {
@@ -117,6 +168,17 @@ export class SubscriptionService {
         payment_count: 0,
         chain_id: input.chain_id,
         memo: input.memo || null,
+        // Auto Pay fields
+        use_case: input.use_case || 'individual',
+        max_authorized_amount: input.max_authorized_amount || null,
+        authorization_expires_at: input.authorization_expires_at
+          ? new Date(input.authorization_expires_at)
+          : null,
+        schedule_day: input.schedule_day || null,
+        schedule_time: input.schedule_time || null,
+        timezone: input.timezone || 'UTC',
+        description: input.description || null,
+        recipients: input.recipients || undefined,
       }
     });
 
@@ -126,12 +188,15 @@ export class SubscriptionService {
   /**
    * List all subscriptions for an owner
    */
-  async list(ownerAddress: string, options: { status?: SubscriptionStatus } = {}): Promise<Subscription[]> {
+  async list(ownerAddress: string, options: { status?: SubscriptionStatus; use_case?: AutoPayUseCase } = {}): Promise<Subscription[]> {
     const where: any = {
       owner_address: ownerAddress.toLowerCase()
     };
     if (options.status) {
       where.status = options.status;
+    }
+    if (options.use_case) {
+      where.use_case = options.use_case;
     }
 
     const subscriptions = await prisma.subscription.findMany({
@@ -157,7 +222,7 @@ export class SubscriptionService {
   }
 
   /**
-   * Update a subscription
+   * Update a subscription / auto pay
    */
   async update(id: string, ownerAddress: string, input: UpdateSubscriptionInput): Promise<Subscription> {
     const existing = await prisma.subscription.findFirst({
@@ -165,12 +230,32 @@ export class SubscriptionService {
     });
     if (!existing) throw new Error('Subscription not found');
 
+    // Validate: max_authorized_amount cannot be lowered below total_paid
+    if (input.max_authorized_amount !== undefined) {
+      const totalPaid = parseFloat(existing.total_paid || '0');
+      const newMax = parseFloat(input.max_authorized_amount);
+      if (newMax < totalPaid) {
+        throw new Error(`Max authorized amount ($${newMax}) cannot be less than total already paid ($${totalPaid})`);
+      }
+    }
+
     const data: any = {};
     if (input.service_name !== undefined) data.service_name = input.service_name;
     if (input.amount !== undefined) data.amount = input.amount;
     if (input.frequency !== undefined) data.frequency = input.frequency;
     if (input.status !== undefined) data.status = input.status;
     if (input.memo !== undefined) data.memo = input.memo;
+    // Auto Pay fields
+    if (input.max_authorized_amount !== undefined) data.max_authorized_amount = input.max_authorized_amount;
+    if (input.authorization_expires_at !== undefined) {
+      data.authorization_expires_at = input.authorization_expires_at
+        ? new Date(input.authorization_expires_at) : null;
+    }
+    if (input.schedule_day !== undefined) data.schedule_day = input.schedule_day;
+    if (input.schedule_time !== undefined) data.schedule_time = input.schedule_time;
+    if (input.timezone !== undefined) data.timezone = input.timezone;
+    if (input.description !== undefined) data.description = input.description;
+    if (input.recipients !== undefined) data.recipients = input.recipients;
 
     const subscription = await prisma.subscription.update({
       where: { id },
@@ -225,8 +310,11 @@ export class SubscriptionService {
       throw new Error('Can only resume paused subscriptions');
     }
 
-    // Calculate new next payment date from now
-    const nextPaymentDate = calculateNextPaymentDate(new Date(), subscription.frequency);
+    // Calculate new next payment date from now (with schedule_day if set)
+    const nextPaymentDate = calculateNextPaymentDate(new Date(), subscription.frequency, {
+      schedule_day: subscription.schedule_day,
+      schedule_time: subscription.schedule_time,
+    });
 
     const updated = await prisma.subscription.update({
         where: { id },
@@ -242,6 +330,8 @@ export class SubscriptionService {
 
   /**
    * Get due subscriptions (for payment processing)
+   * Excludes subscriptions with expired authorization or exceeded spending caps.
+   * Automatically marks invalid subscriptions as 'authorization_expired'.
    */
   async getDueSubscriptions(limit: number = 100): Promise<Subscription[]> {
     const now = new Date();
@@ -257,11 +347,35 @@ export class SubscriptionService {
       take: limit
     });
 
-    return subscriptions.map(mapToSubscription);
+    const validSubscriptions: Subscription[] = [];
+
+    for (const raw of subscriptions) {
+      const sub = mapToSubscription(raw);
+
+      // Check authorization validity before including
+      if (!sub.authorization_valid && (sub.max_authorized_amount || sub.authorization_expires_at)) {
+        // Auto-expire invalid subscriptions
+        try {
+          await prisma.subscription.update({
+            where: { id: sub.id },
+            data: { status: 'authorization_expired', updated_at: new Date() }
+          });
+          console.log(`[SubscriptionService] Subscription ${sub.id} marked as authorization_expired`);
+        } catch (e) {
+          console.warn(`[SubscriptionService] Failed to expire subscription ${sub.id}:`, e);
+        }
+        continue;
+      }
+
+      validSubscriptions.push(sub);
+    }
+
+    return validSubscriptions;
   }
 
   /**
    * Record a successful payment
+   * After recording, checks if spending cap is exceeded and auto-expires if needed.
    */
   async recordPayment(id: string, amount: string, txHash?: string): Promise<Subscription> {
     const subscription = await prisma.subscription.findUnique({ where: { id } });
@@ -269,20 +383,32 @@ export class SubscriptionService {
 
     const currentTotal = parseFloat(subscription.total_paid || '0');
     const newTotal = currentTotal + parseFloat(amount);
-    
-    // Calculate next payment date
-    // Note: Use Date object for Prisma
-    const nextPaymentDate = calculateNextPaymentDate(new Date(), subscription.frequency as any);
+
+    // Calculate next payment date with schedule_day support
+    const nextPaymentDate = calculateNextPaymentDate(new Date(), subscription.frequency as any, {
+      schedule_day: subscription.schedule_day ?? undefined,
+      schedule_time: subscription.schedule_time ?? undefined,
+    });
+
+    // Check if spending cap will be exceeded after this payment
+    let newStatus: string = 'active';
+    if (subscription.max_authorized_amount) {
+      const maxAuth = parseFloat(subscription.max_authorized_amount);
+      if (newTotal >= maxAuth) {
+        newStatus = 'authorization_expired';
+        console.log(`[SubscriptionService] Subscription ${id} reached spending cap ($${newTotal}/$${maxAuth})`);
+      }
+    }
 
     const updated = await prisma.subscription.update({
         where: { id },
         data: {
             last_payment_date: new Date(),
-            next_payment_date: nextPaymentDate,
+            next_payment_date: newStatus === 'authorization_expired' ? null : nextPaymentDate,
             total_paid: newTotal.toString(),
             payment_count: { increment: 1 },
             last_tx_hash: txHash,
-            status: 'active',
+            status: newStatus,
             updated_at: new Date()
         }
     });
