@@ -275,7 +275,7 @@ export class SubscriptionPaymentExecutor {
       const x402Data = await prisma.x402Authorization.findFirst({
         where: {
             from_address: authorization.from.toLowerCase(),
-            recipient_address: authorization.to.toLowerCase(),
+            payment_address: authorization.to.toLowerCase(),
             status: 'signed',
             valid_before: { gt: now }
         },

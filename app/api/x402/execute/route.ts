@@ -107,7 +107,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Execu
         chainId: auth.chain_id,
         token: auth.token || "USDC",
         from: auth.from_address as Address,
-        to: auth.to_address as Address,
+        to: auth.payment_address as Address,
         value: auth.amount,
         validAfter: Math.floor(auth.valid_after.getTime() / 1000),
         validBefore: Math.floor(auth.valid_before.getTime() / 1000),

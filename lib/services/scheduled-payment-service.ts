@@ -500,6 +500,7 @@ export class ScheduledPaymentService {
     return logs.map(log => ({
       ...log,
       executed_at: log.executed_at.toISOString(),
+      status: log.status as ExecutionStatus,
       execution_time: log.executed_at.toISOString(),
       created_at: log.executed_at.toISOString(),
       details: log.details as any

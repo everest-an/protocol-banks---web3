@@ -340,6 +340,7 @@ export class WebhookService {
     return {
       ...delivery,
       event_type: delivery.event_type as WebhookEvent,
+      payload: (delivery.payload ?? {}) as Record<string, any>,
       status: delivery.status as any,
       created_at: delivery.created_at.toISOString(),
       delivered_at: delivery.delivered_at?.toISOString(),

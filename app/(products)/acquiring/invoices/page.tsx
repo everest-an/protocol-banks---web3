@@ -614,9 +614,6 @@ export default function InvoicesPage() {
                       "Create Invoice"
                     )}
                   </Button>
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Clear
-                  </Button>
                 </div>
               </form>
             </CardContent>

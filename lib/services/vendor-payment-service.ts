@@ -164,7 +164,7 @@ export class VendorPaymentService {
     ]);
 
     // Map Prisma Payment to VendorPayment interface
-    const mappedPayments: VendorPayment[] = payments.map(p => ({
+    const mappedPayments: VendorPayment[] = payments.map((p: typeof payments[0]) => ({
       id: p.id,
       vendor_id: p.vendor_id,
       from_address: p.from_address,
