@@ -57,6 +57,9 @@ const GENERATED_DEMO_PAYMENTS: Payment[] = (() => {
 
 const DEMO_PAYMENTS = GENERATED_DEMO_PAYMENTS
 
+// Empty state for when no payments exist
+const EMPTY_PAYMENTS: Payment[] = []
+
 interface UsePaymentHistoryOptions {
   isDemoMode?: boolean
   walletAddress?: string
