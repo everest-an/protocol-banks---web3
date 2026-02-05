@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import { getSupabase } from "@/lib/supabase"
 import { SECURITY_CONFIG } from "@/lib/security/security"
+import { QuantumReadinessCard } from "@/components/quantum-readiness-card"
 
 interface AuditLog {
   id: string
@@ -342,6 +343,15 @@ export default function SecurityPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Quantum Readiness */}
+        <div className="mb-6">
+             <QuantumReadinessCard 
+                addressAge={365} 
+                totalValue={10000} 
+                transactionCount={auditLogs.length + 50} 
+             />
         </div>
 
         {/* Security Limits Info */}

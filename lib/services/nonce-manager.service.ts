@@ -2,8 +2,13 @@
  * Nonce Manager Service
  * Manages nonces for EIP-3009 TransferWithAuthorization
  */
+import Redis from 'ioredis'
 
-// In-memory nonce tracking (in production, use Redis or database)
+// Redis client
+const redisUrl = process.env.REDIS_URL
+const redis = redisUrl ? new Redis(redisUrl) : null
+
+// In-memory nonce tracking fallback
 const usedNonces = new Map<string, Set<string>>()
 
 /**
@@ -23,39 +28,53 @@ export function generateNonce(): string {
 }
 
 /**
- * Get or create nonce set for an address
+ * Check if a nonce has been used (Distributed)
  */
-function getNonceSet(address: string): Set<string> {
+export async function isNonceUsed(address: string, nonce: string): Promise<boolean> {
+  const normalizedNonce = nonce.toLowerCase()
   const normalizedAddress = address.toLowerCase()
+  
+  if (redis) {
+    const exists = await redis.sismember(`nonces:${normalizedAddress}`, normalizedNonce)
+    return exists === 1
+  }
+
+  // Fallback
+  const nonceSet = usedNonces.get(normalizedAddress)
+  return nonceSet ? nonceSet.has(normalizedNonce) : false
+}
+
+/**
+ * Mark a nonce as used (Distributed)
+ */
+export async function markNonceUsed(address: string, nonce: string): Promise<void> {
+  const normalizedNonce = nonce.toLowerCase()
+  const normalizedAddress = address.toLowerCase()
+
+  if (redis) {
+    await redis.sadd(`nonces:${normalizedAddress}`, normalizedNonce)
+    // Optional: Set expire if nonce history isn't needed forever
+    return
+  }
+
+  // Fallback
   if (!usedNonces.has(normalizedAddress)) {
     usedNonces.set(normalizedAddress, new Set())
   }
-  return usedNonces.get(normalizedAddress)!
-}
-
-/**
- * Check if a nonce has been used
- */
-export function isNonceUsed(address: string, nonce: string): boolean {
-  const nonceSet = getNonceSet(address)
-  return nonceSet.has(nonce.toLowerCase())
-}
-
-/**
- * Mark a nonce as used
- */
-export function markNonceUsed(address: string, nonce: string): void {
-  const nonceSet = getNonceSet(address)
-  nonceSet.add(nonce.toLowerCase())
+  usedNonces.get(normalizedAddress)!.add(normalizedNonce)
 }
 
 /**
  * Get current nonce count for an address
  */
-export function getNonceCount(address: string): number {
-  const nonceSet = getNonceSet(address)
-  return nonceSet.size
+export async function getNonceCount(address: string): Promise<number> {
+  if (redis) {
+    return await redis.scard(`nonces:${address.toLowerCase()}`)
+  }
+  const nonceSet = usedNonces.get(address.toLowerCase())
+  return nonceSet ? nonceSet.size : 0
 }
+
 
 /**
  * Increment nonce (generate new and mark current as used)

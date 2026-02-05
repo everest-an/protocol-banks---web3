@@ -15,6 +15,7 @@ import {
   Home,
   CreditCard,
   ShoppingBag,
+  PieChart,
 } from "lucide-react"
 
 export interface ProductItem {
@@ -68,6 +69,15 @@ export const paymentProducts: ProductItem[] = [
     description: "Pay multiple recipients in one transaction",
     icon: Users,
     color: "bg-orange-500/10 text-orange-500",
+  },
+  {
+    href: "/split-payments",
+    title: "Split Payments",
+    description: "Distribute revenue to multiple recipients",
+    icon: PieChart,
+    color: "bg-pink-500/10 text-pink-500",
+    badge: "New",
+    badgeColor: "bg-pink-500/20 text-pink-500",
   },
   {
     href: "/subscriptions",

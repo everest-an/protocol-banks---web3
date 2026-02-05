@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	PayoutQueueKey       = "payout:queue"
-	PayoutProcessingKey  = "payout:processing"
-	PayoutDeadLetterKey  = "payout:deadletter"
-	MaxRetries           = 3
+	PayoutQueueKey      = "payout:queue"
+	PayoutProcessingKey = "payout:processing"
+	PayoutDeadLetterKey = "payout:deadletter"
+	MaxRetries          = 3
 )
 
 // Job 支付任务
@@ -54,11 +54,22 @@ type Consumer struct {
 
 // NewConsumer 创建队列消费者
 func NewConsumer(ctx context.Context, cfg config.RedisConfig) (*Consumer, error) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     cfg.URL,
-		Password: cfg.Password,
-		DB:       cfg.DB,
-	})
+	var rdb *redis.Client
+
+	// Try to parse as connection URL first if likely a URL
+	if len(cfg.URL) > 8 && (cfg.URL[:8] == "redis://" || cfg.URL[:9] == "rediss://") {
+		opts, err := redis.ParseURL(cfg.URL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid redis url: %w", err)
+		}
+		rdb = redis.NewClient(opts)
+	} else {
+		rdb = redis.NewClient(&redis.Options{
+			Addr:     cfg.URL,
+			Password: cfg.Password,
+			DB:       cfg.DB,
+		})
+	}
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("redis connection failed: %w", err)

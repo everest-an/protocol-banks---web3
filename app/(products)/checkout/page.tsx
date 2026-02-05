@@ -98,7 +98,10 @@ function CheckoutContent() {
 
   // Fetch order information
   useEffect(() => {
-    if (!orderNo) return;
+    if (!orderNo) {
+      setLoading(false);
+      return;
+    }
 
     fetch(`/api/acquiring/orders/${orderNo}`)
       .then((res) => res.json())

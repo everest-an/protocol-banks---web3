@@ -3,6 +3,7 @@ package nonce
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,11 +25,20 @@ type Manager struct {
 
 // NewManager 创建 Nonce 管理器
 func NewManager(ctx context.Context, cfg config.RedisConfig) (*Manager, error) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     cfg.URL,
-		Password: cfg.Password,
-		DB:       cfg.DB,
-	})
+	var rdb *redis.Client
+	if strings.HasPrefix(cfg.URL, "redis://") {
+		opt, err := redis.ParseURL(cfg.URL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse redis url: %w", err)
+		}
+		rdb = redis.NewClient(opt)
+	} else {
+		rdb = redis.NewClient(&redis.Options{
+			Addr:     cfg.URL,
+			Password: cfg.Password,
+			DB:       cfg.DB,
+		})
+	}
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("redis connection failed: %w", err)
