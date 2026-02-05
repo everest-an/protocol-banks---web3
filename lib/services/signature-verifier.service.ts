@@ -44,11 +44,11 @@ export function verifyAuthorizationSignature(
 /**
  * Full authorization validation
  */
-export function validateAuthorization(
+export async function validateAuthorization(
   domain: DomainInput,
   message: AuthorizationMessage,
   signature: string
-): VerificationResult {
+): Promise<VerificationResult> {
   // Check validity window
   if (!isWithinValidityWindow(message.validAfter, message.validBefore)) {
     const now = Math.floor(Date.now() / 1000)
@@ -59,7 +59,7 @@ export function validateAuthorization(
   }
   
   // Check nonce
-  if (isNonceUsed(message.from, message.nonce)) {
+  if (await isNonceUsed(message.from, message.nonce)) {
     return { valid: false, error: 'Nonce has already been used' }
   }
   
@@ -70,20 +70,22 @@ export function validateAuthorization(
 /**
  * Batch verify signatures
  */
-export function verifyBatchSignatures(
+export async function verifyBatchSignatures(
   authorizations: Array<{
     domain: DomainInput
     message: AuthorizationMessage
     signature: string
   }>
-): {
+): Promise<{
   allValid: boolean
   results: VerificationResult[]
   validCount: number
   invalidCount: number
-} {
-  const results = authorizations.map(auth =>
-    validateAuthorization(auth.domain, auth.message, auth.signature)
+}> {
+  const results = await Promise.all(
+    authorizations.map(auth =>
+      validateAuthorization(auth.domain, auth.message, auth.signature)
+    )
   )
   
   const validCount = results.filter(r => r.valid).length
