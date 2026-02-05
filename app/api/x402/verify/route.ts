@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { prisma } from "@/lib/prisma"
 
 /**
  * x402 Protocol - Payment Verification Endpoint
- * 
+ *
  * Verifies that a payment authorization has been executed on-chain.
  */
 
@@ -41,16 +41,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Verif
       )
     }
 
-    const supabase = getSupabase()
-
     // Get the authorization
-    const { data: auth, error: fetchError } = await supabase
-      .from("x402_authorizations")
-      .select("*")
-      .eq("transfer_id", transferId)
-      .single()
+    const auth = await prisma.x402Authorization.findFirst({
+      where: { transfer_id: transferId },
+    })
 
-    if (fetchError || !auth) {
+    if (!auth) {
       return NextResponse.json(
         { success: false, verified: false, error: "Authorization not found" },
         { status: 404 }
@@ -71,10 +67,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Verif
     const now = new Date()
     const validBefore = new Date(auth.valid_before)
     if (now > validBefore) {
-      await supabase
-        .from("x402_authorizations")
-        .update({ status: "expired" })
-        .eq("transfer_id", transferId)
+      await prisma.x402Authorization.update({
+        where: { id: auth.id },
+        data: { status: "expired" },
+      })
 
       return NextResponse.json({
         success: true,
@@ -85,16 +81,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Verif
     }
 
     // Update authorization with transaction hash and mark as completed
-    const { error: updateError } = await supabase
-      .from("x402_authorizations")
-      .update({
-        tx_hash: txHash,
-        status: "completed",
-        completed_at: new Date().toISOString(),
+    try {
+      await prisma.x402Authorization.update({
+        where: { id: auth.id },
+        data: {
+          tx_hash: txHash,
+          status: "completed",
+        },
       })
-      .eq("transfer_id", transferId)
-
-    if (updateError) {
+    } catch (updateError) {
       console.error("[x402] Update error:", updateError)
       return NextResponse.json(
         { success: false, verified: false, error: "Failed to update authorization" },
@@ -103,20 +98,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Verif
     }
 
     // Log the successful payment
-    await supabase.from("payment_logs").insert({
-      type: "x402_payment",
-      transfer_id: transferId,
-      from_address: auth.from_address,
-      to_address: auth.to_address,
-      amount: auth.amount,
-      token: auth.token,
-      chain_id: auth.chain_id,
-      tx_hash: txHash,
-      status: "completed",
-      created_at: new Date().toISOString(),
-    }).catch((err: Error) => {
+    try {
+      await prisma.paymentLog.create({
+        data: {
+          type: "x402_payment",
+          transfer_id: transferId,
+          from_address: auth.from_address,
+          to_address: auth.payment_address,
+          amount: auth.amount,
+          token: auth.token,
+          chain_id: auth.chain_id,
+          tx_hash: txHash,
+          status: "completed",
+        },
+      })
+    } catch (err) {
       console.error("[x402] Failed to log payment:", err)
-    })
+    }
 
     return NextResponse.json({
       success: true,

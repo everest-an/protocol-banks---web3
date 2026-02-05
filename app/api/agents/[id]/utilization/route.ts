@@ -9,22 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { agentService } from '@/lib/services/agent-service';
 import { budgetService } from '@/lib/services/budget-service';
-import { getSupabase } from '@/lib/supabase';
-
-// ============================================
-// Helper Functions
-// ============================================
-
-async function getOwnerAddress(): Promise<string | null> {
-  const supabase = getSupabase();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
-  if (error || !user) {
-    return null;
-  }
-
-  return user.user_metadata?.wallet_address || user.email || null;
-}
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 // ============================================
 // GET /api/agents/[id]/utilization - Get budget utilization
@@ -36,7 +21,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const ownerAddress = await getOwnerAddress();
+    const ownerAddress = await getAuthenticatedAddress(req);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },

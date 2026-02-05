@@ -11,22 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { agentService } from '@/lib/services/agent-service';
 import { budgetService, BudgetPeriod } from '@/lib/services/budget-service';
-import { getSupabase } from '@/lib/supabase';
-
-// ============================================
-// Helper Functions
-// ============================================
-
-async function getOwnerAddress(): Promise<string | null> {
-  const supabase = getSupabase();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
-  if (error || !user) {
-    return null;
-  }
-
-  return user.user_metadata?.wallet_address || user.email || null;
-}
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 // ============================================
 // GET /api/agents/[id]/budgets/[budgetId] - Get budget
@@ -38,7 +23,7 @@ export async function GET(
 ) {
   try {
     const { id, budgetId } = await params;
-    const ownerAddress = await getOwnerAddress();
+    const ownerAddress = await getAuthenticatedAddress(req);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
@@ -87,7 +72,7 @@ export async function PUT(
 ) {
   try {
     const { id, budgetId } = await params;
-    const ownerAddress = await getOwnerAddress();
+    const ownerAddress = await getAuthenticatedAddress(req);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
@@ -174,7 +159,7 @@ export async function DELETE(
 ) {
   try {
     const { id, budgetId } = await params;
-    const ownerAddress = await getOwnerAddress();
+    const ownerAddress = await getAuthenticatedAddress(req);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },

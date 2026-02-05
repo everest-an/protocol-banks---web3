@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
 
 /**
  * x402 Protocol - Payment Authorization Endpoint
- * 
+ *
  * This endpoint handles HTTP 402 Payment Required authorization.
  * It generates and verifies payment authorizations for gasless transactions.
  */
@@ -81,22 +81,25 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Autho
     const authValidBefore = validBefore || now + 3600 // 1 hour validity
 
     // Store authorization in database for verification
-    const supabase = getSupabase()
-    const { error: dbError } = await supabase.from("x402_authorizations").insert({
-      transfer_id: transferId,
-      from_address: from.toLowerCase(),
-      to_address: to.toLowerCase(),
-      amount,
-      token,
-      chain_id: chainId,
-      nonce,
-      valid_after: new Date(authValidAfter * 1000).toISOString(),
-      valid_before: new Date(authValidBefore * 1000).toISOString(),
-      status: "pending",
-      created_at: new Date().toISOString(),
-    })
-
-    if (dbError) {
+    try {
+      await prisma.x402Authorization.create({
+        data: {
+          proposal_id: transferId,
+          network: `evm-${chainId}`,
+          payment_address: to.toLowerCase(),
+          from_address: from.toLowerCase(),
+          amount,
+          token,
+          chain_id: chainId,
+          nonce,
+          valid_after: new Date(authValidAfter * 1000),
+          valid_before: new Date(authValidBefore * 1000),
+          status: "pending",
+          transfer_id: transferId,
+          expires_at: new Date(authValidBefore * 1000),
+        },
+      })
+    } catch (dbError) {
       console.error("[x402] Database error:", dbError)
       // Continue even if DB fails - authorization can still work
     }
@@ -147,14 +150,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const supabase = getSupabase()
-    const { data, error } = await supabase
-      .from("x402_authorizations")
-      .select("*")
-      .eq("transfer_id", transferId)
-      .single()
+    const data = await prisma.x402Authorization.findFirst({
+      where: { transfer_id: transferId },
+    })
 
-    if (error || !data) {
+    if (!data) {
       return NextResponse.json(
         { success: false, error: "Authorization not found" },
         { status: 404 }
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       authorization: {
         transferId: data.transfer_id,
         from: data.from_address,
-        to: data.to_address,
+        to: data.payment_address,
         amount: data.amount,
         token: data.token,
         chainId: data.chain_id,

@@ -6,7 +6,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService, type Permission } from '@/lib/services/api-key-service';
-import { getSupabase } from '@/lib/supabase';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 const apiKeyService = new APIKeyService();
 
@@ -20,22 +20,12 @@ const VALID_PERMISSIONS: Permission[] = ['read', 'write', 'payments', 'webhooks'
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
-    const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    const ownerAddress = await getAuthenticatedAddress(request);
+
+    if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
-      );
-    }
-
-    // Get owner address from user metadata or wallet
-    const ownerAddress = user.user_metadata?.wallet_address || user.email;
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'No wallet address associated with account' },
-        { status: 400 }
       );
     }
 
@@ -66,7 +56,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      
+
       const invalidPermissions = permissions.filter(p => !VALID_PERMISSIONS.includes(p));
       if (invalidPermissions.length > 0) {
         return NextResponse.json(
@@ -153,22 +143,12 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Get authenticated user
-    const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    const ownerAddress = await getAuthenticatedAddress(request);
+
+    if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
-      );
-    }
-
-    // Get owner address from user metadata or wallet
-    const ownerAddress = user.user_metadata?.wallet_address || user.email;
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'No wallet address associated with account' },
-        { status: 400 }
       );
     }
 

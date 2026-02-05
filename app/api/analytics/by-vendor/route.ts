@@ -5,27 +5,18 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { AnalyticsService } from '@/lib/services/analytics-service';
-import { getSupabase } from '@/lib/supabase';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 const analyticsService = new AnalyticsService();
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    const ownerAddress = await getAuthenticatedAddress(request);
+
+    if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
-      );
-    }
-
-    const ownerAddress = user.user_metadata?.wallet_address || user.email;
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'No wallet address associated with account' },
-        { status: 400 }
       );
     }
 

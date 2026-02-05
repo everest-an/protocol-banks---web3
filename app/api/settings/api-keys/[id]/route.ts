@@ -7,7 +7,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService } from '@/lib/services/api-key-service';
-import { getSupabase } from '@/lib/supabase';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 const apiKeyService = new APIKeyService();
 
@@ -24,28 +24,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Get authenticated user
-    const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    const ownerAddress = await getAuthenticatedAddress(request);
+
+    if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    // Get owner address
-    const ownerAddress = user.user_metadata?.wallet_address || user.email;
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'No wallet address associated with account' },
-        { status: 400 }
-      );
-    }
-
     // Get API key
     const key = await apiKeyService.getById(id, ownerAddress);
-    
+
     if (!key) {
       return NextResponse.json(
         { error: 'Not Found', message: 'API key not found' },
@@ -92,22 +82,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Get authenticated user
-    const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    const ownerAddress = await getAuthenticatedAddress(request);
+
+    if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
-      );
-    }
-
-    // Get owner address
-    const ownerAddress = user.user_metadata?.wallet_address || user.email;
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'No wallet address associated with account' },
-        { status: 400 }
       );
     }
 
@@ -146,22 +126,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Get authenticated user
-    const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    const ownerAddress = await getAuthenticatedAddress(request);
+
+    if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
-      );
-    }
-
-    // Get owner address
-    const ownerAddress = user.user_metadata?.wallet_address || user.email;
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'No wallet address associated with account' },
-        { status: 400 }
       );
     }
 

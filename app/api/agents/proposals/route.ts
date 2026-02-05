@@ -11,22 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { proposalService, ProposalStatus } from '@/lib/services/proposal-service';
 import { agentService } from '@/lib/services/agent-service';
 import { getAgentContext, extractAgentApiKey, validateAgentAuth } from '@/lib/middleware/agent-auth';
-import { getSupabase } from '@/lib/supabase';
-
-// ============================================
-// Helper Functions
-// ============================================
-
-async function getOwnerAddress(): Promise<string | null> {
-  const supabase = getSupabase();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
-  if (error || !user) {
-    return null;
-  }
-
-  return user.user_metadata?.wallet_address || user.email || null;
-}
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 // ============================================
 // POST /api/agents/proposals - Create proposal (agent auth)
@@ -101,7 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Owner authentication - create proposal on behalf of agent
-    const ownerAddress = await getOwnerAddress();
+    const ownerAddress = await getAuthenticatedAddress(req);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
@@ -166,7 +151,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const ownerAddress = await getOwnerAddress();
+    const ownerAddress = await getAuthenticatedAddress(req);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },

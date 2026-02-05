@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { prisma } from "@/lib/prisma"
 import { validateBatch, calculateBatchTotals, type BatchPaymentItem } from "@/lib/services"
 import { getAuthenticatedAddress } from "@/lib/api-auth"
 
@@ -49,27 +49,23 @@ export async function POST(request: NextRequest) {
     const totals = calculateBatchTotals(items)
 
     // Create batch job in database
-    const supabase = getSupabase()
     const batchId = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
-    const { data: batch, error: dbError } = await supabase
-      .from("batch_payments")
-      .insert({
-        batch_id: batchId,
-        from_address: fromAddress.toLowerCase(),
-        total_amount: totals.totalAmount,
-        total_items: totals.itemCount,
-        token: token || "USDC",
-        chain_id: chainId || 8453,
-        status: "pending",
-        items: items,
-        memo,
-        created_at: new Date().toISOString(),
+    try {
+      await prisma.batchPayment.create({
+        data: {
+          batch_id: batchId,
+          from_address: fromAddress.toLowerCase(),
+          total_amount: totals.totalAmount,
+          total_items: totals.itemCount,
+          token: token || "USDC",
+          chain_id: chainId || 8453,
+          status: "pending",
+          items: items as any,
+          memo,
+        },
       })
-      .select()
-      .single()
-
-    if (dbError) {
+    } catch (dbError: any) {
       console.error("[BatchPayment] DB error:", dbError)
       return NextResponse.json(
         {
@@ -104,17 +100,13 @@ export async function GET(request: NextRequest) {
     const batchId = searchParams.get("batchId")
     const fromAddress = searchParams.get("fromAddress")
 
-    const supabase = getSupabase()
-
     if (batchId) {
       // Get specific batch
-      const { data: batch, error } = await supabase
-        .from("batch_payments")
-        .select("*")
-        .eq("batch_id", batchId)
-        .single()
+      const batch = await prisma.batchPayment.findUnique({
+        where: { batch_id: batchId },
+      })
 
-      if (error || !batch) {
+      if (!batch) {
         return NextResponse.json({ error: "Batch not found" }, { status: 404 })
       }
 
@@ -123,19 +115,18 @@ export async function GET(request: NextRequest) {
 
     if (fromAddress) {
       // Get all batches for address
-      const { data: batches, error } = await supabase
-        .from("batch_payments")
-        .select("*")
-        .eq("from_address", fromAddress.toLowerCase())
-        .order("created_at", { ascending: false })
-        .limit(50)
+      try {
+        const batches = await prisma.batchPayment.findMany({
+          where: { from_address: fromAddress.toLowerCase() },
+          orderBy: { created_at: "desc" },
+          take: 50,
+        })
 
-      if (error) {
+        return NextResponse.json({ batches: batches || [] })
+      } catch (error) {
         console.error("[BatchPayment] Query error:", error)
         return NextResponse.json({ batches: [] })
       }
-
-      return NextResponse.json({ batches: batches || [] })
     }
 
     return NextResponse.json({ error: "batchId or fromAddress required" }, { status: 400 })

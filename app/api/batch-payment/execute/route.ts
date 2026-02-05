@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { prisma } from "@/lib/prisma"
 
 // Base chain ID for CDP settlement (0 fee)
 const BASE_CHAIN_ID = 8453
@@ -25,16 +25,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "batchId required" }, { status: 400 })
     }
 
-    const supabase = getSupabase()
-
     // Get batch details
-    const { data: batch, error: fetchError } = await supabase
-      .from("batch_payments")
-      .select("*")
-      .eq("batch_id", batchId)
-      .single()
+    const batch = await prisma.batchPayment.findUnique({
+      where: { batch_id: batchId },
+    })
 
-    if (fetchError || !batch) {
+    if (!batch) {
       // Demo mode - create mock batch
       const mockResults: ExecuteResult[] = [
         { recipient: "0x1234...5678", amount: 100, status: "success", txHash: `0x${Date.now().toString(16)}` },
@@ -63,11 +59,14 @@ export async function POST(request: NextRequest) {
     const fee = isBaseChain ? 0 : batch.total_amount * 0.001
 
     // Update batch status to processing
-    await supabase.from("batch_payments").update({ status: "processing" }).eq("batch_id", batchId)
+    await prisma.batchPayment.update({
+      where: { batch_id: batchId },
+      data: { status: "processing" },
+    })
 
     // In production, this would interact with the blockchain
     // For now, simulate successful execution
-    const items = batch.items || []
+    const items = (batch.items as any[]) || []
     const results: ExecuteResult[] = items.map((item: any) => ({
       recipient: item.recipient,
       amount: item.amount,
@@ -82,16 +81,16 @@ export async function POST(request: NextRequest) {
       .reduce((sum, r) => sum + r.amount, 0)
 
     // Update batch with results
-    await supabase
-      .from("batch_payments")
-      .update({
+    await prisma.batchPayment.update({
+      where: { batch_id: batchId },
+      data: {
         status: failedCount === 0 ? "completed" : "partial",
-        results,
+        results: results as any,
         fee,
         settlement_method: settlementMethod,
-        executed_at: new Date().toISOString(),
-      })
-      .eq("batch_id", batchId)
+        executed_at: new Date(),
+      },
+    })
 
     return NextResponse.json({
       success: true,

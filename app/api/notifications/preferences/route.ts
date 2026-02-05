@@ -6,27 +6,18 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { NotificationService } from '@/lib/services/notification-service';
-import { getSupabase } from '@/lib/supabase';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 const notificationService = new NotificationService();
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    const userAddress = await getAuthenticatedAddress(request);
+
+    if (!userAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
-      );
-    }
-
-    const userAddress = user.user_metadata?.wallet_address || user.email;
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'No wallet address associated with account' },
-        { status: 400 }
       );
     }
 
@@ -48,21 +39,12 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+    const userAddress = await getAuthenticatedAddress(request);
+
+    if (!userAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
-      );
-    }
-
-    const userAddress = user.user_metadata?.wallet_address || user.email;
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'No wallet address associated with account' },
-        { status: 400 }
       );
     }
 

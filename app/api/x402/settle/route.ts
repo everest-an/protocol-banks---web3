@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { prisma } from "@/lib/prisma"
 
 // Base chain ID for CDP settlement (0 fee)
 const BASE_CHAIN_ID = 8453
@@ -30,45 +30,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const supabase = getSupabase()
-
     // Check if using Base chain (CDP settlement - 0 fee)
     const isBaseChain = chainId === BASE_CHAIN_ID
     const settlementMethod = isBaseChain ? "CDP" : "RELAYER"
-    
+
     // Calculate fee (0 for Base chain, 0.1% for others)
     const amountNum = Number.parseFloat(amount)
     const fee = isBaseChain ? 0 : amountNum * 0.001
 
     // Record the settlement
-    const { data: settlement, error: settleError } = await supabase
-      .from("x402_settlements")
-      .insert({
-        authorization_id: authorizationId,
-        transaction_hash: transactionHash,
-        chain_id: chainId,
-        amount: amountNum,
-        fee,
-        token,
-        from_address: from.toLowerCase(),
-        to_address: to.toLowerCase(),
-        settlement_method: settlementMethod,
-        status: "completed",
-        settled_at: new Date().toISOString(),
+    let settlement: any = null
+    try {
+      settlement = await prisma.x402Settlement.create({
+        data: {
+          authorization_id: authorizationId,
+          transaction_hash: transactionHash,
+          chain_id: chainId,
+          amount: amountNum,
+          fee,
+          token,
+          from_address: from.toLowerCase(),
+          to_address: to.toLowerCase(),
+          settlement_method: settlementMethod,
+          status: "completed",
+          settled_at: new Date(),
+        },
       })
-      .select()
-      .single()
-
-    if (settleError) {
+    } catch (settleError) {
       // If table doesn't exist, still return success (demo mode)
       console.error("[x402] Settlement recording error:", settleError)
     }
 
     // Update authorization status
-    await supabase
-      .from("x402_authorizations")
-      .update({ status: "settled", settled_at: new Date().toISOString() })
-      .eq("id", authorizationId)
+    try {
+      await prisma.x402Authorization.update({
+        where: { id: authorizationId },
+        data: { status: "settled" },
+      })
+    } catch (updateError) {
+      // Authorization may not exist in some cases
+      console.error("[x402] Authorization update error:", updateError)
+    }
 
     return NextResponse.json({
       success: true,
@@ -107,15 +109,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "authorizationId required" }, { status: 400 })
     }
 
-    const supabase = getSupabase()
+    const settlement = await prisma.x402Settlement.findFirst({
+      where: { authorization_id: authorizationId },
+    })
 
-    const { data: settlement, error } = await supabase
-      .from("x402_settlements")
-      .select("*")
-      .eq("authorization_id", authorizationId)
-      .single()
-
-    if (error || !settlement) {
+    if (!settlement) {
       return NextResponse.json({ error: "Settlement not found" }, { status: 404 })
     }
 

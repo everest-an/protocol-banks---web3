@@ -40,6 +40,28 @@ model BatchChunk {
   @@map("batch_chunks")
 }
 
+model BatchPayment {
+  id                String    @id @default(uuid())
+  batch_id          String    @unique
+  from_address      String
+  total_amount      Float
+  total_items       Int
+  token             String    @default("USDC")
+  chain_id          Int       @default(8453)
+  status            String    @default("pending")
+  items             Json
+  memo              String?
+  results           Json?
+  fee               Float?
+  settlement_method String?
+  executed_at       DateTime?
+  created_at        DateTime  @default(now())
+
+  @@index([from_address])
+  @@index([batch_id])
+  @@map("batch_payments")
+}
+
 model Payment {
   id           String    @id @default(uuid())
   from_address String
@@ -457,6 +479,40 @@ model X402Authorization {
   @@map("x402_authorizations")
 }
 
+model X402Settlement {
+  id                String    @id @default(uuid())
+  authorization_id  String
+  transaction_hash  String
+  chain_id          Int
+  amount            Float
+  fee               Float     @default(0)
+  token             String
+  from_address      String
+  to_address        String
+  settlement_method String
+  status            String    @default("completed")
+  settled_at        DateTime  @default(now())
+
+  @@index([authorization_id])
+  @@map("x402_settlements")
+}
+
+model PaymentLog {
+  id            String   @id @default(uuid())
+  type          String
+  transfer_id   String?
+  from_address  String
+  to_address    String
+  amount        String
+  token         String
+  chain_id      Int?
+  tx_hash       String?
+  status        String
+  created_at    DateTime @default(now())
+
+  @@index([transfer_id])
+  @@map("payment_logs")
+}
 
 model PaymentSplitTemplate {
   id              String   @id @default(uuid())
