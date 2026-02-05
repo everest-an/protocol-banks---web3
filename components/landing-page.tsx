@@ -2,7 +2,9 @@
 
 import Link from "next/link"
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
+import { BatchPaymentDemo } from "@/components/batch-payment-demo"
 import {
   ArrowRight,
   Shield,
@@ -23,6 +25,12 @@ import {
   PieChart,
   Check,
 } from "lucide-react"
+
+// Dynamic import for canvas-based component
+const PaymentNetworkGraph = dynamic(
+  () => import("@/components/payment-network-graph"),
+  { ssr: false }
+)
 
 interface LandingPageProps {
   onConnectWallet: () => void
@@ -344,15 +352,16 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
       <section className="container mx-auto px-4 py-20 sm:py-28">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           <div className="order-2 lg:order-1">
-            <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-white/80 to-white/40 dark:from-black/40 dark:to-black/20 backdrop-blur-xl overflow-hidden shadow-2xl">
-              <div className="p-1 bg-gradient-to-br from-primary/5 to-primary/10 min-h-[300px] sm:min-h-[400px] flex items-center justify-center rounded-xl">
-                <div className="text-center p-8">
-                  <Globe className="h-16 w-16 text-primary/30 mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Payment Mesh Visualization</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Interactive network graph preview</p>
+            <Link href="/analytics" className="block group">
+              <div className="rounded-2xl border border-white/20 bg-black overflow-hidden shadow-2xl hover:border-primary/30 transition-all cursor-pointer">
+                <div className="h-[350px] sm:h-[420px]">
+                  <PaymentNetworkGraph />
                 </div>
               </div>
-            </div>
+              <p className="text-center text-xs text-muted-foreground mt-3 group-hover:text-primary transition-colors">
+                Click to explore full Network Atlas →
+              </p>
+            </Link>
           </div>
           <div className="order-1 lg:order-2">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
@@ -445,17 +454,14 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                 </Link>
               </div>
             </div>
-            <div>
-              <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-white/80 to-white/40 dark:from-black/40 dark:to-black/20 backdrop-blur-xl overflow-hidden shadow-2xl">
-                <div className="p-1 bg-gradient-to-br from-orange-500/5 to-orange-500/10 min-h-[300px] sm:min-h-[400px] flex items-center justify-center rounded-xl">
-                <div className="text-center p-8">
-                  <Users className="h-16 w-16 text-orange-500/30 mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Batch Payment Dashboard</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Multi-recipient payment interface</p>
-                </div>
+            <Link href="/batch-payment" className="block group">
+              <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-white/80 to-white/40 dark:from-black/40 dark:to-black/20 backdrop-blur-xl overflow-hidden shadow-2xl hover:border-orange-500/30 transition-all">
+                <BatchPaymentDemo />
               </div>
-              </div>
-            </div>
+              <p className="text-center text-xs text-muted-foreground mt-3 group-hover:text-orange-500 transition-colors">
+                Click to open full Batch Payment →
+              </p>
+            </Link>
           </div>
         </div>
       </section>
