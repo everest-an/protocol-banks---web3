@@ -62,16 +62,40 @@ function TerminalContent() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [merchantName, setMerchantName] = useState("Protocol Banks POS");
 
-  // Load settings from URL params
+  // Load settings from URL params or localStorage
   useEffect(() => {
-    const address = searchParams.get("address");
-    const name = searchParams.get("merchant");
-    const t = searchParams.get("token");
-    const n = searchParams.get("network");
-    if (address) setRecipientAddress(address);
-    if (name) setMerchantName(decodeURIComponent(name));
-    if (t) setToken(t.toUpperCase());
-    if (n) setNetwork(n);
+    // 1. Get URL params
+    const addressParam = searchParams.get("address");
+    const nameParam = searchParams.get("merchant");
+    const tokenParam = searchParams.get("token");
+    const networkParam = searchParams.get("network");
+
+    // 2. Get saved settings
+    let savedSettings: any = {};
+    try {
+      const saved = localStorage.getItem("pos_settings");
+      if (saved) savedSettings = JSON.parse(saved);
+    } catch {}
+
+    // 3. Apply (URL > Saved > Default)
+    if (addressParam) setRecipientAddress(addressParam);
+    else if (savedSettings.recipientAddress) setRecipientAddress(savedSettings.recipientAddress);
+
+    if (nameParam) setMerchantName(decodeURIComponent(nameParam));
+    else if (savedSettings.merchantName) setMerchantName(savedSettings.merchantName);
+
+    if (tokenParam) setToken(tokenParam.toUpperCase());
+    else if (savedSettings.token) setToken(savedSettings.token);
+
+    if (networkParam) setNetwork(networkParam);
+    else if (savedSettings.network) setNetwork(savedSettings.network);
+
+    // If no address set (from URL or storage), prompt for it
+    if (!addressParam && !savedSettings.recipientAddress) {
+       // We can optionally setMode("settings") here, but let's let the user discover it or click charge first
+       // Actually, good UX might be to show settings if it's "fresh"
+       // But handleCharge already checks for recipientAddress, so we are safe.
+    }
   }, [searchParams]);
 
   // Online/offline detection
@@ -617,6 +641,16 @@ function TerminalContent() {
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
                   if (recipientAddress) {
+                    // Save settings
+                    try {
+                      localStorage.setItem("pos_settings", JSON.stringify({
+                        recipientAddress,
+                        merchantName,
+                        token,
+                        network
+                      }));
+                    } catch {}
+
                     toast({ title: "Settings Saved" });
                     setMode("input");
                   } else {

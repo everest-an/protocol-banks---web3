@@ -125,9 +125,8 @@ export const receivingProducts: ProductItem[] = [
     description: "In-person payments with QR codes",
     icon: Monitor,
     color: "bg-amber-500/10 text-amber-500",
-    badge: "Coming Soon",
-    badgeColor: "bg-gray-500/20 text-gray-500",
-    disabled: true,
+    badge: "Beta",
+    badgeColor: "bg-amber-500/20 text-amber-500",
   },
 ]
 
