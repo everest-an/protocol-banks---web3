@@ -4,7 +4,7 @@ import { useState } from "react"
 import { SplitPaymentForm } from "@/components/split-payment-form"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -338,16 +338,16 @@ function SplitPaymentCard({
       className="bg-card cursor-pointer hover:border-primary/30 transition-colors"
       onClick={onToggle}
     >
-      <CardHeader className="pb-3">
+      <GlassCardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <CardTitle className="text-base truncate">{payment.title}</CardTitle>
+              <GlassCardTitle className="text-base truncate">{payment.title}</GlassCardTitle>
               <Badge variant="outline" className="text-xs shrink-0 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/30">
                 Test Data
               </Badge>
             </div>
-            <CardDescription className="line-clamp-1">{payment.description}</CardDescription>
+            <GlassCardDescription className="line-clamp-1">{payment.description}</GlassCardDescription>
           </div>
           <div className="flex items-center gap-2 ml-4 shrink-0">
             {getStatusIcon(payment.status)}
@@ -356,8 +356,8 @@ function SplitPaymentCard({
             </Badge>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
+      </GlassCardHeader>
+      <GlassCardContent className="space-y-3">
         {/* Amount and Chain Row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -437,8 +437,8 @@ function SplitPaymentCard({
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }
 
@@ -470,21 +470,21 @@ export default function SplitPaymentsPage() {
       {/* Connected wallet: show the split payment form */}
       {isConnected && (
         <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Create Split Payment</CardTitle>
-              <CardDescription>
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle>Create Split Payment</GlassCardTitle>
+              <GlassCardDescription>
                 Add recipients and set their percentage share. The total must equal 100%.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <SplitPaymentForm
                 userAddress={address || ""}
                 onExecute={(result) => {
                 }}
               />
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       )}
 
@@ -505,8 +505,8 @@ export default function SplitPaymentsPage() {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-card">
-              <CardContent className="pt-6">
+            <GlassCard className="bg-card">
+              <GlassCardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-1">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">Total Volume</span>
@@ -517,38 +517,38 @@ export default function SplitPaymentsPage() {
                 <Badge variant="outline" className="text-xs mt-1 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/30">
                   Test Data
                 </Badge>
-              </CardContent>
-            </Card>
-            <Card className="bg-card">
-              <CardContent className="pt-6">
+              </GlassCardContent>
+            </GlassCard>
+            <GlassCard className="bg-card">
+              <GlassCardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-1">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                   <span className="text-xs text-muted-foreground">Completed</span>
                 </div>
                 <div className="text-2xl font-bold">{stats.completedCount}</div>
                 <span className="text-xs text-muted-foreground">splits finalized</span>
-              </CardContent>
-            </Card>
-            <Card className="bg-card">
-              <CardContent className="pt-6">
+              </GlassCardContent>
+            </GlassCard>
+            <GlassCard className="bg-card">
+              <GlassCardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp className="h-4 w-4 text-amber-500" />
                   <span className="text-xs text-muted-foreground">Active</span>
                 </div>
                 <div className="text-2xl font-bold">{stats.activeCount + DEMO_SPLIT_PAYMENTS.filter(p => p.status === "pending").length}</div>
                 <span className="text-xs text-muted-foreground">in progress or pending</span>
-              </CardContent>
-            </Card>
-            <Card className="bg-card">
-              <CardContent className="pt-6">
+              </GlassCardContent>
+            </GlassCard>
+            <GlassCard className="bg-card">
+              <GlassCardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-1">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">Participants</span>
                 </div>
                 <div className="text-2xl font-bold">{stats.totalParticipants}</div>
                 <span className="text-xs text-muted-foreground">across all splits</span>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           </div>
 
           {/* Tab View for Active / History */}
@@ -570,12 +570,12 @@ export default function SplitPaymentsPage() {
 
             <TabsContent value="active" className="space-y-4 mt-4">
               {activePayments.length === 0 ? (
-                <Card className="bg-card">
-                  <CardContent className="py-12 text-center">
+                <GlassCard className="bg-card">
+                  <GlassCardContent className="py-12 text-center">
                     <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">No active split payments</p>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               ) : (
                 activePayments.map((payment) => (
                   <SplitPaymentCard
@@ -594,12 +594,12 @@ export default function SplitPaymentsPage() {
 
             <TabsContent value="history" className="space-y-4 mt-4">
               {completedPayments.length === 0 ? (
-                <Card className="bg-card">
-                  <CardContent className="py-12 text-center">
+                <GlassCard className="bg-card">
+                  <GlassCardContent className="py-12 text-center">
                     <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">No completed split payments yet</p>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               ) : (
                 completedPayments.map((payment) => (
                   <SplitPaymentCard

@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -211,11 +211,11 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   if (!address) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
+        <GlassCard>
+          <GlassCardContent className="py-8 text-center text-muted-foreground">
             Please connect your wallet to manage this agent
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     )
   }
@@ -231,11 +231,11 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   if (!agent) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
+        <GlassCard>
+          <GlassCardContent className="py-8 text-center text-muted-foreground">
             Agent not found
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     )
   }
@@ -273,12 +273,12 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         </TabsList>
 
         <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent Configuration</CardTitle>
-              <CardDescription>Update agent settings and auto-execute rules</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle>Agent Configuration</GlassCardTitle>
+              <GlassCardDescription>Update agent settings and auto-execute rules</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div>
                 <Label>Name</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -349,20 +349,20 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
 
         <TabsContent value="budgets">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
                 Spending Budgets
-              </CardTitle>
-              <CardDescription>Set spending limits for this agent</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardTitle>
+              <GlassCardDescription>Set spending limits for this agent</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <div className="flex gap-4 mb-6 p-4 bg-muted rounded-lg">
                 <div className="flex-1">
                   <Label>Token</Label>
@@ -459,20 +459,20 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                   </TableBody>
                 </Table>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
 
         <TabsContent value="activity">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
                 Recent Activity
-              </CardTitle>
-              <CardDescription>View agent actions and transactions</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardTitle>
+              <GlassCardDescription>View agent actions and transactions</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               {activities.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   No activity yet
@@ -499,8 +499,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
       </Tabs>
     </div>

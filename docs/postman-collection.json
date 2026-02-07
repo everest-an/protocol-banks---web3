@@ -1,0 +1,312 @@
+{
+  "info": {
+    "name": "Protocol Banks API",
+    "description": "Complete API collection for Protocol Banks - Enterprise Crypto Payment Infrastructure",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "x-user-address", "type": "string" },
+      { "key": "value", "value": "{{wallet_address}}", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000/api" },
+    { "key": "wallet_address", "value": "0xYourWalletAddress" },
+    { "key": "tron_address", "value": "TYourTronAddress" }
+  ],
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/status",
+            "auth": { "type": "noauth" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/payments?status=completed&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["payments"],
+              "query": [
+                { "key": "status", "value": "completed" },
+                { "key": "limit", "value": "20" },
+                { "key": "network_type", "value": "EVM", "disabled": true },
+                { "key": "network", "value": "base", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/verify-payment",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"txHash\": \"0xabc123...\",\n  \"orderId\": \"order_456\",\n  \"amount\": \"25.00\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendors",
+      "item": [
+        {
+          "name": "List Vendors",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/vendors"
+          }
+        },
+        {
+          "name": "Create Vendor",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/vendors",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corp\",\n  \"wallet_address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"category\": \"partner\",\n  \"tags\": [\"priority\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Multi-Network Vendor",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/vendors/multi-network",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Global Supplier\",\n  \"addresses\": [\n    {\n      \"network\": \"ethereum\",\n      \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n      \"label\": \"Main ETH wallet\",\n      \"isPrimary\": true\n    },\n    {\n      \"network\": \"tron\",\n      \"address\": \"TN3W4H6rK2ce4vX9YnFQHwKENnHjoxb3m9\",\n      \"label\": \"TRON wallet\"\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/invoice"
+          }
+        },
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/invoice",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"token\": \"USDC\",\n  \"recipient_address\": \"{{wallet_address}}\",\n  \"description\": \"Monthly subscription\",\n  \"customer_email\": \"customer@example.com\",\n  \"expires_at\": \"2026-03-01T00:00:00Z\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Yield (Auto-Interest)",
+      "item": [
+        {
+          "name": "Get Balance (Single Network)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/yield/balance?merchant={{wallet_address}}&network=base",
+              "host": ["{{base_url}}"],
+              "path": ["yield", "balance"],
+              "query": [
+                { "key": "merchant", "value": "{{wallet_address}}" },
+                { "key": "network", "value": "base" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Balance (Cross-Network Summary)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/yield/balance?merchant={{wallet_address}}&summary=true",
+              "host": ["{{base_url}}"],
+              "path": ["yield", "balance"],
+              "query": [
+                { "key": "merchant", "value": "{{wallet_address}}" },
+                { "key": "summary", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Stats (All Networks)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/yield/stats"
+          }
+        },
+        {
+          "name": "Get Stats (Single Network)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/yield/stats?network=ethereum",
+              "host": ["{{base_url}}"],
+              "path": ["yield", "stats"],
+              "query": [
+                { "key": "network", "value": "ethereum" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Best Recommendation",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/yield/recommendation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "List Webhooks",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/webhooks"
+          }
+        },
+        {
+          "name": "Create Webhook",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/webhooks",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Server Webhook\",\n  \"url\": \"https://your-server.com/webhooks/pb\",\n  \"events\": [\"payment.completed\", \"payment.failed\", \"invoice.paid\"]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/analytics/summary"
+          }
+        },
+        {
+          "name": "Monthly Data",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/analytics/monthly"
+          }
+        },
+        {
+          "name": "By Chain",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/analytics/by-chain"
+          }
+        },
+        {
+          "name": "By Vendor",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/analytics/by-vendor"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "List Subscriptions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/subscriptions"
+          }
+        },
+        {
+          "name": "Create Subscription",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/subscriptions",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service_name\": \"Cloud Hosting\",\n  \"wallet_address\": \"0x1234...\",\n  \"amount\": \"99.00\",\n  \"token\": \"USDC\",\n  \"frequency\": \"monthly\",\n  \"chain_id\": 8453\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Batch Payments",
+      "item": [
+        {
+          "name": "Execute Batch Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/batch-payment/execute",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_address\": \"{{wallet_address}}\",\n  \"token\": \"USDC\",\n  \"chain\": \"base\",\n  \"items\": [\n    { \"to\": \"0xRecipient1...\", \"amount\": \"50.00\" },\n    { \"to\": \"0xRecipient2...\", \"amount\": \"75.00\" }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

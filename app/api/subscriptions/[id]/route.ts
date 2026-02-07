@@ -7,6 +7,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { SubscriptionService, type SubscriptionFrequency } from '@/lib/services/subscription-service';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 const subscriptionService = new SubscriptionService();
 
@@ -16,14 +17,6 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-async function getOwnerAddress(request: NextRequest): Promise<string | null> {
-  const walletHeader = request.headers.get('x-wallet-address');
-  if (walletHeader && /^0x[a-fA-F0-9]{40}$/i.test(walletHeader)) {
-    return walletHeader;
-  }
-  return null;
-}
-
 /**
  * GET /api/subscriptions/[id]
  * Get a specific subscription by ID
@@ -31,7 +24,7 @@ async function getOwnerAddress(request: NextRequest): Promise<string | null> {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const ownerAddress = await getOwnerAddress(request);
+    const ownerAddress = await getAuthenticatedAddress(request);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
@@ -82,7 +75,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error: any) {
     console.error('[Subscriptions] Get error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: error.message || 'Failed to get subscription' },
+      { error: 'Internal Server Error', message: 'Failed to get subscription' },
       { status: 500 }
     );
   }
@@ -95,7 +88,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const ownerAddress = await getOwnerAddress(request);
+    const ownerAddress = await getAuthenticatedAddress(request);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
@@ -189,7 +182,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error: any) {
     console.error('[Subscriptions] Update error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: error.message || 'Failed to update subscription' },
+      { error: 'Internal Server Error', message: 'Failed to update subscription' },
       { status: 500 }
     );
   }
@@ -202,7 +195,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const ownerAddress = await getOwnerAddress(request);
+    const ownerAddress = await getAuthenticatedAddress(request);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required' },
@@ -235,7 +228,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error: any) {
     console.error('[Subscriptions] Cancel error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: error.message || 'Failed to cancel subscription' },
+      { error: 'Internal Server Error', message: 'Failed to cancel subscription' },
       { status: 500 }
     );
   }

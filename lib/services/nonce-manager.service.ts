@@ -3,17 +3,7 @@
  * Manages nonces for EIP-3009 TransferWithAuthorization
  */
 
-// Lazy Redis import to avoid bundling ioredis in client components
-let redis: any = null
-const getRedis = async () => {
-  if (redis) return redis
-  if (typeof window !== "undefined") return null // Never use Redis on client
-  const redisUrl = process.env.REDIS_URL
-  if (!redisUrl) return null
-  const { default: Redis } = await import("ioredis")
-  redis = new Redis(redisUrl)
-  return redis
-}
+import { getOptionalRedis } from '@/lib/redis'
 
 // In-memory nonce tracking fallback
 const usedNonces = new Map<string, Set<string>>()
@@ -41,7 +31,7 @@ export async function isNonceUsed(address: string, nonce: string): Promise<boole
   const normalizedNonce = nonce.toLowerCase()
   const normalizedAddress = address.toLowerCase()
 
-  const redisClient = await getRedis()
+  const redisClient = await getOptionalRedis()
   if (redisClient) {
     const exists = await redisClient.sismember(`nonces:${normalizedAddress}`, normalizedNonce)
     return exists === 1
@@ -59,7 +49,7 @@ export async function markNonceUsed(address: string, nonce: string): Promise<voi
   const normalizedNonce = nonce.toLowerCase()
   const normalizedAddress = address.toLowerCase()
 
-  const redisClient = await getRedis()
+  const redisClient = await getOptionalRedis()
   if (redisClient) {
     await redisClient.sadd(`nonces:${normalizedAddress}`, normalizedNonce)
     return
@@ -76,7 +66,7 @@ export async function markNonceUsed(address: string, nonce: string): Promise<voi
  * Get current nonce count for an address
  */
 export async function getNonceCount(address: string): Promise<number> {
-  const redisClient = await getRedis()
+  const redisClient = await getOptionalRedis()
   if (redisClient) {
     return await redisClient.scard(`nonces:${address.toLowerCase()}`)
   }

@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -332,55 +332,55 @@ export default function InvoicesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="pt-6">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Total Invoices</span>
             </div>
             <div className="text-2xl font-bold mt-2">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-yellow-500" />
               <span className="text-sm text-muted-foreground">Pending</span>
             </div>
             <div className="text-2xl font-bold mt-2">{stats.pending}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
               <span className="text-sm text-muted-foreground">Paid</span>
             </div>
             <div className="text-2xl font-bold mt-2">{stats.paid}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-primary" />
               <span className="text-sm text-muted-foreground">Total Received</span>
             </div>
             <div className="text-2xl font-bold mt-2">${stats.totalPaid}</div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Create Form */}
       {showCreateForm && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>Create New Invoice</CardTitle>
-              <CardDescription>
+          <GlassCard className="h-fit">
+            <GlassCardHeader>
+              <GlassCardTitle>Create New Invoice</GlassCardTitle>
+              <GlassCardDescription>
                 Details for your crypto payment invoice
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <form onSubmit={handleCreate}>
                 <Tabs defaultValue="details" className="w-full">
                   <TabsList className="grid w-full grid-cols-4 mb-4 h-auto">
@@ -617,8 +617,8 @@ export default function InvoicesPage() {
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           <div className="flex flex-col space-y-4">
              <div className="flex items-center justify-between px-1">
@@ -635,17 +635,17 @@ export default function InvoicesPage() {
 
       {/* Created Invoice Success */}
       {createdInvoice && (
-        <Card className="mb-8 border-green-500/20 bg-green-500/5">
-          <CardHeader>
+        <GlassCard className="mb-8 border-green-500/20 bg-green-500/5">
+          <GlassCardHeader>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <CardTitle className="text-green-500">Invoice Created!</CardTitle>
+              <GlassCardTitle className="text-green-500">Invoice Created!</GlassCardTitle>
             </div>
-            <CardDescription>
+            <GlassCardDescription>
               Share this invoice with your customer
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Invoice ID</Label>
               <div className="font-mono text-sm bg-muted px-3 py-2 rounded">
@@ -690,8 +690,8 @@ export default function InvoicesPage() {
                 Close
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Filter */}
@@ -720,8 +720,8 @@ export default function InvoicesPage() {
       </div>
 
       {/* Invoices Table */}
-      <Card>
-        <CardContent className="p-0">
+      <GlassCard>
+        <GlassCardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -802,8 +802,8 @@ export default function InvoicesPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* QR Code Modal */}
       {showQRModal && (
@@ -811,19 +811,19 @@ export default function InvoicesPage() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setShowQRModal(null)}
         >
-          <Card className="max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="text-center">
-              <CardTitle>Invoice {showQRModal.invoice_id}</CardTitle>
-              <CardDescription>
+          <GlassCard className="max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <GlassCardHeader className="text-center">
+              <GlassCardTitle>Invoice {showQRModal.invoice_id}</GlassCardTitle>
+              <GlassCardDescription>
                 {showQRModal.amount} {showQRModal.token}
                 {showQRModal.amount_fiat && (
                   <span className="block text-xs mt-1">
                     ({showQRModal.amount_fiat} {showQRModal.fiat_currency || "USD"})
                   </span>
                 )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="flex flex-col items-center gap-4">
               <div className="p-4 bg-white rounded-lg">
                 <QRCodeSVG
                   value={getPaymentLink(showQRModal)}
@@ -844,8 +844,8 @@ export default function InvoicesPage() {
               <Button variant="ghost" onClick={() => setShowQRModal(null)}>
                 Close
               </Button>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       )}
     </div>

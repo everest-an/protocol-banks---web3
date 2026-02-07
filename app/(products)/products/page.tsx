@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -34,8 +34,8 @@ export default function ProductsPage() {
         </div>
 
         {/* Featured: AI Agents */}
-        <Card className="bg-gradient-to-br from-yellow-500/10 via-background to-purple-500/10 border-yellow-500/20 overflow-hidden">
-          <CardContent className="pt-6 pb-6">
+        <GlassCard className="bg-gradient-to-br from-yellow-500/10 via-background to-purple-500/10 border-yellow-500/20 overflow-hidden">
+          <GlassCardContent className="pt-6 pb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-xl bg-yellow-500/20">
@@ -60,16 +60,16 @@ export default function ProductsPage() {
                 </Button>
               </Link>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* Developer Resources */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Developer Resources</CardTitle>
-            <CardDescription>Build on Protocol Banks</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="text-lg">Developer Resources</GlassCardTitle>
+            <GlassCardDescription>Build on Protocol Banks</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Link href="/help">
                 <div className="flex items-center gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer">
@@ -99,8 +99,8 @@ export default function ProductsPage() {
                 </div>
               </Link>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     </div>
   )

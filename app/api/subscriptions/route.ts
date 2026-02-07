@@ -6,6 +6,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { SubscriptionService, type SubscriptionFrequency } from '@/lib/services/subscription-service';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 const subscriptionService = new SubscriptionService();
 
@@ -13,34 +14,12 @@ const VALID_FREQUENCIES: SubscriptionFrequency[] = ['daily', 'weekly', 'monthly'
 const VALID_TOKENS = ['USDC', 'USDT', 'DAI', 'ETH', 'WETH', 'WBTC'];
 
 /**
- * Extract owner address from request:
- * 1. x-wallet-address header (primary)
- * 2. wallet query parameter (fallback)
- */
-async function getOwnerAddress(request: NextRequest): Promise<string | null> {
-  // Primary: x-wallet-address header
-  const walletHeader = request.headers.get('x-wallet-address');
-  if (walletHeader && /^0x[a-fA-F0-9]{40}$/i.test(walletHeader)) {
-    return walletHeader;
-  }
-
-  // Fallback: wallet query parameter
-  const { searchParams } = new URL(request.url);
-  const walletParam = searchParams.get('wallet');
-  if (walletParam && /^0x[a-fA-F0-9]{40}$/i.test(walletParam)) {
-    return walletParam;
-  }
-
-  return null;
-}
-
-/**
  * POST /api/subscriptions
  * Create a new subscription
  */
 export async function POST(request: NextRequest) {
   try {
-    const ownerAddress = await getOwnerAddress(request);
+    const ownerAddress = await getAuthenticatedAddress(request);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required. Connect wallet or sign in.' },
@@ -161,7 +140,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[Subscriptions] Create error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: error.message || 'Failed to create subscription' },
+      { error: 'Internal Server Error', message: 'Failed to create subscription' },
       { status: 500 }
     );
   }
@@ -173,7 +152,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const ownerAddress = await getOwnerAddress(request);
+    const ownerAddress = await getAuthenticatedAddress(request);
     if (!ownerAddress) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Authentication required. Connect wallet or sign in.' },
@@ -220,7 +199,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[Subscriptions] List error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: error.message || 'Failed to list subscriptions' },
+      { error: 'Internal Server Error', message: 'Failed to list subscriptions' },
       { status: 500 }
     );
   }

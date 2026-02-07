@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 interface OfframpQuoteRequest {
   amount: string
@@ -51,6 +52,15 @@ const PROVIDERS = {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request - prevent unauthenticated API quota abuse
+    const callerAddress = await getAuthenticatedAddress(request)
+    if (!callerAddress) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 }
+      )
+    }
+
     const body: OfframpQuoteRequest = await request.json()
     const { amount, sourceToken, sourceChain, targetCurrency, paymentMethod } = body
 

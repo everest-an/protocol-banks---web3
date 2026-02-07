@@ -5,7 +5,7 @@ import NextImage from "next/image";
 import {
   Card,
   CardContent,
-} from "@/components/ui/card";
+} from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -315,18 +315,18 @@ export default function OrdersPage() {
 
       {/* Demo Mode Banner */}
       {isDemoMode && (
-        <Card className="mb-6 border-blue-500/20 bg-blue-500/5">
-          <CardContent className="pt-6 pb-4">
+        <GlassCard className="mb-6 border-blue-500/20 bg-blue-500/5">
+          <GlassCardContent className="pt-6 pb-4">
             <p className="text-sm text-blue-500">
               You are viewing demo orders. Connect your wallet to manage real orders.
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Filter Bar */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
+      <GlassCard className="mb-6">
+        <GlassCardContent className="pt-6">
           <div className="flex gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -353,17 +353,17 @@ export default function OrdersPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Order List */}
       <div className="space-y-4">
         {filteredOrders.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
+          <GlassCard>
+            <GlassCardContent className="py-12 text-center">
               <p className="text-muted-foreground">No orders</p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ) : (
           filteredOrders.map((order) => (
             <Card
@@ -371,7 +371,7 @@ export default function OrdersPage() {
               className="cursor-pointer hover:border-primary/50 transition-colors"
               onClick={() => setSelectedOrder(order)}
             >
-              <CardContent className="pt-6">
+              <GlassCardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -435,8 +435,8 @@ export default function OrdersPage() {
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           ))
         )}
       </div>

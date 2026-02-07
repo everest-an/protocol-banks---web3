@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -1075,11 +1075,11 @@ export default function BatchPaymentPage() {
               </Button>
 
               {/* Purpose, Group, Memo for the batch */}
-              <Card className="border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Batch Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <GlassCard className="border-border">
+                <GlassCardHeader className="pb-3">
+                  <GlassCardTitle className="text-base">Batch Details</GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>Purpose</Label>
                     <PurposeTagSelector value={batchPurpose} onChange={setBatchPurpose} />
@@ -1104,13 +1104,13 @@ export default function BatchPaymentPage() {
                       />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
 
           {/* Async Batch Job Monitor */}
           {(isAsyncUploading || asyncJobStatus) && (
-            <Card className="border-blue-500/20 bg-blue-500/5 mb-6">
-              <CardHeader className="pb-3">
+            <GlassCard className="border-blue-500/20 bg-blue-500/5 mb-6">
+              <GlassCardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         {(isAsyncUploading || asyncJobStatus?.status === 'queued' || asyncJobStatus?.status === 'parsing' ||  asyncJobStatus?.status === 'processing') ? (
@@ -1120,17 +1120,17 @@ export default function BatchPaymentPage() {
                         ) : (
                             <FileSpreadsheet className="h-5 w-5 text-blue-500" />
                         )}
-                        <CardTitle className="text-base">Batch Job: {asyncJobId?.slice(0, 8)}...</CardTitle>
+                        <GlassCardTitle className="text-base">Batch Job: {asyncJobId?.slice(0, 8)}...</GlassCardTitle>
                     </div>
                     <Badge variant={asyncJobStatus?.status === 'PENDING_APPROVAL' ? "default" : "outline"}>
                         {isAsyncUploading ? 'UPLOADING' : asyncJobStatus?.status?.toUpperCase()}
                     </Badge>
                 </div>
-                <CardDescription>
+                <GlassCardDescription>
                    {isAsyncUploading ? 'Uploading file to secure storage...' : 'Processing large batch file asynchronously'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
                  <div className="space-y-4">
                     {asyncJobStatus && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-background/50 p-4 rounded-lg border">
@@ -1173,20 +1173,20 @@ export default function BatchPaymentPage() {
                         </Alert>
                     )}
                  </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           )}
 
           {multisigWallets.length > 0 && (
-            <Card className="border-cyan-500/20">
-              <CardHeader className="pb-3">
+            <GlassCard className="border-cyan-500/20">
+              <GlassCardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-cyan-400" />
-                  <CardTitle className="text-base">Multi-sig Protection</CardTitle>
+                  <GlassCardTitle className="text-base">Multi-sig Protection</GlassCardTitle>
                 </div>
-                <CardDescription>Enable multi-signature approval for this batch payment</CardDescription>
-              </CardHeader>
-              <CardContent>
+                <GlassCardDescription>Enable multi-signature approval for this batch payment</GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -1219,17 +1219,17 @@ export default function BatchPaymentPage() {
                     </Select>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           )}
 
           <div className="grid lg:grid-cols-12 gap-6">
             {/* Recipients Card */}
-            <Card className="lg:col-span-8 bg-card">
-              <CardHeader className="flex flex-row items-center justify-between">
+            <GlassCard className="lg:col-span-8 bg-card">
+              <GlassCardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Recipients</CardTitle>
-                  <CardDescription>Add payment recipients from your contacts or import from file</CardDescription>
+                  <GlassCardTitle>Recipients</GlassCardTitle>
+                  <GlassCardDescription>Add payment recipients from your contacts or import from file</GlassCardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => openTagDialog()}>
@@ -1266,8 +1266,8 @@ export default function BatchPaymentPage() {
                     Export
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
+              </GlassCardHeader>
+              <GlassCardContent>
                 <div className="rounded-lg border overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -1405,15 +1405,15 @@ export default function BatchPaymentPage() {
                   <Plus className="mr-2 h-4 w-4" />
                   Add Recipient
                 </Button>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
 
             {/* Summary Card */}
-            <Card className="lg:col-span-4 h-fit sticky top-24 bg-card">
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <GlassCard className="lg:col-span-4 h-fit sticky top-24 bg-card">
+              <GlassCardHeader>
+                <GlassCardTitle>Summary</GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Recipients</span>
                   <span className="font-bold">{recipients.filter((r) => r.address).length}</span>
@@ -1449,8 +1449,8 @@ export default function BatchPaymentPage() {
                     </>
                   )}
                 </Button>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           </div>
           <div className="flex justify-end gap-4">
             <Button
@@ -1494,18 +1494,18 @@ export default function BatchPaymentPage() {
             </AlertDescription>
           </Alert>
 
-          <Card className="bg-card">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <GlassCard className="bg-card">
+            <GlassCardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Scheduled Auto-Payments</CardTitle>
-                <CardDescription>Manage recurring vendor payments</CardDescription>
+                <GlassCardTitle>Scheduled Auto-Payments</GlassCardTitle>
+                <GlassCardDescription>Manage recurring vendor payments</GlassCardDescription>
               </div>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Auto-Payment
               </Button>
-            </CardHeader>
-            <CardContent>
+            </GlassCardHeader>
+            <GlassCardContent>
               <div className="space-y-3">
                 {displayAutoPayments.map((payment) => (
                   <div
@@ -1544,8 +1544,8 @@ export default function BatchPaymentPage() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
 
         <TabsContent value="x402" className="space-y-6">
@@ -1557,12 +1557,12 @@ export default function BatchPaymentPage() {
             </AlertDescription>
           </Alert>
 
-          <Card className="bg-card">
-            <CardHeader>
-              <CardTitle>Pay via Link</CardTitle>
-              <CardDescription>Enter an x402 payment link or scan QR code</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard className="bg-card">
+            <GlassCardHeader>
+              <GlassCardTitle>Pay via Link</GlassCardTitle>
+              <GlassCardDescription>Enter an x402 payment link or scan QR code</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Payment Link</Label>
                 <Input placeholder="x402://pay?..." className="font-mono" />
@@ -1571,8 +1571,8 @@ export default function BatchPaymentPage() {
                 <Send className="h-4 w-4 mr-2" />
                 Process Payment
               </Button>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
       </Tabs>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -224,12 +224,12 @@ export default function ReceivePage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>Payment Details</CardTitle>
-            <CardDescription>Configure your payment request</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <GlassCard className="h-fit">
+          <GlassCardHeader>
+            <GlassCardTitle>Payment Details</GlassCardTitle>
+            <GlassCardDescription>Configure your payment request</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="address">Recipient Address</Label>
               <div className="relative">
@@ -311,19 +311,19 @@ export default function ReceivePage() {
                 <li>Automatic link expiration</li>
               </ul>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         <div className="space-y-6">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-primary flex items-center gap-2">
+          <GlassCard className="bg-primary/5 border-primary/20">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-primary flex items-center gap-2">
                 <Share2 className="h-5 w-5" />
                 Shareable Link
-              </CardTitle>
-              <CardDescription>Send this link to your payer. They can pay securely without an account.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </GlassCardTitle>
+              <GlassCardDescription>Send this link to your payer. They can pay securely without an account.</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">
                   <Shield className="h-3 w-3 mr-1" />
@@ -399,17 +399,17 @@ export default function ReceivePage() {
                   </Link>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card className="border-yellow-500/20 bg-yellow-500/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-yellow-600 flex items-center gap-2 text-base">
+          <GlassCard className="border-yellow-500/20 bg-yellow-500/5">
+            <GlassCardHeader className="pb-3">
+              <GlassCardTitle className="text-yellow-600 flex items-center gap-2 text-base">
                 <AlertTriangle className="h-4 w-4" />
                 Security Notice
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2">
+              </GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent className="text-sm text-muted-foreground space-y-2">
               <p>
                 <strong>Clipboard Hijacking Protection:</strong> Always use "Verify & Share" to confirm your clipboard
                 hasn't been modified by malware before sharing payment links.
@@ -418,8 +418,8 @@ export default function ReceivePage() {
                 <strong>Link Signature:</strong> Each link is cryptographically signed. Recipients will see a warning if
                 the link has been tampered with.
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           {/* Address Verification Display */}
           {address && isValidAddress(address) && (
@@ -439,15 +439,15 @@ export default function ReceivePage() {
             />
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5" />
                 Integration Guide
-              </CardTitle>
-              <CardDescription>How to use this in your workflow</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
+              </GlassCardTitle>
+              <GlassCardDescription>How to use this in your workflow</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4 text-sm text-muted-foreground">
               <p>
                 1. <strong>Copy the signed link</strong> above and verify before sharing via email, chat, or invoice.
               </p>
@@ -459,8 +459,8 @@ export default function ReceivePage() {
                 3. For USDC payments on EVM chains, the <strong>x402 Protocol</strong> activates automatically for
                 gasless authorization.
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       </div>
     </div>

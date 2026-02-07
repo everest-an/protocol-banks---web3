@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -371,8 +371,8 @@ export default function HistoryPage() {
           <AlertDescription>Connect your wallet to view your transaction history</AlertDescription>
         </Alert>
       ) : (
-        <Card className="bg-card border-border">
-          <CardHeader>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader>
             <div className="flex flex-col sm:flex-row gap-4 justify-between">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="bg-secondary/50">
@@ -413,8 +413,8 @@ export default function HistoryPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             {/* Groups Tab Content */}
             {activeTab === "groups" ? (
               groupsLoading ? (
@@ -425,13 +425,13 @@ export default function HistoryPage() {
                     <ArrowLeft className="h-4 w-4 mr-1" />
                     Back to Groups
                   </Button>
-                  <Card className="border-border">
-                    <CardHeader className="pb-3">
+                  <GlassCard className="border-border">
+                    <GlassCardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <CardTitle className="text-lg">{selectedGroup.name}</CardTitle>
+                          <GlassCardTitle className="text-lg">{selectedGroup.name}</GlassCardTitle>
                           {selectedGroup.description && (
-                            <CardDescription>{selectedGroup.description}</CardDescription>
+                            <GlassCardDescription>{selectedGroup.description}</GlassCardDescription>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
@@ -445,8 +445,8 @@ export default function HistoryPage() {
                           </Badge>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
+                    </GlassCardHeader>
+                    <GlassCardContent>
                       {groupPaymentsLoading ? (
                         <div className="text-center py-8 text-muted-foreground">Loading payments...</div>
                       ) : selectedGroup.payments && selectedGroup.payments.length > 0 ? (
@@ -479,8 +479,8 @@ export default function HistoryPage() {
                       ) : (
                         <div className="text-center py-8 text-muted-foreground">No payments in this group</div>
                       )}
-                    </CardContent>
-                  </Card>
+                    </GlassCardContent>
+                  </GlassCard>
                 </div>
               ) : groups.length === 0 ? (
                 <div className="text-center py-12">
@@ -491,12 +491,12 @@ export default function HistoryPage() {
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {groups.map((group) => (
-                    <Card
+                    <GlassCard
                       key={group.id}
                       className="cursor-pointer hover:border-primary/50 transition-colors"
                       onClick={() => loadGroupDetails(group.id)}
                     >
-                      <CardContent className="pt-4 pb-4">
+                      <GlassCardContent className="pt-4 pb-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="font-medium">{group.name}</div>
                           {group.purpose && (
@@ -516,8 +516,8 @@ export default function HistoryPage() {
                             {group.status}
                           </Badge>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </GlassCardContent>
+                    </GlassCard>
                   ))}
                 </div>
               )
@@ -677,8 +677,8 @@ export default function HistoryPage() {
                 )})}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Business Metrics Card - displays key financial metrics */}

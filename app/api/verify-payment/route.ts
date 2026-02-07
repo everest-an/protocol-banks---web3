@@ -8,9 +8,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { validateAndChecksumAddress, validateAmount, verifyTransactionIntegrity, createAuditLog } from "@/lib/security/security"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request
+    const callerAddress = await getAuthenticatedAddress(request)
+    if (!callerAddress) {
+      return NextResponse.json({ error: "Unauthorized", message: "Authentication required" }, { status: 401 })
+    }
+
     const body = await request.json()
     const { paymentId, clientParams, integrityHash } = body
 
@@ -112,6 +119,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error("[API] Verification error:", error)
-    return NextResponse.json({ error: error.message || "Verification failed" }, { status: 500 })
+    return NextResponse.json({ error: "Verification failed" }, { status: 500 })
   }
 }

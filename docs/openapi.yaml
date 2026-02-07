@@ -1,0 +1,609 @@
+openapi: 3.1.0
+info:
+  title: Protocol Banks API
+  version: 1.0.0
+  description: |
+    Enterprise-grade crypto payment infrastructure API.
+    Non-custodial, multi-chain payment solutions with Aave/JustLend yield integration.
+
+    ## Authentication
+    All authenticated endpoints require the `x-user-address` header containing a valid wallet address (EVM 0x... or TRON T...).
+
+    ## Rate Limiting
+    - Default: 60 requests/minute
+    - Yield endpoints: 30 requests/minute
+    - Payment mutations: 10 requests/minute
+
+    Rate limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+  contact:
+    name: Protocol Banks Support
+    url: https://protocolbanks.com
+  license:
+    name: MIT
+
+servers:
+  - url: https://app.protocolbanks.com/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local Development
+
+tags:
+  - name: Payments
+    description: Payment processing and verification
+  - name: Vendors
+    description: Vendor/contact management
+  - name: Yield
+    description: Auto-yield (Aave V3 + JustLend) management
+  - name: Webhooks
+    description: Webhook configuration and delivery
+  - name: Invoices
+    description: Invoice creation and management
+  - name: Analytics
+    description: Payment analytics and reporting
+  - name: Agents
+    description: AI agent management and proposals
+  - name: Subscriptions
+    description: Recurring payment subscriptions
+  - name: Auth
+    description: Authentication (Magic Link, OAuth, Wallet)
+  - name: System
+    description: Health checks and system status
+
+components:
+  securitySchemes:
+    WalletAuth:
+      type: apiKey
+      in: header
+      name: x-user-address
+      description: Wallet address (EVM 0x... or TRON T...)
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for programmatic access
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        success:
+          type: boolean
+          default: false
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+
+    # --- Payment Schemas ---
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        from_address:
+          type: string
+        to_address:
+          type: string
+        amount:
+          type: string
+        token:
+          type: string
+        chain:
+          type: string
+          enum: [ethereum, tron, arbitrum, base, bsc]
+        network_type:
+          type: string
+          enum: [EVM, TRON]
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        tx_hash:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    # --- Vendor Schemas ---
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        wallet_address:
+          type: string
+        owner_address:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendorAddress'
+
+    VendorAddress:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        network:
+          type: string
+          enum: [ethereum, tron, arbitrum, base, bsc]
+        address:
+          type: string
+        label:
+          type: string
+        is_primary:
+          type: boolean
+
+    # --- Yield Schemas ---
+    YieldBalance:
+      type: object
+      properties:
+        merchant:
+          type: string
+        network:
+          type: string
+        principal:
+          type: string
+        interest:
+          type: string
+        totalBalance:
+          type: string
+        apy:
+          type: number
+        protocol:
+          type: string
+          enum: [Aave V3, JustLend]
+        networkType:
+          type: string
+          enum: [EVM, TRON]
+
+    CrossNetworkSummary:
+      type: object
+      properties:
+        totalPrincipal:
+          type: string
+        totalInterest:
+          type: string
+        totalBalance:
+          type: string
+        averageAPY:
+          type: number
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/YieldBalance'
+
+    YieldRecommendation:
+      type: object
+      properties:
+        network:
+          type: string
+        apy:
+          type: number
+        protocol:
+          type: string
+
+    # --- Webhook Schemas ---
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+
+    # --- Invoice Schemas ---
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoice_id:
+          type: string
+        amount:
+          type: number
+        token:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, expired, cancelled]
+        recipient_address:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+
+security:
+  - WalletAuth: []
+
+paths:
+  # ============= Payments =============
+  /payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      parameters:
+        - name: network
+          in: query
+          schema:
+            type: string
+            enum: [ethereum, tron, arbitrum, base]
+        - name: network_type
+          in: query
+          schema:
+            type: string
+            enum: [EVM, TRON]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Payment list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+        '401':
+          description: Unauthorized
+
+  /verify-payment:
+    post:
+      tags: [Payments]
+      summary: Verify payment completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [txHash, orderId, amount]
+              properties:
+                txHash:
+                  type: string
+                orderId:
+                  type: string
+                amount:
+                  type: string
+      responses:
+        '200':
+          description: Payment verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  reason:
+                    type: string
+
+  # ============= Vendors =============
+  /vendors:
+    get:
+      tags: [Vendors]
+      summary: List vendors
+      responses:
+        '200':
+          description: Vendor list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vendor'
+    post:
+      tags: [Vendors]
+      summary: Create vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, wallet_address]
+              properties:
+                name:
+                  type: string
+                wallet_address:
+                  type: string
+                category:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Vendor created
+        '400':
+          description: Invalid input
+        '409':
+          description: Vendor already exists
+
+  /vendors/multi-network:
+    post:
+      tags: [Vendors]
+      summary: Create multi-network vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, addresses]
+              properties:
+                name:
+                  type: string
+                addresses:
+                  type: array
+                  items:
+                    type: object
+                    required: [network, address]
+                    properties:
+                      network:
+                        type: string
+                      address:
+                        type: string
+                      label:
+                        type: string
+                      isPrimary:
+                        type: boolean
+      responses:
+        '201':
+          description: Multi-network vendor created
+
+  # ============= Yield =============
+  /yield/balance:
+    get:
+      tags: [Yield]
+      summary: Get yield balance
+      parameters:
+        - name: merchant
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Merchant wallet address (EVM or TRON)
+        - name: network
+          in: query
+          schema:
+            type: string
+            enum: [ethereum, base, arbitrum, tron, tron-nile]
+        - name: summary
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'false']
+          description: Set to 'true' for cross-network summary
+      responses:
+        '200':
+          description: Yield balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    oneOf:
+                      - $ref: '#/components/schemas/YieldBalance'
+                      - $ref: '#/components/schemas/CrossNetworkSummary'
+        '400':
+          description: Invalid parameters
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  /yield/stats:
+    get:
+      tags: [Yield]
+      summary: Get yield statistics
+      parameters:
+        - name: network
+          in: query
+          schema:
+            type: string
+            enum: [ethereum, base, arbitrum, tron, tron-nile]
+      responses:
+        '200':
+          description: Yield statistics
+        '429':
+          description: Rate limit exceeded
+
+  /yield/recommendation:
+    get:
+      tags: [Yield]
+      summary: Get best yield recommendation
+      responses:
+        '200':
+          description: Yield recommendation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      recommendation:
+                        $ref: '#/components/schemas/YieldRecommendation'
+                      supportedNetworks:
+                        type: array
+                        items:
+                          type: string
+
+  # ============= Webhooks =============
+  /webhooks:
+    get:
+      tags: [Webhooks]
+      summary: List webhooks
+      responses:
+        '200':
+          description: Webhook list
+    post:
+      tags: [Webhooks]
+      summary: Create webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, url, events]
+              properties:
+                name:
+                  type: string
+                url:
+                  type: string
+                  format: uri
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - payment.completed
+                      - payment.failed
+                      - invoice.paid
+                      - vendor.updated
+      responses:
+        '201':
+          description: Webhook created
+
+  # ============= Invoices =============
+  /invoice:
+    get:
+      tags: [Invoices]
+      summary: List invoices
+      responses:
+        '200':
+          description: Invoice list
+    post:
+      tags: [Invoices]
+      summary: Create invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, recipient_address]
+              properties:
+                amount:
+                  type: number
+                recipient_address:
+                  type: string
+                token:
+                  type: string
+                  default: USDC
+                description:
+                  type: string
+                expires_at:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Invoice created
+
+  # ============= Analytics =============
+  /analytics/summary:
+    get:
+      tags: [Analytics]
+      summary: Get payment analytics summary
+      responses:
+        '200':
+          description: Analytics summary
+
+  /analytics/monthly:
+    get:
+      tags: [Analytics]
+      summary: Get monthly payment data (12 months)
+      responses:
+        '200':
+          description: Monthly analytics
+
+  # ============= System =============
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  timestamp:
+                    type: string
+
+  /status:
+    get:
+      tags: [System]
+      summary: Detailed component status
+      security: []
+      responses:
+        '200':
+          description: Component statuses

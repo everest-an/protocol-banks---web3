@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -559,22 +559,22 @@ function TerminalContent() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <Card className="bg-zinc-900 border-zinc-800">
-                <CardContent className="pt-4">
+              <GlassCard className="bg-zinc-900 border-zinc-800">
+                <GlassCardContent className="pt-4">
                   <div className="text-xs text-zinc-500">Today&apos;s Total</div>
                   <div className="text-xl font-bold text-white">
                     {todayTotal.toFixed(2)} {token}
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-zinc-900 border-zinc-800">
-                <CardContent className="pt-4">
+                </GlassCardContent>
+              </GlassCard>
+              <GlassCard className="bg-zinc-900 border-zinc-800">
+                <GlassCardContent className="pt-4">
                   <div className="text-xs text-zinc-500">Transactions</div>
                   <div className="text-xl font-bold text-white">
                     {transactions.length}
                   </div>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             </div>
 
             <div className="space-y-2 overflow-y-auto flex-1">

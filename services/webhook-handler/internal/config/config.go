@@ -20,9 +20,10 @@ type DatabaseConfig struct {
 }
 
 type RedisConfig struct {
-	URL      string
-	Password string
-	DB       int
+	URL        string
+	Password   string
+	DB         int
+	TLSEnabled bool
 }
 
 type RainConfig struct {
@@ -50,9 +51,10 @@ func Load() (*Config, error) {
 			URL: getEnv("DATABASE_URL", ""),
 		},
 		Redis: RedisConfig{
-			URL:      getEnv("REDIS_URL", "localhost:6379"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       redisDB,
+			URL:        getEnv("REDIS_URL", "localhost:6379"),
+			Password:   getEnv("REDIS_PASSWORD", ""),
+			DB:         redisDB,
+			TLSEnabled: getEnv("REDIS_TLS_ENABLED", "false") == "true",
 		},
 		Rain: RainConfig{
 			WebhookSecret:    getEnv("RAIN_WEBHOOK_SECRET", ""),

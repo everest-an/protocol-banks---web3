@@ -1,10 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 // Rango API key should be set in environment variables
 const RANGO_API_KEY = process.env.RANGO_API_KEY
 const BASE_URL = "https://api.rango.exchange"
 
 export async function POST(request: NextRequest) {
+  // Authenticate the request - prevent unauthenticated API key abuse
+  const callerAddress = await getAuthenticatedAddress(request)
+  if (!callerAddress) {
+    return NextResponse.json({ error: "Unauthorized", message: "Authentication required" }, { status: 401 })
+  }
+
   if (!RANGO_API_KEY) {
     console.error("RANGO_API_KEY is missing from environment variables")
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
@@ -53,6 +60,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data)
   } catch (error) {
     console.error("Rango API error:", error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : "API request failed" }, { status: 500 })
+    return NextResponse.json({ error: "API request failed" }, { status: 500 })
   }
 }

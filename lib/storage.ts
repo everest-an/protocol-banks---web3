@@ -102,7 +102,7 @@ class MemoryStore<T> implements Store<T> {
   }
 }
 
-// Redis store implementation (uses ioredis when available)
+// Redis store implementation (uses centralized secure connection)
 class RedisStore<T> implements Store<T> {
   private client: any = null
 
@@ -112,16 +112,12 @@ class RedisStore<T> implements Store<T> {
 
   private async initRedis() {
     if (typeof window !== 'undefined') return // Skip in browser
-    
+
     try {
-      // Dynamic import - ioredis is optional
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const Redis = require('ioredis')
-      this.client = new Redis(process.env.REDIS_URL || 'redis://localhost:6379')
-      console.log(`[RedisStore] Connected for prefix: ${this.prefix}`)
+      const { getRedisConnection } = await import('@/lib/redis')
+      this.client = getRedisConnection()
     } catch {
-      // ioredis not installed - this is fine, will use memory store
-      console.log('[RedisStore] ioredis not available, using memory store')
+      console.log('[RedisStore] Redis not available, using memory store')
       this.client = null
     }
   }

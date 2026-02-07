@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -114,11 +114,11 @@ export default function ProposalsPage() {
   if (!address) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
+        <GlassCard>
+          <GlassCardContent className="py-8 text-center text-muted-foreground">
             Please connect your wallet to view proposals
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     )
   }
@@ -159,8 +159,8 @@ export default function ProposalsPage() {
           <TabsTrigger value="all">All</TabsTrigger>
         </TabsList>
 
-        <Card>
-          <CardContent className="pt-6">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : proposals.length === 0 ? (
@@ -227,8 +227,8 @@ export default function ProposalsPage() {
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </Tabs>
     </div>
   )

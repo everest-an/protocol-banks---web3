@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Send, Users, ArrowRight, Zap, Globe, CreditCard, Wallet, Building2, User } from "lucide-react"
@@ -54,21 +54,21 @@ export default function SendPage() {
       {userMode === "personal" ? (
         <div className="grid gap-6 md:grid-cols-2">
           {/* Single Payment */}
-          <Card className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
+          <GlassCard className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
             <Link href="/batch-payment">
-              <CardHeader>
+              <GlassCardHeader>
                 <div className="flex items-center justify-between mb-2">
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Send className="h-6 w-6 text-primary" />
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <CardTitle className="text-xl">Send to Someone</CardTitle>
-                <CardDescription>
+                <GlassCardTitle className="text-xl">Send to Someone</GlassCardTitle>
+                <GlassCardDescription>
                   Transfer money to a friend, family member, or anyone with a wallet address
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">
                     <Zap className="h-3 w-3 mr-1" />
@@ -78,24 +78,24 @@ export default function SendPage() {
                     Instant
                   </Badge>
                 </div>
-              </CardContent>
+              </GlassCardContent>
             </Link>
-          </Card>
+          </GlassCard>
 
           {/* Cross-Chain Transfer */}
-          <Card className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
+          <GlassCard className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
             <Link href="/omnichain">
-              <CardHeader>
+              <GlassCardHeader>
                 <div className="flex items-center justify-between mb-2">
                   <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
                     <Globe className="h-6 w-6 text-purple-500" />
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <CardTitle className="text-xl">{translateTerm("Cross-Chain Transfer")}</CardTitle>
-                <CardDescription>Send to different blockchains like Bitcoin, Ethereum, or Solana</CardDescription>
-              </CardHeader>
-              <CardContent>
+                <GlassCardTitle className="text-xl">{translateTerm("Cross-Chain Transfer")}</GlassCardTitle>
+                <GlassCardDescription>Send to different blockchains like Bitcoin, Ethereum, or Solana</GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary" className="bg-purple-500/10 text-purple-500 border-purple-500/20">
                     Multi-Chain
@@ -104,28 +104,28 @@ export default function SendPage() {
                     BTC Support
                   </Badge>
                 </div>
-              </CardContent>
+              </GlassCardContent>
             </Link>
-          </Card>
+          </GlassCard>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {/* Batch Payment */}
-          <Card className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
+          <GlassCard className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
             <Link href="/batch-payment">
-              <CardHeader>
+              <GlassCardHeader>
                 <div className="flex items-center justify-between mb-2">
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Users className="h-6 w-6 text-primary" />
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <CardTitle className="text-xl">Batch Payment</CardTitle>
-                <CardDescription>
+                <GlassCardTitle className="text-xl">Batch Payment</GlassCardTitle>
+                <GlassCardDescription>
                   Pay multiple recipients at once - perfect for payroll, vendor payments, or distributions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">
                     <Zap className="h-3 w-3 mr-1" />
@@ -135,26 +135,26 @@ export default function SendPage() {
                     Up to 100 recipients
                   </Badge>
                 </div>
-              </CardContent>
+              </GlassCardContent>
             </Link>
-          </Card>
+          </GlassCard>
 
           {/* Cross-Chain Batch */}
-          <Card className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
+          <GlassCard className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
             <Link href="/omnichain">
-              <CardHeader>
+              <GlassCardHeader>
                 <div className="flex items-center justify-between mb-2">
                   <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
                     <Globe className="h-6 w-6 text-purple-500" />
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <CardTitle className="text-xl">{translateTerm("Cross-Chain Payment")}</CardTitle>
-                <CardDescription>
+                <GlassCardTitle className="text-xl">{translateTerm("Cross-Chain Payment")}</GlassCardTitle>
+                <GlassCardDescription>
                   Pay employees or vendors across different blockchains with automatic conversion
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary" className="bg-purple-500/10 text-purple-500 border-purple-500/20">
                     Multi-Chain
@@ -163,13 +163,13 @@ export default function SendPage() {
                     Auto Convert
                   </Badge>
                 </div>
-              </CardContent>
+              </GlassCardContent>
             </Link>
-          </Card>
+          </GlassCard>
 
           {/* Card Payment */}
-          <Card className="bg-card border-border hover:border-muted transition-all group cursor-pointer opacity-60">
-            <CardHeader>
+          <GlassCard className="bg-card border-border hover:border-muted transition-all group cursor-pointer opacity-60">
+            <GlassCardHeader>
               <div className="flex items-center justify-between mb-2">
                 <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center">
                   <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -178,16 +178,16 @@ export default function SendPage() {
                   Coming Soon
                 </Badge>
               </div>
-              <CardTitle className="text-xl text-muted-foreground">Card Payment</CardTitle>
-              <CardDescription>
+              <GlassCardTitle className="text-xl text-muted-foreground">Card Payment</GlassCardTitle>
+              <GlassCardDescription>
                 Use your crypto debit card for everyday purchases with automatic settlement
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              </GlassCardDescription>
+            </GlassCardHeader>
+          </GlassCard>
 
           {/* Scheduled Payments */}
-          <Card className="bg-card border-border hover:border-muted transition-all group cursor-pointer opacity-60">
-            <CardHeader>
+          <GlassCard className="bg-card border-border hover:border-muted transition-all group cursor-pointer opacity-60">
+            <GlassCardHeader>
               <div className="flex items-center justify-between mb-2">
                 <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center">
                   <Wallet className="h-6 w-6 text-muted-foreground" />
@@ -196,12 +196,12 @@ export default function SendPage() {
                   Coming Soon
                 </Badge>
               </div>
-              <CardTitle className="text-xl text-muted-foreground">Recurring Payments</CardTitle>
-              <CardDescription>
+              <GlassCardTitle className="text-xl text-muted-foreground">Recurring Payments</GlassCardTitle>
+              <GlassCardDescription>
                 Set up automatic recurring payments for subscriptions and regular expenses
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              </GlassCardDescription>
+            </GlassCardHeader>
+          </GlassCard>
         </div>
       )}
     </main>

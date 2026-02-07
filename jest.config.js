@@ -24,7 +24,14 @@ const config = {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
     }],
+    '^.+\\.jsx?$': ['ts-jest', {
+      tsconfig: 'tsconfig.json',
+    }],
   },
+  transformIgnorePatterns: [
+    'node_modules/.pnpm/(?!(uuid|winston|logform|triple-beam|@colors|readable-stream|string_decoder|safe-stable-stringify|fecha|fn\\.name|one-time|stack-trace|is-stream)@)',
+    'node_modules/(?!(\\.pnpm|uuid|winston|logform|triple-beam|@colors|readable-stream|string_decoder|safe-stable-stringify|fecha|fn\\.name|one-time|stack-trace|is-stream))',
+  ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testTimeout: 30000,
   verbose: true,

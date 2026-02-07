@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -498,15 +498,15 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
             Your AI Agents
-          </CardTitle>
-          <CardDescription>Manage AI agents that can create payment proposals and execute transactions</CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardTitle>
+          <GlassCardDescription>Manage AI agents that can create payment proposals and execute transactions</GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : agents.length === 0 ? (
@@ -633,8 +633,8 @@ export default function AgentsPage() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

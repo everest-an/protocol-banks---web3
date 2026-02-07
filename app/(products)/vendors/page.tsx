@@ -8,7 +8,7 @@ import { authHeaders } from "@/lib/authenticated-fetch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -800,34 +800,34 @@ export default function VendorsPage() {
           <TabsContent value="list" className="m-0 border-none p-0 outline-none">
             {/* Summary Stats Bar */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <Card className="bg-card/50 border-border">
-                <CardContent className="py-3 px-4">
+              <GlassCard className="bg-card/50 border-border">
+                <GlassCardContent className="py-3 px-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Contacts</p>
                   <p className="text-lg sm:text-xl font-mono font-semibold">{sortedVendors.length}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardContent className="py-3 px-4">
+                </GlassCardContent>
+              </GlassCard>
+              <GlassCard className="bg-card/50 border-border">
+                <GlassCardContent className="py-3 px-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Volume (LTV)</p>
                   <p className="text-lg sm:text-xl font-mono font-semibold">
                     ${sortedVendors.reduce((sum, v) => sum + (v.ltv || v.totalReceived || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardContent className="py-3 px-4">
+                </GlassCardContent>
+              </GlassCard>
+              <GlassCard className="bg-card/50 border-border">
+                <GlassCardContent className="py-3 px-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Aggregate Balance</p>
                   <p className="text-lg sm:text-xl font-mono font-semibold">
                     ${sortedVendors.reduce((sum, v) => sum + (v.on_chain_balance || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardContent className="py-3 px-4">
+                </GlassCardContent>
+              </GlassCard>
+              <GlassCard className="bg-card/50 border-border">
+                <GlassCardContent className="py-3 px-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Whales</p>
                   <p className="text-lg sm:text-xl font-mono font-semibold text-amber-500">{tagCounts.whale}</p>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             </div>
 
             {/* Contact List */}
@@ -842,7 +842,7 @@ export default function VendorsPage() {
                   (Date.now() - new Date(vendor.address_changed_at).getTime()) < 24 * 60 * 60 * 1000
 
                 return (
-                  <Card
+                  <GlassCard
                     key={vendor.id}
                     className={`border-border hover:border-primary/30 transition-all cursor-pointer group ${batchEditMode && selectedVendorIds.has(vendor.id) ? "border-primary bg-primary/5" : ""}`}
                     onClick={() => {
@@ -853,7 +853,7 @@ export default function VendorsPage() {
                       }
                     }}
                   >
-                    <CardContent className="py-3 px-4">
+                    <GlassCardContent className="py-3 px-4">
                       <div className="flex items-center gap-4">
                         {/* Batch selection checkbox */}
                         {batchEditMode && (
@@ -1016,8 +1016,8 @@ export default function VendorsPage() {
 
                         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                       </div>
-                    </CardContent>
-                  </Card>
+                    </GlassCardContent>
+                  </GlassCard>
                 )
               })}
 
@@ -1047,35 +1047,35 @@ export default function VendorsPage() {
 
             {/* Stats Cards Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6">
-              <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
-                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <GlassCard className="bg-card/50 border-border">
+                <GlassCardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
+                  <GlassCardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Network Volume
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  </GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
                   <div className="text-lg sm:text-2xl font-mono font-medium">
                     ${filteredVendors.reduce((sum, v) => sum + (v.totalReceived || 0), 0).toLocaleString()}
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
-                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                </GlassCardContent>
+              </GlassCard>
+              <GlassCard className="bg-card/50 border-border">
+                <GlassCardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
+                  <GlassCardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Active Entities
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  </GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
                   <div className="text-lg sm:text-2xl font-mono font-medium">{filteredVendors.length}</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
-                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                </GlassCardContent>
+              </GlassCard>
+              <GlassCard className="bg-card/50 border-border">
+                <GlassCardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
+                  <GlassCardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Avg. Transaction
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  </GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
                   <div className="text-lg sm:text-2xl font-mono font-medium">
                     ${filteredVendors.length > 0
                       ? Math.round(
@@ -1084,20 +1084,20 @@ export default function VendorsPage() {
                         ).toLocaleString()
                       : "0"}
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card/50 border-border">
-                <CardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
-                  <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                </GlassCardContent>
+              </GlassCard>
+              <GlassCard className="bg-card/50 border-border">
+                <GlassCardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
+                  <GlassCardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Aggregate Balance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  </GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
                   <div className="text-lg sm:text-2xl font-mono font-medium text-emerald-500">
                     ${filteredVendors.reduce((sum, v) => sum + (v.on_chain_balance || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </div>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             </div>
           </TabsContent>
         </Tabs>

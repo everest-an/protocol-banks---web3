@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -62,13 +63,20 @@ func NewConsumer(ctx context.Context, cfg config.RedisConfig) (*Consumer, error)
 		if err != nil {
 			return nil, fmt.Errorf("invalid redis url: %w", err)
 		}
+		if cfg.TLSEnabled && opts.TLSConfig == nil {
+			opts.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+		}
 		rdb = redis.NewClient(opts)
 	} else {
-		rdb = redis.NewClient(&redis.Options{
+		opts := &redis.Options{
 			Addr:     cfg.URL,
 			Password: cfg.Password,
 			DB:       cfg.DB,
-		})
+		}
+		if cfg.TLSEnabled {
+			opts.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+		}
+		rdb = redis.NewClient(opts)
 	}
 
 	if err := rdb.Ping(ctx).Err(); err != nil {

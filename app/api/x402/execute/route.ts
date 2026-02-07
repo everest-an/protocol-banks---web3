@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { relayerService, isRelayerConfigured } from "@/lib/services/relayer-service"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 import type { Hex, Address } from "viem"
 
 /**
@@ -37,6 +38,15 @@ const CHAIN_RPCS: Record<number, string> = {
 
 export async function POST(request: NextRequest): Promise<NextResponse<X402ExecuteResponse>> {
   try {
+    // Authenticate the request - only authorized callers can execute payments
+    const callerAddress = await getAuthenticatedAddress(request)
+    if (!callerAddress) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json() as X402ExecuteRequest
     const { transferId, signature } = body
 

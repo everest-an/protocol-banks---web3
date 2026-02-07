@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -177,25 +177,25 @@ export default function MerchantsPage() {
 
       {/* Demo Mode Banner */}
       {isDemoMode && (
-        <Card className="mb-6 border-blue-500/20 bg-blue-500/5">
-          <CardContent className="pt-6 pb-4">
+        <GlassCard className="mb-6 border-blue-500/20 bg-blue-500/5">
+          <GlassCardContent className="pt-6 pb-4">
             <p className="text-sm text-blue-500">
               You are viewing demo merchants. Connect your wallet to manage real merchants.
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Create Merchant Form */}
       {showCreateForm && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Create New Merchant</CardTitle>
-            <CardDescription>
+        <GlassCard className="mb-8">
+          <GlassCardHeader>
+            <GlassCardTitle>Create New Merchant</GlassCardTitle>
+            <GlassCardDescription>
               Fill in merchant information to create acquiring account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -270,26 +270,26 @@ export default function MerchantsPage() {
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* API Key Notice */}
       {newApiKey && (
-        <Card className="mb-8 border-green-500/20 bg-green-500/5">
-          <CardHeader>
+        <GlassCard className="mb-8 border-green-500/20 bg-green-500/5">
+          <GlassCardHeader>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <CardTitle className="text-green-500">
+              <GlassCardTitle className="text-green-500">
                 API Key Generated
-              </CardTitle>
+              </GlassCardTitle>
             </div>
-            <CardDescription>
+            <GlassCardDescription>
               Please save the following keys securely, they cannot be viewed
               again after closing
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-3">
             <div className="space-y-2">
               <Label>API Key ID</Label>
               <div className="flex gap-2">
@@ -335,26 +335,26 @@ export default function MerchantsPage() {
             >
               I have saved it, close notice
             </Button>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Merchant List */}
       <div className="grid gap-4">
         {merchants.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
+          <GlassCard>
+            <GlassCardContent className="py-12 text-center">
               <Store className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
                 No merchants yet, click the button above to create your first
                 merchant
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ) : (
           merchants.map((merchant) => (
-            <Card key={merchant.id}>
-              <CardHeader>
+            <GlassCard key={merchant.id}>
+              <GlassCardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     {merchant.logo_url ? (
@@ -369,10 +369,10 @@ export default function MerchantsPage() {
                       </div>
                     )}
                     <div>
-                      <CardTitle>{merchant.name}</CardTitle>
-                      <CardDescription className="font-mono text-xs mt-1">
+                      <GlassCardTitle>{merchant.name}</GlassCardTitle>
+                      <GlassCardDescription className="font-mono text-xs mt-1">
                         ID: {merchant.id.slice(0, 8)}...
-                      </CardDescription>
+                      </GlassCardDescription>
                     </div>
                   </div>
                   <Badge
@@ -383,8 +383,8 @@ export default function MerchantsPage() {
                     {merchant.status === "active" ? "Active" : "Paused"}
                   </Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">
@@ -424,8 +424,8 @@ export default function MerchantsPage() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           ))
         )}
       </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -120,12 +120,12 @@ const widget = pb.embed({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Configuration Form */}
               <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Payment Settings</CardTitle>
-                    <CardDescription>Configure your payment widget</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                <GlassCard>
+                  <GlassCardHeader>
+                    <GlassCardTitle className="text-lg">Payment Settings</GlassCardTitle>
+                    <GlassCardDescription>Configure your payment widget</GlassCardDescription>
+                  </GlassCardHeader>
+                  <GlassCardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="recipient">Recipient Address *</Label>
                       <Input
@@ -202,14 +202,14 @@ const widget = pb.embed({
                         onCheckedChange={(v) => setConfig({ ...config, allowCustomAmount: v })}
                       />
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Appearance</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                <GlassCard>
+                  <GlassCardHeader>
+                    <GlassCardTitle className="text-lg">Appearance</GlassCardTitle>
+                  </GlassCardHeader>
+                  <GlassCardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label>Theme</Label>
                       <Select value={config.theme} onValueChange={(v: "light" | "dark") => setConfig({ ...config, theme: v })}>
@@ -239,21 +239,21 @@ const widget = pb.embed({
                         />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               </div>
 
               {/* Code Snippets */}
               <div className="space-y-6">
-                <Card>
-                  <CardHeader>
+                <GlassCard>
+                  <GlassCardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">HTML Iframe</CardTitle>
+                      <GlassCardTitle className="text-lg">HTML Iframe</GlassCardTitle>
                       <Badge variant="secondary">Easiest</Badge>
                     </div>
-                    <CardDescription>Copy and paste into your website</CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                    <GlassCardDescription>Copy and paste into your website</GlassCardDescription>
+                  </GlassCardHeader>
+                  <GlassCardContent>
                     <div className="relative">
                       <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono">
                         {iframeCode}
@@ -267,18 +267,18 @@ const widget = pb.embed({
                         {copied === "iframe" ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
 
-                <Card>
-                  <CardHeader>
+                <GlassCard>
+                  <GlassCardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">React / SDK</CardTitle>
+                      <GlassCardTitle className="text-lg">React / SDK</GlassCardTitle>
                       <Badge variant="secondary">Recommended</Badge>
                     </div>
-                    <CardDescription>Install @protocolbanks/sdk for full control</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
+                    <GlassCardDescription>Install @protocolbanks/sdk for full control</GlassCardDescription>
+                  </GlassCardHeader>
+                  <GlassCardContent className="space-y-3">
                     <div className="relative">
                       <pre className="bg-muted p-3 rounded-lg overflow-x-auto text-sm font-mono">
                         npm install @protocolbanks/sdk
@@ -305,18 +305,18 @@ const widget = pb.embed({
                         {copied === "react" ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
 
-                <Card>
-                  <CardHeader>
+                <GlassCard>
+                  <GlassCardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Payment Button</CardTitle>
+                      <GlassCardTitle className="text-lg">Payment Button</GlassCardTitle>
                       <Badge variant="outline">Simple</Badge>
                     </div>
-                    <CardDescription>A styled link that opens the payment page</CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                    <GlassCardDescription>A styled link that opens the payment page</GlassCardDescription>
+                  </GlassCardHeader>
+                  <GlassCardContent>
                     <div className="relative">
                       <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono max-h-[200px]">
                         {htmlButtonCode}
@@ -330,8 +330,8 @@ const widget = pb.embed({
                         {copied === "button" ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               </div>
             </div>
           </TabsContent>
@@ -339,12 +339,12 @@ const widget = pb.embed({
           <TabsContent value="preview" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Live Preview */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Live Preview</CardTitle>
-                  <CardDescription>Preview how the payment widget looks</CardDescription>
-                </CardHeader>
-                <CardContent>
+              <GlassCard>
+                <GlassCardHeader>
+                  <GlassCardTitle className="text-lg">Live Preview</GlassCardTitle>
+                  <GlassCardDescription>Preview how the payment widget looks</GlassCardDescription>
+                </GlassCardHeader>
+                <GlassCardContent>
                   <div className={`rounded-xl border-2 border-dashed p-4 flex items-center justify-center ${
                     config.theme === "dark" ? "bg-zinc-900" : "bg-gray-50"
                   }`}>
@@ -363,16 +363,16 @@ const widget = pb.embed({
                       </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
 
               {/* Info Panel */}
               <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Integration Guide</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                <GlassCard>
+                  <GlassCardHeader>
+                    <GlassCardTitle className="text-lg">Integration Guide</GlassCardTitle>
+                  </GlassCardHeader>
+                  <GlassCardContent className="space-y-4">
                     <div className="space-y-3">
                       <div className="flex gap-3">
                         <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">1</div>
@@ -403,15 +403,15 @@ const widget = pb.embed({
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">PostMessage Events</CardTitle>
-                    <CardDescription>Listen for payment events from the iframe</CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                <GlassCard>
+                  <GlassCardHeader>
+                    <GlassCardTitle className="text-lg">PostMessage Events</GlassCardTitle>
+                    <GlassCardDescription>Listen for payment events from the iframe</GlassCardDescription>
+                  </GlassCardHeader>
+                  <GlassCardContent>
                     <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono">{`window.addEventListener('message', (e) => {
   if (e.data.type === 'PROTOCOL_BANKS_PAYMENT_SUCCESS') {
     console.log('Paid!', e.data.txHash);
@@ -420,8 +420,8 @@ const widget = pb.embed({
     console.error('Error:', e.data.error);
   }
 });`}</pre>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Shield className="h-4 w-4" />

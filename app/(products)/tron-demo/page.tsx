@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -168,11 +168,11 @@ export default function TronDemoPage() {
       </div>
 
       {/* Quick Links */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Quick Links</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="text-sm font-medium">Quick Links</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -197,19 +197,19 @@ export default function TronDemoPage() {
             <ExternalLink className="h-4 w-4 mr-2" />
             TronScan API
           </Button>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Connection Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5" />
             Wallet Connection
-          </CardTitle>
-          <CardDescription>Connect your TronLink wallet to get started</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </GlassCardTitle>
+          <GlassCardDescription>Connect your TronLink wallet to get started</GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-4">
           {!address ? (
             <Button onClick={handleConnect} disabled={loading}>
               {loading ? (
@@ -249,15 +249,15 @@ export default function TronDemoPage() {
               {/* Balances */}
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                 {getSupportedTokens(network!).map((token) => (
-                  <Card key={token.symbol}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium">{token.symbol}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                  <GlassCard key={token.symbol}>
+                    <GlassCardHeader className="pb-3">
+                      <GlassCardTitle className="text-sm font-medium">{token.symbol}</GlassCardTitle>
+                    </GlassCardHeader>
+                    <GlassCardContent>
                       <div className="text-2xl font-bold">{formatBalance(token.symbol)}</div>
                       <p className="text-xs text-muted-foreground mt-1">Available Balance</p>
-                    </CardContent>
-                  </Card>
+                    </GlassCardContent>
+                  </GlassCard>
                 ))}
               </div>
 
@@ -267,23 +267,23 @@ export default function TronDemoPage() {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Resources */}
       {address && <TronResources address={address} />}
 
       {/* Transfer Form */}
       {address && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
               <Send className="h-5 w-5" />
               Send TRC20 Transfer
-            </CardTitle>
-            <CardDescription>Test sending TRC20 tokens on Nile testnet</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </GlassCardTitle>
+            <GlassCardDescription>Test sending TRC20 tokens on Nile testnet</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="token">Token</Label>
               <select
@@ -340,8 +340,8 @@ export default function TronDemoPage() {
                 </>
               )}
             </Button>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Status Messages */}
@@ -374,11 +374,11 @@ export default function TronDemoPage() {
       )}
 
       {/* Instructions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Getting Started</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="text-sm font-medium">Getting Started</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-3 text-sm">
           <div className="space-y-2">
             <p className="font-medium">1. Install TronLink</p>
             <p className="text-muted-foreground">
@@ -436,15 +436,15 @@ export default function TronDemoPage() {
               Enter a recipient address and amount, then click "Send Transfer" to test TRC20 payments
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Technical Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Network Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-xs font-mono">
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="text-sm font-medium">Network Configuration</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-2 text-xs font-mono">
           <div className="grid grid-cols-2 gap-2">
             <span className="text-muted-foreground">Network:</span>
             <span>{network === "tron-nile" ? "Nile Testnet" : network || "Not connected"}</span>
@@ -465,8 +465,8 @@ export default function TronDemoPage() {
               </>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   )
 }

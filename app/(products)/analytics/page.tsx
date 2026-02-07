@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { authHeaders } from "@/lib/authenticated-fetch"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -435,14 +435,14 @@ export default function AnalyticsPage() {
   if (!showAnalytics) {
     return (
       <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
-        <Card className="max-w-md w-full bg-card border-border">
-          <CardHeader className="text-center">
-            <CardTitle className="text-foreground">Connect Wallet</CardTitle>
-            <CardDescription className="text-muted-foreground">
+        <GlassCard className="max-w-md w-full bg-card border-border">
+          <GlassCardHeader className="text-center">
+            <GlassCardTitle className="text-foreground">Connect Wallet</GlassCardTitle>
+            <GlassCardDescription className="text-muted-foreground">
               Please connect your wallet to view analytics
-            </CardDescription>
-          </CardHeader>
-        </Card>
+            </GlassCardDescription>
+          </GlassCardHeader>
+        </GlassCard>
       </div>
     )
   }
@@ -538,17 +538,17 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Network Graph Section */}
-      <Card className="bg-black border-border overflow-hidden">
+      <GlassCard className="bg-black border-border overflow-hidden">
         <PaymentNetworkGraph />
-      </Card>
+      </GlassCard>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle>Spending by Category</CardTitle>
-            <CardDescription>Distribution of expenses across business categories</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader>
+            <GlassCardTitle>Spending by Category</GlassCardTitle>
+            <GlassCardDescription>Distribution of expenses across business categories</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -578,15 +578,15 @@ export default function AnalyticsPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle>Top Vendors</CardTitle>
-            <CardDescription>Highest volume suppliers by total payment amount</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader>
+            <GlassCardTitle>Top Vendors</GlassCardTitle>
+            <GlassCardDescription>Highest volume suppliers by total payment amount</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -611,18 +611,18 @@ export default function AnalyticsPage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">Filter by Date Range</CardTitle>
-          <CardDescription className="text-muted-foreground">
+      <GlassCard className="bg-card border-border">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-foreground">Filter by Date Range</GlassCardTitle>
+          <GlassCardDescription className="text-muted-foreground">
             Select a date range to filter your transactions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px] space-y-2">
               <label className="text-sm text-muted-foreground">Range</label>
@@ -672,52 +672,52 @@ export default function AnalyticsPage() {
               Showing {displayPayments.length} of {payments.length} transactions
             </p>
           )}
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       <div className="grid gap-6 lg:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Sent</CardTitle>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader className="flex flex-row items-center justify-between pb-2">
+            <GlassCardTitle className="text-sm font-medium text-muted-foreground">Total Sent</GlassCardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="text-2xl font-bold text-foreground font-mono">
               $
               {displayStats.totalSent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Lifetime payments</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Transactions</CardTitle>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader className="flex flex-row items-center justify-between pb-2">
+            <GlassCardTitle className="text-sm font-medium text-muted-foreground">Transactions</GlassCardTitle>
             <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="text-2xl font-bold text-foreground">{displayStats.totalTransactions.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Total payments made</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Wallet Tags</CardTitle>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader className="flex flex-row items-center justify-between pb-2">
+            <GlassCardTitle className="text-sm font-medium text-muted-foreground">Wallet Tags</GlassCardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="text-2xl font-bold text-foreground">{displayStats.totalVendors.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Unique tags used</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Transaction</CardTitle>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader className="flex flex-row items-center justify-between pb-2">
+            <GlassCardTitle className="text-sm font-medium text-muted-foreground">Avg Transaction</GlassCardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="text-2xl font-bold text-foreground font-mono">
               $
               {displayStats.avgTransaction.toLocaleString(undefined, {
@@ -726,17 +726,17 @@ export default function AnalyticsPage() {
               })}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Per payment</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground">Payment Trend (Last 7 Days)</CardTitle>
-            <CardDescription className="text-muted-foreground">Daily payment volume</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader>
+            <GlassCardTitle className="text-foreground">Payment Trend (Last 7 Days)</GlassCardTitle>
+            <GlassCardDescription className="text-muted-foreground">Daily payment volume</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={getChartData()}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
@@ -753,15 +753,15 @@ export default function AnalyticsPage() {
                 <Line type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground">Token Distribution</CardTitle>
-            <CardDescription className="text-muted-foreground">Payment breakdown by token</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard className="bg-card border-border">
+          <GlassCardHeader>
+            <GlassCardTitle className="text-foreground">Token Distribution</GlassCardTitle>
+            <GlassCardDescription className="text-muted-foreground">Payment breakdown by token</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -788,8 +788,8 @@ export default function AnalyticsPage() {
                 />
               </PieChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       <Tabs defaultValue="payments" className="space-y-4">
@@ -799,18 +799,18 @@ export default function AnalyticsPage() {
         </TabsList>
 
         <TabsContent value="payments">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground">Recent Payments</CardTitle>
-              <CardDescription className="text-muted-foreground">
+          <GlassCard className="bg-card border-border">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-foreground">Recent Payments</GlassCardTitle>
+              <GlassCardDescription className="text-muted-foreground">
                 {isDemoMode
                   ? "Showing test transaction data"
                   : displayPayments.length === payments.length
                     ? `Your last ${displayPayments.length} transactions`
                     : `Showing ${displayPayments.length} filtered transactions`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <div className="rounded-lg border border-border overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -959,17 +959,17 @@ export default function AnalyticsPage() {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
 
         <TabsContent value="batches">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground">Batch Payment History</CardTitle>
-              <CardDescription className="text-muted-foreground">Your batch payment records</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <GlassCard className="bg-card border-border">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-foreground">Batch Payment History</GlassCardTitle>
+              <GlassCardDescription className="text-muted-foreground">Your batch payment records</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <div className="rounded-lg border border-border overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -1015,8 +1015,8 @@ export default function AnalyticsPage() {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
       </Tabs>
     </div>

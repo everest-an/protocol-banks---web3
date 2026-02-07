@@ -30,7 +30,9 @@
       "Bash(git checkout:*)",
       "Bash(git stash:*)",
       "Bash(xargs:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(node -e:*)",
+      "Bash(pnpm prisma generate:*)"
     ]
   }
 }

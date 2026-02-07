@@ -5,38 +5,51 @@ export function deriveKeyFromSignature(signature: string): Buffer {
   return createHash("sha256").update(signature).digest()
 }
 
-// Encrypt sensitive vendor data
+// Encrypt sensitive vendor data (AES-256-GCM — authenticated encryption)
 export function encryptVendorData(
   data: { name: string; wallet_address: string; email?: string; notes?: string },
   encryptionKey: Buffer,
 ): string {
-  const iv = randomBytes(16)
-  const cipher = createCipheriv("aes-256-cbc", encryptionKey, iv)
+  const iv = randomBytes(12) // 96-bit IV for GCM
+  const cipher = createCipheriv("aes-256-gcm", encryptionKey, iv)
 
   const jsonData = JSON.stringify(data)
   let encrypted = cipher.update(jsonData, "utf8", "hex")
   encrypted += cipher.final("hex")
+  const authTag = cipher.getAuthTag()
 
-  // Return IV + encrypted data
-  return iv.toString("hex") + ":" + encrypted
+  // Format: gcm:<iv>:<authTag>:<ciphertext>
+  return `gcm:${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`
 }
 
-// Decrypt vendor data
+// Decrypt vendor data (supports both GCM and legacy CBC formats)
 export function decryptVendorData(
   encryptedData: string,
   encryptionKey: Buffer,
 ): { name: string; wallet_address: string; email?: string; notes?: string } | null {
   try {
-    const [ivHex, encrypted] = encryptedData.split(":")
-    const iv = Buffer.from(ivHex, "hex")
+    if (encryptedData.startsWith("gcm:")) {
+      // New GCM format: gcm:<iv>:<authTag>:<ciphertext>
+      const [, ivHex, authTagHex, ciphertext] = encryptedData.split(":")
+      const iv = Buffer.from(ivHex, "hex")
+      const authTag = Buffer.from(authTagHex, "hex")
 
-    const decipher = createDecipheriv("aes-256-cbc", encryptionKey, iv)
-    let decrypted = decipher.update(encrypted, "hex", "utf8")
-    decrypted += decipher.final("utf8")
-
-    return JSON.parse(decrypted)
+      const decipher = createDecipheriv("aes-256-gcm", encryptionKey, iv)
+      decipher.setAuthTag(authTag)
+      let decrypted = decipher.update(ciphertext, "hex", "utf8")
+      decrypted += decipher.final("utf8")
+      return JSON.parse(decrypted)
+    } else {
+      // Legacy CBC format: <iv>:<ciphertext> — backward compatible
+      const [ivHex, encrypted] = encryptedData.split(":")
+      const iv = Buffer.from(ivHex, "hex")
+      const decipher = createDecipheriv("aes-256-cbc", encryptionKey, iv)
+      let decrypted = decipher.update(encrypted, "hex", "utf8")
+      decrypted += decipher.final("utf8")
+      return JSON.parse(decrypted)
+    }
   } catch (error) {
-    console.error("[v0] Decryption failed:", error)
+    console.error("[Encryption] Decryption failed")
     return null
   }
 }

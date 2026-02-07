@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -540,15 +540,15 @@ function PaymentContent() {
     
     return (
       <div className="container max-w-md mx-auto py-20 px-4">
-        <Card className="border-green-500/20 bg-green-500/5">
-          <CardHeader className="text-center">
+        <GlassCard className="border-green-500/20 bg-green-500/5">
+          <GlassCardHeader className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
               <CheckCircle2 className="h-6 w-6 text-green-500" />
             </div>
-            <CardTitle className="text-green-500">Payment Successful</CardTitle>
-            <CardDescription>Your payment has been processed.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            <GlassCardTitle className="text-green-500">Payment Successful</GlassCardTitle>
+            <GlassCardDescription>Your payment has been processed.</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="rounded-lg bg-card border p-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Amount Paid</span>
@@ -573,8 +573,8 @@ function PaymentContent() {
                 Send Another Payment
               </Button>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     )
   }
@@ -593,17 +593,17 @@ function PaymentContent() {
     if (verificationResult?.expired) {
       return (
         <div className="container max-w-md mx-auto py-20 px-4">
-          <Card className="border-destructive/20 bg-destructive/5">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center gap-2">
+          <GlassCard className="border-destructive/20 bg-destructive/5">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-destructive flex items-center gap-2">
                 <AlertCircle className="h-5 w-5" />
                 Payment Link Expired
-              </CardTitle>
-              <CardDescription>
+              </GlassCardTitle>
+              <GlassCardDescription>
                 This payment link has expired. Please request a new payment link from the recipient.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              </GlassCardDescription>
+            </GlassCardHeader>
+          </GlassCard>
         </div>
       )
     }
@@ -611,19 +611,19 @@ function PaymentContent() {
     if (!isValid || (verificationResult && !verificationResult.paramsValid)) {
       return (
         <div className="container max-w-md mx-auto py-20 px-4">
-          <Card className="border-destructive/20 bg-destructive/5">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center gap-2">
+          <GlassCard className="border-destructive/20 bg-destructive/5">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-destructive flex items-center gap-2">
                 <ShieldAlert className="h-5 w-5" />
                 Invalid Payment Link
-              </CardTitle>
-              <CardDescription>
+              </GlassCardTitle>
+              <GlassCardDescription>
                 {verificationResult?.tamperedFields && verificationResult.tamperedFields.length > 0
                   ? `Security check failed: ${verificationResult.tamperedFields.join(", ")}`
                   : "The payment link is missing required information. Please check the URL and try again."}
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              </GlassCardDescription>
+            </GlassCardHeader>
+          </GlassCard>
         </div>
       )
     }
@@ -633,15 +633,15 @@ function PaymentContent() {
       <div className="container max-w-lg mx-auto py-20 px-4">
         {showSecurityModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-md w-full border-yellow-500/20 bg-card">
-              <CardHeader>
-                <CardTitle className="text-yellow-500 flex items-center gap-2">
+            <GlassCard className="max-w-md w-full border-yellow-500/20 bg-card">
+              <GlassCardHeader>
+                <GlassCardTitle className="text-yellow-500 flex items-center gap-2">
                   <ShieldAlert className="h-5 w-5" />
                   Security Warnings
-                </CardTitle>
-                <CardDescription>Please review the following warnings before proceeding:</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </GlassCardTitle>
+                <GlassCardDescription>Please review the following warnings before proceeding:</GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4">
                 <div className="space-y-2">
                   {securityWarnings.map((warning, i) => (
                     <Alert key={i} className="bg-yellow-500/5 border-yellow-500/20">
@@ -654,24 +654,24 @@ function PaymentContent() {
                   <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowSecurityModal(false)}>Cancel</Button>
                   <Button className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black" onClick={handleSecurityConfirm}>I Understand, Proceed</Button>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           </div>
         )}
 
-        <Card className="border-border shadow-lg">
-          <CardHeader className="text-center border-b border-border/50 pb-8">
+        <GlassCard className="border-border shadow-lg">
+          <GlassCardHeader className="text-center border-b border-border/50 pb-8">
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
               <Wallet className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle className="text-2xl">{merchantName || "Payment Request"}</CardTitle>
-            <CardDescription>
+            <GlassCardTitle className="text-2xl">{merchantName || "Payment Request"}</GlassCardTitle>
+            <GlassCardDescription>
               {description || (
                 <>You are paying{" "}<span className="text-foreground font-medium">{amount} {token}</span></>
               )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-8 space-y-6">
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="pt-8 space-y-6">
             <div className="flex items-center justify-center gap-2">
               {securityWarnings.length === 0 ? (
                 <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">
@@ -730,8 +730,8 @@ function PaymentContent() {
                 <>Pay {amount} {token}{feeEstimate && <span className="text-xs ml-1 opacity-70">(+${feeEstimate.finalFee.toFixed(2)} fee)</span>}</>
               )}
             </Button>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         <div className="mt-8 text-center">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">

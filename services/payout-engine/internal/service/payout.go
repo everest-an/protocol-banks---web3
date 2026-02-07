@@ -331,17 +331,22 @@ func (s *PayoutService) buildERC20Transfer(
 // signTransaction 签名交易
 // 注意：生产环境应使用 HSM/KMS，这里只是示例
 func (s *PayoutService) signTransaction(ctx context.Context, tx *types.Transaction, chainID uint64) (*types.Transaction, error) {
-	// TODO: 从安全存储获取私钥
-	// 生产环境应使用 AWS KMS, GCP KMS, 或 HashiCorp Vault
-	privateKeyHex := "" // 从环境变量或密钥管理服务获取
+	// Debt Fixed: Loaded from Config (formerly TODO)
+	// Note: For High-Value Production, recommend switching to AWS KMS or Fireblocks via an interface here.
+	privateKeyHex := s.cfg.PrivateKey // Now loaded from PAYOUT_PRIVATE_KEY env
 
 	if privateKeyHex == "" {
-		return nil, fmt.Errorf("private key not configured")
+		return nil, fmt.Errorf("critical: payment processing private key is missing")
+	}
+
+	// Sanitize hex string
+	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
+		privateKeyHex = privateKeyHex[2:]
 	}
 
 	privateKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
+		return nil, fmt.Errorf("invalid private key configuration: %w", err)
 	}
 
 	signer := types.LatestSignerForChainID(new(big.Int).SetUint64(chainID))

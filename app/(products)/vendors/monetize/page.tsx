@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -232,46 +232,46 @@ export default function MonetizePage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <BarChart3 className="h-4 w-4" />
               <span className="text-sm">Total API Calls</span>
             </div>
             <div className="text-2xl font-bold">{totalCalls.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <DollarSign className="h-4 w-4" />
               <span className="text-sm">Revenue</span>
             </div>
             <div className="text-2xl font-bold text-emerald-400">${totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <TrendingUp className="h-4 w-4" />
               <span className="text-sm">Avg. Daily Calls</span>
             </div>
             <div className="text-2xl font-bold">{avgCallsPerDay.toLocaleString()}</div>
             <p className="text-xs text-emerald-400 mt-1">+12% from last month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Shield className="h-4 w-4" />
               <span className="text-sm">Error Rate</span>
             </div>
             <div className="text-2xl font-bold">{errorRate}%</div>
             <p className="text-xs text-muted-foreground mt-1">Target: under 1%</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -284,12 +284,12 @@ export default function MonetizePage() {
 
         <TabsContent value="overview" className="space-y-4">
           {/* Usage Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>API Usage Over Time</CardTitle>
-              <CardDescription>Daily API calls and revenue for the last 30 days</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle>API Usage Over Time</GlassCardTitle>
+              <GlassCardDescription>Daily API calls and revenue for the last 30 days</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               {loading ? (
                 <div className="h-[300px] flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -324,16 +324,16 @@ export default function MonetizePage() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           {/* Revenue Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Breakdown</CardTitle>
-              <CardDescription>Daily revenue from API usage</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle>Revenue Breakdown</GlassCardTitle>
+              <GlassCardDescription>Daily revenue from API usage</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               {loading ? (
                 <div className="h-[250px] flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -356,17 +356,17 @@ export default function MonetizePage() {
                   </BarChart>
                 </ResponsiveContainer>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
 
         <TabsContent value="keys">
-          <Card>
-            <CardHeader>
-              <CardTitle>API Keys</CardTitle>
-              <CardDescription>Manage your API keys for external integrations</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle>API Keys</GlassCardTitle>
+              <GlassCardDescription>Manage your API keys for external integrations</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -444,23 +444,23 @@ export default function MonetizePage() {
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
 
         <TabsContent value="pricing">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {PRICING_TIERS.map((tier) => (
-              <Card key={tier.name} className={tier.name === "Business" ? "border-primary" : ""}>
-                <CardHeader>
-                  <CardTitle>{tier.name}</CardTitle>
-                  <CardDescription>
+              <GlassCard key={tier.name} className={tier.name === "Business" ? "border-primary" : ""}>
+                <GlassCardHeader>
+                  <GlassCardTitle>{tier.name}</GlassCardTitle>
+                  <GlassCardDescription>
                     {tier.pricePerCall === 0
                       ? "Free"
                       : `$${tier.pricePerCall.toFixed(4)} per call`}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                  </GlassCardDescription>
+                </GlassCardHeader>
+                <GlassCardContent>
                   <div className="text-2xl font-bold mb-4">
                     {tier.monthlyLimit === -1
                       ? "Unlimited"
@@ -474,19 +474,19 @@ export default function MonetizePage() {
                       </li>
                     ))}
                   </ul>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             ))}
           </div>
         </TabsContent>
 
         <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Monetization Settings</CardTitle>
-              <CardDescription>Configure your API pricing and limits</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle>Monetization Settings</GlassCardTitle>
+              <GlassCardDescription>Configure your API pricing and limits</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="pricePerCall">Price Per Call (USD)</Label>
@@ -515,8 +515,8 @@ export default function MonetizePage() {
                 </div>
               </div>
               <Button>Save Settings</Button>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
       </Tabs>
     </main>

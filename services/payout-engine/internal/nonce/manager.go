@@ -2,6 +2,7 @@ package nonce
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"strings"
 	"sync"
@@ -26,18 +27,25 @@ type Manager struct {
 // NewManager 创建 Nonce 管理器
 func NewManager(ctx context.Context, cfg config.RedisConfig) (*Manager, error) {
 	var rdb *redis.Client
-	if strings.HasPrefix(cfg.URL, "redis://") {
+	if strings.HasPrefix(cfg.URL, "redis://") || strings.HasPrefix(cfg.URL, "rediss://") {
 		opt, err := redis.ParseURL(cfg.URL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse redis url: %w", err)
 		}
+		if cfg.TLSEnabled && opt.TLSConfig == nil {
+			opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+		}
 		rdb = redis.NewClient(opt)
 	} else {
-		rdb = redis.NewClient(&redis.Options{
+		opts := &redis.Options{
 			Addr:     cfg.URL,
 			Password: cfg.Password,
 			DB:       cfg.DB,
-		})
+		}
+		if cfg.TLSEnabled {
+			opts.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+		}
+		rdb = redis.NewClient(opts)
 	}
 
 	if err := rdb.Ping(ctx).Err(); err != nil {

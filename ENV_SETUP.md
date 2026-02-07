@@ -240,9 +240,36 @@ After adding the variables:
 - **Email goes to spam**: Ensure SPF/DKIM records are properly configured
 - **"Configuration was ignored" notice**: This is normal. Features are managed via https://dashboard.reown.com, not local code. Check your dashboard settings to enable/disable features.
 
+### 5. HashKey Bridge & RWA Services (Backend)
+
+For the off-chain components (Bridge Bot & Webhook Handlers), configure the following:
+
+```env
+# --- Bridge Controller (scripts/pbusd-controller.js) ---
+# Network RPCs
+BASE_RPC=https://mainnet.base.org
+HASHKEY_RPC=https://hashkey-chain.network
+# Contract Addresses
+BASE_TREASURY_ADDRESS=0x...
+HASHKEY_PBUSD_ADDRESS=0x...
+# Bridge Relayer Identity (Keep Secret!)
+BRIDGE_RELAYER_PK=0x...
+
+# --- Payout Engine (Go Service) ---
+# Signing Key for Batch Payments
+PAYOUT_PRIVATE_KEY=0x...
+# Database Connection
+DATABASE_URL=postgresql://user:password@localhost:5432/protocolbank
+
+# --- RWA Webhooks (Rain/Transak) ---
+# Secrets for verifying incoming webhooks
+RAIN_WEBHOOK_SECRET=...
+TRANSAK_WEBHOOK_SECRET=...
+```
+
 ## Security Notes
 
 - Never commit `.env` files to version control
 - reCAPTCHA site key is fetched via server action for enhanced security
-- Secret keys (`RECAPTCHA_SECRET_KEY`, `RESEND_API_KEY`) are only accessible server-side
+- Secret keys (`RECAPTCHA_SECRET_KEY`, `RESEND_API_KEY`, `BRIDGE_RELAYER_PK`) are only accessible server-side
 - All sensitive operations are handled through secure API routes

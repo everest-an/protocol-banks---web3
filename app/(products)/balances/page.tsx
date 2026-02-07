@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -309,8 +309,8 @@ export default function BalancesPage() {
     return (
       <div className="flex flex-col min-h-screen bg-background text-foreground">
         <div className="container mx-auto py-12 px-4">
-          <Card className="max-w-md mx-auto border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <GlassCard className="max-w-md mx-auto border-dashed">
+            <GlassCardContent className="flex flex-col items-center justify-center py-12 text-center">
               <div className="p-4 rounded-full bg-primary/10 mb-4">
                 <Wallet className="h-8 w-8 text-primary" />
               </div>
@@ -321,8 +321,8 @@ export default function BalancesPage() {
               <Button onClick={() => setShowAuthGateway(true)}>
                 Connect Wallet
               </Button>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
         {showAuthGateway && (
           <AuthGateway
@@ -455,8 +455,8 @@ export default function BalancesPage() {
         )}
 
         {/* L1: Total Balance Card (大字报) */}
-        <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20">
-          <CardContent className="pt-6 pb-6">
+        <GlassCard className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20">
+          <GlassCardContent className="pt-6 pb-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
@@ -473,13 +473,13 @@ export default function BalancesPage() {
                 />
               )}
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* ══════════ Empty State: Add Funds CTA ══════════ */}
         {!hasBalance && !loading && (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <GlassCard className="border-dashed">
+            <GlassCardContent className="flex flex-col items-center justify-center py-12 text-center">
               <div className="p-4 rounded-full bg-primary/10 mb-4">
                 <Plus className="h-8 w-8 text-primary" />
               </div>
@@ -501,8 +501,8 @@ export default function BalancesPage() {
                   </Button>
                 </Link>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         )}
 
         {/* ══════════ Tabs (only when there is balance) ══════════ */}
@@ -517,12 +517,12 @@ export default function BalancesPage() {
 
             {/* ══════════ Overview Tab: L2 Portfolio Allocation ══════════ */}
             <TabsContent value="overview" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Portfolio Allocation</CardTitle>
-                  <CardDescription>Token distribution by USD value</CardDescription>
-                </CardHeader>
-                <CardContent>
+              <GlassCard>
+                <GlassCardHeader>
+                  <GlassCardTitle className="text-lg">Portfolio Allocation</GlassCardTitle>
+                  <GlassCardDescription>Token distribution by USD value</GlassCardDescription>
+                </GlassCardHeader>
+                <GlassCardContent>
                   {balance?.tokenDistribution && balance.tokenDistribution.length > 0 ? (
                     <div className="flex flex-col sm:flex-row items-center gap-8">
                       {/* Donut Chart */}
@@ -603,13 +603,13 @@ export default function BalancesPage() {
                       <p>No token data available</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-4">
+                <GlassCard>
+                  <GlassCardContent className="pt-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-blue-500/10">
                         <Coins className="h-4 w-4 text-blue-500" />
@@ -621,10 +621,10 @@ export default function BalancesPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
+                  </GlassCardContent>
+                </GlassCard>
+                <GlassCard>
+                  <GlassCardContent className="pt-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-purple-500/10">
                         <Globe className="h-4 w-4 text-purple-500" />
@@ -636,10 +636,10 @@ export default function BalancesPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
+                  </GlassCardContent>
+                </GlassCard>
+                <GlassCard>
+                  <GlassCardContent className="pt-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-green-500/10">
                         <ShieldCheck className="h-4 w-4 text-green-500" />
@@ -651,10 +651,10 @@ export default function BalancesPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
+                  </GlassCardContent>
+                </GlassCard>
+                <GlassCard>
+                  <GlassCardContent className="pt-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-orange-500/10">
                         <TrendingUp className="h-4 w-4 text-orange-500" />
@@ -666,19 +666,19 @@ export default function BalancesPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               </div>
             </TabsContent>
 
             {/* ══════════ Tokens Tab: L2 → L3 Drill-Down ══════════ */}
             <TabsContent value="tokens" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Token Balances</CardTitle>
-                  <CardDescription>Click a token to see its distribution across chains</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-1">
+              <GlassCard>
+                <GlassCardHeader>
+                  <GlassCardTitle className="text-lg">Token Balances</GlassCardTitle>
+                  <GlassCardDescription>Click a token to see its distribution across chains</GlassCardDescription>
+                </GlassCardHeader>
+                <GlassCardContent className="space-y-1">
                   {tokenGroups.length > 0 ? (
                     tokenGroups.map((group) => {
                       const isExpanded = expandedTokens.has(group.symbol)
@@ -821,8 +821,8 @@ export default function BalancesPage() {
                       </Link>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             </TabsContent>
 
             {/* ══════════ Chains Tab: L3 Network Breakdown ══════════ */}
@@ -830,8 +830,8 @@ export default function BalancesPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {balance?.chainDistribution && balance.chainDistribution.length > 0 ? (
                   balance.chainDistribution.map((chain) => (
-                    <Card key={chain.chain} className="overflow-hidden">
-                      <CardContent className="pt-4">
+                    <GlassCard key={chain.chain} className="overflow-hidden">
+                      <GlassCardContent className="pt-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             <div
@@ -860,8 +860,8 @@ export default function BalancesPage() {
                             style={{ width: `${chain.percentage}%` }}
                           />
                         </div>
-                      </CardContent>
-                    </Card>
+                      </GlassCardContent>
+                    </GlassCard>
                   ))
                 ) : (
                   <div className="col-span-2 flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
@@ -879,8 +879,8 @@ export default function BalancesPage() {
 
               {/* Financial Health Metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-4">
+                <GlassCard>
+                  <GlassCardContent className="pt-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-red-500/10">
                         <Flame className="h-4 w-4 text-red-500" />
@@ -892,10 +892,10 @@ export default function BalancesPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
+                  </GlassCardContent>
+                </GlassCard>
+                <GlassCard>
+                  <GlassCardContent className="pt-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-blue-500/10">
                         <Clock className="h-4 w-4 text-blue-500" />
@@ -907,10 +907,10 @@ export default function BalancesPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
+                  </GlassCardContent>
+                </GlassCard>
+                <GlassCard>
+                  <GlassCardContent className="pt-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-green-500/10">
                         <Activity className="h-4 w-4 text-green-500" />
@@ -922,10 +922,10 @@ export default function BalancesPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
+                  </GlassCardContent>
+                </GlassCard>
+                <GlassCard>
+                  <GlassCardContent className="pt-4">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-yellow-500/10">
                         <Clock className="h-4 w-4 text-yellow-500" />
@@ -937,18 +937,18 @@ export default function BalancesPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               </div>
 
                <div className="grid gap-4 lg:grid-cols-2">
                 {/* Spending Category Pie Chart */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Spending by Category</CardTitle>
-                    <CardDescription>Outflows breakdown by transaction type</CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                <GlassCard>
+                  <GlassCardHeader>
+                    <GlassCardTitle className="text-lg">Spending by Category</GlassCardTitle>
+                    <GlassCardDescription>Outflows breakdown by transaction type</GlassCardDescription>
+                  </GlassCardHeader>
+                  <GlassCardContent>
                     {moneyMovement.categoryData.length > 0 ? (
                       <div className="flex flex-col items-center gap-4">
                         <div className="w-[200px] h-[200px]">
@@ -1013,16 +1013,16 @@ export default function BalancesPage() {
                         <p className="text-sm">No outflow data yet</p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
 
               {/* Month-over-Month Comparison */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Period Comparison</CardTitle>
-                  <CardDescription>This month vs last month spending</CardDescription>
-                </CardHeader>
-                <CardContent>
+              <GlassCard>
+                <GlassCardHeader>
+                  <GlassCardTitle className="text-lg">Period Comparison</GlassCardTitle>
+                  <GlassCardDescription>This month vs last month spending</GlassCardDescription>
+                </GlassCardHeader>
+                <GlassCardContent>
                   <div className="grid grid-cols-2 gap-6">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">This Month</p>
@@ -1056,8 +1056,8 @@ export default function BalancesPage() {
                       })()}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
               </div>
             </TabsContent>
           </Tabs>

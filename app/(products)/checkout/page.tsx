@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, AlertCircle, Clock, Copy, ArrowLeft, RefreshCw } from "lucide-react";
@@ -325,14 +325,14 @@ function CheckoutContent() {
   if (!order) {
     return (
       <div className="container max-w-md mx-auto py-20 px-4">
-        <Card className="border-destructive/20 bg-destructive/5">
-          <CardHeader>
+        <GlassCard className="border-destructive/20 bg-destructive/5">
+          <GlassCardHeader>
             <div className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-5 w-5" />
               <h2 className="text-lg font-semibold">Order Not Found</h2>
             </div>
-          </CardHeader>
-        </Card>
+          </GlassCardHeader>
+        </GlassCard>
       </div>
     );
   }
@@ -340,8 +340,8 @@ function CheckoutContent() {
   if (order.status === "expired") {
     return (
       <div className="container max-w-md mx-auto py-20 px-4">
-        <Card className="border-yellow-500/20 bg-yellow-500/5">
-          <CardHeader>
+        <GlassCard className="border-yellow-500/20 bg-yellow-500/5">
+          <GlassCardHeader>
             <div className="flex items-center gap-2 text-yellow-500">
               <Clock className="h-5 w-5" />
               <h2 className="text-lg font-semibold">Order Expired</h2>
@@ -350,8 +350,8 @@ function CheckoutContent() {
               This order has exceeded its validity period, please place a new
               order
             </p>
-          </CardHeader>
-        </Card>
+          </GlassCardHeader>
+        </GlassCard>
       </div>
     );
   }
@@ -359,8 +359,8 @@ function CheckoutContent() {
   if (completed || order.status === "paid") {
     return (
       <div className="container max-w-md mx-auto py-20 px-4">
-        <Card className="border-green-500/20 bg-green-500/5">
-          <CardHeader className="text-center">
+        <GlassCard className="border-green-500/20 bg-green-500/5">
+          <GlassCardHeader className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
               <CheckCircle2 className="h-6 w-6 text-green-500" />
             </div>
@@ -370,8 +370,8 @@ function CheckoutContent() {
             <p className="text-sm text-muted-foreground mt-2">
               Your payment has been completed
             </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="rounded-lg bg-card border p-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Order No.</span>
@@ -402,8 +402,8 @@ function CheckoutContent() {
                 Return to Merchant
               </Button>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     );
   }
@@ -430,8 +430,8 @@ function CheckoutContent() {
 
   return (
     <div className="container max-w-lg mx-auto py-10 px-4">
-      <Card className="border-border shadow-lg">
-        <CardHeader className="text-center border-b border-border/50 pb-6">
+      <GlassCard className="border-border shadow-lg">
+        <GlassCardHeader className="text-center border-b border-border/50 pb-6">
           {isDemo && (
             <div className="flex justify-center mb-3">
               <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 px-3 py-1">
@@ -467,9 +467,9 @@ function CheckoutContent() {
             <span className="text-muted-foreground">Expiration Time</span>
             <span className="font-mono text-lg">{formatTime(timeLeft)}</span>
           </div>
-        </CardHeader>
+        </GlassCardHeader>
 
-        <CardContent className="pt-6 space-y-4">
+        <GlassCardContent className="pt-6 space-y-4">
           {showNetworkSelection ? (
             <div className="space-y-4 animate-in fade-in slide-in-from-right duration-300">
               <div className="flex items-center mb-4">
@@ -699,8 +699,8 @@ function CheckoutContent() {
               Protocol Banks
             </span>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       <div className="mt-6 text-center">
         <Link href="/acquiring/orders">

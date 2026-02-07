@@ -9,6 +9,7 @@ type Config struct {
 	Environment string
 	GRPCPort    int
 	APISecret   string
+	PrivateKey  string // Added for Payout Signing
 
 	// Database
 	Database DatabaseConfig
@@ -25,9 +26,10 @@ type DatabaseConfig struct {
 }
 
 type RedisConfig struct {
-	URL      string
-	Password string
-	DB       int
+	URL        string
+	Password   string
+	DB         int
+	TLSEnabled bool // Enable TLS for production Redis
 }
 
 type ChainConfig struct {
@@ -48,13 +50,15 @@ func Load() (*Config, error) {
 		Environment: getEnv("ENVIRONMENT", "development"),
 		GRPCPort:    port,
 		APISecret:   getEnv("API_SECRET", ""),
+		PrivateKey:  getEnv("PAYOUT_PRIVATE_KEY", ""), // Load from Env
 		Database: DatabaseConfig{
 			URL: getEnv("DATABASE_URL", ""),
 		},
 		Redis: RedisConfig{
-			URL:      getEnv("REDIS_URL", "localhost:6379"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       redisDB,
+			URL:        getEnv("REDIS_URL", "localhost:6379"),
+			Password:   getEnv("REDIS_PASSWORD", ""),
+			DB:         redisDB,
+			TLSEnabled: getEnv("REDIS_TLS_ENABLED", "false") == "true",
 		},
 		Chains: map[uint64]ChainConfig{
 			1: {

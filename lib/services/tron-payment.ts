@@ -5,6 +5,7 @@
 
 import { getTokenAddress, getSupportedTokens } from "@/lib/networks"
 import type { PaymentResult, Recipient } from "@/types"
+import { logger } from "@/lib/logger/structured-logger"
 
 // TRC20 ABI for transfer function
 const TRC20_ABI = [
@@ -69,7 +70,12 @@ export async function getTronNetwork(): Promise<"tron" | "tron-nile"> {
     }
     return "tron"
   } catch (error) {
-    console.warn("[TRON] Failed to detect network, defaulting to mainnet:", error)
+    logger.warn("Failed to detect TRON network, defaulting to mainnet", {
+      network: "tron",
+      component: "tron-payment",
+      action: "network_detection",
+      metadata: { error: error instanceof Error ? error.message : String(error) }
+    })
     return "tron"
   }
 }
@@ -105,7 +111,12 @@ export async function getTRC20Balance(
       decimals: Number(decimals),
     }
   } catch (error) {
-    console.error("[TRON] Failed to get balance:", error)
+    logger.error("Failed to get TRC20 balance", error instanceof Error ? error : new Error(String(error)), {
+      network: "tron",
+      component: "tron-payment",
+      action: "get_balance",
+      metadata: { tokenAddress, walletAddress }
+    })
     throw new Error(`Failed to get token balance: ${error instanceof Error ? error.message : "Unknown error"}`)
   }
 }
@@ -137,12 +148,17 @@ export async function sendTRC20(
       .multipliedBy(Math.pow(10, decimals))
       .toFixed(0)
 
-    console.log("[TRON] Sending TRC20:", {
-      token: tokenAddress,
-      to: toAddress,
-      amount,
-      amountInSmallestUnit,
-      decimals,
+    logger.info("Initiating TRC20 transfer", {
+      network: "tron",
+      component: "tron-payment",
+      action: "send_trc20",
+      metadata: {
+        tokenAddress,
+        toAddress,
+        amount,
+        amountInSmallestUnit,
+        decimals
+      }
     })
 
     // Create contract instance
@@ -165,11 +181,19 @@ export async function sendTRC20(
       callValue: 0,
     })
 
-    console.log("[TRON] Transfer successful:", tx)
+    logger.logBlockchainInteraction("tron", "TRC20_transfer", tx, "success", {
+      component: "tron-payment",
+      metadata: { amount, toAddress, tokenAddress }
+    })
 
     return tx
   } catch (error: any) {
-    console.error("[TRON] Transfer failed:", error)
+    logger.error("TRC20 transfer failed", error instanceof Error ? error : new Error(String(error)), {
+      network: "tron",
+      component: "tron-payment",
+      action: "send_trc20",
+      metadata: { amount, toAddress, tokenAddress }
+    })
 
     // Parse TronLink error messages
     if (error.message?.includes("Confirmation declined by user")) {
@@ -202,19 +226,29 @@ export async function sendTRX(toAddress: string, amount: string): Promise<string
     // Convert TRX to sun (1 TRX = 1,000,000 sun)
     const amountInSun = tronWeb.toSun(amount)
 
-    console.log("[TRON] Sending TRX:", {
-      to: toAddress,
-      amount,
-      amountInSun,
+    logger.info("Initiating TRX transfer", {
+      network: "tron",
+      component: "tron-payment",
+      action: "send_trx",
+      metadata: { toAddress, amount, amountInSun }
     })
 
     const tx = await tronWeb.trx.sendTransaction(toAddress, amountInSun)
 
-    console.log("[TRON] TRX transfer successful:", tx)
+    const txHash = tx.txid || tx.transaction?.txID || tx
+    logger.logBlockchainInteraction("tron", "TRX_transfer", txHash, "success", {
+      component: "tron-payment",
+      metadata: { amount, toAddress }
+    })
 
-    return tx.txid || tx.transaction?.txID || tx
+    return txHash
   } catch (error: any) {
-    console.error("[TRON] TRX transfer failed:", error)
+    logger.error("TRX transfer failed", error instanceof Error ? error : new Error(String(error)), {
+      network: "tron",
+      component: "tron-payment",
+      action: "send_trx",
+      metadata: { amount, toAddress }
+    })
 
     if (error.message?.includes("Confirmation declined by user")) {
       throw new Error("Transaction was rejected by user")
@@ -228,7 +262,12 @@ export async function sendTRX(toAddress: string, amount: string): Promise<string
  * Process single TRON payment
  */
 export async function processTronPayment(recipient: Recipient, wallet: string): Promise<PaymentResult> {
-  console.log("[TRON] Processing payment:", { recipient, wallet })
+  logger.info("Processing TRON payment", {
+    network: "tron",
+    component: "tron-payment",
+    action: "process_payment",
+    metadata: { recipientAddress: recipient.address, amount: recipient.amount, wallet }
+  })
 
   try {
     // Validate recipient address
@@ -238,7 +277,11 @@ export async function processTronPayment(recipient: Recipient, wallet: string): 
 
     // Get current network
     const network = await getTronNetwork()
-    console.log("[TRON] Current network:", network)
+    logger.debug("Detected TRON network", {
+      network,
+      component: "tron-payment",
+      action: "network_detection"
+    })
 
     // Get token address from network config
     const tokenSymbol = recipient.token || "USDT"
@@ -261,6 +304,12 @@ export async function processTronPayment(recipient: Recipient, wallet: string): 
     // Send TRC20 transfer
     const txHash = await sendTRC20(tokenAddress, recipient.address, String(recipient.amount), decimals)
 
+    logger.logPayment("completed", txHash, String(recipient.amount), {
+      network: "tron",
+      component: "tron-payment",
+      metadata: { recipientAddress: recipient.address, token: tokenSymbol }
+    })
+
     return {
       success: true,
       txHash,
@@ -269,7 +318,12 @@ export async function processTronPayment(recipient: Recipient, wallet: string): 
       token: tokenSymbol,
     }
   } catch (error) {
-    console.error("[TRON] Payment failed:", error)
+    logger.error("TRON payment failed", error instanceof Error ? error : new Error(String(error)), {
+      network: "tron",
+      component: "tron-payment",
+      action: "process_payment",
+      metadata: { recipientAddress: recipient.address, amount: recipient.amount }
+    })
 
     return {
       success: false,
@@ -289,7 +343,12 @@ export async function processTronBatchPayments(
   wallet: string,
   onProgress?: (current: number, total: number) => void,
 ): Promise<PaymentResult[]> {
-  console.log("[TRON] Processing batch payments:", { count: recipients.length, wallet })
+  logger.info("Processing TRON batch payments", {
+    network: "tron",
+    component: "tron-payment",
+    action: "batch_payment",
+    metadata: { recipientCount: recipients.length, wallet }
+  })
 
   const results: PaymentResult[] = []
 
@@ -337,7 +396,12 @@ export async function getAccountResources(address?: string): Promise<{
       },
     }
   } catch (error) {
-    console.error("[TRON] Failed to get account resources:", error)
+    logger.error("Failed to get account resources", error instanceof Error ? error : new Error(String(error)), {
+      network: "tron",
+      component: "tron-payment",
+      action: "get_resources",
+      metadata: { accountAddress }
+    })
     throw new Error(`Failed to get account resources: ${error instanceof Error ? error.message : "Unknown error"}`)
   }
 }
@@ -371,7 +435,12 @@ export async function getTronTransaction(txHash: string): Promise<any> {
     const tx = await tronWeb.trx.getTransaction(txHash)
     return tx
   } catch (error) {
-    console.error("[TRON] Failed to get transaction:", error)
+    logger.error("Failed to get transaction details", error instanceof Error ? error : new Error(String(error)), {
+      network: "tron",
+      component: "tron-payment",
+      action: "get_transaction",
+      txHash
+    })
     throw new Error(`Failed to get transaction: ${error instanceof Error ? error.message : "Unknown error"}`)
   }
 }
@@ -392,16 +461,72 @@ export async function waitForTronConfirmation(
 
       if (tx && tx.id) {
         // Transaction is confirmed
-        console.log(`[TRON] Transaction confirmed after ${i + 1} attempts:`, tx)
-        return tx.receipt?.result === "SUCCESS"
+        const isSuccess = tx.receipt?.result === "SUCCESS"
+        logger.info(`Transaction confirmed after ${i + 1} attempts`, {
+          network: "tron",
+          component: "tron-payment",
+          action: "wait_confirmation",
+          txHash,
+          metadata: { attempts: i + 1, success: isSuccess }
+        })
+        return isSuccess
       }
     } catch (error) {
-      console.log(`[TRON] Waiting for confirmation (attempt ${i + 1}/${maxAttempts})...`)
+      logger.debug(`Waiting for confirmation (attempt ${i + 1}/${maxAttempts})`, {
+        network: "tron",
+        component: "tron-payment",
+        action: "wait_confirmation",
+        txHash,
+        metadata: { attempt: i + 1, maxAttempts }
+      })
     }
 
     // Wait before next attempt
     await new Promise((resolve) => setTimeout(resolve, delayMs))
   }
 
+  logger.error("Transaction confirmation timeout", new Error(`Timeout after ${maxAttempts} attempts`), {
+    network: "tron",
+    component: "tron-payment",
+    action: "wait_confirmation",
+    txHash,
+    metadata: { maxAttempts }
+  })
+
   throw new Error(`Transaction confirmation timeout after ${maxAttempts} attempts`)
+}
+
+/**
+ * Get confirmation info for a transaction
+ * Returns the number of confirmations and the block number
+ */
+export async function getConfirmationInfo(
+  txHash: string
+): Promise<{ confirmations: number; blockNumber: number }> {
+  const tronWeb = getTronWeb()
+
+  try {
+    const txInfo = await tronWeb.trx.getTransactionInfo(txHash)
+
+    if (!txInfo || !txInfo.blockNumber) {
+      return { confirmations: 0, blockNumber: 0 }
+    }
+
+    const currentBlock = await tronWeb.trx.getCurrentBlock()
+    const currentBlockNumber = currentBlock?.block_header?.raw_data?.number ?? 0
+    const confirmations = Math.max(0, currentBlockNumber - txInfo.blockNumber)
+
+    return {
+      confirmations,
+      blockNumber: txInfo.blockNumber
+    }
+  } catch (error) {
+    logger.error("Failed to get confirmation info", error instanceof Error ? error : new Error(String(error)), {
+      network: "tron",
+      component: "tron-payment",
+      action: "get_confirmation_info",
+      txHash
+    })
+    return { confirmations: 0, blockNumber: 0 }
+  }
 }

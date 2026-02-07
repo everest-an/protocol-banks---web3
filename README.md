@@ -182,18 +182,18 @@ const response = await fetch('/api/agents/proposals', {
 
 ## Supported Blockchains
 
-| Chain | Type | Status | Note |
-|-------|------|--------|------|
-| Ethereum | EVM | ✅ Done | Mainnet, high-value settlement |
-| Polygon | EVM L2 | ✅ Done | Low cost, high throughput |
-| Arbitrum | EVM L2 | ✅ Done | Leading L2 solution |
-| Base | EVM L2 | ✅ Done | Coinbase ecosystem, Web2 onboarding |
-| Optimism | EVM L2 | ✅ Done | OP Stack ecosystem |
-| BNB Chain | EVM | ✅ Done | Asia's largest ecosystem |
-| Solana | Non-EVM | ✅ Done | High-speed, low-cost payments |
-| Bitcoin | Non-EVM | ✅ Done | Native BTC transfer support |
-| **Tron (波场)** | Non-EVM | 🚧 Integrating | **[NEW]** TRC20-USDT deep integration |
-| HashKey | EVM L1 | ✅ Done | RWA settlement, compliance-first |
+| Chain | Type | Status | Batch Payment | Note |
+|-------|------|--------|---------------|------|
+| Ethereum | EVM | ✅ Done | ✅ Supported | Mainnet, high-value settlement |
+| Polygon | EVM L2 | ✅ Done | ✅ Supported | Low cost, high throughput |
+| Arbitrum | EVM L2 | ✅ Done | ✅ Supported | Leading L2 solution |
+| Base | EVM L2 | ✅ Done | ✅ Supported | Coinbase ecosystem, Web2 onboarding |
+| Optimism | EVM L2 | ✅ Done | 🚧 Planned | OP Stack ecosystem |
+| BNB Chain | EVM | ✅ Done | ✅ Supported | Asia's largest ecosystem |
+| Solana | Non-EVM | ✅ Done | 🚧 Planned | High-speed, low-cost payments |
+| Bitcoin | Non-EVM | ✅ Done | 🚧 Planned | Native BTC transfer support |
+| **Tron (波场)** | Non-EVM | 🚧 Integrating | 🚧 Planned | **[NEW]** TRC20-USDT deep integration |
+| HashKey | EVM L1 | ✅ Done | 🚧 Planned | RWA settlement, compliance-first |
 
 ## Tech Stack
 

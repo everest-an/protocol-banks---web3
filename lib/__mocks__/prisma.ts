@@ -1,0 +1,48 @@
+// Auto-mock for @/lib/prisma
+// This provides a properly structured mock of the Prisma client for all test suites.
+
+const mockPrismaModel = () => ({
+  findFirst: jest.fn(),
+  findUnique: jest.fn(),
+  findMany: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  updateMany: jest.fn(),
+  upsert: jest.fn(),
+  delete: jest.fn(),
+  deleteMany: jest.fn(),
+  count: jest.fn(),
+  aggregate: jest.fn(),
+  groupBy: jest.fn(),
+})
+
+export const prisma = {
+  payment: mockPrismaModel(),
+  batchPayment: mockPrismaModel(),
+  blockInfo: mockPrismaModel(),
+  subscription: mockPrismaModel(),
+  authUser: mockPrismaModel(),
+  sessionKey: mockPrismaModel(),
+  vendor: mockPrismaModel(),
+  invoice: mockPrismaModel(),
+  agent: mockPrismaModel(),
+  agentWallet: mockPrismaModel(),
+  agentBudget: mockPrismaModel(),
+  agentPaymentProposal: mockPrismaModel(),
+  corporateCard: mockPrismaModel(),
+  cardTransaction: mockPrismaModel(),
+  fiatOrder: mockPrismaModel(),
+  securityAuditLog: mockPrismaModel(),
+  userSubscription: mockPrismaModel(),
+  embeddedWallet: mockPrismaModel(),
+  magicLink: mockPrismaModel(),
+  merchant: mockPrismaModel(),
+  webhooks: mockPrismaModel(),
+  $executeRawUnsafe: jest.fn(),
+  $executeRaw: jest.fn(),
+  $queryRaw: jest.fn(),
+  $queryRawUnsafe: jest.fn(),
+  $transaction: jest.fn((fn: any) => fn(prisma)),
+  $connect: jest.fn(),
+  $disconnect: jest.fn(),
+}

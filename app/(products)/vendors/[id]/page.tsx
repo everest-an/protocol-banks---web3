@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Send, Copy, ExternalLink, Building2, Mail, Calendar, Wallet, TrendingUp, Activity, History } from "lucide-react"
 import Link from "next/link"
@@ -156,8 +156,8 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
   if (!vendor) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="pt-6 text-center">
+        <GlassCard className="max-w-md w-full mx-4">
+          <GlassCardContent className="pt-6 text-center">
             <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
               <Building2 className="w-8 h-8 text-muted-foreground" />
             </div>
@@ -171,8 +171,8 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                 Back to Contacts
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     )
   }
@@ -209,14 +209,14 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
           {/* Left Column - Details */}
           <div className="lg:col-span-2 space-y-6">
             {/* Wallet Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
                   <Wallet className="w-5 h-5" />
                   Wallet Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4">
                 <div>
                   <label className="text-sm text-muted-foreground">Wallet Address</label>
                   <div className="flex items-center gap-2 mt-1">
@@ -249,18 +249,18 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
 
             {/* Contact Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
                   <Mail className="w-5 h-5" />
                   Contact Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4">
                 <div>
                   <label className="text-sm text-muted-foreground">Email</label>
                   <p className="font-medium">{vendor.contact_email || vendor.email || "Not provided"}</p>
@@ -271,19 +271,19 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                     <p className="text-foreground">{vendor.notes}</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
 
             {/* Recent Transactions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
                   <History className="w-5 h-5" />
                   Recent Transactions
-                </CardTitle>
-                <CardDescription>Last 5 transactions with this entity</CardDescription>
-              </CardHeader>
-              <CardContent>
+                </GlassCardTitle>
+                <GlassCardDescription>Last 5 transactions with this entity</GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
                 <div className="space-y-3">
                   {mockTransactions.map((tx) => (
                     <div
@@ -320,21 +320,21 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           </div>
 
           {/* Right Column - Stats */}
           <div className="space-y-6">
             {/* Financial Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" />
                   Financial Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm text-muted-foreground mb-1">Total Received</p>
                   <p className="text-2xl font-bold font-mono">
@@ -355,18 +355,18 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                       : 0}
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
 
             {/* Activity Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
                   <Activity className="w-5 h-5" />
                   Activity Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
                 <div className="flex items-center gap-3">
                   <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
                   <span className="text-green-600 dark:text-green-400 font-medium">Active</span>
@@ -374,15 +374,15 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                 <p className="text-sm text-muted-foreground mt-2">
                   Last transaction: 2 days ago
                 </p>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
 
             {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle>Quick Actions</GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-2">
                 <Link href={`/send?to=${vendor.wallet_address}`} className="block">
                   <Button variant="outline" className="w-full justify-start">
                     <Send className="w-4 h-4 mr-2" />
@@ -401,8 +401,8 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                     View Full History
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 // Base chain ID for CDP settlement (0 fee)
 const BASE_CHAIN_ID = 8453
@@ -23,6 +24,12 @@ interface SettleRequest {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request - only authorized callers can settle payments
+    const callerAddress = await getAuthenticatedAddress(request)
+    if (!callerAddress) {
+      return NextResponse.json({ error: "Unauthorized", message: "Authentication required" }, { status: 401 })
+    }
+
     const body: SettleRequest = await request.json()
     const { authorizationId, transactionHash, chainId, amount, token, from, to } = body
 
@@ -92,7 +99,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error("[x402] Settle error:", error)
-    return NextResponse.json({ error: error.message || "Settlement failed" }, { status: 500 })
+    return NextResponse.json({ error: "Settlement failed" }, { status: 500 })
   }
 }
 
@@ -120,6 +127,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ settlement })
   } catch (error: any) {
     console.error("[x402] Get settlement error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: "Failed to retrieve settlement" }, { status: 500 })
   }
 }

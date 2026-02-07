@@ -3,7 +3,7 @@
 import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { PaymentButton } from "@/components/payment-button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
 import { Shield, Lock } from "lucide-react"
 import Loading from "./loading"
@@ -24,14 +24,14 @@ function EmbedPaymentContent() {
   if (!to || !/^0x[a-fA-F0-9]{40}$/.test(to)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="text-red-600">Invalid Payment Link</CardTitle>
-            <CardDescription>
+        <GlassCard className="max-w-md">
+          <GlassCardHeader>
+            <GlassCardTitle className="text-red-600">Invalid Payment Link</GlassCardTitle>
+            <GlassCardDescription>
               This payment link is missing required parameters or has an invalid recipient address.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+            </GlassCardDescription>
+          </GlassCardHeader>
+        </GlassCard>
       </div>
     )
   }
@@ -40,12 +40,12 @@ function EmbedPaymentContent() {
     <div
       className={`min-h-screen flex items-center justify-center p-4 ${theme === "dark" ? "dark bg-zinc-950" : "bg-gray-50"}`}
     >
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center">
-          {merchantName && <CardTitle className="text-xl">{merchantName}</CardTitle>}
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <GlassCard className="w-full max-w-md shadow-lg">
+        <GlassCardHeader className="text-center">
+          {merchantName && <GlassCardTitle className="text-xl">{merchantName}</GlassCardTitle>}
+          {description && <GlassCardDescription>{description}</GlassCardDescription>}
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-6">
           {/* Amount Display */}
           {amount && (
             <div className="text-center py-4">
@@ -108,8 +108,8 @@ function EmbedPaymentContent() {
               Paying to: {to.slice(0, 10)}...{to.slice(-8)}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   )
 }

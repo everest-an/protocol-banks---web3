@@ -5,6 +5,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 // Activity types
 type ActivityType =
@@ -54,18 +55,18 @@ const STATUS_MAP: Record<string, "success" | "pending" | "failed"> = {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get query params
-    const { searchParams } = new URL(request.url);
-    const wallet = searchParams.get('wallet');
-    const limit = parseInt(searchParams.get('limit') || '15', 10);
-    const type = searchParams.get('type'); // Filter by type: payments, subscriptions, etc.
-
+    // Authenticate the request
+    const wallet = await getAuthenticatedAddress(request);
     if (!wallet) {
       return NextResponse.json(
-        { error: 'Bad Request', message: 'Wallet address is required' },
-        { status: 400 }
+        { error: 'Unauthorized', message: 'Authentication required. Connect wallet or sign in.' },
+        { status: 401 }
       );
     }
+
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '15', 10);
+    const type = searchParams.get('type'); // Filter by type: payments, subscriptions, etc.
 
     const walletLower = wallet.toLowerCase();
     const activities: Activity[] = [];
@@ -357,7 +358,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[Activities] Error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: error.message || 'Failed to fetch activities' },
+      { error: 'Internal Server Error', message: 'Failed to fetch activities' },
       { status: 500 }
     );
   }

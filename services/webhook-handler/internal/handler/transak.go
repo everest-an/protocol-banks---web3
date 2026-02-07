@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -134,7 +135,11 @@ func (h *TransakHandler) handleOrderCompleted(ctx interface{}, order TransakOrde
 		Str("wallet", order.WalletAddress).
 		Str("tx_hash", order.TxHash).
 		Msg("Transak order completed")
-	// TODO: 更新用户购买记录
+
+	// Save to DB
+	if err := h.store.UpsertFiatOrder(context.Background(), order.OrderID, order.Status, order.FiatAmount, order.FiatCurrency, order.WalletAddress, order.TxHash); err != nil {
+		log.Error().Err(err).Msg("Failed to update fiat order db")
+	}
 }
 
 func (h *TransakHandler) handleOrderProcessing(ctx interface{}, order TransakOrder) {

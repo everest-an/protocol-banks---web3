@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = new Set([
+  process.env.NEXT_PUBLIC_APP_URL || 'https://protocolbanks.com',
+  'https://protocolbanks.com',
+  'https://www.protocolbanks.com',
+  'https://app.protocolbanks.com',
+  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000', 'http://localhost:3001'] : []),
+])
+
 // Security headers to add to all responses
 const securityHeaders = {
   "X-Frame-Options": "DENY",
@@ -9,6 +18,18 @@ const securityHeaders = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(self)",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://*.llamarpc.com https://*.infura.io https://*.alchemy.com wss://*.walletconnect.com https://*.walletconnect.com https://api.rango.exchange https://*.trongrid.io https://*.etherscan.io",
+    "frame-src 'self' https://www.google.com https://verify.walletconnect.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; '),
 }
 
 // Rate limiting store (in production, use Redis)
@@ -43,6 +64,22 @@ export function middleware(request: NextRequest) {
   // Add security headers to all responses
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value)
+  }
+
+  // CORS handling for API routes
+  if (path.startsWith("/api/")) {
+    const origin = request.headers.get("origin")
+    if (origin && ALLOWED_ORIGINS.has(origin)) {
+      response.headers.set("Access-Control-Allow-Origin", origin)
+    }
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-wallet-address, x-api-key")
+    response.headers.set("Access-Control-Max-Age", "86400")
+
+    // Handle preflight
+    if (request.method === "OPTIONS") {
+      return new NextResponse(null, { status: 204, headers: response.headers })
+    }
   }
 
   // Rate limit API routes

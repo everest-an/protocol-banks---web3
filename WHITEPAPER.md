@@ -160,6 +160,22 @@ Protocol Banks 致力于打破链孤岛，通过统一的接口支持主流公�
     - **Tron (波场)**: **[新增]** 深度集成 TRC20-USDT 网络，支持高通量稳定币转账。
 - **跨链桥接**: 集成 CCTP (Circle Cross-Chain Transfer Protocol) 和 Rango Exchange，实现无缝资产跨链。
 
+### 4.5 Network Support Matrix (Technical Specification)
+
+Protocol Banks currently supports the following networks with specific capabilities:
+
+| Network | Chain ID | Type | Batch Payment Support | Contract Status |
+|---------|----------|------|-----------------------|-----------------|
+| **Ethereum** | 1 | EVM | ✅ Active | Verified (Disperse) |
+| **Arbitrum One** | 42161 | EVM L2 | ✅ Active | Verified (Disperse) |
+| **Base** | 8453 | EVM L2 | ✅ Active | Verified (Disperse) |
+| **BNB Chain** | 56 | EVM | ✅ Active | Verified (Disperse) |
+| **Polygon** | 137 | EVM L2 | ✅ Active | Verified (Disperse) |
+| **Optimism** | 10 | EVM L2 | 🚧 Planned | Pending |
+| **Solana** | - | SVM | 🚧 Planned | In Development |
+| **HashKey** | 177 | EVM | 🚧 Planned | Pending |
+| **Tron** | - | TVM | 🚧 Planned | In Development |
+
 ---
 
 ## 五、 产品功能 (Product Functions)

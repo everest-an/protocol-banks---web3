@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef } from "react"
 import Image from "next/image"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -603,12 +603,12 @@ export default function CardPage() {
 
           {/* Apply Tab */}
           <TabsContent value="apply" className="max-w-2xl mx-auto">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle>Apply for {cardType === "virtual" ? "Virtual" : "Physical"} Card</CardTitle>
-                <CardDescription>Complete your application in 2 simple steps</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+            <GlassCard className="bg-card border-border">
+              <GlassCardHeader>
+                <GlassCardTitle>Apply for {cardType === "virtual" ? "Virtual" : "Physical"} Card</GlassCardTitle>
+                <GlassCardDescription>Complete your application in 2 simple steps</GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-6">
                 {/* Progress indicator */}
                 <div className="flex items-center gap-2 mb-6">
                   <div
@@ -738,8 +738,8 @@ export default function CardPage() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           </TabsContent>
 
           {/* Manage Tab */}
@@ -758,8 +758,8 @@ export default function CardPage() {
 
                 {/* Card Controls */}
                 <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                  <Card className="bg-card border-border">
-                    <CardContent className="pt-6">
+                  <GlassCard className="bg-card border-border">
+                    <GlassCardContent className="pt-6">
                       <div className="text-center space-y-2">
                         <div className="text-sm text-muted-foreground">Available Balance</div>
                         <div className="text-3xl font-bold">${userCard.balance.toLocaleString()}</div>
@@ -768,11 +768,11 @@ export default function CardPage() {
                           Add Funds
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </GlassCardContent>
+                  </GlassCard>
 
-                  <Card className="bg-card border-border">
-                    <CardContent className="pt-6">
+                  <GlassCard className="bg-card border-border">
+                    <GlassCardContent className="pt-6">
                       <div className="text-center space-y-2">
                         <div className="text-sm text-muted-foreground">Card Status</div>
                         <Badge
@@ -795,11 +795,11 @@ export default function CardPage() {
                           {userCard.status === "frozen" ? "Unfreeze" : "Freeze"}
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </GlassCardContent>
+                  </GlassCard>
 
-                  <Card className="bg-card border-border">
-                    <CardContent className="pt-6">
+                  <GlassCard className="bg-card border-border">
+                    <GlassCardContent className="pt-6">
                       <div className="text-center space-y-2">
                         <div className="text-sm text-muted-foreground">Card Details</div>
                         <Button
@@ -821,16 +821,16 @@ export default function CardPage() {
                           )}
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </GlassCardContent>
+                  </GlassCard>
                 </div>
 
                 {/* Recent Transactions */}
-                <Card className="max-w-3xl mx-auto bg-card border-border">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Recent Transactions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                <GlassCard className="max-w-3xl mx-auto bg-card border-border">
+                  <GlassCardHeader>
+                    <GlassCardTitle className="text-lg">Recent Transactions</GlassCardTitle>
+                  </GlassCardHeader>
+                  <GlassCardContent>
                     <div className="space-y-4">
                       {[
                         { merchant: "Amazon", amount: -156.99, date: "Today", category: "Shopping" },
@@ -854,8 +854,8 @@ export default function CardPage() {
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               </>
             )}
           </TabsContent>

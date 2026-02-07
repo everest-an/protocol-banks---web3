@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security/security"
 import { addSecurityHeaders, validateOrigin } from "@/lib/security/security-middleware"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 // Regex for basic Ethereum address validation
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/
@@ -25,6 +26,12 @@ export async function GET(request: NextRequest) {
     return addSecurityHeaders(NextResponse.json({ error: originValidation.error }, { status: 403 }))
   }
 
+  // Authenticate the request
+  const callerAddress = await getAuthenticatedAddress(request)
+  if (!callerAddress) {
+    return addSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }))
+  }
+
   const searchParams = request.nextUrl.searchParams
   const address = searchParams.get("address")
   const chainId = searchParams.get("chainId")
@@ -36,6 +43,11 @@ export async function GET(request: NextRequest) {
   const addressValidation = validateAndChecksumAddress(address)
   if (!addressValidation.valid) {
     return addSecurityHeaders(NextResponse.json({ error: addressValidation.error }, { status: 400 }))
+  }
+
+  // Verify caller owns the queried address
+  if (callerAddress.toLowerCase() !== addressValidation.checksummed?.toLowerCase()) {
+    return addSecurityHeaders(NextResponse.json({ error: "Forbidden: Can only query your own transactions" }, { status: 403 }))
   }
 
   const apiKey = process.env.ETHERSCAN_API_KEY

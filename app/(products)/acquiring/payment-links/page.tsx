@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -366,25 +366,25 @@ export default function PaymentLinksPage() {
 
       {/* Demo Mode Banner */}
       {isDemoMode && (
-        <Card className="mb-6 border-blue-500/20 bg-blue-500/5">
-          <CardContent className="pt-6 pb-4">
+        <GlassCard className="mb-6 border-blue-500/20 bg-blue-500/5">
+          <GlassCardContent className="pt-6 pb-4">
             <p className="text-sm text-blue-500">
               You are viewing demo payment links. Connect your wallet to manage real payment links.
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Create Form */}
       {showCreateForm && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Create Payment Link</CardTitle>
-            <CardDescription>
+        <GlassCard className="mb-8">
+          <GlassCardHeader>
+            <GlassCardTitle>Create Payment Link</GlassCardTitle>
+            <GlassCardDescription>
               Configure your payment link settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <form onSubmit={handleCreate}>
               <Tabs defaultValue="basic" className="w-full">
                 <TabsList className="mb-4">
@@ -720,25 +720,25 @@ export default function PaymentLinksPage() {
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Created Link Success */}
       {createdLink && (
-        <Card className="mb-8 border-green-500/20 bg-green-500/5">
-          <CardHeader>
+        <GlassCard className="mb-8 border-green-500/20 bg-green-500/5">
+          <GlassCardHeader>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <CardTitle className="text-green-500">
+              <GlassCardTitle className="text-green-500">
                 Payment Link Created!
-              </CardTitle>
+              </GlassCardTitle>
             </div>
-            <CardDescription>
+            <GlassCardDescription>
               Share this link with your customers to receive payments
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Payment Link</Label>
               <div className="flex gap-2">
@@ -779,36 +779,36 @@ export default function PaymentLinksPage() {
                 Close
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Links List */}
       <div className="grid gap-4">
         {links.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
+          <GlassCard>
+            <GlassCardContent className="py-12 text-center">
               <Link2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
                 No payment links yet. Create your first payment link to start
                 accepting crypto payments.
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ) : (
           links.map((link) => (
-            <Card key={link.id}>
-              <CardHeader>
+            <GlassCard key={link.id}>
+              <GlassCardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                       <Link2 className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{link.title}</CardTitle>
-                      <CardDescription className="font-mono text-xs mt-1">
+                      <GlassCardTitle className="text-lg">{link.title}</GlassCardTitle>
+                      <GlassCardDescription className="font-mono text-xs mt-1">
                         {link.link_id}
-                      </CardDescription>
+                      </GlassCardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -830,8 +830,8 @@ export default function PaymentLinksPage() {
                     )}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground flex items-center gap-1">
@@ -901,8 +901,8 @@ export default function PaymentLinksPage() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           ))
         )}
       </div>
@@ -917,13 +917,13 @@ export default function PaymentLinksPage() {
             className="max-w-sm w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <CardHeader className="text-center">
-              <CardTitle>{showQRModal.title}</CardTitle>
-              <CardDescription>
+            <GlassCardHeader className="text-center">
+              <GlassCardTitle>{showQRModal.title}</GlassCardTitle>
+              <GlassCardDescription>
                 Scan to pay {showQRModal.amount || "any amount"} {showQRModal.token}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="flex flex-col items-center gap-4">
               <div className="p-4 bg-white rounded-lg">
                 <QRCodeSVG
                   value={getPaymentUrl(showQRModal)}
@@ -944,8 +944,8 @@ export default function PaymentLinksPage() {
               <Button variant="ghost" onClick={() => setShowQRModal(null)}>
                 Close
               </Button>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       )}
     </div>

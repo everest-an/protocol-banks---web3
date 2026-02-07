@@ -900,6 +900,8 @@ model AuthUser {
   embedded_wallets EmbeddedWallet[]
   magic_links      MagicLink[]
   merchants        Merchant[]
+  corporate_cards  CorporateCard[]
+  fiat_orders      FiatOrder[]
 
   @@index([email])
   @@index([wallet_address])
@@ -1346,4 +1348,158 @@ model MonthlyFeeSummary {
   @@unique([from_address, month])
   @@index([from_address])
   @@map("monthly_fee_summary")
+}
+
+// ============================================================================
+// TRON Merchant Settlement Protocol - New Models (2026-02-08)
+// ============================================================================
+
+/**
+ * 支付处理队列任务
+ * 用于 Redis 队列的持久化备份和状态跟踪
+ */
+model PaymentQueueJob {
+  id            String    @id @default(cuid())
+  payment_id    String
+  order_id      String
+  tx_hash       String
+  status        String    @default("pending") // pending, processing, completed, failed
+  attempts      Int       @default(0)
+  max_attempts  Int       @default(3)
+  priority      Int       @default(10) // 1-10, 数字越小优先级越高
+  error_message String?   @db.Text
+  created_at    DateTime  @default(now())
+  processed_at  DateTime?
+
+  @@index([status])
+  @@index([tx_hash])
+  @@index([created_at])
+  @@map("payment_queue_jobs")
+}
+
+/**
+ * 自动生息存款记录
+ * 跟踪商户在 JustLend 的存款和收益
+ */
+model YieldDeposit {
+  id            String    @id @default(cuid())
+  merchant_id   String
+  amount        Decimal   @db.Decimal(20, 6)
+  token         String    @default("USDT")
+  principal     Decimal   @db.Decimal(20, 6)
+  interest      Decimal   @default(0) @db.Decimal(20, 6)
+  apy           Decimal   @db.Decimal(5, 2)
+  status        String    @default("active") // active, withdrawn
+  tx_hash       String?
+  deposited_at  DateTime  @default(now())
+  withdrawn_at  DateTime?
+
+  @@index([merchant_id, status])
+  @@index([deposited_at])
+  @@map("yield_deposits")
+}
+
+/**
+ * 区块信息缓存
+ * 用于区块重组检测
+ */
+model BlockInfo {
+  block_number Int      @id
+  block_hash   String
+  parent_hash  String
+  timestamp    DateTime
+  network      String   @default("tron") // tron, ethereum, base, etc.
+  created_at   DateTime @default(now())
+
+  @@index([network, block_number])
+  @@map("block_info")
+}
+
+/**
+ * 审计日志增强
+ * 记录可疑交易和安全事件
+ */
+model SecurityAuditLog {
+  id            String   @id @default(cuid())
+  event_type    String // double_spend_attempt, suspicious_transaction, rate_limit_exceeded
+  severity      String   @default("medium") // low, medium, high, critical
+  tx_hash       String?
+  merchant_id   String?
+  ip_address    String?
+  user_agent    String?
+  details       Json
+  created_at    DateTime @default(now())
+
+  @@index([event_type])
+  @@index([severity])
+  @@index([merchant_id])
+  @@index([created_at])
+  @@map("security_audit_logs")
+}
+
+// ============================================================================
+// RWA & Fiat Ramp Models (Added for HashKey/Rain/Transak Integration)
+// ============================================================================
+
+model CorporateCard {
+  id             String   @id @default(uuid())
+  external_id    String   @unique // Rain Card ID
+  user_id        String
+  status         String   @default("INACTIVE") // ACTIVE, FROZEN, CLOSED
+  last4          String?
+  currency       String   @default("USD")
+  balance        Float    @default(0.0)
+  spending_limit Float?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  user         AuthUser          @relation(fields: [user_id], references: [id])
+  transactions CardTransaction[]
+
+  @@index([user_id])
+  @@index([external_id])
+  @@map("corporate_cards")
+}
+
+model CardTransaction {
+  id                String   @id @default(uuid())
+  external_id       String   @unique // Rain Transaction ID
+  card_id           String
+  merchant_name     String?
+  merchant_category String?
+  amount            Float
+  currency          String
+  status            String   // PENDING, COMPLETED, DECLINED
+  type              String   // AUTHORIZATION, SETTLEMENT, REFUND
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  card CorporateCard @relation(fields: [card_id], references: [id])
+
+  @@index([card_id])
+  @@index([external_id])
+  @@map("card_transactions")
+}
+
+model FiatOrder {
+  id              String   @id @default(uuid())
+  order_id        String   @unique // Transak Order ID
+  user_id         String?
+  provider        String   @default("TRANSAK") // TRANSAK, MOONPAY
+  status          String
+  fiat_amount     Float
+  fiat_currency   String
+  crypto_amount   Float
+  crypto_currency String
+  wallet_address  String
+  tx_hash         String?
+  network         String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user AuthUser? @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([order_id])
+  @@map("fiat_orders")
 }

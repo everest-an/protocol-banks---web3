@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -328,8 +328,8 @@ export default function MCPSubscriptionsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Zap className="h-4 w-4" />
               <span className="text-sm">Active Subscriptions</span>
@@ -337,19 +337,19 @@ export default function MCPSubscriptionsPage() {
             <div className="text-2xl font-bold">
               {subscriptions.filter((s) => s.status === "active").length}
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <BarChart3 className="h-4 w-4" />
               <span className="text-sm">Monthly Cost</span>
             </div>
             <div className="text-2xl font-bold">${totalMonthly}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Clock className="h-4 w-4" />
               <span className="text-sm">Next Billing</span>
@@ -361,10 +361,10 @@ export default function MCPSubscriptionsPage() {
                   ).toLocaleDateString()
                 : "N/A"}
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Key className="h-4 w-4" />
               <span className="text-sm">API Calls Used</span>
@@ -372,17 +372,17 @@ export default function MCPSubscriptionsPage() {
             <div className="text-2xl font-bold">
               {subscriptions.reduce((sum, s) => sum + s.usageUsed, 0).toLocaleString()}
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Subscriptions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Subscriptions</CardTitle>
-          <CardDescription>Manage your MCP service subscriptions and usage</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle>Your Subscriptions</GlassCardTitle>
+          <GlassCardDescription>Manage your MCP service subscriptions and usage</GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -482,8 +482,8 @@ export default function MCPSubscriptionsPage() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </main>
   )
 }

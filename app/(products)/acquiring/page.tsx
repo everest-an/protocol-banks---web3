@@ -8,7 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -103,69 +103,69 @@ export default function AcquiringDashboard() {
 
       {/* Demo Mode Banner */}
       {isDemoMode && (
-        <Card className="mb-6 border-blue-500/20 bg-blue-500/5">
-          <CardContent className="pt-6 pb-4">
+        <GlassCard className="mb-6 border-blue-500/20 bg-blue-500/5">
+          <GlassCardContent className="pt-6 pb-4">
             <p className="text-sm text-blue-500">
               You are viewing demo data. Connect your wallet to see real acquiring data.
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Data Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <GlassCard>
+          <GlassCardHeader className="flex flex-row items-center justify-between pb-2">
+            <GlassCardTitle className="text-sm font-medium text-muted-foreground">
               Total Merchants
-            </CardTitle>
+            </GlassCardTitle>
             <Store className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="text-2xl font-bold">{stats.totalMerchants}</div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <GlassCard>
+          <GlassCardHeader className="flex flex-row items-center justify-between pb-2">
+            <GlassCardTitle className="text-sm font-medium text-muted-foreground">
               Total Orders
-            </CardTitle>
+            </GlassCardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="text-2xl font-bold">{stats.totalOrders}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Pending: {stats.pendingOrders} | Paid: {stats.paidOrders}
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <GlassCard>
+          <GlassCardHeader className="flex flex-row items-center justify-between pb-2">
+            <GlassCardTitle className="text-sm font-medium text-muted-foreground">
               Transaction Amount
-            </CardTitle>
+            </GlassCardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="text-2xl font-bold">
               ${stats.totalAmount.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Completed orders
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <GlassCard>
+          <GlassCardHeader className="flex flex-row items-center justify-between pb-2">
+            <GlassCardTitle className="text-sm font-medium text-muted-foreground">
               Success Rate
-            </CardTitle>
+            </GlassCardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="text-2xl font-bold">
               {stats.totalOrders > 0
                 ? ((stats.paidOrders / stats.totalOrders) * 100).toFixed(1)
@@ -175,90 +175,90 @@ export default function AcquiringDashboard() {
             <p className="text-xs text-muted-foreground mt-1">
               {stats.paidOrders} / {stats.totalOrders} orders
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Merchant Management</CardTitle>
-            <CardDescription>
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle>Merchant Management</GlassCardTitle>
+            <GlassCardDescription>
               Create and manage acquiring merchants
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <Link href="/acquiring/merchants">
               <Button className="w-full">
                 Go to Merchant Management
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Management</CardTitle>
-            <CardDescription>
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle>Order Management</GlassCardTitle>
+            <GlassCardDescription>
               Create orders and view transaction records
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <Link href="/acquiring/orders">
               <Button className="w-full">
                 Go to Order Management
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Links</CardTitle>
-            <CardDescription>
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle>Payment Links</GlassCardTitle>
+            <GlassCardDescription>
               Create no-code payment links to accept crypto payments
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <Link href="/acquiring/payment-links">
               <Button className="w-full">
                 Go to Payment Links
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoices</CardTitle>
-            <CardDescription>
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle>Invoices</GlassCardTitle>
+            <GlassCardDescription>
               Create and manage crypto invoices with dual currency pricing
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <Link href="/acquiring/invoices">
               <Button className="w-full">
                 Go to Invoices
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Usage Guide */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Quick Start</CardTitle>
-          <CardDescription>
+      <GlassCard className="mt-8">
+        <GlassCardHeader>
+          <GlassCardTitle>Quick Start</GlassCardTitle>
+          <GlassCardDescription>
             Follow these steps to start using the acquiring feature
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-4">
           <div className="flex gap-4">
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
               1
@@ -306,8 +306,8 @@ export default function AcquiringDashboard() {
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   );
 }

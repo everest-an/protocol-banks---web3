@@ -10,17 +10,15 @@ import { processSubscriptionsCron } from '@/lib/services/subscription-payment-ex
  * Security: Requires CRON_SECRET header in production.
  */
 export async function POST(request: NextRequest) {
-  // Verify cron secret in production
-  if (process.env.NODE_ENV === 'production') {
-    const cronSecret = request.headers.get('x-cron-secret') || 
-                       request.headers.get('authorization')?.replace('Bearer ', '')
-    
-    if (cronSecret !== process.env.CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+  // Verify cron secret — required in ALL environments to prevent unauthorized triggering
+  const cronSecret = request.headers.get('x-cron-secret') || 
+                     request.headers.get('authorization')?.replace('Bearer ', '')
+  
+  if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
   }
 
   try {
@@ -43,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: 'Subscription processing failed' 
       },
       { status: 500 }
     )
