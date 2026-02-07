@@ -1,70 +1,177 @@
-# Protocol Bank Whitepaper v1.0
+# Protocol Banks - 技术白皮书 (Technical Whitepaper)
+**版本:** 2.0.0
+**日期:** 2026-02-08
 
-**Decentralized Treasury Management for the AI Era**
+---
 
-## 1. Executive Summary
+## 一、 执行摘要 (Executive Summary)
 
-As decentralized organizations (DAOs) and AI agents become dominant economic actors, the traditional banking stack is becoming obsolete. Protocol Bank introduces a programmable, cross-chain treasury management layer designed for the future of work. By abstracting chain-specific complexities and integrating standard accounting practices directly with on-chain events, Protocol Bank enables seamless financial operations for the next generation of digital enterprises.
+Protocol Banks 是一个非托管、多链支付解决基础设施，专为 DAO、AI Agent 和企业级用户设计。随着去中心化组织和智能代理成为主要的经济行为体，传统的银行架构已无法满足需求。Protocol Banks 引入了一个可编程的、跨链的资金管理层，通过抽象链特有的复杂性，并结合链上事件与标准会计实践，为下一代数字企业提供无缝的金融操作体验。
 
-Our proprietary integration of the **x402 Protocol** (based on ERC-3009) allows for gasless, delegated settlements, paving the way for fully autonomous agent-to-agent commerce.
+本白皮书详细阐述了 Protocol Banks 的技术架构、核心协议 (x402)、安全机制以及针对 AI 时代的资金管理解决方案。
 
-## 2. Market Analysis
+---
 
-### 2.1 The Problem: Operational Fragmentation
-Modern Web3 finance teams face a "fragmentation trilemma":
-1.  **Chain Fragmentation**: Assets are split across Ethereum, L2s, Solana, and Bitcoin.
-2.  **Tool Fragmentation**: Teams use spreadsheets for tracking, Gnosis Safe for signing, and Etherscan for auditing.
-3.  **Context Fragmentation**: Blockchain transactions lack business context (e.g., "Invoice #2024-001" vs. `0x3f...2a`).
+## 二、 系统架构总览
 
-### 2.2 The Opportunity: The Agent Economy
-By 2030, it is estimated that AI agents will conduct over 40% of all digital transactions. Current wallet interfaces are built for humans, not agents. There is a critical need for a "semantic financial layer" that allows AI agents to propose payments with context, which humans can simply approve.
+Protocol Banks 采用分层架构设计，确保系统的安全性、可扩展性和互操作性。
 
-## 3. Technical Architecture
+### 2.1 架构分层图
 
-### 3.1 The Unified Settlement Layer
-Protocol Bank acts as an aggregation layer on top of existing settlement networks. It creates a unified "Merchant View" regardless of the underlying chain.
+```
+┌────────────────────────────────────────────────────────┐
+│                      用户层 (User Layer)               │
+├────────────────────────────────────────────────────────┤
+│  Web Browser (PWA)  │  Mobile App (PWA)  │  API Clients│
+└───────────┬──────────────────────┬─────────────┬───────┘
+            │                      │             │
+            ▼                      ▼             ▼
+┌────────────────────────────────────────────────────────┐
+│                      前端层 (Frontend Layer)           │
+├────────────────────────────────────────────────────────┤
+│                       Next.js 15 (App Router)          │
+│ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐ │
+│ │    Pages     │ │  Components  │ │  Security SDK    │ │
+│ └──────────────┘ └──────────────┘ └──────────────────┘ │
+└───────────┬──────────────────────┬─────────────┬───────┘
+            │                      │             │
+            ▼                      ▼             ▼
+┌────────────────────────────────────────────────────────┐
+│                      API 层 (API Layer)                │
+├────────────────────────────────────────────────────────┤
+│                    Next.js API Routes / gRPC           │
+│ ┌───────┐ ┌────────┐ ┌──────────┐ ┌─────────┐ ┌──────┐ │
+│ │ /auth │ │/agents │ │/payments │ │/webhooks│ │/x402 │ │
+│ └───────┘ └────────┘ └──────────┘ └─────────┘ └──────┘ │
+└───────────┬──────────────────────┬─────────────┬───────┘
+            │                      │             │
+            ▼                      ▼             ▼
+┌────────────────────────────────────────────────────────┐
+│                      服务层 (Services Layer)           │
+├────────────────────────────────────────────────────────┤
+│  Go 微服务集群 (Microservices)                         │
+│ ┌────────────────┐ ┌────────────────┐ ┌──────────────┐ │
+│ │ Payout Engine  │ │ Event Indexer  │ │ Agent Service│ │
+│ └────────────────┘ └────────────────┘ └──────────────┘ │
+│ ┌────────────────┐ ┌────────────────┐ ┌──────────────┐ │
+│ │ Webhook Handler│ │ Subscription   │ │ Settlement   │ │
+│ └────────────────┘ └────────────────┘ └──────────────┘ │
+└───────────┬──────────────────────┬─────────────┬───────┘
+            │                      │             │
+            ▼                      ▼             ▼
+┌────────────────────────────────────────────────────────┐
+│                      数据与基础设施层                   │
+├────────────────────────────────────────────────────────┤
+│ ┌────────────┐ ┌───────────┐ ┌──────────┐ ┌──────────┐ │
+│ │ PostgreSQL │ │ Redis     │ │ Vault    │ │Blockchain│ │
+│ └────────────┘ └───────────┘ └──────────┘ └──────────┘ │
+└────────────────────────────────────────────────────────┘
+```
 
--   **EVM Support**: Native integration with Ethereum Mainnet, Sepolia, and L2s via `ethers.js`.
--   **SVM Support**: Solana integration for high-speed, low-cost settlements.
--   **Bitcoin Layer**: Native Bitcoin scripting support for Ordinals and BRC-20 tokens.
+---
 
-### 3.2 The x402 Protocol (ERC-3009 Integration)
-A core innovation of Protocol Bank is the native support for **x402**, a payment standard leveraging ERC-3009 (`TransferWithAuthorization`).
+## 三、 核心协议与功能
 
-**How it works:**
-1.  **Proposal**: An AI agent or junior treasurer creates a payment batch.
-2.  **Authorization**: Instead of broadcasting a transaction (spending gas), the authorized signer signs a strictly typed EIP-712 message.
-3.  **Settlement**: This signed authorization is submitted to a relayer (or the recipient), who pays the gas to execute the transfer.
+### 3.1 x402 协议 (GASLESS 企业结算)
+x402 协议通过将**支付授权**与**支付执行**分离，实现了无 Gas 费用的企业级结算流程。
+- **原理**: 基于 ERC-3009 和 EIP-712 标准。
+- **优势**:
+    - **财务审批无感化**: 财务总监 (CFO) 审批付款时无需持有 ETH 或支付 Gas，仅需对结构化数据进行签名。
+    - **代付执行**: 由 Protocol Banks 的中继器或第三方服务商代付 Gas 并上链执行。
+    - **安全性**: 签名包含特定有效期和接收方限制，防止重放攻击。
 
-**Benefits:**
--   **Gasless Approvals**: CFOs can approve payroll without needing ETH in their wallet.
--   **Delayed Settlement**: Approvals can be collected and settled in batch when gas fees are low.
--   **Security**: Approvals are specific to amount, recipient, and expiration time.
+### 3.2 Agent Link (AI 代理金融接口)
+专为 AI Agent 设计的金融交互标准，使 AI 能够自主发起、管理和核算交易。
+- **鉴权**: 采用 API Key 与会话签名的双重验证机制。
+- **能力**:
+    - **预算请求**: Agent 可根据任务需求申请资金预算。
+    - **自动执行**: 在授权额度内，Agent 可自主完成供应商支付。
+    - **链上行为证明**: Agent 的每一笔交易都与其链上身份 (DID) 绑定。
 
-### 3.3 Zero-Knowledge Privacy & Data Sovereignty
-Protocol Bank employs a "Local-First" architecture.
--   **Wallet Tags**: Vendor identities are stored in a private, RLS-protected database mapped only to the user's wallet signature.
--   **No Middlemen**: Funds strictly move P2P (Peer-to-Peer). Protocol Bank never takes custody of assets.
+### 3.3 Settlement Checkout (统一结算收银台)
+企业级的聚合支付收银台，支持多币种、多网络的混合结算。
+- **混合支付**: 单次结算可包含 ETH、USDC、USDT 等多种资产。
+- **智能路由**: 自动计算最优兑换路径和跨链桥接方案。
+- **状态同步**: 实时监听链上状态，确保订单支付状态的原子性更新。
 
-## 4. Product Functions
+### 3.4 多链与跨链支持 (包括 Tron)
+Protocol Banks 致力于打破链孤岛，通过统一的接口支持主流公链。
+- **EVM 兼容链**: Ethereum, Arbitrum, Optimism, Base, Polygon, BSC.
+- **非 EVM 链**:
+    - **Solana**: 支持高频低成本支付。
+    - **Bitcoin**: 支持原生 BTC 转账。
+    - **Tron (波场)**: **[新增]** 深度集成 TRC20-USDT 网络，支持高通量稳定币转账，满足亚洲及全球市场的支付需求。
+- **跨链桥接**: 集成 CCTP (Circle Cross-Chain Transfer Protocol) 和 Rango Exchange，实现无缝资产跨链。
 
-### 4.1 Enterprise Dashboard
-A command center for financial health, featuring real-time burn rate calculation, runway estimation, and cross-chain asset aggregation.
+---
 
-### 4.2 Entity Network Graph
-A visualization tool that transforms raw transaction lists into a "Sector Space" interactive graph, revealing the flow of capital through subsidiaries, partners, and vendors.
+## 四、 安全架构
 
-### 4.3 Batch Payment Engine
-A multi-token dispatch system capable of routing thousands of transactions per session, with built-in support for mixed-currency payroll (e.g., paying Devs in USDC and Marketing in USDT simultaneously).
+Protocol Banks 遵循“零信任”和“非托管”的安全原则。
 
-## 5. Roadmap
+### 4.1 资金安全
+- **非托管模式**: 用户资金始终保留在自己的钱包或智能合约中，平台无法触碰用户资产。
+- **多重签名**: 集成 Gnosis Safe (Safe) 协议，支持 M/N 多签审批流，适用于大额资金管理。
+- **地址校验**: 强制执行 EIP-55 校验和检查，并集成防钓鱼地址库。
 
--   **Q3 2025**: Mainnet Launch of x402 Relayer Network.
--   **Q4 2025**: "Agent Link" API release, allowing autonomous agents to request budgets via Protocol Bank.
--   **Q1 2026**: Integration with Traditional Fiat Rails (On/Off Ramp).
+### 4.2 数据隐私
+- **本地优先 (Local-First)**: 敏感的财务备注、供应商标签等元数据优先在本地加密存储。
+- **行级安全 (RLS)**: 数据库层启用强制的 Row-Level Security，确保用户只能访问其授权范围内的数据。
+- **隐私计算**: (路线图) 引入零知识证明 (ZK) 技术，实现交易金额和接收方的链上隐私保护。
 
-## 6. Contact
+### 4.3 风险控制
+- **反洗钱 (AML)筛查**: 集成 Chainalysis 预言机，自动拦截黑名单地址交易。
+- **速率限制**: 针对异常高频的 API 调用和支付请求触发自动熔断机制。
+- **审计日志**: 全链路操作留痕，支持不可篡改的链上/链下审计追踪。
 
--   **Website**: [protocolbank.vercel.app](https://protocolbank.vercel.app)
--   **GitHub**: [github.com/everest-an/protocol-banks---web3](https://github.com/everest-an/protocol-banks---web3)
--   **Email**: everest9812@gmail.com
+---
+
+## 五、 技术栈详解
+
+### 5.1 前端技术栈
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Next.js | 15.5.9 | 全栈框架 (App Router) |
+| React | 19.x | UI 库 |
+| TypeScript | 5.x | 类型安全 |
+| Tailwind CSS | 4.x | 样式框架 |
+| viem / ethers | 2.x / 6.x | Web3 交互 |
+| Reown AppKit | 1.3.3 | 钱包连接 |
+
+### 5.2 后端技术栈
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Go | 1.21 | 高性能微服务 (Payout Engine) |
+| gRPC | Latest | 服务间通信 |
+| Supabase | Latest | 数据库 (PostgreSQL) + Auth |
+| Redis | Latest | 队列/缓存 |
+
+### 5.3 基础设施
+| 技术 | 用途 |
+|------|------|
+| Kubernetes | 容器编排 |
+| Docker | 容器化 |
+| Prometheus | 监控指标 |
+| Grafana | 可视化仪表板 |
+
+---
+
+## 六、 路线图 (Roadmap)
+
+### Q1 2026 - 基础夯实
+- [x] 完成多链支持 (ETH, L2s, Solana)。
+- [x] 发布 Agent Link API v1.0。
+- [x] 集成 x402 无 Gas 支付协议。
+
+### Q2 2026 - 生态扩展
+- [ ] **Tron 网络完整支持**: 上线 TRC20 代币批量分发功能。
+- [ ] **移动端 App**: 发布 iOS 和 Android 原生应用。
+- [ ] **法定货币通道**: 集成法币出入金 (Ramp) 聚合器。
+
+### Q3 2026 - 智能化与隐私
+- [ ] **智能预算分析**: 基于 AI 的财务预测与异常检测。
+- [ ] **隐私支付**: 基于 ZK 的薪资发放解决方案。
+
+---
+
+**免责声明**: 本文档仅用于技术交流和项目介绍，不构成任何投资建议。Protocol Banks 作为技术服务提供方，不持有用户密钥，不对因用户私钥泄露或区块链网络故障导致的损失承担责任。
