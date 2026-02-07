@@ -72,6 +72,26 @@ if (payment.type === "SALARY" && company.isKYC) {
 }
 ```
 
+### Phase 3: The "Protocol Bank" Stablecoin Solution (pbUSD)
+**Problem**: HashKey Chain currently lacks native stablecoins (USDC/USDT), making stable payroll settlements difficult.
+**Solution**: Protocol Bank becomes the liquidity provider by issuing a **Synthetic Stablecoin**.
+
+1.  **Issuance**:
+    *   User deposits **USDC on Base** (Source of Funds).
+    *   Protocol Bank locks funds in the Base Treasury Vault.
+    *   Protocol Bank mints equivalent **pbUSD (Protocol Bank USD)** on **HashKey Chain**.
+2.  **Settlement**:
+    *   Employees receive `pbUSD` on HashKey.
+    *   `pbUSD` is pegged 1:1 and guaranteed by the Protocol Treasury.
+3.  **Redemption**:
+    *   Employee can swap `pbUSD` -> `HSK` (on DEX) for gas/spending.
+    *   Employee can bridge `pbUSD` back to Base to unlock native `USDC`.
+
+**Why this wins the pitch**:
+*   It solves HashKey's "Empty Chain" problem.
+*   It proves why you are a "Bank" (issuing credit/assets).
+*   It forces TVL (Total Value Locked) onto their chain.
+
 ### 5. Recommendation for HashKey Pitch
 Tell HashKey: **"We are deploying our Enterprise Settlement Layer exclusively on HashKey Chain to leverage your compliance infrastructure, while keeping retail traffic on L2s to act as a funnel bringing liquidity INTO HashKey."**
 

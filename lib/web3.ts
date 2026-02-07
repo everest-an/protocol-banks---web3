@@ -95,6 +95,7 @@ export const TOKEN_ADDRESSES = {
   },
   [CHAIN_IDS.HASHKEY]: {
     HSK: "NATIVE", // Native Token
+    PBUSD: "0x...PBUSD...", // Protocol Bank USD (Synthetic Stablecoin)
   },
 } as const
 

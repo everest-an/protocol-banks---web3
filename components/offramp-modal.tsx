@@ -95,6 +95,7 @@ export function OffRampModal({ open, onOpenChange, walletAddress, balance = "0" 
     { value: "coinbase", label: "Coinbase", fee: "1.5%", speed: "1-3 days" },
     { value: "transak", label: "Transak", fee: "2.0%", speed: "1-5 days" },
     { value: "moonpay", label: "MoonPay", fee: "1.75%", speed: "2-4 days" },
+    { value: "hashkey", label: "HashKey Exchange (RWA)", fee: "0.1%", speed: "Same Day" },
   ]
 
   return (

@@ -63,9 +63,10 @@ import { publicBatchTransferService } from "@/lib/services/public-batch-transfer
 import { createWalletClient, createPublicClient, http, custom } from "viem"
 import { arbitrum } from "viem/chains"
 import { getVendorDisplayName, getVendorInitials } from "@/lib/utils"
+import { CHAIN_IDS } from "@/lib/web3"
 
 export default function BatchPaymentPage() {
-  const { wallets, address: unifiedAddress, sendToken, signERC3009Authorization, isConnected } = useUnifiedWallet()
+  const { wallets, address: unifiedAddress, sendToken, signERC3009Authorization, isConnected, chainId, switchNetwork } = useUnifiedWallet()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
 
@@ -88,6 +89,33 @@ export default function BatchPaymentPage() {
     isUploading: isAsyncUploading,
     isPolling: isAsyncPolling
   } = useAsyncBatchPayment()
+
+  if (chainId === CHAIN_IDS.HASHKEY) {
+    return (
+      <div className="container max-w-7xl pt-8 pb-10">
+        <h1 className="text-3xl font-bold tracking-tight mb-6">Batch Payments</h1>
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Unsupported Network</AlertTitle>
+          <AlertDescription className="mt-2">
+            Corporate batch transfers are not available on HashKey Chain due to network constraints.
+            <br />
+            Please use <strong>Base</strong> or <strong>Arbitrum</strong> for bulk corporate settlements.
+            <br className="mb-4"/>
+            HashKey Chain is currently optimized for RWA and large fiat withdrawals only using pbUSD.
+          </AlertDescription>
+        </Alert>
+        <div className="flex gap-4">
+          <Button onClick={() => switchNetwork(CHAIN_IDS.BASE)} variant="default">
+            Switch to Base
+          </Button>
+          <Button onClick={() => switchNetwork(CHAIN_IDS.ARBITRUM)} variant="outline">
+            Switch to Arbitrum
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const [activeTab, setActiveTab] = useState<"batch" | "auto" | "x402">("batch")
   const [showBatchForm, setShowBatchForm] = useState(false)
