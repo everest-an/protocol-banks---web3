@@ -22,7 +22,7 @@ describe("Protocol Bank USD System", function () {
   let user2: SignerWithAddress;
   let feeCollector: SignerWithAddress;
 
-  const DAILY_MINT_CAP = ethers.parseEther("1000000"); // 1M pbUSD
+  const DAILY_MINT_CAP = ethers.parseUnits("1000000", 6); // 1M pbUSD
   const DAILY_RELEASE_CAP = ethers.parseUnits("1000000", 6); // 1M USDC (6 decimals)
   const EMERGENCY_DELAY = 86400; // 24 hours
   const INITIAL_USDC_BALANCE = ethers.parseUnits("10000000", 6); // 10M USDC
@@ -97,19 +97,19 @@ describe("Protocol Bank USD System", function () {
     // ── Minting ─────────────────────────────────────────────────
     describe("Minting", function () {
       it("should allow minter to mint tokens", async function () {
-        const amount = ethers.parseEther("1000");
+        const amount = ethers.parseUnits("1000", 6);
         await pbUSD.connect(minter).mint(user1.address, amount);
         expect(await pbUSD.balanceOf(user1.address)).to.equal(amount);
       });
 
       it("should track totalMinted", async function () {
-        const amount = ethers.parseEther("5000");
+        const amount = ethers.parseUnits("5000", 6);
         await pbUSD.connect(minter).mint(user1.address, amount);
         expect(await pbUSD.totalMinted()).to.equal(amount);
       });
 
       it("should revert if non-minter tries to mint", async function () {
-        const amount = ethers.parseEther("100");
+        const amount = ethers.parseUnits("100", 6);
         await expect(
           pbUSD.connect(user1).mint(user1.address, amount)
         ).to.be.reverted;
@@ -123,7 +123,7 @@ describe("Protocol Bank USD System", function () {
 
       it("should revert if minting to zero address", async function () {
         await expect(
-          pbUSD.connect(minter).mint(ethers.ZeroAddress, ethers.parseEther("100"))
+          pbUSD.connect(minter).mint(ethers.ZeroAddress, ethers.parseUnits("100", 6))
         ).to.be.revertedWithCustomError(pbUSD, "InvalidRecipient");
       });
     });
@@ -131,7 +131,7 @@ describe("Protocol Bank USD System", function () {
     // ── Daily Mint Cap ──────────────────────────────────────────
     describe("Daily Mint Cap", function () {
       it("should enforce daily mint cap", async function () {
-        const overCap = DAILY_MINT_CAP + ethers.parseEther("1");
+        const overCap = DAILY_MINT_CAP + ethers.parseUnits("1", 6);
         await expect(
           pbUSD.connect(minter).mint(user1.address, overCap)
         ).to.be.revertedWithCustomError(pbUSD, "DailyMintCapExceeded");
@@ -154,7 +154,7 @@ describe("Protocol Bank USD System", function () {
       });
 
       it("should allow admin to update daily mint cap", async function () {
-        const newCap = ethers.parseEther("2000000");
+        const newCap = ethers.parseUnits("2000000", 6);
         await pbUSD.connect(admin).setDailyMintCap(newCap);
         expect(await pbUSD.dailyMintCap()).to.equal(newCap);
       });
@@ -168,14 +168,14 @@ describe("Protocol Bank USD System", function () {
 
     // ── Burn & Redeem ───────────────────────────────────────────
     describe("Burn & Redeem", function () {
-      const mintAmount = ethers.parseEther("10000");
+      const mintAmount = ethers.parseUnits("10000", 6);
 
       beforeEach(async function () {
         await pbUSD.connect(minter).mint(user1.address, mintAmount);
       });
 
       it("should burn tokens and emit RedeemRequested", async function () {
-        const burnAmount = ethers.parseEther("5000");
+        const burnAmount = ethers.parseUnits("5000", 6);
         await expect(
           pbUSD.connect(user1).burnAndRedeem(burnAmount, user2.address)
         )
@@ -184,13 +184,13 @@ describe("Protocol Bank USD System", function () {
       });
 
       it("should track totalBurned", async function () {
-        const burnAmount = ethers.parseEther("3000");
+        const burnAmount = ethers.parseUnits("3000", 6);
         await pbUSD.connect(user1).burnAndRedeem(burnAmount, user2.address);
         expect(await pbUSD.totalBurned()).to.equal(burnAmount);
       });
 
       it("should report circulatingSupply correctly", async function () {
-        const burnAmount = ethers.parseEther("4000");
+        const burnAmount = ethers.parseUnits("4000", 6);
         await pbUSD.connect(user1).burnAndRedeem(burnAmount, user2.address);
         expect(await pbUSD.circulatingSupply()).to.equal(mintAmount - burnAmount);
       });
@@ -203,14 +203,14 @@ describe("Protocol Bank USD System", function () {
 
       it("should revert if baseRecipient is zero", async function () {
         await expect(
-          pbUSD.connect(user1).burnAndRedeem(ethers.parseEther("100"), ethers.ZeroAddress)
+          pbUSD.connect(user1).burnAndRedeem(ethers.parseUnits("100", 6), ethers.ZeroAddress)
         ).to.be.revertedWithCustomError(pbUSD, "InvalidRecipient");
       });
     });
 
     // ── Blacklist ───────────────────────────────────────────────
     describe("Blacklist", function () {
-      const mintAmount = ethers.parseEther("1000");
+      const mintAmount = ethers.parseUnits("1000", 6);
 
       beforeEach(async function () {
         await pbUSD.connect(minter).mint(user1.address, mintAmount);
@@ -224,22 +224,22 @@ describe("Protocol Bank USD System", function () {
       it("should block transfers from blacklisted sender", async function () {
         await pbUSD.connect(compliance).setBlacklist(user1.address, true);
         await expect(
-          pbUSD.connect(user1).transfer(user2.address, ethers.parseEther("100"))
+          pbUSD.connect(user1).transfer(user2.address, ethers.parseUnits("100", 6))
         ).to.be.revertedWithCustomError(pbUSD, "SenderBlacklisted");
       });
 
       it("should block transfers to blacklisted receiver", async function () {
         await pbUSD.connect(compliance).setBlacklist(user2.address, true);
         await expect(
-          pbUSD.connect(user1).transfer(user2.address, ethers.parseEther("100"))
+          pbUSD.connect(user1).transfer(user2.address, ethers.parseUnits("100", 6))
         ).to.be.revertedWithCustomError(pbUSD, "RecipientBlacklisted");
       });
 
       it("should allow removing from blacklist", async function () {
         await pbUSD.connect(compliance).setBlacklist(user1.address, true);
         await pbUSD.connect(compliance).setBlacklist(user1.address, false);
-        await pbUSD.connect(user1).transfer(user2.address, ethers.parseEther("100"));
-        expect(await pbUSD.balanceOf(user2.address)).to.equal(ethers.parseEther("100"));
+        await pbUSD.connect(user1).transfer(user2.address, ethers.parseUnits("100", 6));
+        expect(await pbUSD.balanceOf(user2.address)).to.equal(ethers.parseUnits("100", 6));
       });
     });
 
@@ -253,15 +253,15 @@ describe("Protocol Bank USD System", function () {
       it("should block minting when paused", async function () {
         await pbUSD.connect(pauser).pause();
         await expect(
-          pbUSD.connect(minter).mint(user1.address, ethers.parseEther("100"))
+          pbUSD.connect(minter).mint(user1.address, ethers.parseUnits("100", 6))
         ).to.be.reverted;
       });
 
       it("should block transfers when paused", async function () {
-        await pbUSD.connect(minter).mint(user1.address, ethers.parseEther("100"));
+        await pbUSD.connect(minter).mint(user1.address, ethers.parseUnits("100", 6));
         await pbUSD.connect(pauser).pause();
         await expect(
-          pbUSD.connect(user1).transfer(user2.address, ethers.parseEther("50"))
+          pbUSD.connect(user1).transfer(user2.address, ethers.parseUnits("50", 6))
         ).to.be.reverted;
       });
 
@@ -274,7 +274,7 @@ describe("Protocol Bank USD System", function () {
 
     // ── Transfer Fee ────────────────────────────────────────────
     describe("Transfer Fee", function () {
-      const mintAmount = ethers.parseEther("10000");
+      const mintAmount = ethers.parseUnits("10000", 6);
 
       beforeEach(async function () {
         await pbUSD.connect(minter).mint(user1.address, mintAmount);
@@ -284,7 +284,7 @@ describe("Protocol Bank USD System", function () {
       });
 
       it("should deduct transfer fee", async function () {
-        const transferAmount = ethers.parseEther("1000");
+        const transferAmount = ethers.parseUnits("1000", 6);
         const expectedFee = (transferAmount * 25n) / 10000n; // 2.5 pbUSD
         const expectedReceived = transferAmount - expectedFee;
 
@@ -296,7 +296,7 @@ describe("Protocol Bank USD System", function () {
 
       it("should not charge fee for fee-exempt addresses", async function () {
         await pbUSD.connect(admin).setFeeExempt(user1.address, true);
-        const transferAmount = ethers.parseEther("1000");
+        const transferAmount = ethers.parseUnits("1000", 6);
 
         await pbUSD.connect(user1).transfer(user2.address, transferAmount);
 
@@ -312,7 +312,7 @@ describe("Protocol Bank USD System", function () {
 
       it("should allow fee of 0 (no fee)", async function () {
         await pbUSD.connect(admin).setTransferFee(0);
-        const transferAmount = ethers.parseEther("1000");
+        const transferAmount = ethers.parseUnits("1000", 6);
         await pbUSD.connect(user1).transfer(user2.address, transferAmount);
         expect(await pbUSD.balanceOf(user2.address)).to.equal(transferAmount);
       });
@@ -320,14 +320,14 @@ describe("Protocol Bank USD System", function () {
 
     // ── ERC-3009: TransferWithAuthorization ──────────────────────
     describe("ERC-3009", function () {
-      const mintAmount = ethers.parseEther("10000");
+      const mintAmount = ethers.parseUnits("10000", 6);
 
       beforeEach(async function () {
         await pbUSD.connect(minter).mint(user1.address, mintAmount);
       });
 
       it("should execute transferWithAuthorization", async function () {
-        const value = ethers.parseEther("500");
+        const value = ethers.parseUnits("500", 6);
         const validAfter = 0;
         const latestTime = await time.latest();
         const validBefore = latestTime + 3600;
@@ -381,7 +381,7 @@ describe("Protocol Bank USD System", function () {
       });
 
       it("should prevent reuse of authorization nonce", async function () {
-        const value = ethers.parseEther("100");
+        const value = ethers.parseUnits("100", 6);
         const validAfter = 0;
         const latestTime = await time.latest();
         const validBefore = latestTime + 3600;
@@ -768,13 +768,13 @@ describe("Protocol Bank USD System", function () {
   // ════════════════════════════════════════════════════════════════
 
   describe("Full Bridge Flow", function () {
-    it("should complete deposit → mint → burn → release cycle", async function () {
+    it("should complete deposit �?mint �?burn �?release cycle", async function () {
       // Step 1: User deposits USDC into Treasury on Base
       const depositAmount = ethers.parseUnits("10000", 6);
       await treasury.connect(user1).depositToHashKey(depositAmount, user1.address);
 
       // Step 2: Bridge bot mints pbUSD on HashKey (simulated)
-      const mintAmount = ethers.parseEther("10000"); // 18 decimals
+      const mintAmount = ethers.parseUnits("10000", 6); // 18 decimals
       await pbUSD.connect(minter).mint(user1.address, mintAmount);
       expect(await pbUSD.balanceOf(user1.address)).to.equal(mintAmount);
 
