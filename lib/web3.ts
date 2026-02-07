@@ -93,7 +93,9 @@ export const TOKEN_ADDRESSES = {
     USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", // Binance-Peg USD Coin
     DAI: "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3", // Binance-Peg Dai Token
   },
-  // HASHKEY (177): Token addresses to be added when stablecoins are officially deployed
+  [CHAIN_IDS.HASHKEY]: {
+    HSK: "NATIVE", // Native Token
+  },
 } as const
 
 export const ERC20_ABI = [
@@ -292,6 +294,13 @@ export const NETWORK_CONFIGS: Record<number, {
     rpcUrls: ["https://mainnet.base.org"],
     blockExplorerUrls: ["https://basescan.org"],
   },
+  [CHAIN_IDS.HASHKEY]: {
+    chainId: "0x" + CHAIN_IDS.HASHKEY.toString(16),
+    chainName: "HashKey Chain",
+    nativeCurrency: { name: "HashKey Coin", symbol: "HSK", decimals: 18 },
+    rpcUrls: ["https://mainnet.hsk.xyz"],
+    blockExplorerUrls: ["https://hashkey.blockscout.com"],
+  },
 }
 
 export async function switchNetwork(chainId: number) {
@@ -428,7 +437,10 @@ export async function sendToken(tokenAddress: string, toAddress: string, amount:
   if (!isEvmAddressFormat(toAddress)) {
     throw new Error("Invalid recipient address")
   }
-  if (!isEvmAddressFormat(tokenAddress)) {
+
+  const isNativeToken = tokenAddress === "NATIVE"
+
+  if (!isNativeToken && !isEvmAddressFormat(tokenAddress)) {
     throw new Error("Invalid token contract address")
   }
 
@@ -440,6 +452,25 @@ export async function sendToken(tokenAddress: string, toAddress: string, amount:
     chainId: Number(network.chainId),
     name: network.name,
   })
+
+  if (isNativeToken) {
+    const amountInWei = ethers.parseEther(amount)
+    console.log("[Web3] Sending native transaction:", {
+      to: toAddress,
+      amount: amount,
+      amountInWei: amountInWei.toString(),
+    })
+
+    const tx = await signer.sendTransaction({
+      to: toAddress,
+      value: amountInWei,
+    })
+    console.log("[Web3] Native transaction sent:", tx.hash)
+    
+    // Optional: wait for confirmation (blocking) or just return hash
+    // const receipt = await tx.wait() 
+    return tx.hash
+  }
 
   // Verify the contract exists on the current network
   try {

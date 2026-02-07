@@ -23,7 +23,7 @@ interface ScheduledPaymentFormProps {
   onSuccess?: () => void
 }
 
-const TOKENS = ["USDT", "USDC", "DAI"]
+const TOKENS = ["USDT", "USDC", "DAI", "HSK"]
 const SCHEDULE_TYPES: { value: ScheduleType; label: string }[] = [
   { value: "daily", label: "Daily" },
   { value: "weekly", label: "Weekly" },

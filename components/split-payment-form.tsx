@@ -34,7 +34,7 @@ interface SplitPaymentFormProps {
   onSaveTemplate?: (template: CreateSplitTemplateInput) => Promise<void>
 }
 
-const TOKENS = ["USDT", "USDC", "DAI"]
+const TOKENS = ["USDT", "USDC", "DAI", "HSK"]
 
 export function SplitPaymentForm({
   userAddress,

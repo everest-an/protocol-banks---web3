@@ -73,6 +73,16 @@ export const EVM_NETWORKS: Record<string, NetworkConfig> = {
     blockExplorer: "https://bscscan.com",
     isTestnet: false,
   },
+  HASHKEY: {
+    id: "hashkey",
+    name: "HashKey Chain",
+    type: "EVM",
+    chainId: 177,
+    nativeCurrency: { name: "HashKey Coin", symbol: "HSK", decimals: 18 },
+    rpcUrl: "https://mainnet.hsk.xyz",
+    blockExplorer: "https://hashkey.blockscout.com",
+    isTestnet: false,
+  },
 }
 
 // TRON Networks
@@ -104,6 +114,7 @@ export const ALL_NETWORKS: Record<string, NetworkConfig> = {
   base: EVM_NETWORKS.BASE,
   arbitrum: EVM_NETWORKS.ARBITRUM,
   bsc: EVM_NETWORKS.BSC,
+  hashkey: EVM_NETWORKS.HASHKEY,
   tron: TRON_NETWORKS.TRON_MAINNET,
   "tron-nile": TRON_NETWORKS.TRON_NILE,
 }

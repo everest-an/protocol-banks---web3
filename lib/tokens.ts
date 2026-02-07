@@ -16,6 +16,13 @@ export const COMMON_TOKENS: Record<
   string,
   { symbol: string; decimals: number; addresses: Partial<Record<SupportedChainId, string>> }
 > = {
+  HSK: {
+    symbol: "HSK",
+    decimals: 18,
+    addresses: {
+      177: "NATIVE",
+    },
+  },
   USDC: {
     symbol: "USDC",
     decimals: 6,

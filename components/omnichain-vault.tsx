@@ -352,6 +352,7 @@ export function OmnichainVault() {
                       <SelectItem value="ETH">ETH</SelectItem>
                       <SelectItem value="BTC">BTC</SelectItem>
                       <SelectItem value="BNB">BNB</SelectItem>
+                      <SelectItem value="HSK">HSK</SelectItem>
                       <SelectItem value="USDC">USDC</SelectItem>
                       <SelectItem value="SOL">SOL</SelectItem>
                     </SelectContent>
@@ -385,6 +386,7 @@ export function OmnichainVault() {
                       <SelectItem value="ETH">ETH</SelectItem>
                       <SelectItem value="BTC">BTC</SelectItem>
                       <SelectItem value="BNB">BNB</SelectItem>
+                      <SelectItem value="HSK">HSK</SelectItem>
                       <SelectItem value="USDC">USDC</SelectItem>
                       <SelectItem value="SOL">SOL</SelectItem>
                     </SelectContent>

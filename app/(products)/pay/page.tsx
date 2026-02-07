@@ -170,7 +170,7 @@ function PaymentContent() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [formTo, setFormTo] = useState("")
   const [formAmount, setFormAmount] = useState("")
-  const [formToken, setFormToken] = useState<"USDC" | "USDT" | "DAI">("USDC")
+  const [formToken, setFormToken] = useState<"USDC" | "USDT" | "DAI" | "HSK">("USDC")
   const [formMemo, setFormMemo] = useState("")
   const [formPurpose, setFormPurpose] = useState("")
   const [formGroupId, setFormGroupId] = useState<string | undefined>()
@@ -197,7 +197,7 @@ function PaymentContent() {
   const invoiceId = searchParams.get("invoice")
   const linkTo = invoice?.recipient_address || searchParams.get("to")
   const linkAmount = invoice?.amount?.toString() || searchParams.get("amount")
-  const linkToken = (invoice?.token || searchParams.get("token")) as "USDC" | "USDT" | "DAI" | null
+  const linkToken = (invoice?.token || searchParams.get("token")) as "USDC" | "USDT" | "DAI" | "HSK" | null
   const networkParam = searchParams.get("network")
   const sig = searchParams.get("sig")
   const exp = searchParams.get("exp")
@@ -871,7 +871,7 @@ function PaymentContent() {
             <div className="grid grid-cols-5 gap-3">
               <div className="col-span-2 space-y-2">
                 <Label>Token</Label>
-                <Select value={formToken} onValueChange={(v) => setFormToken(v as "USDC" | "USDT" | "DAI")}>
+                <Select value={formToken} onValueChange={(v) => setFormToken(v as "USDC" | "USDT" | "DAI" | "HSK")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -879,6 +879,8 @@ function PaymentContent() {
                     <SelectItem value="USDC">USDC</SelectItem>
                     <SelectItem value="USDT">USDT</SelectItem>
                     <SelectItem value="DAI">DAI</SelectItem>
+                    {/* Add HSK option if on HashKey chain */}
+                    {chainId === 177 && <SelectItem value="HSK">HSK</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>

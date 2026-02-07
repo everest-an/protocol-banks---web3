@@ -8,8 +8,29 @@ const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || ""
 // Create Ethers adapter
 const ethersAdapter = new EthersAdapter()
 
+// Define HashKey Chain
+const hashkey = {
+  id: 177,
+  name: "HashKey Chain",
+  network: "hashkey",
+  nativeCurrency: { name: "HashKey Coin", symbol: "HSK", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://mainnet.hsk.xyz"] },
+    public: { http: ["https://mainnet.hsk.xyz"] },
+  },
+  blockExplorers: {
+    default: { name: "HashKey Scan", url: "https://hashkey.blockscout.com" },
+  },
+} as const
+
 // Configure supported networks
-const networks = [mainnet, sepolia, base, arbitrum] as [typeof mainnet, typeof sepolia, typeof base, typeof arbitrum]
+const networks = [mainnet, sepolia, base, arbitrum, hashkey] as [
+  typeof mainnet,
+  typeof sepolia,
+  typeof base,
+  typeof arbitrum,
+  typeof hashkey,
+]
 
 // Metadata for your app
 const metadata = {
