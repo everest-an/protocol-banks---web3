@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { validateBatch, calculateBatchTotals, type BatchPaymentItem } from "@/lib/services"
 import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { validateAddress, getNetworkForAddress } from "@/lib/address-utils"
+import { ALL_NETWORKS } from "@/lib/networks"
 
 /**
  * POST /api/batch-payment
@@ -15,7 +17,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { recipients, token, chainId, fromAddress: bodyFromAddress, memo } = body
+    const {
+      recipients,
+      token,
+      chainId,
+      chain,
+      network_type,
+      fromAddress: bodyFromAddress,
+      memo
+    } = body
 
     // Enforce fromAddress matches caller
     const fromAddress = callerAddress;
@@ -48,6 +58,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Auto-detect network from first recipient if not provided
+    let finalChain = chain
+    let finalNetworkType = network_type
+    let finalChainId = chainId
+
+    if (!finalChain && items.length > 0) {
+      try {
+        const firstRecipient = items[0].recipient
+        const addressValidation = validateAddress(firstRecipient)
+
+        if (addressValidation.isValid) {
+          const detectedNetwork = getNetworkForAddress(firstRecipient)
+          finalChain = detectedNetwork
+          finalNetworkType = addressValidation.type === "TRON" ? "TRON" : "EVM"
+
+          // Set chain ID for EVM networks
+          if (finalNetworkType === "EVM" && ALL_NETWORKS[detectedNetwork]) {
+            finalChainId = ALL_NETWORKS[detectedNetwork].chainId
+          }
+        }
+      } catch (error) {
+        // If detection fails, use defaults
+        finalChain = finalChain || "base"
+        finalNetworkType = finalNetworkType || "EVM"
+        finalChainId = finalChainId || 8453
+      }
+    } else {
+      // Set defaults if still not provided
+      finalChain = finalChain || "base"
+      finalNetworkType = finalNetworkType || "EVM"
+      finalChainId = finalChainId || 8453
+    }
+
     // Calculate totals
     const totals = calculateBatchTotals(items)
 
@@ -62,7 +105,9 @@ export async function POST(request: NextRequest) {
           total_amount: totals.totalAmount,
           total_items: totals.itemCount,
           token: token || "USDC",
-          chain_id: chainId || 8453,
+          chain: finalChain,
+          chain_id: finalChainId,
+          network_type: finalNetworkType,
           status: "pending",
           items: items as any,
           memo,
@@ -85,7 +130,10 @@ export async function POST(request: NextRequest) {
       totals,
       itemCount: items.length,
       status: "pending",
-      message: `Batch created with ${items.length} payments totaling ${totals.totalAmount} ${token || "USDC"}`,
+      chain: finalChain,
+      networkType: finalNetworkType,
+      chainId: finalChainId,
+      message: `Batch created with ${items.length} payments totaling ${totals.totalAmount} ${token || "USDC"} on ${finalChain}`,
     })
   } catch (error: any) {
     console.error("[BatchPayment] Create error:", error)
@@ -94,8 +142,16 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/batch-payment?batchId=xxx
- * Get batch payment status
+ * GET /api/batch-payment
+ * Get batch payment(s) with optional filtering
+ *
+ * Query parameters:
+ * - batchId: specific batch ID to retrieve
+ * - fromAddress: filter by sender address (must match authenticated address)
+ * - network: filter by specific network (e.g., "ethereum", "tron", "base")
+ * - network_type: filter by "EVM" | "TRON"
+ * - status: filter by batch status
+ * - limit: number of results (default 50, max 100)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -107,6 +163,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const batchId = searchParams.get("batchId")
     const fromAddressParam = searchParams.get("fromAddress")
+    const network = searchParams.get("network")
+    const networkType = searchParams.get("network_type")
+    const status = searchParams.get("status")
+    const limit = Math.min(Number.parseInt(searchParams.get("limit") || "50"), 100)
 
     if (batchId) {
       // Get specific batch
@@ -134,15 +194,37 @@ export async function GET(request: NextRequest) {
     }
 
     if (targetAddress) {
-      // Get all batches for address
+      // Build filter conditions
+      const where: Record<string, unknown> = {
+        from_address: targetAddress.toLowerCase()
+      }
+
+      // Network filtering
+      if (network) {
+        where.chain = network.toLowerCase()
+      }
+
+      if (networkType) {
+        where.network_type = networkType
+      }
+
+      // Status filtering
+      if (status) {
+        where.status = status
+      }
+
+      // Get all batches for address with filters
       try {
         const batches = await prisma.batchPayment.findMany({
-          where: { from_address: targetAddress.toLowerCase() },
+          where,
           orderBy: { created_at: "desc" },
-          take: 50,
+          take: limit,
         })
 
-        return NextResponse.json({ batches: batches || [] })
+        return NextResponse.json({
+          batches: batches || [],
+          count: batches.length
+        })
       } catch (error) {
         console.error("[BatchPayment] Query error:", error)
         return NextResponse.json({ batches: [] })

@@ -18,7 +18,7 @@ import {
   _clearRateLimits,
   _getRateLimitEntry,
 } from '../middleware/agent-auth';
-import { agentService } from '../services/agent-service';
+import { agentService, setUseDatabaseStorage } from '../services/agent-service';
 
 // ============================================
 // Test Helpers
@@ -45,6 +45,7 @@ const agentNameArb = fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.tr
 
 describe('Agent Auth Middleware', () => {
   beforeEach(() => {
+    setUseDatabaseStorage(false);
     agentService._clearAll();
     _clearRateLimits();
   });

@@ -539,17 +539,33 @@ export async function connectTron(): Promise<string> {
         tries++;
     }
 
-    if (!window.tronWeb || !window.tronWeb.defaultAddress.base58) {
+    // Check if TronLink is installed
+    if (!window.tronWeb) {
          window.open("https://www.tronlink.org/", "_blank")
-         throw new Error("Please install TronLink wallet")
+         throw new Error("Please install TronLink wallet. Opening download page...")
     }
 
+    // Request account access for modern TronLink
     if (window.tronWeb.request) {
-        // Modern TronLink
-        await window.tronWeb.request({ method: 'tron_requestAccounts' });
+        try {
+            await window.tronWeb.request({ method: 'tron_requestAccounts' });
+        } catch (error: any) {
+            if (error.code === 4001) {
+                throw new Error("User rejected the connection request")
+            }
+            throw new Error(error.message || "Failed to request TronLink accounts")
+        }
     }
 
-    return window.tronWeb.defaultAddress.base58;
+    // Verify account is available
+    if (!window.tronWeb.defaultAddress || !window.tronWeb.defaultAddress.base58) {
+        throw new Error("TronLink is locked. Please unlock your wallet and try again.")
+    }
+
+    const address = window.tronWeb.defaultAddress.base58;
+    console.log("[Web3] Connected to TRON address:", address)
+
+    return address;
 }
 
 export async function signERC3009Authorization(

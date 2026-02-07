@@ -9,9 +9,9 @@
 
 import * as fc from 'fast-check';
 import { autoExecuteService } from '../services/auto-execute-service';
-import { proposalService } from '../services/proposal-service';
-import { budgetService } from '../services/budget-service';
-import { agentService, AutoExecuteRules } from '../services/agent-service';
+import { proposalService, setUseDatabaseStorage as setProposalDb } from '../services/proposal-service';
+import { budgetService, setUseDatabaseStorage as setBudgetDb } from '../services/budget-service';
+import { agentService, AutoExecuteRules, setUseDatabaseStorage as setAgentDb } from '../services/agent-service';
 import { notificationService } from '../services/notification-service';
 
 // ============================================
@@ -29,6 +29,9 @@ describe('Auto-Execute Service', () => {
   let testOwnerAddress: string;
 
   beforeEach(async () => {
+    setProposalDb(false);
+    setBudgetDb(false);
+    setAgentDb(false);
     proposalService._clearAll();
     budgetService._clearAll();
     agentService._clearAll();

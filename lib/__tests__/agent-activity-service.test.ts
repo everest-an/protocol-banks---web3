@@ -10,7 +10,8 @@
 import * as fc from 'fast-check';
 import { 
   agentActivityService, 
-  AgentAction 
+  AgentAction,
+  setUseDatabaseStorage 
 } from '../services/agent-activity-service';
 
 // ============================================
@@ -34,6 +35,7 @@ const validActions: AgentAction[] = [
 
 describe('Agent Activity Service', () => {
   beforeEach(() => {
+    setUseDatabaseStorage(false);
     agentActivityService._clearAll();
   });
 

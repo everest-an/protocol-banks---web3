@@ -47,9 +47,11 @@ model BatchPayment {
   total_amount      Float
   total_items       Int
   token             String    @default("USDC")
-  chain_id          Int       @default(8453)
+  chain             String    @default("base") // "ethereum" | "tron" | "arbitrum" | "base"
+  chain_id          Int? // EVM chain ID (null for TRON)
+  network_type      String    @default("EVM") // "EVM" | "TRON"
   status            String    @default("pending")
-  items             Json
+  items             Json // Can contain mixed EVM + TRON addresses
   memo              String?
   results           Json?
   fee               Float?
@@ -59,6 +61,8 @@ model BatchPayment {
 
   @@index([from_address])
   @@index([batch_id])
+  @@index([chain])
+  @@index([network_type])
   @@map("batch_payments")
 }
 
@@ -69,11 +73,25 @@ model Payment {
   amount       String
   token        String
   token_symbol String?
-  chain        String
+  chain        String // "ethereum" | "tron" | "arbitrum" | "base" | "bsc"
+  network_type String?   @default("EVM") // "EVM" | "TRON" - for easier filtering
+  chain_id     Int? // EVM chain ID (null for TRON)
   status       String    @default("pending")
   type         String // "sent" | "received"
-  method       String? // "eip3009" | "direct" | "batch"
+  method       String? // "eip3009" | "direct" | "batch" | "trc20"
   tx_hash      String?
+
+  // TRON-specific fields
+  energy_used    BigInt? // TRON energy consumption
+  bandwidth_used BigInt? // TRON bandwidth consumption
+
+  // EVM-specific fields
+  gas_used  BigInt? // Gas used (EVM)
+  gas_price BigInt? // Gas price (EVM)
+
+  confirmations Int      @default(0) // Block confirmations
+  block_number  BigInt? // Block number
+
   created_at   DateTime  @default(now())
   completed_at DateTime?
   created_by   String?
@@ -95,6 +113,9 @@ model Payment {
   @@index([type])
   @@index([vendor_id])
   @@index([group_id])
+  @@index([chain])
+  @@index([network_type])
+  @@index([tx_hash])
   @@map("payments")
 }
 
@@ -121,13 +142,13 @@ model PaymentGroup {
 model Vendor {
   id                       String    @id @default(uuid())
   name                     String
-  wallet_address           String
+  wallet_address           String // Primary address (backward compatibility)
   owner_address            String
   ens_name                 String?
   company_name             String?
   category                 String?
   tier                     String?   @default("vendor") // "subsidiary" | "partner" | "vendor"
-  chain                    String?   @default("Ethereum")
+  chain                    String?   @default("Ethereum") // Primary chain (backward compatibility)
   last_chain               String? // Last chain used for payment
   last_wallet_type         String? // Last wallet type used (MetaMask, Safe, etc.)
   email                    String?
@@ -148,12 +169,33 @@ model Vendor {
   created_at               DateTime  @default(now())
   updated_at               DateTime  @updatedAt
 
-  payments Payment[]
+  payments  Payment[]
+  addresses VendorAddress[] // Multi-network address support
 
   @@index([owner_address])
   @@index([created_by])
   @@index([wallet_address])
   @@map("vendors")
+}
+
+// New model for multi-network vendor addresses
+model VendorAddress {
+  id          String   @id @default(uuid())
+  vendor_id   String
+  network     String // "ethereum" | "tron" | "arbitrum" | "base" | "bsc"
+  address     String
+  label       String? // Optional label (e.g., "Main TRON wallet")
+  is_primary  Boolean  @default(false)
+  verified_at DateTime? // When address was verified
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  vendor Vendor @relation(fields: [vendor_id], references: [id], onDelete: Cascade)
+
+  @@unique([vendor_id, network]) // One address per network per vendor
+  @@index([vendor_id])
+  @@index([address])
+  @@map("vendor_addresses")
 }
 
 model ApiKey {

@@ -12,8 +12,9 @@ import {
   budgetService, 
   BudgetPeriod,
   CreateBudgetInput,
+  setUseDatabaseStorage as setBudgetDb,
 } from '../services/budget-service';
-import { agentService } from '../services/agent-service';
+import { agentService, setUseDatabaseStorage as setAgentDb } from '../services/agent-service';
 
 // ============================================
 // Test Helpers
@@ -46,6 +47,8 @@ describe('Budget Service', () => {
   let testOwnerAddress: string;
 
   beforeEach(async () => {
+    setBudgetDb(false);
+    setAgentDb(false);
     budgetService._clearAll();
     agentService._clearAll();
     

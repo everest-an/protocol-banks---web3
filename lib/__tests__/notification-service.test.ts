@@ -18,7 +18,7 @@ import {
 // Mock Prisma client
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
-  default: {
+  prisma: {
     notificationPreference: {
       findUnique: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({

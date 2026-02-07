@@ -11,7 +11,8 @@ import * as fc from 'fast-check';
 import { 
   agentWebhookService, 
   generateWebhookSignature,
-  AgentWebhookEvent 
+  AgentWebhookEvent,
+  setUseDatabaseStorage 
 } from '../services/agent-webhook-service';
 
 // ============================================
@@ -37,6 +38,7 @@ const validEvents: AgentWebhookEvent[] = [
 
 describe('Agent Webhook Service', () => {
   beforeEach(() => {
+    setUseDatabaseStorage(false);
     agentWebhookService._clearAll();
   });
 

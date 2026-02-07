@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { validateAddress, getNetworkForAddress } from "@/lib/address-utils"
 
 /**
  * GET /api/payments
- * Fetch payments for a wallet address using Prisma
+ * Fetch payments for a wallet address using Prisma with multi-network filtering
+ *
+ * Query parameters:
+ * - wallet: wallet address (optional, defaults to authenticated address)
+ * - type: "sent" | "received" | "all"
+ * - group_id: filter by payment group
+ * - network: specific network (e.g., "ethereum", "tron", "base")
+ * - network_type: "EVM" | "TRON"
+ * - status: payment status (e.g., "pending", "completed", "failed")
+ * - start_date: filter payments after this date (ISO format)
+ * - end_date: filter payments before this date (ISO format)
+ * - limit: number of results (default 100, max 1000)
+ * - offset: pagination offset (default 0)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +25,13 @@ export async function GET(request: NextRequest) {
     const walletParam = searchParams.get("wallet")
     const type = searchParams.get("type") // "sent" | "received" | "all"
     const groupId = searchParams.get("group_id")
+    const network = searchParams.get("network")
+    const networkType = searchParams.get("network_type")
+    const status = searchParams.get("status")
+    const startDate = searchParams.get("start_date")
+    const endDate = searchParams.get("end_date")
+    const limit = Math.min(Number.parseInt(searchParams.get("limit") || "100"), 1000)
+    const offset = Number.parseInt(searchParams.get("offset") || "0")
 
     // Security: Enforce authentication
     const authAddress = await getAuthenticatedAddress(request);
@@ -24,61 +44,94 @@ export async function GET(request: NextRequest) {
     if (walletParam && walletParam.toLowerCase() !== authAddress.toLowerCase()) {
         return NextResponse.json({ error: "Forbidden: Access denied to other wallets" }, { status: 403 })
     }
-    
+
     // Use the authenticated address
     const walletAddress = authAddress;
-    
-    // Default: find payments where user is sender OR receiver (if type is not specified or 'all')
+
+    // Build filter conditions
     let where: Record<string, unknown> = {}
 
+    // Address filtering
     if (type === 'sent') {
-      where = {
-        from_address: walletAddress
-      }
+      where.from_address = walletAddress
     } else if (type === 'received') {
-      where = {
-        to_address: walletAddress
-      }
+      where.to_address = walletAddress
     } else {
       // type === 'all' or undefined
-      where = {
-        OR: [
-          { from_address: walletAddress },
-          { to_address: walletAddress }
-        ]
-      }
+      where.OR = [
+        { from_address: walletAddress },
+        { to_address: walletAddress }
+      ]
     }
 
     // Filter by payment group if specified
     if (groupId) {
       where.group_id = groupId
     }
-    
-    // Optional: filter by created_by if needed, but history usually wants all interactions
-    // If strict ownership is needed: 
-    // where.created_by = walletAddress 
-    // But for received payments, created_by might be the sender. So we stick to address matching.
 
-    const payments = await prisma.payment.findMany({
-      where,
-      orderBy: { created_at: "desc" },
-      include: {
-        vendor: {
-          select: { name: true },
+    // Network filtering
+    if (network) {
+      where.chain = network.toLowerCase()
+    }
+
+    if (networkType) {
+      where.network_type = networkType
+    }
+
+    // Status filtering
+    if (status) {
+      where.status = status
+    }
+
+    // Date range filtering
+    if (startDate || endDate) {
+      where.created_at = {}
+      if (startDate) {
+        where.created_at.gte = new Date(startDate)
+      }
+      if (endDate) {
+        where.created_at.lte = new Date(endDate)
+      }
+    }
+
+    // Execute query with pagination
+    const [payments, total] = await Promise.all([
+      prisma.payment.findMany({
+        where,
+        orderBy: { created_at: "desc" },
+        take: limit,
+        skip: offset,
+        include: {
+          vendor: {
+            select: { name: true },
+          },
         },
-      },
-    })
+      }),
+      prisma.payment.count({ where })
+    ])
 
-    // Map Prisma result to match Payment type (add timestamp field)
+    // Map Prisma result to match Payment type (add timestamp field, convert BigInt)
     const mapped = payments.map((p) => ({
       ...p,
       amount: p.amount,
       timestamp: p.created_at.toISOString(),
       created_at: p.created_at.toISOString(),
       completed_at: p.completed_at?.toISOString() ?? undefined,
+      // Convert BigInt to string for JSON serialization
+      energy_used: p.energy_used?.toString(),
+      bandwidth_used: p.bandwidth_used?.toString(),
+      gas_used: p.gas_used?.toString(),
+      gas_price: p.gas_price?.toString(),
+      block_number: p.block_number?.toString(),
     }))
 
-    return NextResponse.json({ payments: mapped })
+    return NextResponse.json({
+      payments: mapped,
+      total,
+      limit,
+      offset,
+      hasMore: offset + payments.length < total
+    })
   } catch (error: unknown) {
     console.error("[API] GET /api/payments error:", error)
     const message = error instanceof Error ? error.message : "Internal Server Error"
@@ -128,6 +181,12 @@ export async function PATCH(request: NextRequest) {
         timestamp: updated.created_at.toISOString(),
         created_at: updated.created_at.toISOString(),
         completed_at: updated.completed_at?.toISOString() ?? undefined,
+        // Convert BigInt to string for JSON serialization
+        energy_used: updated.energy_used?.toString(),
+        bandwidth_used: updated.bandwidth_used?.toString(),
+        gas_used: updated.gas_used?.toString(),
+        gas_price: updated.gas_price?.toString(),
+        block_number: updated.block_number?.toString(),
       },
     })
   } catch (error: unknown) {
@@ -139,7 +198,7 @@ export async function PATCH(request: NextRequest) {
 
 /**
  * POST /api/payments
- * Create a new payment record using Prisma
+ * Create a new payment record using Prisma with automatic network detection
  */
 export async function POST(request: NextRequest) {
   try {
@@ -157,6 +216,8 @@ export async function POST(request: NextRequest) {
       token,
       token_symbol,
       chain,
+      chain_id,
+      network_type,
       status = "pending",
       type,
       method,
@@ -171,23 +232,73 @@ export async function POST(request: NextRequest) {
       group_id,
       tags,
       purpose,
+      // Network-specific fields
+      energy_used,
+      bandwidth_used,
+      gas_used,
+      gas_price,
+      confirmations,
+      block_number,
     } = body
 
-    if (!from_address || !to_address || !amount || !token || !chain || !type) {
+    if (!from_address || !to_address || !amount || !token || !type) {
       return NextResponse.json(
-        { error: "Missing required fields: from_address, to_address, amount, token, chain, type" },
+        { error: "Missing required fields: from_address, to_address, amount, token, type" },
         { status: 400 },
       )
     }
 
+    // Validate addresses
+    const fromValidation = validateAddress(from_address)
+    const toValidation = validateAddress(to_address)
+
+    if (!fromValidation.isValid) {
+      return NextResponse.json(
+        { error: `Invalid from_address: ${fromValidation.error}` },
+        { status: 400 }
+      )
+    }
+
+    if (!toValidation.isValid) {
+      return NextResponse.json(
+        { error: `Invalid to_address: ${toValidation.error}` },
+        { status: 400 }
+      )
+    }
+
+    // Auto-detect network if not provided
+    let finalChain = chain
+    let finalNetworkType = network_type
+    let finalChainId = chain_id
+
+    if (!finalChain || !finalNetworkType) {
+      try {
+        const detectedNetwork = getNetworkForAddress(to_address)
+        if (!finalChain) finalChain = detectedNetwork
+        if (!finalNetworkType) {
+          finalNetworkType = toValidation.type === "TRON" ? "TRON" : "EVM"
+        }
+      } catch (error) {
+        // If detection fails, require explicit chain parameter
+        if (!finalChain) {
+          return NextResponse.json(
+            { error: "Could not auto-detect network. Please specify 'chain' parameter." },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
     const payment = await prisma.payment.create({
       data: {
-        from_address,
-        to_address,
+        from_address: fromValidation.checksumAddress || from_address,
+        to_address: toValidation.checksumAddress || to_address,
         amount: String(amount),
         token,
         token_symbol,
-        chain,
+        chain: finalChain,
+        chain_id: finalChainId,
+        network_type: finalNetworkType,
         status,
         type,
         method,
@@ -201,6 +312,13 @@ export async function POST(request: NextRequest) {
         is_external: is_external ?? false,
         group_id,
         tags: tags || [],
+        // Network-specific fields
+        energy_used: energy_used ? BigInt(energy_used) : undefined,
+        bandwidth_used: bandwidth_used ? BigInt(bandwidth_used) : undefined,
+        gas_used: gas_used ? BigInt(gas_used) : undefined,
+        gas_price: gas_price ? BigInt(gas_price) : undefined,
+        confirmations: confirmations || 0,
+        block_number: block_number ? BigInt(block_number) : undefined,
       },
     })
 
@@ -210,6 +328,12 @@ export async function POST(request: NextRequest) {
         timestamp: payment.created_at.toISOString(),
         created_at: payment.created_at.toISOString(),
         completed_at: payment.completed_at?.toISOString() ?? undefined,
+        // Convert BigInt to string for JSON serialization
+        energy_used: payment.energy_used?.toString(),
+        bandwidth_used: payment.bandwidth_used?.toString(),
+        gas_used: payment.gas_used?.toString(),
+        gas_price: payment.gas_price?.toString(),
+        block_number: payment.block_number?.toString(),
       },
     })
   } catch (error: unknown) {

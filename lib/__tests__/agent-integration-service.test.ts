@@ -9,12 +9,12 @@
 
 import * as fc from 'fast-check';
 import { agentIntegrationService } from '../services/agent-integration-service';
-import { proposalService } from '../services/proposal-service';
-import { agentService } from '../services/agent-service';
-import { budgetService } from '../services/budget-service';
-import { agentX402Service } from '../services/agent-x402-service';
-import { agentWebhookService } from '../services/agent-webhook-service';
-import { agentActivityService } from '../services/agent-activity-service';
+import { proposalService, setUseDatabaseStorage as setProposalDb } from '../services/proposal-service';
+import { agentService, setUseDatabaseStorage as setAgentDb } from '../services/agent-service';
+import { budgetService, setUseDatabaseStorage as setBudgetDb } from '../services/budget-service';
+import { agentX402Service, setUseDatabaseStorage as setX402Db } from '../services/agent-x402-service';
+import { agentWebhookService, setUseDatabaseStorage as setWebhookDb } from '../services/agent-webhook-service';
+import { agentActivityService, setUseDatabaseStorage as setActivityDb } from '../services/agent-activity-service';
 
 // ============================================
 // Test Setup
@@ -24,6 +24,13 @@ describe('Agent Integration Service', () => {
   const testOwnerAddress = '0x1234567890123456789012345678901234567890';
 
   beforeEach(() => {
+    // Disable database storage for all services
+    setProposalDb(false);
+    setAgentDb(false);
+    setBudgetDb(false);
+    setX402Db(false);
+    setWebhookDb(false);
+    setActivityDb(false);
     // Clear all stores
     proposalService._clearAll();
     agentService._clearAll();

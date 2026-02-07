@@ -11,8 +11,9 @@ import * as fc from 'fast-check';
 import { 
   proposalService, 
   CreateProposalInput,
+  setUseDatabaseStorage as setProposalDb,
 } from '../services/proposal-service';
-import { agentService } from '../services/agent-service';
+import { agentService, setUseDatabaseStorage as setAgentDb } from '../services/agent-service';
 
 // ============================================
 // Test Helpers
@@ -51,6 +52,8 @@ describe('Proposal Service', () => {
   let testOwnerAddress: string;
 
   beforeEach(async () => {
+    setProposalDb(false);
+    setAgentDb(false);
     proposalService._clearAll();
     agentService._clearAll();
     

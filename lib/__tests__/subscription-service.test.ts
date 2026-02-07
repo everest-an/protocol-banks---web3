@@ -5,11 +5,11 @@
 
 import * as fc from 'fast-check';
 import {
-  calculateNextPaymentDate,
   isSubscriptionDue,
   type SubscriptionFrequency,
   type Subscription,
 } from '../services/subscription-service';
+import { calculateNextPaymentDate } from '../subscription-helpers';
 import { createMockSubscription } from '../test-utils';
 
 // ============================================

@@ -13,7 +13,8 @@ import {
   generateAgentApiKey, 
   hashApiKey,
   AgentType,
-  CreateAgentInput 
+  CreateAgentInput,
+  setUseDatabaseStorage 
 } from '../services/agent-service';
 
 // ============================================
@@ -42,6 +43,7 @@ const walletAddressArb = fc.hexaString({ minLength: 40, maxLength: 40 }).map(s =
 
 describe('Agent Service', () => {
   beforeEach(() => {
+    setUseDatabaseStorage(false);
     agentService._clearAll();
   });
 

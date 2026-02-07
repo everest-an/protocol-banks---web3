@@ -8,9 +8,9 @@
  */
 
 import * as fc from 'fast-check';
-import { agentX402Service } from '../services/agent-x402-service';
-import { proposalService, PaymentProposal } from '../services/proposal-service';
-import { agentService } from '../services/agent-service';
+import { agentX402Service, setUseDatabaseStorage as setX402Db } from '../services/agent-x402-service';
+import { proposalService, PaymentProposal, setUseDatabaseStorage as setProposalDb } from '../services/proposal-service';
+import { agentService, setUseDatabaseStorage as setAgentDb } from '../services/agent-service';
 
 // ============================================
 // Test Helpers
@@ -27,6 +27,9 @@ describe('Agent x402 Service', () => {
   const testOwnerAddress = '0x1234567890123456789012345678901234567890';
 
   beforeEach(() => {
+    setX402Db(false);
+    setProposalDb(false);
+    setAgentDb(false);
     agentX402Service._clearAll();
     proposalService._clearAll();
     agentService._clearAll();
