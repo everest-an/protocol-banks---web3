@@ -127,6 +127,13 @@ contract ProtocolBankUSD is ERC20, ERC20Burnable, ERC20Permit, ERC20Pausable, Ac
         isFeeExempt[address(this)] = true;
     }
 
+    /**
+     * @dev Overrides default decimals to 6 to match USDC.
+     */
+    function decimals() public view virtual override returns (uint8) {
+        return 6;
+    }
+
     // ══════════════════════════════════════════════════════════════
     //                    CORE TOKEN LOGIC
     // ══════════════════════════════════════════════════════════════

@@ -16,6 +16,7 @@ Protocol Bank supports **HashKey Chain (HSK)** as a specialized liquidity layer 
 | **Primary Use Case** | RWA Settlement, Exchange Deposits, Fiat Withdrawals |
 | **Stablecoin Model** | **pbUSD** (Synthetic, 1:1 backed by Base USDC) |
 | **Token Standard** | ERC-20 + ERC-2612 (Permit) + ERC-3009 (Auth) |
+| **Decimals** | **6** (Matches USDC) |
 
 ---
 
@@ -27,6 +28,7 @@ HashKey Chain currently lacks native liquidity for major stablecoins (USDC/USDT)
 
 *   **Type**: Synthetic Stablecoin (Mint-and-Burn).
 *   **Backing**: 100% backed by USDC held in the **Protocol Bank Treasury** on Base Chain.
+*   **Decimals**: **6** (To maintain 1:1 unit parity with USDC).
 *   **Peg**: 1 pbUSD = 1 USDC.
 
 ### 2.2 System Architecture

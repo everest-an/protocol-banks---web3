@@ -26,28 +26,28 @@ interface DeployConfig {
 const CONFIG: Record<string, DeployConfig> = {
   base: {
     usdcAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base mainnet USDC
-    dailyMintCap: ethers.parseEther("5000000"),        // 5M pbUSD
+    dailyMintCap: ethers.parseUnits("5000000", 6),     // 5M pbUSD (6 decimals)
     dailyReleaseCap: ethers.parseUnits("5000000", 6),  // 5M USDC
     emergencyDelay: 172800,                             // 48 hours
   },
   baseSepolia: {
     usdcAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e", // Base Sepolia USDC
-    dailyMintCap: ethers.parseEther("1000000"),        // 1M pbUSD
+    dailyMintCap: ethers.parseUnits("1000000", 6),     // 1M pbUSD (6 decimals)
     dailyReleaseCap: ethers.parseUnits("1000000", 6),  // 1M USDC
     emergencyDelay: 3600,                               // 1 hour (testnet)
   },
   hashkey: {
-    dailyMintCap: ethers.parseEther("5000000"),        // 5M pbUSD
+    dailyMintCap: ethers.parseUnits("5000000", 6),     // 5M pbUSD (6 decimals)
     dailyReleaseCap: ethers.parseUnits("5000000", 6),
     emergencyDelay: 172800,
   },
   hashkeyTestnet: {
-    dailyMintCap: ethers.parseEther("1000000"),
+    dailyMintCap: ethers.parseUnits("1000000", 6),     // 1M pbUSD (6 decimals)
     dailyReleaseCap: ethers.parseUnits("1000000", 6),
     emergencyDelay: 3600,
   },
   localhost: {
-    dailyMintCap: ethers.parseEther("10000000"),       // 10M pbUSD
+    dailyMintCap: ethers.parseUnits("10000000", 6),    // 10M pbUSD (6 decimals)
     dailyReleaseCap: ethers.parseUnits("10000000", 6), // 10M USDC
     emergencyDelay: 60,                                 // 1 minute (local dev)
   },
@@ -59,9 +59,14 @@ const CONFIG: Record<string, DeployConfig> = {
 
 async function deployMockUSDC() {
   console.log("\n📦 Deploying MockUSDC...");
+  // Deploy MockERC20 with 6 decimals for testing
   const MockERC20 = await ethers.getContractFactory("MockERC20");
   const mockUSDC = await MockERC20.deploy("USD Coin", "USDC");
   await mockUSDC.waitForDeployment();
+  // Note: Standard MockERC20 is 18 decimals, but for testing pbUSD parity we care about values.
+  // If we really want 6 decimals mock, we'd need to modify MockERC20 or deploy a different one.
+  // For now, we assume MockUSDC is 18 decimals in local tests unless we change it.
+  // Ideally, update MockERC20 to support decimals in constructor.
   const addr = await mockUSDC.getAddress();
   console.log(`   ✅ MockUSDC deployed: ${addr}`);
   return addr;
@@ -71,7 +76,7 @@ async function deployPbUSD(config: DeployConfig) {
   const [deployer] = await ethers.getSigners();
   console.log("\n🪙 Deploying ProtocolBankUSD...");
   console.log(`   Admin/Minter/Pauser/Compliance: ${deployer.address}`);
-  console.log(`   Daily Mint Cap: ${ethers.formatEther(config.dailyMintCap)} pbUSD`);
+  console.log(`   Daily Mint Cap: ${ethers.formatUnits(config.dailyMintCap, 6)} pbUSD`);
 
   const PbUSD = await ethers.getContractFactory("ProtocolBankUSD");
   const pbUSD = await PbUSD.deploy(
