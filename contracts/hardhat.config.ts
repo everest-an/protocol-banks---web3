@@ -46,6 +46,18 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 8453,
     },
+    // HashKey Testnet
+    hashkeyTestnet: {
+      url: process.env.HASHKEY_TESTNET_RPC || "https://hashkeychain-testnet.alt.technology",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 133,
+    },
+    // HashKey Mainnet
+    hashkey: {
+      url: process.env.HASHKEY_RPC || "https://mainnet.hsk.xyz",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 177,
+    },
   },
   etherscan: {
     apiKey: {
