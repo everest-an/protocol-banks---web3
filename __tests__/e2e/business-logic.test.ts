@@ -276,8 +276,8 @@ describe('E2E: Treasury Health Analysis', () => {
       { vendor: { name: '' }, notes: 'monthly salary', amount_usd: 50000, timestamp: new Date(now.getTime() - 1 * 86400000).toISOString() },
       // Marketing
       { vendor: { name: '' }, notes: 'ad campaign', amount_usd: 10000, timestamp: new Date(now.getTime() - 3 * 86400000).toISOString() },
-      // Old payment (should not count in burn rate)
-      { vendor: { name: 'Old Vendor' }, notes: 'ancient payment', amount_usd: 100000, timestamp: new Date(now.getTime() - 90 * 86400000).toISOString() },
+      // Old payment (should not count in burn rate, but still categorized)
+      { vendor: { name: '' }, notes: 'old server hosting', amount_usd: 100000, timestamp: new Date(now.getTime() - 90 * 86400000).toISOString() },
     ]
 
     // Step 1: Calculate burn rate (last 30 days only)
@@ -289,11 +289,11 @@ describe('E2E: Treasury Health Analysis', () => {
     const runwayMonths = calculateRunway(treasuryBalance, burnRate)
     expect(runwayMonths).toBeCloseTo(2.94, 1) // ~2.94 months
 
-    // Step 3: Categorize spending
+    // Step 3: Categorize spending (includes ALL payments, not just recent)
     const categories = getTopCategories(payments)
 
-    // Payroll should dominate
-    expect(categories[0].name).toBe('Payroll')
+    // Infrastructure should dominate (5000 + 3000 + 100000 = 108000)
+    expect(categories[0].name).toBe('Infrastructure')
 
     // Step 4: Each category should have a proper color
     categories.forEach((cat) => {

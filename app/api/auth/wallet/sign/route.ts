@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    if (!wallet) {
+    if (!wallet || !wallet.salt || !wallet.server_share_encrypted || !wallet.server_share_iv) {
       return NextResponse.json({ error: "Wallet not found" }, { status: 404 })
     }
 

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build base filter
-    const baseFilter: Record<string, unknown> = {
+    const baseFilter: Record<string, any> = {
       from_address: authAddress.toLowerCase()
     }
 

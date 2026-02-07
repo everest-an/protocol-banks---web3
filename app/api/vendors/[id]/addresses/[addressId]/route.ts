@@ -15,8 +15,9 @@ import {
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string; addressId: string } }
+  { params }: { params: Promise<{ id: string; addressId: string }> }
 ) {
+  const { id, addressId } = await params
   try {
     const ownerAddress = req.headers.get("x-user-address")
 
@@ -28,7 +29,7 @@ export async function PATCH(
     const { label, isPrimary } = body
 
     const updatedAddress = await updateVendorAddress(
-      params.addressId,
+      addressId,
       ownerAddress,
       {
         label: label?.trim(),
@@ -42,7 +43,7 @@ export async function PATCH(
     })
   } catch (error: any) {
     console.error(
-      `[API] PATCH /api/vendors/${params.id}/addresses/${params.addressId} error:`,
+      `[API] PATCH /api/vendors/${id}/addresses/${addressId} error:`,
       error
     )
 
@@ -63,8 +64,9 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string; addressId: string } }
+  { params }: { params: Promise<{ id: string; addressId: string }> }
 ) {
+  const { id, addressId } = await params
   try {
     const ownerAddress = req.headers.get("x-user-address")
 
@@ -72,14 +74,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    await deleteVendorAddress(params.addressId, ownerAddress)
+    await deleteVendorAddress(addressId, ownerAddress)
 
     return NextResponse.json({
       message: "Address deleted successfully",
     })
   } catch (error: any) {
     console.error(
-      `[API] DELETE /api/vendors/${params.id}/addresses/${params.addressId} error:`,
+      `[API] DELETE /api/vendors/${id}/addresses/${addressId} error:`,
       error
     )
 

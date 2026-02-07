@@ -59,7 +59,7 @@ export async function PATCH(
     const body = await request.json()
     const { name, description, purpose, status, tags } = body
 
-    const data: Record<string, unknown> = {}
+    const data: Record<string, any> = {}
     if (name !== undefined) data.name = name
     if (description !== undefined) data.description = description
     if (purpose !== undefined) data.purpose = purpose

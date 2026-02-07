@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const body = await request.json()
 
     // Build update object
-    const updateData: Record<string, unknown> = {}
+    const updateData: Record<string, any> = {}
 
     if (typeof body.is_active === "boolean") {
       updateData.is_active = body.is_active

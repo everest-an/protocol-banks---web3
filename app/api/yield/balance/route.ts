@@ -69,6 +69,13 @@ export async function GET(request: NextRequest) {
     }
 
     // 情况 2: 单个网络余额 (network validated by Zod)
+    if (!network) {
+      return NextResponse.json(
+        { error: 'Missing required parameter: network' },
+        { status: 400 }
+      )
+    }
+
     logger.info('Fetching yield balance', {
       component: 'yield-api',
       action: 'get_balance',

@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       from: payment.from_address,
       to: payment.to_address,
       amount: payment.amount,
-      tokenAddress: payment.token_address,
+      tokenAddress: payment.token,
       chainId: clientParams.chainId || 1,
       timestamp: clientParams.timestamp,
       nonce: clientParams.nonce,

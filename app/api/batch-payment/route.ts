@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
 
     if (targetAddress) {
       // Build filter conditions
-      const where: Record<string, unknown> = {
+      const where: Record<string, any> = {
         from_address: targetAddress.toLowerCase()
       }
 

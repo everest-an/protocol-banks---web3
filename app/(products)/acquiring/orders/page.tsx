@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import NextImage from "next/image";
 import {
-  Card,
-  CardContent,
+  GlassCard,
+  GlassCardContent,
 } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

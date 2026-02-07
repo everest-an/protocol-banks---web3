@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     const walletAddress = authAddress;
 
     // Build filter conditions
-    let where: Record<string, unknown> = {}
+    let where: Record<string, any> = {}
 
     // Address filtering
     if (type === 'sent') {

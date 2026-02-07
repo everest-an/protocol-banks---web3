@@ -16,8 +16,9 @@ import { validateAddress } from "@/lib/address-utils"
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const ownerAddress = req.headers.get("x-user-address")
 
@@ -25,7 +26,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const vendor = await getVendorWithAddresses(params.id, ownerAddress)
+    const vendor = await getVendorWithAddresses(id, ownerAddress)
 
     if (!vendor) {
       return NextResponse.json({ error: "Vendor not found" }, { status: 404 })
@@ -36,7 +37,7 @@ export async function GET(
       count: vendor.addresses.length,
     })
   } catch (error: any) {
-    console.error(`[API] GET /api/vendors/${params.id}/addresses error:`, error)
+    console.error(`[API] GET /api/vendors/${id}/addresses error:`, error)
     return NextResponse.json(
       { error: error.message || "Failed to fetch addresses" },
       { status: 500 }
@@ -50,8 +51,9 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const ownerAddress = req.headers.get("x-user-address")
 
@@ -81,7 +83,7 @@ export async function POST(
     }
 
     // Add address
-    const newAddress = await addVendorAddress(params.id, ownerAddress, {
+    const newAddress = await addVendorAddress(id, ownerAddress, {
       network: network.trim().toLowerCase(),
       address: validation.checksumAddress!,
       label: label?.trim(),
@@ -93,7 +95,7 @@ export async function POST(
       message: "Address added successfully",
     }, { status: 201 })
   } catch (error: any) {
-    console.error(`[API] POST /api/vendors/${params.id}/addresses error:`, error)
+    console.error(`[API] POST /api/vendors/${id}/addresses error:`, error)
 
     if (error.message.includes("not found")) {
       return NextResponse.json({ error: error.message }, { status: 404 })

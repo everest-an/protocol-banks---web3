@@ -20,8 +20,8 @@ export interface EmptyStateProps extends React.ComponentProps<"div"> {
   title: string
   /** Optional description */
   description?: string
-  /** Optional action button */
-  action?: {
+  /** Optional action button - can be an object or React node */
+  action?: React.ReactNode | {
     label: string
     onClick: () => void
     variant?: "default" | "outline" | "ghost"
@@ -107,13 +107,17 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
 
         {/* Action Button */}
         {action && (
-          <Button
-            onClick={action.onClick}
-            variant={action.variant || "default"}
-            className="mt-6"
-          >
-            {action.label}
-          </Button>
+          React.isValidElement(action)
+            ? <div className="mt-6">{action}</div>
+            : (
+              <Button
+                onClick={(action as { onClick: () => void }).onClick}
+                variant={(action as { variant?: "default" | "outline" | "ghost" }).variant || "default"}
+                className="mt-6"
+              >
+                {(action as { label: string }).label}
+              </Button>
+            )
         )}
       </div>
     )

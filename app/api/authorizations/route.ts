@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0")
 
     // Build where clause
-    const where: Record<string, unknown> = {
+    const where: Record<string, any> = {
       from_address: walletAddress.toLowerCase(),
     }
     if (status) {
