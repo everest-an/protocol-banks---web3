@@ -1,4 +1,4 @@
-import { isEvmAddressFormat } from "@/lib/address-utils"
+import { isEvmAddressFormat, detectAddressType, validateAddress } from "@/lib/address-utils"
 import type { Payment, Recipient, PaymentResult } from "@/types"
 import { sendToken, signERC3009Authorization, executeERC3009Transfer } from "@/lib/web3"
 import {
@@ -11,6 +11,7 @@ import {
   type BatchPaymentItem,
 } from "@/lib/services"
 import { webhookTriggerService, type PaymentEventData, type BatchPaymentEventData } from "./webhook-trigger-service"
+import { processTronPayment, isValidTronAddress } from "./tron-payment"
 
 // Lazy import to avoid bundling pg/prisma on client side
 const getVendorPaymentService = () =>
@@ -25,9 +26,12 @@ export function validateRecipients(recipients: Recipient[]): void {
   }
 
   for (const recipient of recipients) {
-    if (!recipient.address || !isEvmAddressFormat(recipient.address)) {
+    // Validate address (supports both EVM and TRON)
+    const addressValidation = validateAddress(recipient.address)
+    if (!addressValidation.isValid) {
       throw new Error(`Invalid address: ${recipient.address}`)
     }
+
     if (!recipient.amount || recipient.amount <= 0) {
       throw new Error(`Invalid amount for ${recipient.address}`)
     }
@@ -64,6 +68,11 @@ export async function processSinglePayment(
   console.log("[v0] Processing payment:", { recipient, wallet, chain })
 
   const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+  // Detect address type (EVM or TRON)
+  const addressType = detectAddressType(recipient.address)
+  console.log("[v0] Detected address type:", addressType)
+
   const eventData: PaymentEventData = {
     payment_id: paymentId,
     from_address: wallet,
@@ -92,33 +101,51 @@ export async function processSinglePayment(
   })
 
   try {
-    // Get the correct token address for the current chain
-    const chainId = await (async () => {
-      if (typeof window !== "undefined" && window.ethereum) {
-        const provider = new (await import("ethers")).ethers.BrowserProvider(window.ethereum)
-        const network = await provider.getNetwork()
-        return Number(network.chainId)
+    let txHash: string
+
+    // Route to appropriate payment handler based on address type
+    if (addressType === "TRON") {
+      // TRON payment
+      console.log("[v0] Processing TRON payment")
+      const result = await processTronPayment(recipient, wallet)
+
+      if (!result.success) {
+        throw new Error(result.error || "TRON payment failed")
       }
-      return 1 // Default to mainnet
-    })()
 
-    const { getTokenAddress } = await import("@/lib/web3")
-    const tokenAddress = getTokenAddress(chainId, recipient.token || "USDC")
+      txHash = result.txHash!
+    } else {
+      // EVM payment
+      console.log("[v0] Processing EVM payment")
 
-    if (!tokenAddress) {
-      throw new Error(`Token ${recipient.token} not supported on chain ${chainId}`)
+      // Get the correct token address for the current chain
+      const chainId = await (async () => {
+        if (typeof window !== "undefined" && window.ethereum) {
+          const provider = new (await import("ethers")).ethers.BrowserProvider(window.ethereum)
+          const network = await provider.getNetwork()
+          return Number(network.chainId)
+        }
+        return 1 // Default to mainnet
+      })()
+
+      const { getTokenAddress } = await import("@/lib/web3")
+      const tokenAddress = getTokenAddress(chainId, recipient.token || "USDC")
+
+      if (!tokenAddress) {
+        throw new Error(`Token ${recipient.token} not supported on chain ${chainId}`)
+      }
+
+      console.log("[v0] Sending token:", {
+        tokenAddress,
+        to: recipient.address,
+        amount: recipient.amount,
+        token: recipient.token,
+        chainId,
+      })
+
+      const { sendToken } = await import("@/lib/web3")
+      txHash = await sendToken(tokenAddress, recipient.address, String(recipient.amount))
     }
-
-    console.log("[v0] Sending token:", {
-      tokenAddress,
-      to: recipient.address,
-      amount: recipient.amount,
-      token: recipient.token,
-      chainId,
-    })
-
-    const { sendToken } = await import("@/lib/web3")
-    const txHash = await sendToken(tokenAddress, recipient.address, String(recipient.amount))
 
     // Trigger payment.completed webhook (fire and forget)
     webhookTriggerService.triggerPaymentCompleted(wallet, {
@@ -170,6 +197,20 @@ export async function processBatchPayments(
 
   validateRecipients(recipients)
 
+  // Validate all recipients are on the same network
+  if (recipients.length > 0) {
+    const firstAddressType = detectAddressType(recipients[0].address)
+    const allSameNetwork = recipients.every((r) => detectAddressType(r.address) === firstAddressType)
+
+    if (!allSameNetwork) {
+      throw new Error(
+        "All recipients must be on the same network. Cannot mix EVM and TRON addresses in a batch payment.",
+      )
+    }
+
+    console.log("[v0] Batch payment network:", firstAddressType)
+  }
+
   const results: PaymentResult[] = []
 
   for (let i = 0; i < recipients.length; i++) {
@@ -181,8 +222,10 @@ export async function processBatchPayments(
     }
 
     // 防止网络拥堵，添加小延迟
+    // TRON has 3s block time, EVM varies but 1-3s is safe
+    const delayMs = detectAddressType(recipients[i].address) === "TRON" ? 3000 : 1000
     if (i < recipients.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
     }
   }
 
