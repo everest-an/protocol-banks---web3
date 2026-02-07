@@ -25,7 +25,18 @@
 
 ---
 
-## 1. Payment Engine
+## 13. Upcoming: pbUSD Stablecoin
+
+**Synthetic Stablecoin for Emerging Chains**
+
+To solve liquidity fragmentation on new chains (like HashKey Chain) that lack native stablecoin support, Protocol Bank issues its own backed asset.
+
+- **Backed 1:1**: Every `pbUSD` is backed by USDC held in our Base Treasury.
+- **Instant Bridge**: "Mint-and-Burn" mechanism allows near-instant transfers between Base and HashKey.
+- **Payroll Ready**: Designed specifically for payroll settlement where recipients accept the asset within the Protocol Bank ecosystem.
+
+See [pbUSD Design Doc](PBUSD_DESIGN.md) for technical details.
+
 
 ### 1.1 Single Payment
 

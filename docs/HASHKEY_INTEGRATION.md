@@ -11,7 +11,7 @@ Protocol Bank supports **HashKey Chain (HSK)** as a primary EVM-compatible layer
 - ✅ Network Configuration (Chain ID 177)
 - ✅ Wallet Connection (EVM Standard)
 - ✅ Cross-Chain Routing (Rango/ZetaChain)
-- ❌ Payment Support (Missing USDC/USDT contracts)
+- 🟡 Stablecoin Support (Contracts pending official HashKey deployment or [pbUSD Solution](PBUSD_DESIGN.md))
 
 ---
 
