@@ -24,7 +24,7 @@ import { authHeaders } from "@/lib/authenticated-fetch"
 import { useVendors } from "@/hooks/use-vendors"
 import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { getTokenAddress, signERC3009Authorization, executeERC3009Transfer, sendToken, getTokenBalance } from "@/lib/web3"
-import { getChainInfo, SUPPORTED_CHAINS } from "@/lib/tokens"
+import { getChainInfo, SUPPORTED_CHAINS, getTokensForChain, type SupportedChainId } from "@/lib/tokens"
 import { detectAddressType, validateAddress, isValidTronAddress } from "@/lib/address-utils"
 import { getTokenAddress as getTronTokenAddress } from "@/lib/networks"
 import { sendTRC20 } from "@/lib/services/tron-payment"
@@ -147,7 +147,7 @@ interface TransactionLock {
 
 function PaymentContent() {
   const searchParams = useSearchParams()
-  const { isConnected, address: activeAddress, wallets, activeChain, chainId } = useUnifiedWallet()
+  const { isConnected, address: activeAddress, wallets, activeChain, chainId, switchNetwork } = useUnifiedWallet()
   const { toast } = useToast()
   const { isDemoMode } = useDemo()
 
@@ -868,10 +868,36 @@ function PaymentContent() {
           </DialogHeader>
 
           <div className="space-y-5 pt-2">
-            {/* Current Network */}
-            <div className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-md">
-              <span className="text-muted-foreground">Network</span>
-              <Badge variant="secondary">{networkDisplayName}</Badge>
+            {/* Network Selector */}
+            <div className="space-y-2">
+              <Label>Network</Label>
+              {isTronPayment ? (
+                <div className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-md">
+                  <span className="text-muted-foreground">Auto-detected</span>
+                  <Badge variant="secondary" className="bg-red-500/10 text-red-500 border-red-500/20">TRON</Badge>
+                </div>
+              ) : (
+                <Select
+                  value={chainId.toString()}
+                  onValueChange={(v) => {
+                    const targetChainId = parseInt(v)
+                    if (targetChainId !== chainId) {
+                      switchNetwork(targetChainId)
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select network" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUPPORTED_CHAINS.map((chain) => (
+                      <SelectItem key={chain.id} value={chain.id.toString()}>
+                        {chain.icon} {chain.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Recipient Address */}
@@ -949,10 +975,15 @@ function PaymentContent() {
                       </>
                     ) : (
                       <>
-                        <SelectItem value="USDC">USDC</SelectItem>
-                        <SelectItem value="USDT">USDT</SelectItem>
-                        <SelectItem value="DAI">DAI</SelectItem>
-                        {chainId === 177 && <SelectItem value="HSK">HSK</SelectItem>}
+                        {getTokensForChain(chainId as SupportedChainId).map((t) => (
+                          <SelectItem key={t.symbol} value={t.symbol}>{t.symbol}</SelectItem>
+                        ))}
+                        {getTokensForChain(chainId as SupportedChainId).length === 0 && (
+                          <>
+                            <SelectItem value="USDC">USDC</SelectItem>
+                            <SelectItem value="USDT">USDT</SelectItem>
+                          </>
+                        )}
                       </>
                     )}
                   </SelectContent>

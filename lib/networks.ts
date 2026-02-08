@@ -63,6 +63,26 @@ export const EVM_NETWORKS: Record<string, NetworkConfig> = {
     blockExplorer: "https://arbiscan.io",
     isTestnet: false,
   },
+  POLYGON: {
+    id: "polygon",
+    name: "Polygon",
+    type: "EVM",
+    chainId: 137,
+    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+    rpcUrl: "https://polygon-rpc.com",
+    blockExplorer: "https://polygonscan.com",
+    isTestnet: false,
+  },
+  OPTIMISM: {
+    id: "optimism",
+    name: "Optimism",
+    type: "EVM",
+    chainId: 10,
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrl: "https://mainnet.optimism.io",
+    blockExplorer: "https://optimistic.etherscan.io",
+    isTestnet: false,
+  },
   BSC: {
     id: "bsc",
     name: "BNB Smart Chain",
@@ -111,6 +131,8 @@ export const TRON_NETWORKS: Record<string, NetworkConfig> = {
 export const ALL_NETWORKS: Record<string, NetworkConfig> = {
   ethereum: EVM_NETWORKS.ETHEREUM,
   sepolia: EVM_NETWORKS.SEPOLIA,
+  polygon: EVM_NETWORKS.POLYGON,
+  optimism: EVM_NETWORKS.OPTIMISM,
   base: EVM_NETWORKS.BASE,
   arbitrum: EVM_NETWORKS.ARBITRUM,
   bsc: EVM_NETWORKS.BSC,
@@ -142,6 +164,44 @@ export const NETWORK_TOKENS: Record<string, TokenConfig[]> = {
     },
     {
       address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      symbol: "DAI",
+      decimals: 18,
+    },
+  ],
+
+  // Polygon
+  polygon: [
+    {
+      address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      symbol: "USDT",
+      decimals: 6,
+    },
+    {
+      address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      symbol: "USDC",
+      decimals: 6,
+    },
+    {
+      address: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+      symbol: "DAI",
+      decimals: 18,
+    },
+  ],
+
+  // Optimism
+  optimism: [
+    {
+      address: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      symbol: "USDT",
+      decimals: 6,
+    },
+    {
+      address: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      symbol: "USDC",
+      decimals: 6,
+    },
+    {
+      address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
       symbol: "DAI",
       decimals: 18,
     },

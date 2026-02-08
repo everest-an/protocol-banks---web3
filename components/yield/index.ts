@@ -21,3 +21,9 @@ export {
   YieldRecommendationBannerSkeleton,
   type RecommendationData,
 } from "./yield-recommendation-banner"
+
+export {
+  YieldActionModal,
+  type YieldActionType,
+  type YieldActionModalProps,
+} from "./yield-action-modal"

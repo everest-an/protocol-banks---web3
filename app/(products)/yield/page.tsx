@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
+import { GlassCard, GlassCardContent } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -19,6 +19,8 @@ import {
   YieldSummaryCardSkeleton,
   YieldRecommendationBanner,
   YieldRecommendationBannerSkeleton,
+  YieldActionModal,
+  type YieldActionType,
 } from "@/components/yield"
 import { EmptyState } from "@/components/dashboard"
 import { PiggyBank, RefreshCw, ExternalLink, Info } from "lucide-react"
@@ -31,6 +33,32 @@ export default function YieldPage() {
   const [recommendation, setRecommendation] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("all")
   const [refreshing, setRefreshing] = useState(false)
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalAction, setModalAction] = useState<YieldActionType>("deposit")
+  const [modalNetwork, setModalNetwork] = useState("")
+  const [modalNetworkType, setModalNetworkType] = useState<"EVM" | "TRON">("EVM")
+  const [modalProtocol, setModalProtocol] = useState("")
+  const [modalPrincipal, setModalPrincipal] = useState("0")
+  const [modalTotalBalance, setModalTotalBalance] = useState("0")
+
+  const openModal = (
+    action: YieldActionType,
+    network: string,
+    networkType: "EVM" | "TRON" = "EVM",
+    protocol: string = "Aave V3",
+    principal: string = "0",
+    totalBalance: string = "0"
+  ) => {
+    setModalAction(action)
+    setModalNetwork(network)
+    setModalNetworkType(networkType)
+    setModalProtocol(protocol)
+    setModalPrincipal(principal)
+    setModalTotalBalance(totalBalance)
+    setModalOpen(true)
+  }
 
   // 获取收益数据
   useEffect(() => {
@@ -139,8 +167,8 @@ export default function YieldPage() {
           <YieldRecommendationBanner
             data={recommendation}
             onDeposit={() => {
-              // TODO: Open deposit modal
-              console.log("Open deposit modal for", recommendation.network)
+              const networkType = recommendation.network?.startsWith("tron") ? "TRON" : "EVM"
+              openModal("deposit", recommendation.network, networkType as "EVM" | "TRON", recommendation.protocol)
             }}
           />
         )}
@@ -204,7 +232,8 @@ export default function YieldPage() {
         <YieldRecommendationBanner
           data={recommendation}
           onDeposit={() => {
-            console.log("Open deposit modal for", recommendation.network)
+            const networkType = recommendation.network?.startsWith("tron") ? "TRON" : "EVM"
+            openModal("deposit", recommendation.network, networkType as "EVM" | "TRON", recommendation.protocol)
           }}
         />
       )}
@@ -242,10 +271,10 @@ export default function YieldPage() {
                 key={balance.network}
                 data={balance}
                 onDeposit={() => {
-                  console.log("Deposit to", balance.network)
+                  openModal("deposit", balance.network, balance.networkType, balance.protocol)
                 }}
                 onWithdraw={() => {
-                  console.log("Withdraw from", balance.network)
+                  openModal("withdraw", balance.network, balance.networkType, balance.protocol, balance.principal, balance.totalBalance)
                 }}
               />
             ))}
@@ -280,6 +309,20 @@ export default function YieldPage() {
           </div>
         </GlassCardContent>
       </GlassCard>
+
+      {/* Deposit / Withdraw Modal */}
+      <YieldActionModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        action={modalAction}
+        network={modalNetwork}
+        networkType={modalNetworkType}
+        protocol={modalProtocol}
+        principal={modalPrincipal}
+        totalBalance={modalTotalBalance}
+        wallet={wallet || ""}
+        onSuccess={fetchYieldData}
+      />
     </div>
   )
 }

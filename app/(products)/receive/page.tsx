@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
 import { AddressVerificationDisplay } from "@/components/address-verification-display"
+import { detectAddressType } from "@/lib/address-utils"
+import { SUPPORTED_CHAINS } from "@/lib/tokens"
 
 function generateLinkSignature(params: { to: string; amount: string; token: string; expiry: string }): string {
   // Client-side signature using a deterministic hash
@@ -31,7 +33,8 @@ function generateLinkSignature(params: { to: string; amount: string; token: stri
 }
 
 function isValidAddress(address: string): boolean {
-  return /^0x[a-fA-F0-9]{40}$/.test(address)
+  const type = detectAddressType(address)
+  return type === "EVM" || type === "TRON"
 }
 
 function isValidAmount(amount: string): boolean {
@@ -59,6 +62,10 @@ export default function ReceivePage() {
   const [amountError, setAmountError] = useState("")
   const [showQRCode, setShowQRCode] = useState(false)
 
+  // Auto-detect address network type
+  const addressType = address ? detectAddressType(address) : null
+  const isTronAddress = addressType === "TRON"
+
   useEffect(() => {
     if (isConnected && unifiedAddress) {
       setAddress(unifiedAddress)
@@ -67,7 +74,7 @@ export default function ReceivePage() {
 
   useEffect(() => {
     if (address && !isValidAddress(address)) {
-      setAddressError("Invalid Ethereum address format")
+      setAddressError("Invalid address format (supports EVM 0x... and TRON T...)")
     } else {
       setAddressError("")
     }
@@ -92,6 +99,7 @@ export default function ReceivePage() {
     params.set("to", address)
     if (amount) params.set("amount", amount)
     params.set("token", token)
+    if (detectAddressType(address) === "TRON") params.set("network", "tron")
 
     // Add expiry timestamp
     const expiryMs = Date.now() + Number.parseInt(expiryHours) * 60 * 60 * 1000
@@ -235,22 +243,36 @@ export default function ReceivePage() {
               <div className="relative">
                 <Input
                   id="address"
-                  placeholder="0x..."
+                  placeholder="0x... (EVM) or T... (TRON)"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => setAddress(e.target.value.trim())}
                   className={`font-mono ${addressError ? "border-destructive" : ""}`}
                 />
                 {isConnected && !address && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7"
-                    onClick={() => setAddress(wallets[activeChain as keyof typeof wallets] || "")}
-                  >
-                    Use My Wallet
-                  </Button>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                    {wallets.EVM && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddress(wallets.EVM!)}>
+                        EVM
+                      </Button>
+                    )}
+                    {wallets.TRON && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddress(wallets.TRON!)}>
+                        TRON
+                      </Button>
+                    )}
+                    {!wallets.EVM && !wallets.TRON && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddress(wallets[activeChain as keyof typeof wallets] || "")}>
+                        Use My Wallet
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
+              {address && !addressError && addressType && (
+                <p className="text-xs text-muted-foreground">
+                  Detected: <span className="font-medium text-foreground">{isTronAddress ? "TRON Network" : "EVM Network"}</span>
+                </p>
+              )}
               {addressError && <p className="text-sm text-destructive">{addressError}</p>}
             </div>
 
@@ -274,9 +296,18 @@ export default function ReceivePage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USDC">USDC (USD Coin)</SelectItem>
-                    <SelectItem value="USDT">USDT (Tether)</SelectItem>
-                    <SelectItem value="DAI">DAI</SelectItem>
+                    {isTronAddress ? (
+                      <>
+                        <SelectItem value="USDT">USDT (TRC20)</SelectItem>
+                        <SelectItem value="USDC">USDC (TRC20)</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="USDC">USDC (USD Coin)</SelectItem>
+                        <SelectItem value="USDT">USDT (Tether)</SelectItem>
+                        <SelectItem value="DAI">DAI</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -302,12 +333,16 @@ export default function ReceivePage() {
             <div className="bg-muted/50 rounded-lg p-4 border text-sm space-y-2">
               <div className="flex items-center gap-2 font-medium">
                 <Terminal className="h-4 w-4 text-primary" />
-                <span>x402 Features Enabled</span>
+                <span>{isTronAddress ? "TRON Payment Link" : "x402 Features Enabled"}</span>
               </div>
               <ul className="list-disc list-inside text-muted-foreground pl-1 space-y-1">
                 <li>Cryptographically signed links</li>
                 <li>Tamper detection on recipient side</li>
-                <li>EIP-3009 Gasless support (USDC)</li>
+                {isTronAddress ? (
+                  <li>TRC20 token transfer (TronLink)</li>
+                ) : (
+                  <li>EIP-3009 Gasless support (USDC)</li>
+                )}
                 <li>Automatic link expiration</li>
               </ul>
             </div>
@@ -457,7 +492,7 @@ export default function ReceivePage() {
               </p>
               <p>
                 3. For USDC payments on EVM chains, the <strong>x402 Protocol</strong> activates automatically for
-                gasless authorization.
+                gasless authorization. TRON payments use TRC20 token transfers via TronLink.
               </p>
             </GlassCardContent>
           </GlassCard>

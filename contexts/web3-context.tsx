@@ -119,8 +119,12 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const isSupportedNetwork =
     chainId === CHAIN_IDS.MAINNET ||
     chainId === CHAIN_IDS.SEPOLIA ||
+    chainId === CHAIN_IDS.POLYGON ||
+    chainId === CHAIN_IDS.OPTIMISM ||
     chainId === CHAIN_IDS.BASE ||
-    chainId === CHAIN_IDS.ARBITRUM
+    chainId === CHAIN_IDS.ARBITRUM ||
+    chainId === CHAIN_IDS.BSC ||
+    chainId === CHAIN_IDS.HASHKEY
 
   const refreshBalances = useCallback(async () => {
     if (!wallets.EVM && !wallets.TRON) {

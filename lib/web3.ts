@@ -48,6 +48,8 @@ export {
 export const CHAIN_IDS = {
   MAINNET: 1,
   SEPOLIA: 11155111,
+  POLYGON: 137,
+  OPTIMISM: 10,
   BASE: 8453,
   ARBITRUM: 42161,
   BSC: 56,
@@ -58,6 +60,8 @@ export const CHAIN_IDS = {
 export const RPC_URLS: Record<number, string> = {
   [1]: "https://eth.llamarpc.com",
   [11155111]: "https://rpc.sepolia.org",
+  [137]: "https://polygon-rpc.com",
+  [10]: "https://mainnet.optimism.io",
   [8453]: "https://mainnet.base.org",
   [42161]: "https://arb1.arbitrum.io/rpc",
   [56]: "https://bsc-dataseed.binance.org",

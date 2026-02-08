@@ -2,26 +2,19 @@ import {
   Send,
   Users,
   Link as LinkIcon,
-  ShoppingCart,
-  FileText,
-  Monitor,
   RefreshCw,
   Layers,
   Clock,
   Bot,
-  Globe,
-  BarChart3,
   ArrowRightLeft,
   Home,
   CreditCard,
   ShoppingBag,
-  PieChart,
   Store,
-  Banknote,
   Wallet,
   Code,
   Settings,
-  ShieldCheck,
+  PiggyBank,
 } from "lucide-react"
 
 export interface ProductItem {
@@ -37,7 +30,7 @@ export const overviewItems: ProductItem[] = [
   {
     href: "/dashboard",
     title: "Dashboard",
-    description: "Dashboard overview",
+    description: "Dashboard overview and analytics",
     icon: Home,
   },
   {
@@ -71,14 +64,8 @@ export const paymentProducts: ProductItem[] = [
   {
     href: "/batch-payment",
     title: "Batch Payment",
-    description: "Pay multiple recipients in one transaction",
+    description: "Pay multiple recipients or split revenue",
     icon: Users,
-  },
-  {
-    href: "/split-payments",
-    title: "Split Payments",
-    description: "Distribute revenue to multiple recipients",
-    icon: PieChart,
   },
   {
     href: "/subscriptions",
@@ -95,20 +82,8 @@ export const paymentProducts: ProductItem[] = [
   {
     href: "/history",
     title: "Transactions",
-    description: "Payment history and activity",
+    description: "History, reconciliation, and analytics",
     icon: ArrowRightLeft,
-  },
-  {
-    href: "/reconciliation",
-    title: "Reconciliation",
-    description: "Match on-chain vs database records",
-    icon: ShieldCheck,
-  },
-  {
-    href: "/analytics",
-    title: "Analytics",
-    description: "Payment analytics and reports",
-    icon: BarChart3,
   },
 ]
 
@@ -117,32 +92,14 @@ export const receivingProducts: ProductItem[] = [
   {
     href: "/acquiring",
     title: "Acquiring",
-    description: "Merchant SDK, orders, and payment acceptance",
+    description: "Checkout, invoicing, and POS terminal",
     icon: Store,
   },
   {
     href: "/receive",
     title: "Payment Links",
-    description: "Generate QR codes and shareable payment links",
+    description: "Generate QR codes and shareable links",
     icon: LinkIcon,
-  },
-  {
-    href: "/checkout",
-    title: "Checkout",
-    description: "Accept crypto payments on your website",
-    icon: ShoppingCart,
-  },
-  {
-    href: "/acquiring/invoices",
-    title: "Invoicing",
-    description: "Professional crypto invoices with tracking",
-    icon: FileText,
-  },
-  {
-    href: "/terminal",
-    title: "POS Terminal",
-    description: "In-person payments with QR codes",
-    icon: Monitor,
   },
 ]
 
@@ -151,20 +108,20 @@ export const defiProducts: ProductItem[] = [
   {
     href: "/swap",
     title: "Swap",
-    description: "Exchange tokens at the best rates",
+    description: "Exchange tokens or off-ramp to fiat",
     icon: RefreshCw,
   },
   {
     href: "/omnichain",
-    title: "Cross-chain",
-    description: "Bridge assets across multiple chains",
+    title: "Bridge",
+    description: "Cross-chain asset transfers",
     icon: Layers,
   },
   {
-    href: "/offramp",
-    title: "Off-ramp",
-    description: "Convert crypto to fiat currency",
-    icon: Banknote,
+    href: "/yield",
+    title: "Yield",
+    description: "Earn interest via Aave & JustLend",
+    icon: PiggyBank,
   },
 ]
 
@@ -175,12 +132,6 @@ export const advancedProducts: ProductItem[] = [
     title: "AI Agents",
     description: "Autonomous payments with session keys",
     icon: Bot,
-  },
-  {
-    href: "/omnichain",
-    title: "Omnichain Vault",
-    description: "Unified cross-chain asset management",
-    icon: Globe,
   },
   {
     href: "/embed",
