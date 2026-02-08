@@ -7,12 +7,17 @@
     "test": "hardhat test",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:testnet": "hardhat run scripts/deploy.ts --network arbitrumSepolia",
-    "deploy:mainnet": "hardhat run scripts/deploy.ts --network arbitrum"
+    "deploy:mainnet": "hardhat run scripts/deploy.ts --network arbitrum",
+    "tron:compile": "node scripts/compile-tron-v2.js",
+    "tron:deploy:nile": "node scripts/deploy-tron-vault-nile.js",
+    "tron:test:nile": "node scripts/test-vault-nile.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/contracts": "^5.0.1",
+    "dotenv": "^16.6.1",
     "hardhat": "^2.19.4",
-    "dotenv": "^16.3.1"
+    "solc": "^0.8.20",
+    "tronweb": "^6.2.0"
   }
 }

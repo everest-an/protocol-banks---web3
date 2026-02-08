@@ -1,0 +1,12 @@
+{
+  "network": "TRON Nile Testnet",
+  "contractAddress": "TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy",
+  "deployer": "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq",
+  "transactionHash": "eb0e2f63967ea0e827c6ae195fa8718c1929168e64e263328267829b687126e0",
+  "timestamp": "2026-02-08T13:53:17.447Z",
+  "config": {
+    "justLend": "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq",
+    "unitroller": "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq",
+    "oracle": "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq"
+  }
+}
