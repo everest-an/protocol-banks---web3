@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export { MockERC20__factory } from "./MockERC20__factory";
+export { MockFHE__factory } from "./MockFHE__factory";

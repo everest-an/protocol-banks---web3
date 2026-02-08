@@ -1290,6 +1290,203 @@
       "artifacts": [
         "ReentrancyGuard"
       ]
+    },
+    "E:\\Protocol Bank\\Development\\历史版本\\protocol-banks---web3-main\\contracts\\contracts\\fhe\\ConfidentialPBUSD.sol": {
+      "lastModificationDate": 1770505181165,
+      "contentHash": "c5f86c2c82cc665b474dc99644cbe481",
+      "sourceName": "contracts/fhe/ConfidentialPBUSD.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/AccessControl.sol",
+        "@openzeppelin/contracts/utils/Pausable.sol",
+        "./IFHE.sol",
+        "./FHE.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ConfidentialPBUSD"
+      ]
+    },
+    "E:\\Protocol Bank\\Development\\历史版本\\protocol-banks---web3-main\\contracts\\contracts\\fhe\\IFHE.sol": {
+      "lastModificationDate": 1770504856810,
+      "contentHash": "a8b57d00531d942f5ee219431b7fc24f",
+      "sourceName": "contracts/fhe/IFHE.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IFHE"
+      ]
+    },
+    "E:\\Protocol Bank\\Development\\历史版本\\protocol-banks---web3-main\\contracts\\contracts\\fhe\\FHE.sol": {
+      "lastModificationDate": 1770513238802,
+      "contentHash": "d68b7ff09c856621ed6aa7544834fc1e",
+      "sourceName": "contracts/fhe/FHE.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IFHE.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "FHE"
+      ]
+    },
+    "E:\\Protocol Bank\\Development\\历史版本\\protocol-banks---web3-main\\contracts\\contracts\\fhe\\ConfidentialTreasury.sol": {
+      "lastModificationDate": 1770505217473,
+      "contentHash": "7424c7f3422206180aefc88fb3496cba",
+      "sourceName": "contracts/fhe/ConfidentialTreasury.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@openzeppelin/contracts/access/AccessControl.sol",
+        "@openzeppelin/contracts/utils/Pausable.sol",
+        "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
+        "./IFHE.sol",
+        "./FHE.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ConfidentialTreasury"
+      ]
+    },
+    "E:\\Protocol Bank\\Development\\历史版本\\protocol-banks---web3-main\\contracts\\contracts\\mocks\\MockFHE.sol": {
+      "lastModificationDate": 1770505248152,
+      "contentHash": "4ea15d7fbd0e5b7c7272d5f1ff233611",
+      "sourceName": "contracts/mocks/MockFHE.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../fhe/IFHE.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "MockFHE"
+      ]
     }
   }
 }

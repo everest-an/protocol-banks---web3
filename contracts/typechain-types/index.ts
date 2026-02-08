@@ -56,8 +56,16 @@ export type { ShortStrings } from "./@openzeppelin/contracts/utils/ShortStrings"
 export { ShortStrings__factory } from "./factories/@openzeppelin/contracts/utils/ShortStrings__factory";
 export type { Strings } from "./@openzeppelin/contracts/utils/Strings";
 export { Strings__factory } from "./factories/@openzeppelin/contracts/utils/Strings__factory";
+export type { ConfidentialPBUSD } from "./contracts/fhe/ConfidentialPBUSD";
+export { ConfidentialPBUSD__factory } from "./factories/contracts/fhe/ConfidentialPBUSD__factory";
+export type { ConfidentialTreasury } from "./contracts/fhe/ConfidentialTreasury";
+export { ConfidentialTreasury__factory } from "./factories/contracts/fhe/ConfidentialTreasury__factory";
+export type { IFHE } from "./contracts/fhe/IFHE";
+export { IFHE__factory } from "./factories/contracts/fhe/IFHE__factory";
 export type { MockERC20 } from "./contracts/mocks/MockERC20";
 export { MockERC20__factory } from "./factories/contracts/mocks/MockERC20__factory";
+export type { MockFHE } from "./contracts/mocks/MockFHE";
+export { MockFHE__factory } from "./factories/contracts/mocks/MockFHE__factory";
 export type { ProtocolBankTreasury } from "./contracts/ProtocolBankTreasury";
 export { ProtocolBankTreasury__factory } from "./factories/contracts/ProtocolBankTreasury__factory";
 export type { ProtocolBankUSD } from "./contracts/ProtocolBankUSD";

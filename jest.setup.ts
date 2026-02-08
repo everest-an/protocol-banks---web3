@@ -79,7 +79,7 @@ jest.mock('tronweb', () => {
       sendTrx: jest.fn(),
     },
   }));
-  mockTronWeb.utils = {
+  (mockTronWeb as any).utils = {
     abi: { decodeParams: jest.fn() },
   };
   return { __esModule: true, default: mockTronWeb, TronWeb: mockTronWeb };

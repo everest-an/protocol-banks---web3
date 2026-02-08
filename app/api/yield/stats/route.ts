@@ -90,10 +90,10 @@ export async function GET(request: NextRequest) {
         try {
           if (net === 'ethereum' || net === 'base' || net === 'arbitrum') {
             const stats = await yieldAggregatorService.getContractStats(net)
-            return { network: net, ...stats }
+            return { ...stats, network: net }
           } else {
             const stats = await tronYieldService.getJustLendStats()
-            return { network: net, ...stats }
+            return { ...stats, network: net }
           }
         } catch (error) {
           logger.warn(`Failed to fetch stats for ${net}`, {
@@ -110,11 +110,11 @@ export async function GET(request: NextRequest) {
 
     // 计算总计
     const totalBalance = validStats.reduce(
-      (sum, s) => sum + parseFloat(s!.totalBalance || '0'),
+      (sum, s) => sum + parseFloat((s as any).totalBalance || '0'),
       0
     )
     const totalInterest = validStats.reduce(
-      (sum, s) => sum + parseFloat(s!.totalInterest || '0'),
+      (sum, s) => sum + parseFloat((s as any).totalInterest || '0'),
       0
     )
 
