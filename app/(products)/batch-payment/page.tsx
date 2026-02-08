@@ -139,9 +139,14 @@ export default function BatchPaymentPage() {
   const [isChainSwitching, setIsChainSwitching] = useState(false)
   const [currentBatchId, setCurrentBatchId] = useState<string | null>(null)
   const [vendors, setVendors] = useState<Vendor[]>([])
-  const selectedPaymentChain = activeChain === "TRON" ? "TRON" : "EVM"
+  // Track network mode: EVM, TRON (mainnet), or TRON_NILE (testnet)
+  const [selectedPaymentChain, setSelectedPaymentChain] = useState<"EVM" | "TRON" | "TRON_NILE">(
+    activeChain === "TRON" ? "TRON" : "EVM"
+  )
+  const isTronNetwork = selectedPaymentChain === "TRON" || selectedPaymentChain === "TRON_NILE"
+  const isTestnet = selectedPaymentChain === "TRON_NILE"
   const currentWallet =
-    (selectedPaymentChain === "TRON" ? wallets.TRON : wallets.EVM) ||
+    (isTronNetwork ? wallets.TRON : wallets.EVM) ||
     unifiedAddress ||
     wallets.EVM ||
     wallets.TRON ||
@@ -156,12 +161,17 @@ export default function BatchPaymentPage() {
         manualChainOverrideRef.current = true
       }
 
-      const targetChain = value === "TRON" ? "TRON" : "EVM"
-      if (targetChain === selectedPaymentChain) return
+      // Determine if target is a TRON network (mainnet or testnet)
+      const isTronTarget = value === "TRON" || value === "TRON_NILE"
+      const targetChainType = isTronTarget ? "TRON" : "EVM"
+      
+      // Check if we're switching between same type
+      const currentIsTron = selectedPaymentChain === "TRON" || selectedPaymentChain === "TRON_NILE"
+      if (isTronTarget === currentIsTron && value === selectedPaymentChain) return
 
       setIsChainSwitching(true)
       try {
-        if (targetChain === "TRON") {
+        if (isTronTarget) {
           if (!wallets.TRON) {
             await connectWallet("TRON")
           }
@@ -169,7 +179,9 @@ export default function BatchPaymentPage() {
           await connectWallet("EVM")
         }
 
-        setActiveChain(targetChain)
+        // Set both the payment chain state and active chain
+        setSelectedPaymentChain(value as "EVM" | "TRON" | "TRON_NILE")
+        setActiveChain(targetChainType)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Wallet connection was interrupted."
         toast({
@@ -540,7 +552,7 @@ export default function BatchPaymentPage() {
 
     if (manualChainOverrideRef.current) {
       const overrideStillValid =
-        (selectedPaymentChain === "TRON" && tronAvailable) ||
+        (isTronNetwork && tronAvailable) ||
         (selectedPaymentChain === "EVM" && evmAvailable)
 
       if (overrideStillValid) {
@@ -550,12 +562,12 @@ export default function BatchPaymentPage() {
       manualChainOverrideRef.current = false
     }
 
-    if (tronAvailable && selectedPaymentChain !== "TRON") {
+    if (tronAvailable && !isTronNetwork) {
       handlePaymentChainChange("TRON", { source: "auto" })
     } else if (!tronAvailable && evmAvailable && selectedPaymentChain !== "EVM") {
       handlePaymentChainChange("EVM", { source: "auto" })
     }
-  }, [handlePaymentChainChange, isChainSwitching, isConnecting, selectedPaymentChain, wallets.EVM, wallets.TRON])
+  }, [handlePaymentChainChange, isChainSwitching, isConnecting, isTronNetwork, selectedPaymentChain, wallets.EVM, wallets.TRON])
 
   const openTagDialog = (recipientId?: string, address?: string) => {
     setEditingRecipientId(recipientId || null)
@@ -1373,7 +1385,9 @@ export default function BatchPaymentPage() {
                       <GlassCardTitle className="text-base">Settlement Network</GlassCardTitle>
                       <GlassCardDescription>Select Tron for TRC20 payouts or stay on EVM to use batch transfers.</GlassCardDescription>
                     </div>
-                    <Badge variant="outline">{selectedPaymentChain === "TRON" ? "Tron" : "EVM"}</Badge>
+                    <Badge variant={selectedPaymentChain === "TRON_NILE" ? "secondary" : "outline"}>
+                      {selectedPaymentChain === "TRON" ? "Tron" : selectedPaymentChain === "TRON_NILE" ? "Tron (Test)" : "EVM"}
+                    </Badge>
                   </div>
                 </GlassCardHeader>
                 <GlassCardContent className="space-y-3">
@@ -1389,7 +1403,12 @@ export default function BatchPaymentPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="EVM">EVM (Base, Arbitrum)</SelectItem>
-                        <SelectItem value="TRON">Tron (TRC20)</SelectItem>
+                        <SelectItem value="TRON">Tron Mainnet (TRC20)</SelectItem>
+                        <SelectItem value="TRON_NILE">
+                          <span className="flex items-center gap-2">
+                            Tron Nile <span className="text-xs text-amber-500 font-medium">(Testnet)</span>
+                          </span>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     {(isChainSwitching || isConnecting) && (
@@ -1404,8 +1423,10 @@ export default function BatchPaymentPage() {
                       <AlertCircle className="h-4 w-4" />
                       <AlertTitle className="text-sm">Manual transfer mode</AlertTitle>
                       <AlertDescription className="text-xs sm:text-sm">
-                        {selectedPaymentChain === "TRON"
-                          ? "Tron payouts run sequentially per recipient. To execute an on-chain batch transaction, switch back to an EVM network."
+                        {isTronNetwork
+                          ? isTestnet
+                            ? "Tron Nile (Testnet) payouts run sequentially per recipient. To execute an on-chain batch transaction, switch back to an EVM network."
+                            : "Tron payouts run sequentially per recipient. To execute an on-chain batch transaction, switch back to an EVM network."
                           : "Recipients assigned to Tron run sequentially even when the settlement network is EVM. Remove or switch them to enable on-chain batch execution."}
                       </AlertDescription>
                     </Alert>
