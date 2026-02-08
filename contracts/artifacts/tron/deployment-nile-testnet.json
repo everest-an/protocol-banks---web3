@@ -1,0 +1,19 @@
+{
+  "network": "TRON Nile Testnet",
+  "contractAddress": "TSrRLNoyJ9mVNZMg6jA8hUzABxHA1ZBFGM",
+  "deployer": "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq",
+  "transactionHash": "291ee7bddfccccad9c04f6e7102cf3791e70591569df992c9a48a9b2e89273fe",
+  "timestamp": "2026-02-08T11:43:08.013Z",
+  "config": {
+    "initialSigners": [
+      "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq"
+    ],
+    "threshold": 1,
+    "guardian": "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq",
+    "supportedTokens": [
+      "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+    ],
+    "timelock": 86400,
+    "dailyLimit": "1000000000000"
+  }
+}

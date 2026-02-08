@@ -1,0 +1,13 @@
+{
+  "network": "TRON Nile Testnet",
+  "contractAddress": "TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z",
+  "deployer": "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq",
+  "transactionHash": "6a5c2a351f86b1665a418327d3e9827d534f676188c3f42a5a1d56daa4651eff",
+  "timestamp": "2026-02-08T12:34:47.777Z",
+  "config": {
+    "owner": "TPcAqMfC9Ujm3SfStSnqzudVA3D4veeMwq",
+    "supportedTokens": [
+      "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+    ]
+  }
+}
