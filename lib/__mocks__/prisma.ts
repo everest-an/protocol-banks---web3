@@ -16,7 +16,7 @@ const mockPrismaModel = () => ({
   groupBy: jest.fn(),
 })
 
-export const prisma = {
+export const prisma: Record<string, any> = {
   payment: mockPrismaModel(),
   batchPayment: mockPrismaModel(),
   blockInfo: mockPrismaModel(),
