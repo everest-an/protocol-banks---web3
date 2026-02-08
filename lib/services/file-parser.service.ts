@@ -215,8 +215,9 @@ export async function parseBatchFile(content: Buffer, extension: string): Promis
   if (extension === "csv") {
     return parseCsv(content.toString("utf-8"))
   } else if (["xls", "xlsx"].includes(extension)) {
-    // XLSX read accepts Buffer directly
-    return parseExcel(content)
+    // XLSX read accepts ArrayBuffer — convert Node Buffer to ArrayBuffer
+    const ab = content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) as ArrayBuffer
+    return parseExcel(ab)
   }
   return { success: false, data: [], errors: ["Unsupported file type: " + extension], headers: [] }
 }
