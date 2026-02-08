@@ -32,7 +32,14 @@
       "Bash(xargs:*)",
       "Bash(pnpm test:*)",
       "Bash(node -e:*)",
-      "Bash(pnpm prisma generate:*)"
+      "Bash(pnpm prisma generate:*)",
+      "Bash(npx jest:*)",
+      "Bash(for f in \"app/\\(products\\)/acquiring/invoices/page.tsx\" \"app/\\(products\\)/acquiring/merchants/page.tsx\" \"app/\\(products\\)/acquiring/page.tsx\" \"app/\\(products\\)/acquiring/orders/page.tsx\" \"app/\\(products\\)/acquiring/payment-links/page.tsx\")",
+      "Bash(do sed -i 's/  Card,/  GlassCard,/g; s/  CardContent,/  GlassCardContent,/g; s/  CardDescription,/  GlassCardDescription,/g; s/  CardHeader,/  GlassCardHeader,/g; s/  CardTitle,/  GlassCardTitle,/g; s/  CardFooter,/  GlassCardFooter,/g; s/<Card /<GlassCard /g; s/<Card>/<GlassCard>/g; s/<\\\\/Card>/<\\\\/GlassCard>/g; s/<CardContent/<GlassCardContent/g; s/<\\\\/CardContent>/<\\\\/GlassCardContent>/g; s/<CardHeader/<GlassCardHeader/g; s/<\\\\/CardHeader>/<\\\\/GlassCardHeader>/g; s/<CardTitle/<GlassCardTitle/g; s/<\\\\/CardTitle>/<\\\\/GlassCardTitle>/g; s/<CardDescription/<GlassCardDescription/g; s/<\\\\/CardDescription>/<\\\\/GlassCardDescription>/g; s/<CardFooter/<GlassCardFooter/g; s/<\\\\/CardFooter>/<\\\\/GlassCardFooter>/g' \"$f\")",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(go mod tidy:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

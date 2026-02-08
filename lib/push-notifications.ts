@@ -96,12 +96,13 @@ export class PushNotificationService {
     const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
 
     const rawData = window.atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
+    const outputArray = new ArrayBuffer(rawData.length)
+    const view = new Uint8Array(outputArray)
 
     for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i)
+      view[i] = rawData.charCodeAt(i)
     }
-    return outputArray
+    return view
   }
 
   // Show local notification (for testing)

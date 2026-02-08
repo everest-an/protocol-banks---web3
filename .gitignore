@@ -31,6 +31,12 @@ xx.txt
 /scripts/list-all-tables.js
 /scripts/run-migration.js
 
+# test coverage
+/coverage
+
+# logs
+/logs
+
 # nested repo copies (not submodules)
 protocol-banks---web3
 protocol-banks---web3-main
