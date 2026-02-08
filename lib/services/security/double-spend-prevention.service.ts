@@ -61,10 +61,10 @@ export class DoubleSpendPreventionService {
         where: { tx_hash: txHash }
       })
 
-      if (existingPayment && existingPayment.order_id !== orderId) {
+      if (existingPayment && existingPayment.id !== orderId) {
         return {
           valid: false,
-          reason: `Transaction hash already used for another order (${existingPayment.order_id})`,
+          reason: `Transaction hash already used for another payment (${existingPayment.id})`,
           details: {
             txExists: true,
             amountMatches: false,
@@ -245,16 +245,13 @@ export class DoubleSpendPreventionService {
   async getTransactionHistory(txHash: string) {
     const payments = await prisma.payment.findMany({
       where: { tx_hash: txHash },
-      include: {
-        order: {
-          select: {
-            id: true,
-            order_number: true,
-            amount: true,
-            status: true,
-            created_at: true
-          }
-        }
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        from_address: true,
+        to_address: true,
+        created_at: true,
       }
     })
 
@@ -272,8 +269,9 @@ export class DoubleSpendPreventionService {
     await prisma.auditLog.create({
       data: {
         action: 'suspicious_transaction',
-        resource_type: 'payment',
-        resource_id: txHash,
+        actor: 'system',
+        target_type: 'payment',
+        target_id: txHash,
         details: {
           txHash,
           reason,

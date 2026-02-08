@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"crypto/subtle"
 
 	"github.com/protocol-bank/payout-engine/internal/service"
 	"github.com/rs/zerolog/log"
@@ -43,7 +44,7 @@ func AuthInterceptor(apiSecret string) grpc.UnaryServerInterceptor {
 		}
 
 		apiKeys := md.Get("x-api-key")
-		if len(apiKeys) == 0 || apiKeys[0] != apiSecret {
+		if len(apiKeys) == 0 || subtle.ConstantTimeCompare([]byte(apiKeys[0]), []byte(apiSecret)) != 1 {
 			log.Warn().Str("method", info.FullMethod).Msg("Unauthorized request")
 			return nil, status.Error(codes.Unauthenticated, "invalid api key")
 		}
@@ -67,7 +68,7 @@ func StreamAuthInterceptor(apiSecret string) grpc.StreamServerInterceptor {
 		}
 
 		apiKeys := md.Get("x-api-key")
-		if len(apiKeys) == 0 || apiKeys[0] != apiSecret {
+		if len(apiKeys) == 0 || subtle.ConstantTimeCompare([]byte(apiKeys[0]), []byte(apiSecret)) != 1 {
 			log.Warn().Str("method", info.FullMethod).Msg("Unauthorized stream request")
 			return status.Error(codes.Unauthenticated, "invalid api key")
 		}

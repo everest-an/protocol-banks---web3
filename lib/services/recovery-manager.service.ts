@@ -170,19 +170,22 @@ export async function storeFailedItems(
   items: FailedItem[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await prisma.failedTransaction.createMany({
+    await prisma.paymentRetryQueue.createMany({
       data: items.map(item => ({
-        id: item.id,
-        recipient: item.recipient,
-        amount: item.amount,
-        token: item.token,
-        error: item.error,
-        attempts: item.attempts,
-        last_attempt: new Date(item.lastAttempt),
-        original_batch_id: item.originalBatchId,
+        tx_hash: item.id,
+        payment_data: {
+          recipient: item.recipient,
+          amount: item.amount,
+          token: item.token,
+          error: item.error,
+          originalBatchId: item.originalBatchId,
+        },
+        retry_count: item.attempts,
+        status: 'pending',
+        next_retry: new Date(item.lastAttempt + 60000),
       })),
     })
-    
+
     return { success: true }
   } catch (err) {
     return { success: false, error: String(err) }
@@ -196,23 +199,27 @@ export async function getPendingFailedItems(
   config: RecoveryConfig = DEFAULT_CONFIG
 ): Promise<FailedItem[]> {
   try {
-    const data = await prisma.failedTransaction.findMany({
+    const data = await prisma.paymentRetryQueue.findMany({
       where: {
-        attempts: { lt: config.maxAttempts },
+        retry_count: { lt: config.maxAttempts },
+        status: 'pending',
       },
       orderBy: { created_at: 'asc' },
     })
-    
-    return data.map((row) => ({
-      id: row.id,
-      recipient: row.recipient,
-      amount: row.amount,
-      token: row.token,
-      error: row.error,
-      attempts: row.attempts,
-      lastAttempt: row.last_attempt ? new Date(row.last_attempt).getTime() : Date.now(),
-      originalBatchId: row.original_batch_id ?? undefined,
-    }))
+
+    return data.map((row) => {
+      const pd = row.payment_data as any
+      return {
+        id: row.tx_hash,
+        recipient: pd?.recipient || '',
+        amount: pd?.amount || '0',
+        token: pd?.token || 'USDC',
+        error: pd?.error || 'Unknown',
+        attempts: row.retry_count,
+        lastAttempt: row.next_retry ? new Date(row.next_retry).getTime() : Date.now(),
+        originalBatchId: pd?.originalBatchId,
+      }
+    })
   } catch (err) {
     console.error('[RecoveryManager] Failed to get pending items:', err)
     return []

@@ -201,12 +201,12 @@ export class PaymentQueueService {
           }
 
           // 5. 更新订单状态
-          await prisma.order.update({
+          await prisma.acquiringOrder.update({
             where: { id: orderId },
             data: {
               status: 'confirmed',
-              payment_tx_hash: txHash,
-              confirmed_at: new Date()
+              tx_hash: txHash,
+              paid_at: new Date()
             }
           })
 
@@ -451,7 +451,7 @@ export class PaymentQueueService {
         {
           txHash,
           attemptedOrderId: orderId,
-          existingOrderId: existingPayment.order_id
+          existingOrderId: existingPayment.id
         },
         {
           component: 'payment-queue',
@@ -484,17 +484,17 @@ export class PaymentQueueService {
       where: { id: jobId },
       create: {
         id: jobId,
-        paymentId: task.paymentId,
-        orderId: task.orderId,
-        txHash: task.txHash,
+        payment_id: task.paymentId,
+        order_id: task.orderId,
+        tx_hash: task.txHash,
         status,
-        errorMessage,
+        error_message: errorMessage,
         attempts: 0
       },
       update: {
         status,
-        errorMessage,
-        processedAt: status === 'completed' || status === 'failed' ? new Date() : undefined,
+        error_message: errorMessage,
+        processed_at: status === 'completed' || status === 'failed' ? new Date() : undefined,
         attempts: {
           increment: status === 'failed' ? 1 : 0
         }

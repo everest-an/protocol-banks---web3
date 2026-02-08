@@ -233,11 +233,11 @@ export class YieldAggregatorService {
         metadata: { spender: deployment.contractAddress, amount }
       })
 
-      const approveTx = await usdtContract.approve(deployment.contractAddress, amountWei)
+      const approveTx = await (usdtContract as any).approve(deployment.contractAddress, amountWei)
       await approveTx.wait()
 
       // 2. 执行存款
-      const depositTx = await contractWithSigner.deposit(amountWei)
+      const depositTx = await (contractWithSigner as any).deposit(amountWei)
       const receipt = await depositTx.wait()
 
       const txHash = receipt.hash
@@ -309,7 +309,7 @@ export class YieldAggregatorService {
       const contractWithSigner = contract.connect(signer)
       const amountWei = amount === '0' ? 0 : ethers.parseUnits(amount, 6)
 
-      const withdrawTx = await contractWithSigner.withdraw(amountWei)
+      const withdrawTx = await (contractWithSigner as any).withdraw(amountWei)
       const receipt = await withdrawTx.wait()
 
       const txHash = receipt.hash

@@ -44,7 +44,7 @@ export async function submitBatchPayment(
     priority?: "low" | "medium" | "high" | "urgent"
   } = {},
 ): Promise<BatchPaymentResult> {
-  const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const batchId = `batch_${Date.now()}_${(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 9) : require('crypto').randomBytes(5).toString('hex'))}`
 
   // Record batch in database
   await prisma.$executeRawUnsafe(

@@ -77,10 +77,10 @@ export async function createVendorWithAddresses(params: {
   const vendor = await prisma.vendor.create({
     data: {
       name,
-      ownerAddress,
-      walletAddress: primaryAddress?.address || "",
+      owner_address: ownerAddress,
+      wallet_address: primaryAddress?.address || "",
       chain: primaryAddress?.network || "ethereum",
-      companyName,
+      company_name: companyName,
       email,
       category,
       tags,
@@ -89,7 +89,7 @@ export async function createVendorWithAddresses(params: {
           network: addr.network,
           address: addr.address,
           label: addr.label,
-          isPrimary: addr.isPrimary || false,
+          is_primary: addr.isPrimary || false,
         })),
       },
     },
@@ -101,8 +101,8 @@ export async function createVendorWithAddresses(params: {
   return {
     id: vendor.id,
     name: vendor.name,
-    ownerAddress: vendor.ownerAddress,
-    companyName: vendor.companyName,
+    ownerAddress: vendor.owner_address,
+    companyName: vendor.company_name,
     email: vendor.email,
     category: vendor.category,
     tags: vendor.tags,
@@ -111,13 +111,13 @@ export async function createVendorWithAddresses(params: {
       network: a.network,
       address: a.address,
       label: a.label,
-      isPrimary: a.isPrimary,
-      verifiedAt: a.verifiedAt,
-      createdAt: a.createdAt,
-      updatedAt: a.updatedAt,
+      isPrimary: a.is_primary,
+      verifiedAt: a.verified_at,
+      createdAt: a.created_at,
+      updatedAt: a.updated_at,
     })),
-    createdAt: vendor.createdAt,
-    updatedAt: vendor.updatedAt,
+    createdAt: vendor.created_at,
+    updatedAt: vendor.updated_at,
   }
 }
 
@@ -128,11 +128,11 @@ export async function getVendorWithAddresses(vendorId: string, ownerAddress: str
   const vendor = await prisma.vendor.findFirst({
     where: {
       id: vendorId,
-      ownerAddress,
+      owner_address: ownerAddress,
     },
     include: {
       addresses: {
-        orderBy: [{ isPrimary: "desc" }, { network: "asc" }],
+        orderBy: [{ is_primary: "desc" }, { network: "asc" }],
       },
     },
   })
@@ -142,8 +142,8 @@ export async function getVendorWithAddresses(vendorId: string, ownerAddress: str
   return {
     id: vendor.id,
     name: vendor.name,
-    ownerAddress: vendor.ownerAddress,
-    companyName: vendor.companyName,
+    ownerAddress: vendor.owner_address,
+    companyName: vendor.company_name,
     email: vendor.email,
     category: vendor.category,
     tags: vendor.tags,
@@ -152,13 +152,13 @@ export async function getVendorWithAddresses(vendorId: string, ownerAddress: str
       network: a.network,
       address: a.address,
       label: a.label,
-      isPrimary: a.isPrimary,
-      verifiedAt: a.verifiedAt,
-      createdAt: a.createdAt,
-      updatedAt: a.updatedAt,
+      isPrimary: a.is_primary,
+      verifiedAt: a.verified_at,
+      createdAt: a.created_at,
+      updatedAt: a.updated_at,
     })),
-    createdAt: vendor.createdAt,
-    updatedAt: vendor.updatedAt,
+    createdAt: vendor.created_at,
+    updatedAt: vendor.updated_at,
   }
 }
 
@@ -167,10 +167,10 @@ export async function getVendorWithAddresses(vendorId: string, ownerAddress: str
  */
 export async function listVendorsWithAddresses(ownerAddress: string): Promise<VendorWithAddresses[]> {
   const vendors = await prisma.vendor.findMany({
-    where: { ownerAddress },
+    where: { owner_address: ownerAddress },
     include: {
       addresses: {
-        orderBy: [{ isPrimary: "desc" }, { network: "asc" }],
+        orderBy: [{ is_primary: "desc" }, { network: "asc" }],
       },
     },
     orderBy: { name: "asc" },
@@ -179,8 +179,8 @@ export async function listVendorsWithAddresses(ownerAddress: string): Promise<Ve
   return vendors.map((vendor) => ({
     id: vendor.id,
     name: vendor.name,
-    ownerAddress: vendor.ownerAddress,
-    companyName: vendor.companyName,
+    ownerAddress: vendor.owner_address,
+    companyName: vendor.company_name,
     email: vendor.email,
     category: vendor.category,
     tags: vendor.tags,
@@ -189,13 +189,13 @@ export async function listVendorsWithAddresses(ownerAddress: string): Promise<Ve
       network: a.network,
       address: a.address,
       label: a.label,
-      isPrimary: a.isPrimary,
-      verifiedAt: a.verifiedAt,
-      createdAt: a.createdAt,
-      updatedAt: a.updatedAt,
+      isPrimary: a.is_primary,
+      verifiedAt: a.verified_at,
+      createdAt: a.created_at,
+      updatedAt: a.updated_at,
     })),
-    createdAt: vendor.createdAt,
-    updatedAt: vendor.updatedAt,
+    createdAt: vendor.created_at,
+    updatedAt: vendor.updated_at,
   }))
 }
 
@@ -214,7 +214,7 @@ export async function addVendorAddress(
 ): Promise<VendorAddress> {
   // Verify ownership
   const vendor = await prisma.vendor.findFirst({
-    where: { id: vendorId, ownerAddress },
+    where: { id: vendorId, owner_address: ownerAddress },
   })
 
   if (!vendor) {
@@ -230,8 +230,8 @@ export async function addVendorAddress(
   // Check if address already exists for this network
   const existing = await prisma.vendorAddress.findUnique({
     where: {
-      vendorId_network: {
-        vendorId,
+      vendor_id_network: {
+        vendor_id: vendorId,
         network: params.network,
       },
     },
@@ -245,22 +245,22 @@ export async function addVendorAddress(
   if (params.isPrimary) {
     await prisma.vendorAddress.updateMany({
       where: {
-        vendorId,
+        vendor_id: vendorId,
         network: params.network,
       },
       data: {
-        isPrimary: false,
+        is_primary: false,
       },
     })
   }
 
   const address = await prisma.vendorAddress.create({
     data: {
-      vendorId,
+      vendor_id: vendorId,
       network: params.network,
       address: params.address,
       label: params.label,
-      isPrimary: params.isPrimary || false,
+      is_primary: params.isPrimary || false,
     },
   })
 
@@ -269,7 +269,7 @@ export async function addVendorAddress(
     await prisma.vendor.update({
       where: { id: vendorId },
       data: {
-        walletAddress: params.address,
+        wallet_address: params.address,
         chain: params.network,
       },
     })
@@ -280,10 +280,10 @@ export async function addVendorAddress(
     network: address.network,
     address: address.address,
     label: address.label,
-    isPrimary: address.isPrimary,
-    verifiedAt: address.verifiedAt,
-    createdAt: address.createdAt,
-    updatedAt: address.updatedAt,
+    isPrimary: address.is_primary,
+    verifiedAt: address.verified_at,
+    createdAt: address.created_at,
+    updatedAt: address.updated_at,
   }
 }
 
@@ -303,7 +303,7 @@ export async function updateVendorAddress(
     where: {
       id: addressId,
       vendor: {
-        ownerAddress,
+        owner_address: ownerAddress,
       },
     },
     include: {
@@ -319,20 +319,20 @@ export async function updateVendorAddress(
   if (params.isPrimary) {
     await prisma.vendorAddress.updateMany({
       where: {
-        vendorId: existingAddress.vendorId,
+        vendor_id: existingAddress.vendor_id,
         network: existingAddress.network,
         id: { not: addressId },
       },
       data: {
-        isPrimary: false,
+        is_primary: false,
       },
     })
 
     // Update vendor's primary address
     await prisma.vendor.update({
-      where: { id: existingAddress.vendorId },
+      where: { id: existingAddress.vendor_id },
       data: {
-        walletAddress: existingAddress.address,
+        wallet_address: existingAddress.address,
         chain: existingAddress.network,
       },
     })
@@ -342,7 +342,7 @@ export async function updateVendorAddress(
     where: { id: addressId },
     data: {
       label: params.label,
-      isPrimary: params.isPrimary,
+      is_primary: params.isPrimary,
     },
   })
 
@@ -351,10 +351,10 @@ export async function updateVendorAddress(
     network: updated.network,
     address: updated.address,
     label: updated.label,
-    isPrimary: updated.isPrimary,
-    verifiedAt: updated.verifiedAt,
-    createdAt: updated.createdAt,
-    updatedAt: updated.updatedAt,
+    isPrimary: updated.is_primary,
+    verifiedAt: updated.verified_at,
+    createdAt: updated.created_at,
+    updatedAt: updated.updated_at,
   }
 }
 
@@ -366,7 +366,7 @@ export async function deleteVendorAddress(addressId: string, ownerAddress: strin
     where: {
       id: addressId,
       vendor: {
-        ownerAddress,
+        owner_address: ownerAddress,
       },
     },
   })
@@ -377,7 +377,7 @@ export async function deleteVendorAddress(addressId: string, ownerAddress: strin
 
   // Don't allow deleting the last address
   const addressCount = await prisma.vendorAddress.count({
-    where: { vendorId: address.vendorId },
+    where: { vendor_id: address.vendor_id },
   })
 
   if (addressCount <= 1) {
@@ -385,10 +385,10 @@ export async function deleteVendorAddress(addressId: string, ownerAddress: strin
   }
 
   // If deleting primary, set another as primary
-  if (address.isPrimary) {
+  if (address.is_primary) {
     const replacement = await prisma.vendorAddress.findFirst({
       where: {
-        vendorId: address.vendorId,
+        vendor_id: address.vendor_id,
         id: { not: addressId },
       },
     })
@@ -396,13 +396,13 @@ export async function deleteVendorAddress(addressId: string, ownerAddress: strin
     if (replacement) {
       await prisma.vendorAddress.update({
         where: { id: replacement.id },
-        data: { isPrimary: true },
+        data: { is_primary: true },
       })
 
       await prisma.vendor.update({
-        where: { id: address.vendorId },
+        where: { id: address.vendor_id },
         data: {
-          walletAddress: replacement.address,
+          wallet_address: replacement.address,
           chain: replacement.network,
         },
       })
@@ -424,10 +424,10 @@ export async function getVendorAddressForNetwork(
 ): Promise<VendorAddress | null> {
   const address = await prisma.vendorAddress.findFirst({
     where: {
-      vendorId,
+      vendor_id: vendorId,
       network,
       vendor: {
-        ownerAddress,
+        owner_address: ownerAddress,
       },
     },
   })
@@ -439,10 +439,10 @@ export async function getVendorAddressForNetwork(
     network: address.network,
     address: address.address,
     label: address.label,
-    isPrimary: address.isPrimary,
-    verifiedAt: address.verifiedAt,
-    createdAt: address.createdAt,
-    updatedAt: address.updatedAt,
+    isPrimary: address.is_primary,
+    verifiedAt: address.verified_at,
+    createdAt: address.created_at,
+    updatedAt: address.updated_at,
   }
 }
 
@@ -454,14 +454,14 @@ export async function getVendorByAddress(address: string, ownerAddress: string):
     where: {
       address,
       vendor: {
-        ownerAddress,
+        owner_address: ownerAddress,
       },
     },
     include: {
       vendor: {
         include: {
           addresses: {
-            orderBy: [{ isPrimary: "desc" }, { network: "asc" }],
+            orderBy: [{ is_primary: "desc" }, { network: "asc" }],
           },
         },
       },
@@ -475,8 +475,8 @@ export async function getVendorByAddress(address: string, ownerAddress: string):
   return {
     id: vendor.id,
     name: vendor.name,
-    ownerAddress: vendor.ownerAddress,
-    companyName: vendor.companyName,
+    ownerAddress: vendor.owner_address,
+    companyName: vendor.company_name,
     email: vendor.email,
     category: vendor.category,
     tags: vendor.tags,
@@ -485,12 +485,12 @@ export async function getVendorByAddress(address: string, ownerAddress: string):
       network: a.network,
       address: a.address,
       label: a.label,
-      isPrimary: a.isPrimary,
-      verifiedAt: a.verifiedAt,
-      createdAt: a.createdAt,
-      updatedAt: a.updatedAt,
+      isPrimary: a.is_primary,
+      verifiedAt: a.verified_at,
+      createdAt: a.created_at,
+      updatedAt: a.updated_at,
     })),
-    createdAt: vendor.createdAt,
-    updatedAt: vendor.updatedAt,
+    createdAt: vendor.created_at,
+    updatedAt: vendor.updated_at,
   }
 }

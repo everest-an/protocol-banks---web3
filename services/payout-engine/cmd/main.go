@@ -69,7 +69,9 @@ func main() {
 	)
 
 	handler.RegisterPayoutServer(grpcServer, payoutService)
-	reflection.Register(grpcServer)
+	if cfg.Environment == "development" || cfg.Environment == "" {
+		reflection.Register(grpcServer) // Only enable gRPC reflection in development
+	}
 
 	go func() {
 		log.Info().Int("port", cfg.GRPCPort).Msg("gRPC server listening")

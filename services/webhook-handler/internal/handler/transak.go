@@ -117,7 +117,8 @@ func (h *TransakHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 // verifySignature 验证签名
 func (h *TransakHandler) verifySignature(body []byte, signature string) bool {
 	if h.cfg.WebhookSecret == "" {
-		return true
+		log.Error().Msg("SECURITY: Webhook secret is not configured - rejecting request")
+		return false // SECURITY: Never accept webhooks without secret verification
 	}
 
 	mac := hmac.New(sha256.New, []byte(h.cfg.WebhookSecret))

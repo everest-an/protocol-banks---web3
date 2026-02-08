@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -14,10 +16,13 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	tronclient "github.com/fbsobreira/gotron-sdk/pkg/client"
+	tronapi "github.com/fbsobreira/gotron-sdk/pkg/proto/api"
+	troncore "github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 	"github.com/protocol-bank/payout-engine/internal/config"
 	"github.com/protocol-bank/payout-engine/internal/nonce"
 	"github.com/protocol-bank/payout-engine/internal/queue"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/protobuf/proto"
 )
 
 // ERC20 ABI (只需要 transfer 函数)
@@ -385,34 +390,234 @@ func (s *PayoutService) validateRequest(req *BatchPayoutRequest) error {
 		if item.Amount == "" {
 			return fmt.Errorf("item[%d]: amount is required", i)
 		}
-		if !common.IsHexAddress(item.RecipientAddress) {
-			return fmt.Errorf("item[%d]: invalid recipient_address", i)
+		// Validate address format based on chain type
+		if tronOk {
+			if !isTronAddress(item.RecipientAddress) {
+				return fmt.Errorf("item[%d]: invalid TRON recipient_address (expected Base58 starting with 'T')", i)
+			}
+		} else {
+			if !common.IsHexAddress(item.RecipientAddress) {
+				return fmt.Errorf("item[%d]: invalid EVM recipient_address", i)
+			}
 		}
 	}
 
 	return nil
 }
 
-func (s *PayoutService) processTronJob(ctx context.Context, client *tronclient.GrpcClient, job *queue.Job) (*queue.JobResult, error) {
-	log.Info().Str("job_id", job.ID).Msg("Processing Tron Job")
+// isTronAddress validates a TRON Base58Check address format.
+// Valid: starts with 'T', 34 characters, Base58 alphabet only.
+func isTronAddress(address string) bool {
+	if len(address) != 34 {
+		return false
+	}
+	if address[0] != 'T' {
+		return false
+	}
+	// Base58 alphabet: 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
+	const base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+	for _, c := range address {
+		if !strings.ContainsRune(base58Chars, c) {
+			return false
+		}
+	}
+	return true
+}
 
-	// Placeholder for Tron transaction logic
-	// In a complete implementation:
-	// 1. Identify token (TRX or TRC20)
-	// 2. Build transaction using gotron-sdk
-	// 3. Sign transaction (requires Tron private key handling)
-	// 4. Broadcast
+// processTronJob handles TRX native and TRC20 token transfers on the TRON network.
+// Flow: validate → build tx → sign → broadcast → return tx hash.
+func (s *PayoutService) processTronJob(ctx context.Context, client *tronclient.GrpcClient, job *queue.Job) (*queue.JobResult, error) {
+	log.Info().
+		Str("job_id", job.ID).
+		Str("to", job.ToAddress).
+		Str("amount", job.Amount).
+		Str("token", job.TokenSymbol).
+		Str("token_address", job.TokenAddress).
+		Msg("Processing TRON payout job")
 
 	if client == nil {
-		return nil, fmt.Errorf("tron client is nil")
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("TRON client is nil for chain %d", job.ChainID),
+		}, nil
 	}
 
-	// Simulating success for now
+	// Resolve TRON private key (prefer dedicated key, fallback to shared)
+	privateKeyHex := s.cfg.TronPrivateKey
+	if privateKeyHex == "" {
+		privateKeyHex = s.cfg.PrivateKey
+	}
+	if privateKeyHex == "" {
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("critical: TRON private key not configured (set TRON_PRIVATE_KEY or PAYOUT_PRIVATE_KEY)"),
+		}, nil
+	}
+
+	// Parse and validate amount
+	amount, ok := new(big.Int).SetString(job.Amount, 10)
+	if !ok || amount.Sign() <= 0 {
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("invalid TRON transfer amount: %s", job.Amount),
+		}, nil
+	}
+
+	// Build transaction: native TRX or TRC20
+	var txExt *tronapi.TransactionExtention
+	var err error
+
+	if job.TokenAddress == "" {
+		// Native TRX transfer (amount is in SUN: 1 TRX = 1,000,000 SUN)
+		txExt, err = client.Transfer(job.FromAddress, job.ToAddress, amount.Int64())
+	} else {
+		// TRC20 token transfer (e.g. USDT, USDC)
+		feeLimit := s.cfg.TRC20FeeLimit
+		if feeLimit <= 0 {
+			feeLimit = 100_000_000 // 100 TRX default
+		}
+		txExt, err = client.TRC20Send(job.FromAddress, job.ToAddress, job.TokenAddress, amount, feeLimit)
+	}
+	if err != nil {
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("failed to build TRON transaction: %w", err),
+		}, nil
+	}
+
+	// Validate the node returned a valid transaction
+	if txExt == nil || txExt.GetTransaction() == nil {
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("TRON node returned nil transaction"),
+		}, nil
+	}
+	if txExt.GetResult() != nil && txExt.GetResult().GetCode() != tronapi.Return_SUCCESS {
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("TRON node rejected transaction: %s", string(txExt.GetResult().GetMessage())),
+		}, nil
+	}
+
+	// Sign the transaction
+	signedTx, err := s.signTronTransaction(txExt.GetTransaction(), txExt.GetTxid(), privateKeyHex)
+	if err != nil {
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("failed to sign TRON transaction: %w", err),
+		}, nil
+	}
+
+	// Broadcast to the TRON network
+	broadcastResult, err := client.Broadcast(signedTx)
+	if err != nil {
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("failed to broadcast TRON transaction: %w", err),
+		}, nil
+	}
+
+	// Check broadcast result
+	if !broadcastResult.GetResult() {
+		return &queue.JobResult{
+			JobID:   job.ID,
+			Success: false,
+			Error:   fmt.Errorf("TRON broadcast rejected (code=%v): %s", broadcastResult.GetCode(), string(broadcastResult.GetMessage())),
+		}, nil
+	}
+
+	// Extract transaction hash
+	txHash := hex.EncodeToString(txExt.GetTxid())
+	log.Info().
+		Str("job_id", job.ID).
+		Str("tx_hash", txHash).
+		Str("to", job.ToAddress).
+		Str("token", job.TokenSymbol).
+		Msg("TRON transaction broadcast successfully")
+
 	return &queue.JobResult{
 		JobID:   job.ID,
 		Success: true,
-		TxHash:  "fake_tron_tx_hash_" + job.ID,
+		TxHash:  txHash,
 	}, nil
+}
+
+// signTronTransaction signs a TRON transaction using ECDSA (secp256k1).
+// TRON uses SHA256(raw_data) as the signing hash, same curve as Ethereum.
+func (s *PayoutService) signTronTransaction(tx *troncore.Transaction, txID []byte, privateKeyHex string) (*troncore.Transaction, error) {
+	// Sanitize hex prefix
+	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
+		privateKeyHex = privateKeyHex[2:]
+	}
+
+	privateKey, err := crypto.HexToECDSA(privateKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("invalid TRON private key: %w", err)
+	}
+
+	// Determine the hash to sign:
+	// If the node provided txID (SHA256 of raw_data), use it directly.
+	// Otherwise, compute it ourselves.
+	var hash []byte
+	if len(txID) == 32 {
+		hash = txID
+	} else {
+		rawData, err := proto.Marshal(tx.GetRawData())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal transaction raw data: %w", err)
+		}
+		h := sha256.Sum256(rawData)
+		hash = h[:]
+	}
+
+	// Sign with ECDSA (TRON uses same secp256k1 as Ethereum)
+	signature, err := crypto.Sign(hash, privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign TRON transaction: %w", err)
+	}
+
+	tx.Signature = append(tx.Signature, signature)
+	return tx, nil
+}
+
+// waitForTronConfirmation polls the TRON node for transaction confirmation.
+// Returns nil if confirmed, error on timeout or failure.
+func (s *PayoutService) waitForTronConfirmation(ctx context.Context, client *tronclient.GrpcClient, txHash string, timeout time.Duration) error {
+	deadline := time.After(timeout)
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-deadline:
+			// Not necessarily an error — tx may confirm later via event-indexer
+			log.Warn().Str("tx_hash", txHash).Msg("TRON confirmation polling timed out")
+			return nil
+		case <-ticker.C:
+			info, err := client.GetTransactionInfoByID(txHash)
+			if err != nil {
+				log.Debug().Err(err).Str("tx_hash", txHash).Msg("Waiting for TRON confirmation...")
+				continue
+			}
+			if info != nil && info.GetBlockNumber() > 0 {
+				log.Info().
+					Str("tx_hash", txHash).
+					Int64("block", info.GetBlockNumber()).
+					Msg("TRON transaction confirmed")
+				return nil
+			}
+		}
+	}
 }
 
 // 请求/响应类型

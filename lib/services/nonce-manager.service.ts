@@ -13,13 +13,14 @@ const usedNonces = new Map<string, Set<string>>()
  */
 export function generateNonce(): string {
   const randomBytes = new Uint8Array(32)
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(randomBytes)
+  if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
+    globalThis.crypto.getRandomValues(randomBytes)
   } else {
-    // Fallback for environments without crypto
-    for (let i = 0; i < 32; i++) {
-      randomBytes[i] = Math.floor(Math.random() * 256)
-    }
+    // Node.js fallback - use crypto module (always available)
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nodeCrypto = require('crypto')
+    const buf = nodeCrypto.randomBytes(32)
+    randomBytes.set(new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength))
   }
   return '0x' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('')
 }

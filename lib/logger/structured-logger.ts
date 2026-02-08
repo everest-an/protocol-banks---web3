@@ -57,16 +57,17 @@ function sanitizeValue(obj: any, depth = 0): any {
  */
 const sanitizeFormat = winston.format((info) => {
   // Sanitize metadata inside context
-  if (info.context?.metadata) {
-    info.context.metadata = sanitizeValue(info.context.metadata)
+  const ctx = info.context as any
+  if (ctx?.metadata) {
+    ctx.metadata = sanitizeValue(ctx.metadata)
   }
   // Also sanitize top-level context fields (userId, traceId are safe, but catch any sensitive ones)
   if (info.context) {
     info.context = sanitizeValue(info.context)
   }
   // Sanitize top-level metadata if present
-  if (info.metadata) {
-    info.metadata = sanitizeValue(info.metadata)
+  if ((info as any).metadata) {
+    (info as any).metadata = sanitizeValue((info as any).metadata)
   }
   return info
 })
@@ -126,20 +127,21 @@ export class StructuredLogger {
         winston.format.json(),
         winston.format.printf((info) => {
           // 自定义格式，便于 ELK 解析
+          const infoAny = info as any
           return JSON.stringify({
             timestamp: info.timestamp,
             level: info.level,
             service: serviceName,
             message: info.message,
-            ...info.context,
-            ...(info.error && {
+            ...(infoAny.context || {}),
+            ...(infoAny.error ? {
               error: {
-                message: info.error.message,
-                stack: info.error.stack,
-                code: info.error.code
+                message: infoAny.error.message,
+                stack: infoAny.error.stack,
+                code: infoAny.error.code
               }
-            }),
-            ...(info.metrics && { metrics: info.metrics })
+            } : {}),
+            ...(infoAny.metrics ? { metrics: infoAny.metrics } : {})
           })
         })
       ),
@@ -149,8 +151,9 @@ export class StructuredLogger {
           format: winston.format.combine(
             winston.format.colorize(),
             winston.format.printf((info) => {
-              const contextStr = info.context ? ` [${JSON.stringify(info.context)}]` : ''
-              const errorStr = info.error ? `\n  Error: ${info.error.message}\n  Stack: ${info.error.stack}` : ''
+              const infoAny = info as any
+              const contextStr = infoAny.context ? ` [${JSON.stringify(infoAny.context)}]` : ''
+              const errorStr = infoAny.error ? `\n  Error: ${infoAny.error.message}\n  Stack: ${infoAny.error.stack}` : ''
               return `${info.timestamp} [${info.level}]${contextStr}: ${info.message}${errorStr}`
             })
           )

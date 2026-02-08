@@ -48,7 +48,9 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	reflection.Register(grpcServer)
+	if cfg.Environment == "development" || cfg.Environment == "" {
+		reflection.Register(grpcServer) // Only enable gRPC reflection in development
+	}
 
 	go func() {
 		log.Info().Int("port", cfg.GRPCPort).Msg("gRPC server listening")

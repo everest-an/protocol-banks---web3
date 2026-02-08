@@ -184,7 +184,8 @@ func (h *RainHandler) HandleAuthorizationRequest(w http.ResponseWriter, r *http.
 // verifySignature 验证 HMAC 签名
 func (h *RainHandler) verifySignature(body []byte, signature, timestamp string) bool {
 	if h.cfg.WebhookSecret == "" {
-		return true // 开发环境跳过验证
+		log.Error().Msg("SECURITY: Webhook secret is not configured - rejecting request")
+		return false // SECURITY: Never accept webhooks without secret verification
 	}
 
 	// 构造签名消息

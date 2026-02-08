@@ -140,7 +140,7 @@ export async function getVolumeDiscounts(): Promise<VolumeDiscount[]> {
       ]
     }
 
-    return (data.value as VolumeDiscount[]) || []
+    return (data.value as unknown as VolumeDiscount[]) || []
   } catch {
     return [
       { minVolume: 100000, discount: 0.1 },
@@ -183,15 +183,15 @@ export async function getMonthlyVolume(walletAddress: string): Promise<number> {
 
     const data = await prisma.monthlyFeeSummary.findUnique({
       where: {
-        wallet_address_month_year: {
-          wallet_address: walletAddress.toLowerCase(),
-          month_year: monthYear,
+        from_address_month: {
+          from_address: walletAddress.toLowerCase(),
+          month: monthYear,
         },
       },
-      select: { total_transaction_volume: true },
+      select: { total_volume: true },
     })
 
-    return data?.total_transaction_volume || 0
+    return data?.total_volume || 0
   } catch {
     return 0
   }
@@ -287,14 +287,14 @@ export async function recordFee(params: {
       data: {
         payment_id: params.paymentId || null,
         batch_id: params.batchId || null,
-        transaction_amount: params.amount,
+        amount: params.amount,
         fee_rate: feeCalc.feeRate,
         base_fee: feeCalc.baseFee,
-        discount_amount: feeCalc.discountAmount,
-        final_fee: feeCalc.finalFee,
+        discount: feeCalc.discountAmount,
+        net_fee: feeCalc.finalFee,
         from_address: params.fromAddress.toLowerCase(),
         treasury_address: treasuryAddress,
-        token_symbol: params.tokenSymbol,
+        token: params.tokenSymbol,
         chain_id: params.chainId,
         status: "pending",
         tier,
@@ -305,28 +305,28 @@ export async function recordFee(params: {
     const monthYear = new Date().toISOString().slice(0, 7)
     await prisma.monthlyFeeSummary.upsert({
       where: {
-        wallet_address_month_year: {
-          wallet_address: params.fromAddress.toLowerCase(),
-          month_year: monthYear,
+        from_address_month: {
+          from_address: params.fromAddress.toLowerCase(),
+          month: monthYear,
         },
       },
       update: {
-        total_transaction_volume: { increment: params.amount },
+        total_volume: { increment: params.amount },
         transaction_count: { increment: 1 },
-        total_fees_charged: { increment: feeCalc.baseFee },
-        total_discounts_given: { increment: feeCalc.discountAmount },
-        net_fees_collected: { increment: feeCalc.finalFee },
-        current_tier: tier,
+        total_fees: { increment: feeCalc.baseFee },
+        total_discounts: { increment: feeCalc.discountAmount },
+        net_fees: { increment: feeCalc.finalFee },
+        tier,
       },
       create: {
-        wallet_address: params.fromAddress.toLowerCase(),
-        month_year: monthYear,
-        total_transaction_volume: params.amount,
+        from_address: params.fromAddress.toLowerCase(),
+        month: monthYear,
+        total_volume: params.amount,
         transaction_count: 1,
-        total_fees_charged: feeCalc.baseFee,
-        total_discounts_given: feeCalc.discountAmount,
-        net_fees_collected: feeCalc.finalFee,
-        current_tier: tier,
+        total_fees: feeCalc.baseFee,
+        total_discounts: feeCalc.discountAmount,
+        net_fees: feeCalc.finalFee,
+        tier,
       },
     })
 
@@ -369,8 +369,8 @@ export async function getFeeStats(
       prisma.protocolFee.aggregate({
         where,
         _sum: {
-          final_fee: true,
-          transaction_amount: true,
+          net_fee: true,
+          amount: true,
         },
         _avg: {
           fee_rate: true,
@@ -379,11 +379,11 @@ export async function getFeeStats(
       }),
       prisma.protocolFee.aggregate({
         where: { ...where, status: "pending" },
-        _sum: { final_fee: true },
+        _sum: { net_fee: true },
       }),
       prisma.protocolFee.aggregate({
         where: { ...where, status: "collected" },
-        _sum: { final_fee: true },
+        _sum: { net_fee: true },
       }),
     ])
 
@@ -392,12 +392,12 @@ export async function getFeeStats(
     }
 
     return {
-      totalFeesCollected: totals._sum.final_fee || 0,
-      totalTransactionVolume: totals._sum.transaction_amount || 0,
+      totalFeesCollected: totals._sum.net_fee || 0,
+      totalTransactionVolume: totals._sum.amount || 0,
       transactionCount: totals._count,
       averageFeeRate: totals._avg.fee_rate || 0,
-      pendingFees: pendingAgg._sum.final_fee || 0,
-      collectedFees: collectedAgg._sum.final_fee || 0,
+      pendingFees: pendingAgg._sum.net_fee || 0,
+      collectedFees: collectedAgg._sum.net_fee || 0,
     }
   } catch (error) {
     console.error("Error getting fee stats:", error)
@@ -418,9 +418,9 @@ export async function getMonthlyFeeSummary(walletAddress: string): Promise<Month
 
     const data = await prisma.monthlyFeeSummary.findUnique({
       where: {
-        wallet_address_month_year: {
-          wallet_address: walletAddress.toLowerCase(),
-          month_year: monthYear,
+        from_address_month: {
+          from_address: walletAddress.toLowerCase(),
+          month: monthYear,
         },
       },
     })
@@ -430,14 +430,14 @@ export async function getMonthlyFeeSummary(walletAddress: string): Promise<Month
     }
 
     return {
-      walletAddress: data.wallet_address,
-      monthYear: data.month_year,
-      totalTransactionVolume: Number(data.total_transaction_volume),
+      walletAddress: data.from_address,
+      monthYear: data.month,
+      totalTransactionVolume: Number(data.total_volume),
       transactionCount: data.transaction_count,
-      totalFeesCharged: Number(data.total_fees_charged),
-      totalDiscountsGiven: Number(data.total_discounts_given),
-      netFeesCollected: Number(data.net_fees_collected),
-      currentTier: data.current_tier,
+      totalFeesCharged: Number(data.total_fees),
+      totalDiscountsGiven: Number(data.total_discounts),
+      netFeesCollected: Number(data.net_fees),
+      currentTier: data.tier || "standard",
     }
   } catch {
     return null
@@ -463,17 +463,17 @@ export async function getRecentFees(walletAddress: string, limit = 10): Promise<
       id: fee.id,
       paymentId: fee.payment_id ?? undefined,
       batchId: fee.batch_id ?? undefined,
-      transactionAmount: Number(fee.transaction_amount),
+      transactionAmount: Number(fee.amount),
       feeRate: Number(fee.fee_rate),
       baseFee: Number(fee.base_fee),
-      discountAmount: Number(fee.discount_amount),
-      finalFee: Number(fee.final_fee),
+      discountAmount: Number(fee.discount),
+      finalFee: Number(fee.net_fee),
       fromAddress: fee.from_address,
       treasuryAddress: fee.treasury_address,
-      tokenSymbol: fee.token_symbol,
+      tokenSymbol: fee.token,
       chainId: fee.chain_id,
       status: fee.status as ProtocolFee["status"],
-      collectionTxHash: fee.collection_tx_hash ?? undefined,
+      collectionTxHash: fee.tx_hash ?? undefined,
       tier: fee.tier,
       createdAt: fee.created_at.toISOString(),
     }))

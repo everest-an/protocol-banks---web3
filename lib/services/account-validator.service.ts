@@ -84,7 +84,7 @@ export async function validateAccountWalletAssociation(
   }
   
   try {
-    const wallet = await prisma.userWallet.findFirst({
+    const wallet = await prisma.embeddedWallet.findFirst({
       where: {
         user_id: accountId,
         wallet_address: walletAddress.toLowerCase(),

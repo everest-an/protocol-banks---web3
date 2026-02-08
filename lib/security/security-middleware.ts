@@ -460,7 +460,7 @@ export async function verifyVendorAddressIntegrity(
     // Fetch stored vendor data
     const vendor = await prisma.vendor.findFirst({
       where: { id: vendorId },
-      select: { wallet_address: true, address_hash: true, last_verified_at: true },
+      select: { wallet_address: true, integrity_hash: true },
     })
 
     if (!vendor) {
@@ -477,7 +477,7 @@ export async function verifyVendorAddressIntegrity(
         data: {
           alert_type: "ADDRESS_MISMATCH",
           severity: "critical",
-          actor: vendorId,
+          address: vendorId,
           description: `Vendor address mismatch detected`,
           details: {
             stored: storedAddress,
@@ -493,12 +493,6 @@ export async function verifyVendorAddressIntegrity(
         changed: true,
       }
     }
-
-    // Update last verified timestamp
-    await prisma.vendor.update({
-      where: { id: vendorId },
-      data: { last_verified_at: new Date() },
-    })
 
     return { valid: true, changed: false }
   } catch (error: any) {

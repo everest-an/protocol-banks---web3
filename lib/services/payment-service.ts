@@ -67,7 +67,7 @@ export async function processSinglePayment(
 ): Promise<PaymentResult> {
   console.log("[v0] Processing payment:", { recipient, wallet, chain })
 
-  const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const paymentId = `pay_${Date.now()}_${(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 9) : require('crypto').randomBytes(5).toString('hex'))}`
 
   // Detect address type (EVM or TRON)
   const addressType = detectAddressType(recipient.address)
@@ -323,7 +323,7 @@ export async function processBatchPayment(
     netAmount: formatFee(feeBreakdown.totalNetAmount),
   })
 
-  const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const batchId = `batch_${Date.now()}_${(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 9) : require('crypto').randomBytes(5).toString('hex'))}`
   const total = Number(recipients.reduce((sum, r) => sum + (r.amount || 0), 0))
   const batchEventData: BatchPaymentEventData = {
     batch_id: batchId,
