@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { merchant, network, amount } = parsed.data
-    const isFullWithdraw = amount === '0'
+    const isFullWithdraw = parseFloat(amount) === 0
 
     logger.info('Yield withdrawal request', {
       component: 'yield-api',
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         status: 'withdrawn',
         message: `Withdrawal of ${withdrawAmount} USDT recorded. Client should execute on-chain transaction.`
       }
-    })
+    }, { status: 200 })
   } catch (error) {
     logger.error('Yield withdrawal API error', error instanceof Error ? error : new Error(String(error)), {
       component: 'yield-api',

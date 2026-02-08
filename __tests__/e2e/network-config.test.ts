@@ -28,7 +28,7 @@ import {
 describe('Network Registry', () => {
   describe('EVM_NETWORKS', () => {
     it('should contain all expected EVM networks', () => {
-      const expectedKeys = ['ETHEREUM', 'SEPOLIA', 'BASE', 'ARBITRUM', 'BSC', 'HASHKEY']
+      const expectedKeys = ['ETHEREUM', 'SEPOLIA', 'BASE', 'ARBITRUM', 'POLYGON', 'OPTIMISM', 'BSC', 'HASHKEY']
       expectedKeys.forEach((key) => {
         expect(EVM_NETWORKS[key]).toBeDefined()
         expect(EVM_NETWORKS[key].type).toBe('EVM')
@@ -94,14 +94,14 @@ describe('Network Registry', () => {
 
   describe('ALL_NETWORKS', () => {
     it('should contain all networks with lowercase keys', () => {
-      const expectedKeys = ['ethereum', 'sepolia', 'base', 'arbitrum', 'bsc', 'hashkey', 'tron', 'tron-nile']
+      const expectedKeys = ['ethereum', 'sepolia', 'polygon', 'optimism', 'base', 'arbitrum', 'bsc', 'hashkey', 'tron', 'tron-nile']
       expectedKeys.forEach((key) => {
         expect(ALL_NETWORKS[key]).toBeDefined()
       })
     })
 
-    it('should have total of 8 networks', () => {
-      expect(Object.keys(ALL_NETWORKS)).toHaveLength(8)
+    it('should have total of 10 networks', () => {
+      expect(Object.keys(ALL_NETWORKS)).toHaveLength(10)
     })
 
     it('should have consistent data between sources', () => {

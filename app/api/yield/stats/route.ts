@@ -123,13 +123,19 @@ export async function GET(request: NextRequest) {
 
     const validStats = allStats.filter((s) => s !== null)
 
-    // 计算总计
+    // 计算总计 (safely handle missing or non-numeric values)
     const totalBalance = validStats.reduce(
-      (sum, s) => sum + parseFloat((s as any).totalBalance || '0'),
+      (sum, s) => {
+        const val = parseFloat(String((s as Record<string, unknown>)?.totalBalance ?? '0'))
+        return sum + (isNaN(val) ? 0 : val)
+      },
       0
     )
     const totalInterest = validStats.reduce(
-      (sum, s) => sum + parseFloat((s as any).totalInterest || '0'),
+      (sum, s) => {
+        const val = parseFloat(String((s as Record<string, unknown>)?.totalInterest ?? '0'))
+        return sum + (isNaN(val) ? 0 : val)
+      },
       0
     )
 
