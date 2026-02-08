@@ -20,7 +20,7 @@ import { prisma } from '@/lib/prisma'
 
 // 导入合约 ABI
 import MerchantYieldManagerABI from './abis/MerchantYieldManager.json'
-import aaveAddresses from '../../../contracts/yield/aave-addresses.json'
+import aaveAddresses from './aave-addresses.json'
 
 /**
  * 网络类型

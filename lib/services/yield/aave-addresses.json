@@ -1,0 +1,44 @@
+{
+  "ethereum": {
+    "chainId": 1,
+    "name": "Ethereum Mainnet",
+    "aavePool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+    "usdt": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "aUsdt": "0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a",
+    "explorer": "https://etherscan.io"
+  },
+  "base": {
+    "chainId": 8453,
+    "name": "Base",
+    "aavePool": "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
+    "usdt": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+    "aUsdt": "0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB",
+    "explorer": "https://basescan.org"
+  },
+  "arbitrum": {
+    "chainId": 42161,
+    "name": "Arbitrum One",
+    "aavePool": "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
+    "usdt": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    "aUsdt": "0x6ab707Aca953eDAeFBc4fD23bA73294241490620",
+    "explorer": "https://arbiscan.io"
+  },
+  "sepolia": {
+    "chainId": 11155111,
+    "name": "Sepolia Testnet",
+    "aavePool": "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951",
+    "usdt": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+    "aUsdt": "0x9C8C11e6A87f0A4f0f8d1c0F4F3A2cE2e7bc5F0D",
+    "explorer": "https://sepolia.etherscan.io",
+    "note": "Testnet addresses for development"
+  },
+  "baseSepolia": {
+    "chainId": 84532,
+    "name": "Base Sepolia Testnet",
+    "aavePool": "0x07eA79F68B2B3df564D0A34F8e19D9B1e339814b",
+    "usdt": "0xF175520C52418dfE19C8098071a252da48Cd1C19",
+    "aUsdt": "0x8Bb4C975Ff3c250e0ceEA271728547f3802B36Fd",
+    "explorer": "https://sepolia.basescan.org",
+    "note": "Testnet addresses for development"
+  }
+}
