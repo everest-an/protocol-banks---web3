@@ -488,19 +488,21 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
       try {
         console.log('[Web3] sendToken (Tron) called:', { to, amount, token })
-        
-        // Only support USDT for now on Tron
-        if (token.toUpperCase() !== 'USDT') {
-           throw new Error(`Token ${token} not supported on Tron yet`)
+
+        // TRON TRC20 contract addresses
+        const tronTokenAddresses: Record<string, { address: string; decimals: number }> = {
+          'USDT': { address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6 },
+          'USDC': { address: "TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8", decimals: 6 },
         }
 
-        const trc20ContractAddress = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT Mainnet
-        const contract = await window.tronWeb.contract().at(trc20ContractAddress);
-        
-        // Amount logic: USDT is 6 decimals
-        // We assume 'amount' string is a human readable number e.g. "10.5"
-        const amountInUnits = Number(amount) * 1_000_000;
-        
+        const tronToken = tronTokenAddresses[token.toUpperCase()]
+        if (!tronToken) {
+          throw new Error(`Token ${token} not supported on TRON. Supported: USDT, USDC`)
+        }
+
+        const contract = await window.tronWeb.contract().at(tronToken.address);
+        const amountInUnits = Number(amount) * Math.pow(10, tronToken.decimals);
+
         const txHash = await contract.transfer(to, amountInUnits).send();
         console.log('[Web3] Tron Transaction sent:', txHash)
         return txHash;
@@ -522,40 +524,25 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     }
 
     try {
-      console.log('[Web3] sendToken called:', { to, amount, token })
+      console.log('[Web3] sendToken called:', { to, amount, token, chainId })
 
-      // 动态导入 ethers
       const { ethers } = await import('ethers')
-
-      // 创建 provider 和 signer
       const provider = new ethers.BrowserProvider(ethereum)
       const signer = await provider.getSigner()
 
-      // 获取代币地址
-      const tokenAddresses: Record<string, string> = {
-        'USDT': '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', // Arbitrum USDT
-        'USDC': '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // Arbitrum USDC
-        'DAI': '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',  // Arbitrum DAI
+      // Use chain-aware token address lookup
+      const tokenAddress = getTokenAddress(chainId, token.toUpperCase())
+      if (!tokenAddress || tokenAddress === "NATIVE") {
+        throw new Error(`Token ${token} not supported on chain ${chainId}`)
       }
 
-      const tokenAddress = tokenAddresses[token.toUpperCase()]
-      if (!tokenAddress) {
-        throw new Error(`Unsupported token: ${token}`)
-      }
-
-      // ERC20 ABI
       const erc20Abi = [
         'function transfer(address to, uint256 amount) returns (bool)',
         'function decimals() view returns (uint8)',
       ]
 
-      // 创建合约实例
       const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer)
-
-      // 获取代币精度
       const decimals = await tokenContract.decimals()
-
-      // 转换金额（考虑精度）
       const amountInWei = ethers.parseUnits(amount, decimals)
 
       console.log('[Web3] Sending transaction:', {
@@ -563,13 +550,12 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         amount: amountInWei.toString(),
         token,
         tokenAddress,
+        chainId,
       })
 
-      // 发送交易
       const tx = await tokenContract.transfer(to, amountInWei)
       console.log('[Web3] Transaction sent:', tx.hash)
 
-      // 等待确认
       const receipt = await tx.wait()
       console.log('[Web3] Transaction confirmed:', receipt.hash)
 
@@ -578,7 +564,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       console.error('[Web3] sendToken error:', error)
       throw new Error(error.message || 'Transfer failed')
     }
-  }, [wallets.EVM, wallets.TRON, activeChain])
+  }, [wallets.EVM, wallets.TRON, activeChain, chainId])
 
   const signERC3009Authorization = useCallback(async (params: {
     tokenAddress: string
