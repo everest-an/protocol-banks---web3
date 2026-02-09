@@ -3,7 +3,16 @@
  * Manages nonces for EIP-3009 TransferWithAuthorization
  */
 
-import { getOptionalRedis } from '@/lib/redis'
+// Dynamic import to avoid pulling ioredis into client bundles
+async function getOptionalRedis() {
+  if (typeof window !== 'undefined') return null
+  try {
+    const { getOptionalRedis: getRedis } = await import('@/lib/redis')
+    return await getRedis()
+  } catch {
+    return null
+  }
+}
 
 // In-memory nonce tracking fallback
 const usedNonces = new Map<string, Set<string>>()

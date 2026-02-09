@@ -5,7 +5,18 @@
 
 import { getTokenAddress, getSupportedTokens } from "@/lib/networks"
 import type { PaymentResult, Recipient } from "@/types"
-import { logger } from "@/lib/logger/structured-logger"
+
+// Browser-safe logger (tron-payment runs client-side via TronLink, cannot import winston)
+const logger = {
+  info: (msg: string, meta?: Record<string, unknown>) => console.log(`[TRON] ${msg}`, meta ?? ""),
+  warn: (msg: string, meta?: Record<string, unknown>) => console.warn(`[TRON] ${msg}`, meta ?? ""),
+  error: (msg: string, err?: unknown, meta?: Record<string, unknown>) => console.error(`[TRON] ${msg}`, err, meta ?? ""),
+  debug: (msg: string, meta?: Record<string, unknown>) => console.debug(`[TRON] ${msg}`, meta ?? ""),
+  logBlockchainInteraction: (chain: string, action: string, tx: string, status: string, meta?: Record<string, unknown>) =>
+    console.log(`[TRON:${chain}] ${action} ${tx} ${status}`, meta ?? ""),
+  logPayment: (status: string, tx: string, amount: string, meta?: Record<string, unknown>) =>
+    console.log(`[TRON:payment] ${status} ${tx} ${amount}`, meta ?? ""),
+}
 
 /**
  * TRON Error Classification

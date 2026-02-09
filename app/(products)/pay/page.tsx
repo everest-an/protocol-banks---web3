@@ -1023,7 +1023,7 @@ function PaymentContent() {
             <div className="space-y-2">
               <Label>Payment Group (optional)</Label>
               <PaymentGroupSelector
-                ownerAddress={wallets.EVM || ""}
+                ownerAddress={activeWalletAddress || ""}
                 value={formGroupId}
                 onChange={setFormGroupId}
               />

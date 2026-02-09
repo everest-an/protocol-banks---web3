@@ -1,6 +1,16 @@
 // Multi-signature wallet service using Safe (Gnosis Safe) protocol
-import { prisma } from "@/lib/prisma"
 import { ethers } from "ethers"
+
+// Dynamic import to avoid pulling pg into client bundles
+async function getPrisma() {
+  if (typeof window !== 'undefined') return null
+  try {
+    const mod = await import('@/lib/prisma')
+    return mod.prisma
+  } catch {
+    return null
+  }
+}
 
 // Safe contract addresses (mainnet)
 const SAFE_ADDRESSES = {
@@ -75,6 +85,8 @@ export interface MultisigConfirmation {
 export class MultisigService {
   // Get all multisig wallets for a user
   async getWallets(ownerAddress: string): Promise<MultisigWallet[]> {
+    const prisma = await getPrisma()
+    if (!prisma) return []
     const wallets: any[] = await prisma.$queryRawUnsafe(
       `SELECT mw.*, json_agg(ms.*) as signers
        FROM multisig_wallets mw
@@ -109,6 +121,9 @@ export class MultisigService {
     const saltNonce = Date.now()
     const predictedAddress = await this.predictSafeAddress(signers, threshold, chainId, saltNonce)
 
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("Database not available")
+
     // Create wallet record
     const walletRows: any[] = await prisma.$queryRawUnsafe(
       `INSERT INTO multisig_wallets (name, wallet_address, chain_id, threshold, created_by)
@@ -126,7 +141,7 @@ export class MultisigService {
 
     // Add signers
     for (const address of signers) {
-      await prisma.$executeRawUnsafe(
+      await prisma!.$executeRawUnsafe(
         `INSERT INTO multisig_signers (multisig_id, signer_address, added_by)
          VALUES ($1, $2, $3)`,
         wallet.id,
@@ -181,6 +196,9 @@ export class MultisigService {
     amountUsd?: number
     createdBy: string
   }): Promise<MultisigTransaction> {
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("Database not available")
+
     // Get current nonce
     const nonceRows: any[] = await prisma.$queryRawUnsafe(
       `SELECT safe_nonce FROM multisig_transactions
@@ -218,6 +236,9 @@ export class MultisigService {
     signerAddress: string
     signature: string
   }): Promise<MultisigConfirmation> {
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("Database not available")
+
     const rows: any[] = await prisma.$queryRawUnsafe(
       `INSERT INTO multisig_confirmations (transaction_id, signer_address, signature)
        VALUES ($1, $2, $3)
@@ -237,6 +258,9 @@ export class MultisigService {
 
   // Check if transaction has enough confirmations
   private async checkAndUpdateStatus(transactionId: string): Promise<void> {
+    const prisma = await getPrisma()
+    if (!prisma) return
+
     const txRows: any[] = await prisma.$queryRawUnsafe(
       `SELECT mt.*, mw.threshold
        FROM multisig_transactions mt
@@ -247,7 +271,7 @@ export class MultisigService {
 
     if (!txRows[0]) return
 
-    const countRows: { count: bigint }[] = await prisma.$queryRawUnsafe(
+    const countRows: { count: bigint }[] = await prisma!.$queryRawUnsafe(
       `SELECT COUNT(*) as count FROM multisig_confirmations WHERE transaction_id = $1`,
       transactionId,
     )
@@ -255,7 +279,7 @@ export class MultisigService {
     const count = Number(countRows[0]?.count || 0)
 
     if (count >= txRows[0].threshold) {
-      await prisma.$executeRawUnsafe(
+      await prisma!.$executeRawUnsafe(
         `UPDATE multisig_transactions SET status = $1 WHERE id = $2`,
         "confirmed",
         transactionId,
@@ -265,6 +289,9 @@ export class MultisigService {
 
   // Get pending transactions for a wallet
   async getPendingTransactions(multisigId: string): Promise<MultisigTransaction[]> {
+    const prisma = await getPrisma()
+    if (!prisma) return []
+
     const rows: any[] = await prisma.$queryRawUnsafe(
       `SELECT mt.*, json_agg(mc.*) as confirmations
        FROM multisig_transactions mt
@@ -283,6 +310,9 @@ export class MultisigService {
 
   // Execute a confirmed transaction
   async markExecuted(transactionId: string, txHash: string): Promise<void> {
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("Database not available")
+
     await prisma.$executeRawUnsafe(
       `UPDATE multisig_transactions SET status = $1, executed_at = $2, execution_tx_hash = $3 WHERE id = $4`,
       "executed",

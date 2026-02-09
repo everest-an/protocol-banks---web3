@@ -3,7 +3,17 @@
  * Handles fee calculation, collection, and management
  */
 
-import { prisma } from "@/lib/prisma"
+// Dynamic import to avoid pulling pg/prisma into client bundles.
+// Functions gracefully fall back to defaults when prisma is unavailable.
+async function getPrisma() {
+  if (typeof window !== 'undefined') return null
+  try {
+    const mod = await import('@/lib/prisma')
+    return mod.prisma
+  } catch {
+    return null
+  }
+}
 
 // Fee configuration types
 export interface FeeConfig {
@@ -72,6 +82,8 @@ const DEFAULT_TREASURY_ADDRESS = "0x0000000000000000000000000000000000000000"
  */
 export async function getFeeConfig(): Promise<FeeConfig> {
   try {
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("No prisma")
     const data = await prisma.feeConfig.findUnique({
       where: { config_key: "base_fee_rate" },
     })
@@ -104,6 +116,8 @@ export async function getFeeConfig(): Promise<FeeConfig> {
  */
 export async function getTierDiscounts(): Promise<TierDiscounts> {
   try {
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("No prisma")
     const data = await prisma.feeConfig.findUnique({
       where: { config_key: "tier_discounts" },
     })
@@ -128,6 +142,8 @@ export async function getTierDiscounts(): Promise<TierDiscounts> {
  */
 export async function getVolumeDiscounts(): Promise<VolumeDiscount[]> {
   try {
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("No prisma")
     const data = await prisma.feeConfig.findUnique({
       where: { config_key: "volume_discounts" },
     })
@@ -155,6 +171,8 @@ export async function getVolumeDiscounts(): Promise<VolumeDiscount[]> {
  */
 export async function getTreasuryAddress(chainType: "evm" | "solana" | "bitcoin" = "evm"): Promise<string> {
   try {
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("No prisma")
     const data = await prisma.feeConfig.findUnique({
       where: { config_key: "treasury_address" },
     })
@@ -179,6 +197,8 @@ export async function getMonthlyVolume(walletAddress: string): Promise<number> {
   }
 
   try {
+    const prisma = await getPrisma()
+    if (!prisma) throw new Error("No prisma")
     const monthYear = new Date().toISOString().slice(0, 7) // YYYY-MM
 
     const data = await prisma.monthlyFeeSummary.findUnique({
@@ -282,6 +302,9 @@ export async function recordFee(params: {
     // Calculate fee
     const feeCalc = await calculateFee(params.amount, params.fromAddress, tier)
 
+    const prisma = await getPrisma()
+    if (!prisma) return null
+
     // Record the protocol fee
     const fee = await prisma.protocolFee.create({
       data: {
@@ -303,7 +326,7 @@ export async function recordFee(params: {
 
     // Update monthly summary
     const monthYear = new Date().toISOString().slice(0, 7)
-    await prisma.monthlyFeeSummary.upsert({
+    await prisma!.monthlyFeeSummary.upsert({
       where: {
         from_address_month: {
           from_address: params.fromAddress.toLowerCase(),
@@ -365,6 +388,9 @@ export async function getFeeStats(
       },
     }
 
+    const prisma = await getPrisma()
+    if (!prisma) return null
+
     const [totals, pendingAgg, collectedAgg] = await Promise.all([
       prisma.protocolFee.aggregate({
         where,
@@ -416,6 +442,9 @@ export async function getMonthlyFeeSummary(walletAddress: string): Promise<Month
   try {
     const monthYear = new Date().toISOString().slice(0, 7)
 
+    const prisma = await getPrisma()
+    if (!prisma) return null
+
     const data = await prisma.monthlyFeeSummary.findUnique({
       where: {
         from_address_month: {
@@ -453,6 +482,9 @@ export async function getRecentFees(walletAddress: string, limit = 10): Promise<
   }
 
   try {
+    const prisma = await getPrisma()
+    if (!prisma) return []
+
     const data = await prisma.protocolFee.findMany({
       where: { from_address: walletAddress.toLowerCase() },
       orderBy: { created_at: "desc" },
