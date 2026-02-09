@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
@@ -107,7 +107,7 @@ interface TokenGroup {
 
 export default function BalancesPage() {
   const { isConnected, address: activeAddress, connectWallet } = useUnifiedWallet()
-  const { isDemoMode, setWalletConnected } = useDemo()
+  const { isDemoMode } = useDemo()
   const { balance, loading, error, refresh } = useBalance({ isDemoMode, walletAddress: activeAddress })
   const { stats: paymentStats, payments, loading: paymentsLoading, getMonthlyData } = usePaymentHistory({
     isDemoMode,
@@ -119,10 +119,6 @@ export default function BalancesPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [expandedTokens, setExpandedTokens] = useState<Set<string>>(new Set())
   const [showAuthGateway, setShowAuthGateway] = useState(false)
-
-  useEffect(() => {
-    setWalletConnected(isConnected)
-  }, [isConnected, setWalletConnected])
 
   // Build grouped token data (L2 → L3 drill-down)
   const tokenGroups = useMemo<TokenGroup[]>(() => {

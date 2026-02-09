@@ -1364,15 +1364,49 @@ export default function BatchPaymentPage() {
                 ← Back to History
               </Button>
 
-              {/* Purpose, Group, Memo for the batch */}
+              {/* Purpose, Group, Memo, Settlement Network for the batch */}
               <GlassCard className="border-border">
                 <GlassCardHeader className="pb-3">
-                  <GlassCardTitle className="text-base">Batch Details</GlassCardTitle>
+                  <div className="flex items-center justify-between">
+                    <GlassCardTitle className="text-base">Batch Details</GlassCardTitle>
+                    <Badge variant={selectedPaymentChain === "TRON_NILE" ? "secondary" : "outline"}>
+                      {selectedPaymentChain === "TRON" ? "Tron" : selectedPaymentChain === "TRON_NILE" ? "Tron (Test)" : "EVM"}
+                    </Badge>
+                  </div>
                 </GlassCardHeader>
                 <GlassCardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Purpose</Label>
-                    <PurposeTagSelector value={batchPurpose} onChange={setBatchPurpose} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-2">
+                      <Label>Settlement Chain</Label>
+                      <Select
+                        value={selectedPaymentChain}
+                        onValueChange={(value) => handlePaymentChainChange(value, { source: "user" })}
+                        disabled={isChainSwitching || isConnecting}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select chain" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="EVM">EVM (Base, Arbitrum)</SelectItem>
+                          <SelectItem value="TRON">Tron Mainnet (TRC20)</SelectItem>
+                          <SelectItem value="TRON_NILE">
+                            <span className="flex items-center gap-2">
+                              Tron Nile <span className="text-xs text-amber-500 font-medium">(Testnet)</span>
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {(isChainSwitching || isConnecting) && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Preparing wallet connection...
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Purpose</Label>
+                      <PurposeTagSelector value={batchPurpose} onChange={setBatchPurpose} />
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-2">
@@ -1393,49 +1427,6 @@ export default function BatchPaymentPage() {
                         className="resize-none"
                       />
                     </div>
-                  </div>
-                </GlassCardContent>
-              </GlassCard>
-
-              <GlassCard className="border-border">
-                <GlassCardHeader className="pb-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <GlassCardTitle className="text-base">Settlement Network</GlassCardTitle>
-                      <GlassCardDescription>Select Tron for TRC20 payouts or stay on EVM to use batch transfers.</GlassCardDescription>
-                    </div>
-                    <Badge variant={selectedPaymentChain === "TRON_NILE" ? "secondary" : "outline"}>
-                      {selectedPaymentChain === "TRON" ? "Tron" : selectedPaymentChain === "TRON_NILE" ? "Tron (Test)" : "EVM"}
-                    </Badge>
-                  </div>
-                </GlassCardHeader>
-                <GlassCardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Choose network</Label>
-                    <Select
-                      value={selectedPaymentChain}
-                      onValueChange={(value) => handlePaymentChainChange(value, { source: "user" })}
-                      disabled={isChainSwitching || isConnecting}
-                    >
-                      <SelectTrigger className="sm:w-[260px]">
-                        <SelectValue placeholder="Select settlement network" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="EVM">EVM (Base, Arbitrum)</SelectItem>
-                        <SelectItem value="TRON">Tron Mainnet (TRC20)</SelectItem>
-                        <SelectItem value="TRON_NILE">
-                          <span className="flex items-center gap-2">
-                            Tron Nile <span className="text-xs text-amber-500 font-medium">(Testnet)</span>
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {(isChainSwitching || isConnecting) && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Preparing wallet connection...
-                      </div>
-                    )}
                   </div>
                   {(!supportsBatchTransfers || hasTronRecipients) && (
                     <Alert variant="default" className="border-amber-500/40 bg-amber-500/5">

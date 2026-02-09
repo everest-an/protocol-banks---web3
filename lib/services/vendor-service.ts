@@ -1,23 +1,19 @@
 import type { Vendor, VendorInput, VendorStats } from "@/types"
-import { ethers } from "ethers"
-import { isEvmAddressFormat, safeGetChecksumAddress } from "@/lib/address-utils"
+import { validateAddress as validateMultiNetworkAddress } from "@/lib/address-utils"
 
 /**
- * Validate wallet address
+ * Validate wallet address (supports both EVM and TRON)
  */
 export function validateAddress(address: string): { isValid: boolean; checksumAddress?: string; error?: string } {
   if (!address) {
     return { isValid: false, error: "Address is required" }
   }
 
-  try {
-    if (!isEvmAddressFormat(address)) {
-      return { isValid: false, error: "Invalid wallet address format" }
-    }
-    const checksumAddress = safeGetChecksumAddress(address)
-    return { isValid: true, checksumAddress }
-  } catch {
-    return { isValid: false, error: "Invalid wallet address" }
+  const result = validateMultiNetworkAddress(address.trim())
+  return {
+    isValid: result.isValid,
+    checksumAddress: result.checksumAddress,
+    error: result.error,
   }
 }
 

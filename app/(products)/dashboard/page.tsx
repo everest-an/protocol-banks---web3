@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
@@ -68,18 +68,14 @@ function formatDate(dateStr: string) {
 }
 
 export default function DashboardPage() {
-  const { isConnected, address: wallet } = useUnifiedWallet()
-  const { isDemoMode, setWalletConnected } = useDemo()
+  const { address: wallet } = useUnifiedWallet()
+  const { isDemoMode } = useDemo()
   const { balance, loading: balanceLoading } = useBalance({ isDemoMode, walletAddress: wallet || undefined })
   const { payments, loading: paymentsLoading } = usePaymentHistory({
     isDemoMode,
     walletAddress: wallet || undefined,
   })
   const [activityTab, setActivityTab] = useState("all")
-
-  useEffect(() => {
-    setWalletConnected(isConnected)
-  }, [isConnected, setWalletConnected])
 
   const displayBalance = (balance?.totalUSD ?? 0).toLocaleString(undefined, {
     minimumFractionDigits: 2,
