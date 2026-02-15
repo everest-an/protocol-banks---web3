@@ -262,6 +262,11 @@ export const NETWORK_TOKENS: Record<string, TokenConfig[]> = {
       symbol: "DAI",
       decimals: 18,
     },
+    {
+      address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56",
+      symbol: "BUSD",
+      decimals: 18,
+    },
   ],
 
   // TRON Mainnet

@@ -32,6 +32,7 @@ export const COMMON_TOKENS: Record<
       42161: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       8453: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       10: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      56: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
       // 177: HashKey Chain USDC - add when officially deployed
     },
   },
@@ -65,6 +66,20 @@ export const COMMON_TOKENS: Record<
       42161: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       8453: "0x4200000000000000000000000000000000000006",
       10: "0x4200000000000000000000000000000000000006",
+    },
+  },
+  BUSD: {
+    symbol: "BUSD",
+    decimals: 18,
+    addresses: {
+      56: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56",
+    },
+  },
+  BNB: {
+    symbol: "BNB",
+    decimals: 18,
+    addresses: {
+      56: "NATIVE",
     },
   },
   WBTC: {

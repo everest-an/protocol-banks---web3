@@ -128,6 +128,8 @@ export const TOKEN_ADDRESSES = {
     USDT: "0x55d398326f99059fF775485246999027B3197955", // BSC-USD (Binance-Peg BUSD-T)
     USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", // Binance-Peg USD Coin
     DAI: "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3", // Binance-Peg Dai Token
+    BUSD: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", // Binance USD
+    BNB: "NATIVE", // Native BNB
   },
   [CHAIN_IDS.HASHKEY]: {
     HSK: "NATIVE", // Native Token
@@ -312,6 +314,13 @@ export const NETWORK_CONFIGS: Record<number, {
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
     rpcUrls: ["https://mainnet.base.org"],
     blockExplorerUrls: ["https://basescan.org"],
+  },
+  [CHAIN_IDS.BSC]: {
+    chainId: "0x" + CHAIN_IDS.BSC.toString(16),
+    chainName: "BNB Smart Chain",
+    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+    rpcUrls: ["https://bsc-dataseed.binance.org"],
+    blockExplorerUrls: ["https://bscscan.com"],
   },
   [CHAIN_IDS.HASHKEY]: {
     chainId: "0x" + CHAIN_IDS.HASHKEY.toString(16),

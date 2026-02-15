@@ -58,6 +58,18 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 177,
     },
+    // BSC Testnet
+    bscTestnet: {
+      url: process.env.BSC_TESTNET_RPC || "https://data-seed-prebsc-1-s1.binance.org:8545",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 97,
+    },
+    // BSC Mainnet
+    bsc: {
+      url: process.env.BSC_RPC || "https://bsc-dataseed.binance.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 56,
+    },
   },
   etherscan: {
     apiKey: {
@@ -65,6 +77,8 @@ const config: HardhatUserConfig = {
       arbitrumSepolia: process.env.ARBISCAN_API_KEY || "",
       base: process.env.BASESCAN_API_KEY || "",
       baseSepolia: process.env.BASESCAN_API_KEY || "",
+      bsc: process.env.BSCSCAN_API_KEY || "",
+      bscTestnet: process.env.BSCSCAN_API_KEY || "",
     },
   },
 };
