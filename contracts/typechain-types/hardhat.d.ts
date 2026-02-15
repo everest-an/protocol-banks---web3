@@ -114,33 +114,53 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Strings__factory>;
     getContractFactory(
-      name: "ConfidentialPBUSD",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ConfidentialPBUSD__factory>;
-    getContractFactory(
-      name: "ConfidentialTreasury",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ConfidentialTreasury__factory>;
-    getContractFactory(
-      name: "IFHE",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IFHE__factory>;
-    getContractFactory(
       name: "MockERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MockERC20__factory>;
     getContractFactory(
-      name: "MockFHE",
+      name: "IJustLend",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockFHE__factory>;
+    ): Promise<Contracts.IJustLend__factory>;
     getContractFactory(
-      name: "ProtocolBankTreasury",
+      name: "IJustLendPriceOracle",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ProtocolBankTreasury__factory>;
+    ): Promise<Contracts.IJustLendPriceOracle__factory>;
     getContractFactory(
-      name: "ProtocolBankUSD",
+      name: "IJustToken",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ProtocolBankUSD__factory>;
+    ): Promise<Contracts.IJustToken__factory>;
+    getContractFactory(
+      name: "IUnitroller",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUnitroller__factory>;
+    getContractFactory(
+      name: "ITRC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ITRC20__factory>;
+    getContractFactory(
+      name: "TronPaymentSplitter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TronPaymentSplitter__factory>;
+    getContractFactory(
+      name: "TronPaymentVault",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TronPaymentVault__factory>;
+    getContractFactory(
+      name: "SafeERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SafeERC20__factory>;
+    getContractFactory(
+      name: "TronPaymentSplitter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TronPaymentSplitter__factory>;
+    getContractFactory(
+      name: "TronPaymentVault",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TronPaymentVault__factory>;
+    getContractFactory(
+      name: "TronYieldAggregator",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TronYieldAggregator__factory>;
 
     getContractAt(
       name: "AccessControl",
@@ -268,40 +288,65 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Strings>;
     getContractAt(
-      name: "ConfidentialPBUSD",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ConfidentialPBUSD>;
-    getContractAt(
-      name: "ConfidentialTreasury",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ConfidentialTreasury>;
-    getContractAt(
-      name: "IFHE",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IFHE>;
-    getContractAt(
       name: "MockERC20",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.MockERC20>;
     getContractAt(
-      name: "MockFHE",
+      name: "IJustLend",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.MockFHE>;
+    ): Promise<Contracts.IJustLend>;
     getContractAt(
-      name: "ProtocolBankTreasury",
+      name: "IJustLendPriceOracle",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.ProtocolBankTreasury>;
+    ): Promise<Contracts.IJustLendPriceOracle>;
     getContractAt(
-      name: "ProtocolBankUSD",
+      name: "IJustToken",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.ProtocolBankUSD>;
+    ): Promise<Contracts.IJustToken>;
+    getContractAt(
+      name: "IUnitroller",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUnitroller>;
+    getContractAt(
+      name: "ITRC20",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ITRC20>;
+    getContractAt(
+      name: "TronPaymentSplitter",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TronPaymentSplitter>;
+    getContractAt(
+      name: "TronPaymentVault",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TronPaymentVault>;
+    getContractAt(
+      name: "SafeERC20",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SafeERC20>;
+    getContractAt(
+      name: "TronPaymentSplitter",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TronPaymentSplitter>;
+    getContractAt(
+      name: "TronPaymentVault",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TronPaymentVault>;
+    getContractAt(
+      name: "TronYieldAggregator",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TronYieldAggregator>;
 
     deployContract(
       name: "AccessControl",
@@ -404,33 +449,53 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Strings>;
     deployContract(
-      name: "ConfidentialPBUSD",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ConfidentialPBUSD>;
-    deployContract(
-      name: "ConfidentialTreasury",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ConfidentialTreasury>;
-    deployContract(
-      name: "IFHE",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IFHE>;
-    deployContract(
       name: "MockERC20",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MockERC20>;
     deployContract(
-      name: "MockFHE",
+      name: "IJustLend",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.MockFHE>;
+    ): Promise<Contracts.IJustLend>;
     deployContract(
-      name: "ProtocolBankTreasury",
+      name: "IJustLendPriceOracle",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ProtocolBankTreasury>;
+    ): Promise<Contracts.IJustLendPriceOracle>;
     deployContract(
-      name: "ProtocolBankUSD",
+      name: "IJustToken",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ProtocolBankUSD>;
+    ): Promise<Contracts.IJustToken>;
+    deployContract(
+      name: "IUnitroller",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IUnitroller>;
+    deployContract(
+      name: "ITRC20",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ITRC20>;
+    deployContract(
+      name: "TronPaymentSplitter",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronPaymentSplitter>;
+    deployContract(
+      name: "TronPaymentVault",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronPaymentVault>;
+    deployContract(
+      name: "SafeERC20",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SafeERC20>;
+    deployContract(
+      name: "TronPaymentSplitter",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronPaymentSplitter>;
+    deployContract(
+      name: "TronPaymentVault",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronPaymentVault>;
+    deployContract(
+      name: "TronYieldAggregator",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronYieldAggregator>;
 
     deployContract(
       name: "AccessControl",
@@ -558,40 +623,65 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Strings>;
     deployContract(
-      name: "ConfidentialPBUSD",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ConfidentialPBUSD>;
-    deployContract(
-      name: "ConfidentialTreasury",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ConfidentialTreasury>;
-    deployContract(
-      name: "IFHE",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IFHE>;
-    deployContract(
       name: "MockERC20",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MockERC20>;
     deployContract(
-      name: "MockFHE",
+      name: "IJustLend",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.MockFHE>;
+    ): Promise<Contracts.IJustLend>;
     deployContract(
-      name: "ProtocolBankTreasury",
+      name: "IJustLendPriceOracle",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ProtocolBankTreasury>;
+    ): Promise<Contracts.IJustLendPriceOracle>;
     deployContract(
-      name: "ProtocolBankUSD",
+      name: "IJustToken",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ProtocolBankUSD>;
+    ): Promise<Contracts.IJustToken>;
+    deployContract(
+      name: "IUnitroller",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IUnitroller>;
+    deployContract(
+      name: "ITRC20",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ITRC20>;
+    deployContract(
+      name: "TronPaymentSplitter",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronPaymentSplitter>;
+    deployContract(
+      name: "TronPaymentVault",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronPaymentVault>;
+    deployContract(
+      name: "SafeERC20",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SafeERC20>;
+    deployContract(
+      name: "TronPaymentSplitter",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronPaymentSplitter>;
+    deployContract(
+      name: "TronPaymentVault",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronPaymentVault>;
+    deployContract(
+      name: "TronYieldAggregator",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TronYieldAggregator>;
 
     // default types
     getContractFactory(

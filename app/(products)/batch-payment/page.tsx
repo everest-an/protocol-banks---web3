@@ -115,8 +115,6 @@ export default function BatchPaymentPage() {
             Corporate batch transfers are not available on HashKey Chain due to network constraints.
             <br />
             Please use <strong>Base</strong> or <strong>Arbitrum</strong> for bulk corporate settlements.
-            <br className="mb-4"/>
-            HashKey Chain is currently optimized for RWA and large fiat withdrawals only using pbUSD.
           </AlertDescription>
         </Alert>
         <div className="flex gap-4">
