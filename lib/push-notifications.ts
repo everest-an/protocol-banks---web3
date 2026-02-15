@@ -57,7 +57,7 @@ export class PushNotificationService {
     try {
       const subscription = await this.swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
+        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey).buffer as ArrayBuffer,
       })
 
       const json = subscription.toJSON()

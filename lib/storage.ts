@@ -1,9 +1,9 @@
 /**
  * Storage Abstraction Layer
- * 
+ *
  * Provides a unified interface for data storage that can be backed by
- * in-memory Map (development) or Redis (production).
- * 
+ * in-memory Map (development) or Redis via node-redis (production).
+ *
  * Usage:
  *   const store = createStore<MyType>('my-store')
  *   await store.set('key', value)
@@ -33,12 +33,12 @@ class MemoryStore<T> implements Store<T> {
   async get(key: string): Promise<T | undefined> {
     const entry = this.store.get(`${this.prefix}:${key}`)
     if (!entry) return undefined
-    
+
     if (entry.expiresAt && Date.now() > entry.expiresAt) {
       this.store.delete(`${this.prefix}:${key}`)
       return undefined
     }
-    
+
     return entry.value
   }
 
@@ -102,24 +102,28 @@ class MemoryStore<T> implements Store<T> {
   }
 }
 
-// Redis store implementation (uses centralized secure connection)
+// Redis store implementation (uses node-redis via getOptionalRedis)
 class RedisStore<T> implements Store<T> {
-  private client: any = null
+  private clientPromise: Promise<any> | null = null
 
   constructor(private prefix: string) {
-    this.initRedis()
+    this.clientPromise = this.initRedis()
   }
 
   private async initRedis() {
-    if (typeof window !== 'undefined') return // Skip in browser
+    if (typeof window !== 'undefined') return null
 
     try {
-      const { getRedisConnection } = await import('@/lib/redis')
-      this.client = getRedisConnection()
+      const { getOptionalRedis } = await import('@/lib/redis')
+      return await getOptionalRedis()
     } catch {
       console.log('[RedisStore] Redis not available, using memory store')
-      this.client = null
+      return null
     }
+  }
+
+  private async getClient() {
+    return await this.clientPromise
   }
 
   private getKey(key: string): string {
@@ -127,10 +131,11 @@ class RedisStore<T> implements Store<T> {
   }
 
   async get(key: string): Promise<T | undefined> {
-    if (!this.client) return undefined
-    
+    const client = await this.getClient()
+    if (!client) return undefined
+
     try {
-      const data = await this.client.get(this.getKey(key))
+      const data = await client.get(this.getKey(key))
       return data ? JSON.parse(data) : undefined
     } catch (error) {
       console.error('[RedisStore] Get error:', error)
@@ -139,14 +144,15 @@ class RedisStore<T> implements Store<T> {
   }
 
   async set(key: string, value: T, ttlSeconds?: number): Promise<void> {
-    if (!this.client) return
-    
+    const client = await this.getClient()
+    if (!client) return
+
     try {
       const data = JSON.stringify(value)
       if (ttlSeconds) {
-        await this.client.setex(this.getKey(key), ttlSeconds, data)
+        await client.set(this.getKey(key), data, { EX: ttlSeconds })
       } else {
-        await this.client.set(this.getKey(key), data)
+        await client.set(this.getKey(key), data)
       }
     } catch (error) {
       console.error('[RedisStore] Set error:', error)
@@ -154,10 +160,11 @@ class RedisStore<T> implements Store<T> {
   }
 
   async delete(key: string): Promise<boolean> {
-    if (!this.client) return false
-    
+    const client = await this.getClient()
+    if (!client) return false
+
     try {
-      const result = await this.client.del(this.getKey(key))
+      const result = await client.del(this.getKey(key))
       return result > 0
     } catch (error) {
       console.error('[RedisStore] Delete error:', error)
@@ -166,10 +173,11 @@ class RedisStore<T> implements Store<T> {
   }
 
   async has(key: string): Promise<boolean> {
-    if (!this.client) return false
-    
+    const client = await this.getClient()
+    if (!client) return false
+
     try {
-      const result = await this.client.exists(this.getKey(key))
+      const result = await client.exists(this.getKey(key))
       return result > 0
     } catch (error) {
       return false
@@ -177,12 +185,13 @@ class RedisStore<T> implements Store<T> {
   }
 
   async clear(): Promise<void> {
-    if (!this.client) return
-    
+    const client = await this.getClient()
+    if (!client) return
+
     try {
-      const keys = await this.client.keys(`${this.prefix}:*`)
+      const keys = await client.keys(`${this.prefix}:*`)
       if (keys.length > 0) {
-        await this.client.del(...keys)
+        await client.del(keys)
       }
     } catch (error) {
       console.error('[RedisStore] Clear error:', error)
@@ -190,10 +199,11 @@ class RedisStore<T> implements Store<T> {
   }
 
   async keys(): Promise<string[]> {
-    if (!this.client) return []
-    
+    const client = await this.getClient()
+    if (!client) return []
+
     try {
-      const keys = await this.client.keys(`${this.prefix}:*`)
+      const keys = await client.keys(`${this.prefix}:*`)
       return keys.map((k: string) => k.slice(this.prefix.length + 1))
     } catch (error) {
       console.error('[RedisStore] Keys error:', error)
@@ -202,13 +212,14 @@ class RedisStore<T> implements Store<T> {
   }
 
   async values(): Promise<T[]> {
-    if (!this.client) return []
-    
+    const client = await this.getClient()
+    if (!client) return []
+
     try {
-      const keys = await this.client.keys(`${this.prefix}:*`)
+      const keys = await client.keys(`${this.prefix}:*`)
       if (keys.length === 0) return []
-      
-      const values = await this.client.mget(...keys)
+
+      const values = await client.mGet(keys)
       return values
         .filter((v: string | null) => v !== null)
         .map((v: string) => JSON.parse(v))
@@ -229,7 +240,7 @@ export function createStore<T>(prefix: string): Store<T> {
 
   const useRedis = process.env.USE_REDIS === 'true' || process.env.REDIS_URL
   const store = useRedis ? new RedisStore<T>(prefix) : new MemoryStore<T>(prefix)
-  
+
   stores.set(prefix, store)
   return store
 }
@@ -275,7 +286,7 @@ export async function trackNonce(
 ): Promise<boolean> {
   const key = address.toLowerCase()
   let nonces = await store.get(key)
-  
+
   if (!nonces) {
     nonces = new Set<string>()
   }

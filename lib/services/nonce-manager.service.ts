@@ -1,9 +1,11 @@
 /**
  * Nonce Manager Service
  * Manages nonces for EIP-3009 TransferWithAuthorization
+ *
+ * Uses node-redis for distributed nonce tracking with in-memory fallback.
  */
 
-// Dynamic import to avoid pulling ioredis into client bundles
+// Dynamic import to avoid pulling redis into client bundles
 async function getOptionalRedis() {
   if (typeof window !== 'undefined') return null
   try {
@@ -43,8 +45,8 @@ export async function isNonceUsed(address: string, nonce: string): Promise<boole
 
   const redisClient = await getOptionalRedis()
   if (redisClient) {
-    const exists = await redisClient.sismember(`nonces:${normalizedAddress}`, normalizedNonce)
-    return exists === 1
+    const exists = await redisClient.sIsMember(`nonces:${normalizedAddress}`, normalizedNonce)
+    return Boolean(exists)
   }
 
   // Fallback
@@ -61,7 +63,7 @@ export async function markNonceUsed(address: string, nonce: string): Promise<voi
 
   const redisClient = await getOptionalRedis()
   if (redisClient) {
-    await redisClient.sadd(`nonces:${normalizedAddress}`, normalizedNonce)
+    await redisClient.sAdd(`nonces:${normalizedAddress}`, normalizedNonce)
     return
   }
 
@@ -78,7 +80,7 @@ export async function markNonceUsed(address: string, nonce: string): Promise<voi
 export async function getNonceCount(address: string): Promise<number> {
   const redisClient = await getOptionalRedis()
   if (redisClient) {
-    return await redisClient.scard(`nonces:${address.toLowerCase()}`)
+    return await redisClient.sCard(`nonces:${address.toLowerCase()}`)
   }
   const nonceSet = usedNonces.get(address.toLowerCase())
   return nonceSet ? nonceSet.size : 0
