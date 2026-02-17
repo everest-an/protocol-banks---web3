@@ -31,25 +31,9 @@ declare global {
   }
 }
 
-// Re-export service layer functions for unified access
-// Import from specific files (not the barrel) to avoid pulling server-only
-// modules (ioredis, pg) into client bundles
-export {
-  generateAuthorization,
-  generateBatchAuthorizations,
-  encodeTransferWithAuthorization,
-} from "@/lib/services/authorization-generator.service"
-
-export {
-  verifyAuthorizationSignature,
-  validateAuthorization,
-} from "@/lib/services/signature-verifier.service"
-
-export {
-  generateNonce,
-  isNonceUsed,
-  markNonceUsed,
-} from "@/lib/services/nonce-manager.service"
+// Server-only EIP-712 helpers live in lib/services/*.service.ts.
+// Import them directly in API routes or server components to avoid bundling
+// redis/node dependencies into the client.
 
 export {
   isWithinValidityWindow,
