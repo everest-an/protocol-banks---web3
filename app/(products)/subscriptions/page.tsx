@@ -159,16 +159,18 @@ export default function SubscriptionsPage() {
     }
 
     try {
-      const { processSinglePayment } = await import("@/lib/services/payment-service")
-      const result = await processSinglePayment(
-        {
-          address: subscription.recipient_address,
+      const res = await fetch("/api/subscriptions/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-wallet-address": currentWallet },
+        body: JSON.stringify({
+          recipient: subscription.recipient_address,
           amount: Number(subscription.amount),
           token: subscription.token,
-        },
-        currentWallet,
-        subscription.chain,
-      )
+          chain: subscription.chain,
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || "Payment failed")
 
       if (result.success && result.txHash) {
         await addPayment({
