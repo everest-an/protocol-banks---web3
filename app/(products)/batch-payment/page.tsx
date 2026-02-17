@@ -1136,6 +1136,32 @@ export default function BatchPaymentPage() {
       return
     }
 
+    // Pre-payment risk screening on all recipient addresses
+    try {
+      const flaggedAddresses: string[] = []
+      for (const r of validRecipients) {
+        const riskRes = await fetch(`/api/risk?view=screen&address=${encodeURIComponent(r.address)}`, {
+          headers: authHeaders(currentWallet),
+        })
+        if (riskRes.ok) {
+          const riskData = await riskRes.json()
+          if (riskData.result === "match") {
+            flaggedAddresses.push(r.address)
+          }
+        }
+      }
+      if (flaggedAddresses.length > 0) {
+        toast({
+          title: "Payment Blocked",
+          description: `${flaggedAddresses.length} recipient(s) flagged on sanctions list. Remove them to proceed.`,
+          variant: "destructive",
+        })
+        return
+      }
+    } catch {
+      // Non-blocking: proceed if risk API is unavailable
+    }
+
     // Proceed with new batch transfer experience (single signature)
     setIsBatchTransferProcessing(true)
 

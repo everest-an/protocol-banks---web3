@@ -142,7 +142,7 @@ export default function AuthorizationsPage() {
       if (isDemoMode) {
         setAuthorizations(demoAuthorizations)
       } else if (address) {
-        const response = await fetch(`/api/x402/authorizations?from=${address}`)
+        const response = await fetch(`/api/authorizations?from=${address}`)
         const data = await response.json()
         if (data.success) {
           setAuthorizations(data.authorizations || [])
@@ -165,7 +165,11 @@ export default function AuthorizationsPage() {
     }
 
     try {
-      const response = await fetch(`/api/x402/authorizations/${auth.id}/cancel`, { method: "POST" })
+      const response = await fetch(`/api/authorizations/${auth.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      })
       if (response.ok) {
         setAuthorizations((prev) =>
           prev.map((a) => (a.id === auth.id ? { ...a, status: "cancelled" as const } : a))

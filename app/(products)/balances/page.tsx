@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
@@ -30,6 +30,7 @@ import {
   Activity,
   Flame,
   Clock,
+  BookOpen,
 } from "lucide-react"
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -41,6 +42,7 @@ import { BalanceDistribution } from "@/components/balance-distribution"
 import { BalanceActivity } from "@/components/balance-activity"
 import { categorizeTransaction, CATEGORY_COLORS, calculateRunway, type Category } from "@/lib/business-logic"
 import { AuthGateway } from "@/components/auth"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import type { TokenBalance } from "@/types"
 
 // Token colors for charts and icons
@@ -119,6 +121,50 @@ export default function BalancesPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [expandedTokens, setExpandedTokens] = useState<Set<string>>(new Set())
   const [showAuthGateway, setShowAuthGateway] = useState(false)
+
+  // Ledger tab state
+  interface LedgerEntry {
+    id: string
+    entry_type: "DEBIT" | "CREDIT"
+    category: string
+    amount: string
+    token: string
+    chain: string
+    balance_before: string
+    balance_after: string
+    counterparty: string | null
+    description: string | null
+    tx_hash: string | null
+    created_at: string
+  }
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([])
+  const [ledgerLoading, setLedgerLoading] = useState(false)
+  const [ledgerTotal, setLedgerTotal] = useState(0)
+
+  const loadLedger = useCallback(async () => {
+    if (!activeAddress) return
+    setLedgerLoading(true)
+    try {
+      const res = await fetch(`/api/ledger?view=entries&limit=50`, {
+        headers: authHeaders(activeAddress),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setLedgerEntries(data.entries || [])
+        setLedgerTotal(data.total || 0)
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLedgerLoading(false)
+    }
+  }, [activeAddress])
+
+  useEffect(() => {
+    if (activeTab === "ledger" && isConnected && activeAddress && !isDemoMode) {
+      loadLedger()
+    }
+  }, [activeTab, isConnected, activeAddress, loadLedger, isDemoMode])
 
   // Build grouped token data (L2 → L3 drill-down)
   const tokenGroups = useMemo<TokenGroup[]>(() => {
@@ -509,6 +555,7 @@ export default function BalancesPage() {
               <TabsTrigger value="tokens">Tokens</TabsTrigger>
               <TabsTrigger value="chains">By Chain</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="ledger">Ledger</TabsTrigger>
             </TabsList>
 
             {/* ══════════ Overview Tab: L2 Portfolio Allocation ══════════ */}
@@ -1055,6 +1102,85 @@ export default function BalancesPage() {
                 </GlassCardContent>
               </GlassCard>
               </div>
+            </TabsContent>
+
+            {/* ══════════ Ledger Tab: Double-Entry Bookkeeping ══════════ */}
+            <TabsContent value="ledger" className="space-y-4">
+              <GlassCard>
+                <GlassCardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <GlassCardTitle className="text-lg flex items-center gap-2">
+                        <BookOpen className="h-5 w-5" />
+                        Ledger Entries
+                      </GlassCardTitle>
+                      <GlassCardDescription>Double-entry bookkeeping records ({ledgerTotal} total)</GlassCardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={loadLedger} disabled={ledgerLoading}>
+                      <RefreshCw className={`h-4 w-4 ${ledgerLoading ? "animate-spin" : ""}`} />
+                    </Button>
+                  </div>
+                </GlassCardHeader>
+                <GlassCardContent>
+                  {ledgerLoading ? (
+                    <div className="text-center py-12 text-muted-foreground">Loading ledger entries...</div>
+                  ) : ledgerEntries.length === 0 ? (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                      <p className="text-muted-foreground mb-2">No ledger entries yet</p>
+                      <p className="text-sm text-muted-foreground">Ledger entries are created when payments are processed.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {ledgerEntries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                              entry.entry_type === "CREDIT" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                            }`}>
+                              {entry.entry_type === "CREDIT" ? (
+                                <ArrowDownLeft className="h-4 w-4" />
+                              ) : (
+                                <ArrowUpRight className="h-4 w-4" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-medium text-sm truncate">
+                                {entry.entry_type} · {entry.category}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {entry.description || (entry.counterparty ? `${entry.counterparty.slice(0, 6)}...${entry.counterparty.slice(-4)}` : "Internal")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(entry.created_at).toLocaleDateString()}{" "}
+                                {new Date(entry.created_at).toLocaleTimeString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <div className={`font-mono font-medium text-sm ${
+                                entry.entry_type === "CREDIT" ? "text-green-500" : "text-red-500"
+                              }`}>
+                                {entry.entry_type === "CREDIT" ? "+" : "-"}{entry.amount} {entry.token}
+                              </div>
+                              <div className="text-xs text-muted-foreground font-mono">
+                                {entry.balance_before} → {entry.balance_after}
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {entry.chain}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </GlassCardContent>
+              </GlassCard>
             </TabsContent>
           </Tabs>
         )}

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Download, ArrowUpRight, ArrowDownLeft, ExternalLink, Calendar, Filter, ChevronDown, ChevronRight, Layers, FolderOpen, ArrowLeft } from "lucide-react"
+import { Search, Download, ArrowUpRight, ArrowDownLeft, ExternalLink, Calendar, Filter, ChevronDown, ChevronRight, Layers, FolderOpen, ArrowLeft, ArrowRightLeft, RefreshCw as RefreshCwIcon } from "lucide-react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -125,6 +125,26 @@ export default function HistoryPage() {
   const [selectedGroup, setSelectedGroup] = useState<(PaymentGroup & { payments?: any[] }) | null>(null)
   const [groupPaymentsLoading, setGroupPaymentsLoading] = useState(false)
 
+  // Cross-chain tab state
+  interface CrossChainTx {
+    id: string
+    type: string
+    provider: string
+    state: string
+    source_chain: string
+    source_token: string
+    source_amount: string
+    dest_chain: string
+    dest_token: string
+    dest_amount: string | null
+    source_tx_hash: string | null
+    dest_tx_hash: string | null
+    created_at: string
+    updated_at: string
+  }
+  const [crossChainTxs, setCrossChainTxs] = useState<CrossChainTx[]>([])
+  const [crossChainLoading, setCrossChainLoading] = useState(false)
+
   const loadGroups = useCallback(async () => {
     if (!wallet) return
     setGroupsLoading(true)
@@ -160,6 +180,24 @@ export default function HistoryPage() {
     }
   }, [])
 
+  const loadCrossChain = useCallback(async () => {
+    if (!wallet) return
+    setCrossChainLoading(true)
+    try {
+      const res = await fetch(`/api/cross-chain?limit=50`, {
+        headers: authHeaders(wallet),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setCrossChainTxs(data.transactions || [])
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setCrossChainLoading(false)
+    }
+  }, [wallet])
+
   // Determine if we should show demo data (demo mode or no wallet connected)
   const showDemoData = isDemoMode || !isConnected
 
@@ -178,7 +216,10 @@ export default function HistoryPage() {
     if (activeTab === "groups" && isConnected && wallet && !isDemoMode) {
       loadGroups()
     }
-  }, [activeTab, isConnected, wallet, loadGroups, isDemoMode])
+    if (activeTab === "cross-chain" && isConnected && wallet && !isDemoMode) {
+      loadCrossChain()
+    }
+  }, [activeTab, isConnected, wallet, loadGroups, loadCrossChain, isDemoMode])
 
   const loadTransactions = async () => {
     try {
@@ -382,6 +423,7 @@ export default function HistoryPage() {
                     <TabsTrigger value="sent" className="text-xs sm:text-sm">Sent</TabsTrigger>
                     <TabsTrigger value="received" className="text-xs sm:text-sm">Received</TabsTrigger>
                     <TabsTrigger value="groups" className="text-xs sm:text-sm">Groups</TabsTrigger>
+                    <TabsTrigger value="cross-chain" className="text-xs sm:text-sm">Cross-Chain</TabsTrigger>
                   </TabsList>
                 </Tabs>
                 <div className="flex gap-2">
@@ -524,6 +566,68 @@ export default function HistoryPage() {
                       </GlassCardContent>
                     </GlassCard>
                   ))}
+                </div>
+              )
+            ) : activeTab === "cross-chain" ? (
+              crossChainLoading ? (
+                <div className="text-center py-12 text-muted-foreground">Loading cross-chain transactions...</div>
+              ) : crossChainTxs.length === 0 ? (
+                <div className="text-center py-12">
+                  <ArrowRightLeft className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">No cross-chain transactions yet</p>
+                  <p className="text-sm text-muted-foreground">Use Bridge or Swap to create cross-chain transactions.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {crossChainTxs.map((ctx) => {
+                    const stateColors: Record<string, string> = {
+                      initiated: "bg-yellow-500/10 text-yellow-500",
+                      source_pending: "bg-yellow-500/10 text-yellow-500",
+                      source_confirmed: "bg-blue-500/10 text-blue-500",
+                      bridging: "bg-purple-500/10 text-purple-500",
+                      dest_pending: "bg-blue-500/10 text-blue-500",
+                      completed: "bg-green-500/10 text-green-500",
+                      failed: "bg-red-500/10 text-red-500",
+                      refunded: "bg-gray-500/10 text-gray-500",
+                    }
+                    return (
+                      <div key={ctx.id} className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors gap-2 sm:gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
+                            <ArrowRightLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium text-sm sm:text-base truncate">
+                              {ctx.source_chain} → {ctx.dest_chain}
+                            </div>
+                            <div className="text-xs sm:text-sm text-muted-foreground truncate">
+                              {ctx.source_amount} {ctx.source_token} → {ctx.dest_amount || "..."} {ctx.dest_token}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(ctx.created_at).toLocaleDateString()}{" "}
+                              <span className="hidden sm:inline">{new Date(ctx.created_at).toLocaleTimeString()}</span>
+                              {" · "}{ctx.provider}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                          <Badge variant="secondary" className={`text-xs ${stateColors[ctx.state] || ""}`}>
+                            {ctx.state.replace(/_/g, " ")}
+                          </Badge>
+                          {(ctx.source_tx_hash || ctx.dest_tx_hash) && (
+                            <a
+                              href={getExplorerUrl(ctx.dest_tx_hash || ctx.source_tx_hash || "")}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )
             ) : loading ? (

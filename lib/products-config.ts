@@ -15,6 +15,11 @@ import {
   Code,
   Settings,
   PiggyBank,
+  BarChart3,
+  FileCheck,
+  SplitSquareHorizontal,
+  Monitor,
+  ShoppingCart,
 } from "lucide-react"
 
 export interface ProductItem {
@@ -38,6 +43,12 @@ export const overviewItems: ProductItem[] = [
     title: "Balances",
     description: "View wallet balances across chains",
     icon: CreditCard,
+  },
+  {
+    href: "/analytics",
+    title: "Analytics",
+    description: "Financial reports and insights",
+    icon: BarChart3,
   },
   {
     href: "/vendors",
@@ -68,6 +79,12 @@ export const paymentProducts: ProductItem[] = [
     icon: Users,
   },
   {
+    href: "/split-payments",
+    title: "Split Payments",
+    description: "Split bills and revenue sharing",
+    icon: SplitSquareHorizontal,
+  },
+  {
     href: "/subscriptions",
     title: "Auto Pay",
     description: "Recurring payments & enterprise auto-pay",
@@ -85,6 +102,12 @@ export const paymentProducts: ProductItem[] = [
     description: "History, reconciliation, and analytics",
     icon: ArrowRightLeft,
   },
+  {
+    href: "/reconciliation",
+    title: "Reconciliation",
+    description: "Match and verify payment records",
+    icon: FileCheck,
+  },
 ]
 
 // Receiving
@@ -100,6 +123,18 @@ export const receivingProducts: ProductItem[] = [
     title: "Payment Links",
     description: "Generate QR codes and shareable links",
     icon: LinkIcon,
+  },
+  {
+    href: "/checkout",
+    title: "Checkout",
+    description: "Hosted checkout pages for merchants",
+    icon: ShoppingCart,
+  },
+  {
+    href: "/terminal",
+    title: "POS Terminal",
+    description: "Point-of-sale payment terminal",
+    icon: Monitor,
   },
 ]
 

@@ -390,6 +390,35 @@ function PaymentContent() {
     try {
       if (!verifyLock(lock)) { setProcessing(false); return }
 
+      // Pre-payment risk screening on recipient address
+      if (to) {
+        try {
+          const riskRes = await fetch(`/api/risk?view=screen&address=${encodeURIComponent(to)}`, {
+            headers: authHeaders(activeAddress),
+          })
+          if (riskRes.ok) {
+            const riskData = await riskRes.json()
+            if (riskData.result === "match") {
+              toast({
+                title: "Payment Blocked",
+                description: "Recipient address flagged on sanctions list. Transaction cannot proceed.",
+                variant: "destructive",
+              })
+              setProcessing(false)
+              return
+            }
+            if (riskData.result === "potential_match") {
+              toast({
+                title: "Risk Warning",
+                description: "Recipient address has a potential compliance flag. Proceeding with caution.",
+              })
+            }
+          }
+        } catch {
+          // Non-blocking: proceed if risk API is unavailable
+        }
+      }
+
       // Determine if this is a TRON payment based on recipient address
       const paymentIsTron = to ? detectAddressType(to) === "TRON" : false
       const senderAddress = paymentIsTron ? wallets.TRON : wallets.EVM

@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   ExternalLink,
   RefreshCw,
+  ShieldAlert,
 } from "lucide-react"
 import Link from "next/link"
 import { authHeaders } from "@/lib/authenticated-fetch"
@@ -237,7 +238,7 @@ export default function AdminDashboard() {
       </Alert>
 
       {/* Quick Links */}
-      <div className="grid gap-4 md:grid-cols-4 mb-8">
+      <div className="grid gap-4 md:grid-cols-5 mb-8">
         <Link href="/admin/fees">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-4 p-6">
@@ -281,6 +282,18 @@ export default function AdminDashboard() {
               <div>
                 <p className="font-medium">Monitoring</p>
                 <p className="text-sm text-muted-foreground">Alerts & logs</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/risk-review">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="flex items-center gap-4 p-6">
+              <ShieldAlert className="h-8 w-8 text-primary" />
+              <div>
+                <p className="font-medium">Risk Review</p>
+                <p className="text-sm text-muted-foreground">Compliance & screening</p>
               </div>
             </CardContent>
           </Card>
