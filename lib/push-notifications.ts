@@ -57,7 +57,7 @@ export class PushNotificationService {
     try {
       const subscription = await this.swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey) as unknown as BufferSource,
+        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey),
       })
 
       const json = subscription.toJSON()
@@ -91,13 +91,13 @@ export class PushNotificationService {
     }
   }
 
-  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+  private urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
     const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
 
     const rawData = window.atob(base64)
     const outputArray = new ArrayBuffer(rawData.length)
-    const view = new Uint8Array(outputArray)
+    const view: Uint8Array<ArrayBuffer> = new Uint8Array(outputArray)
 
     for (let i = 0; i < rawData.length; ++i) {
       view[i] = rawData.charCodeAt(i)
