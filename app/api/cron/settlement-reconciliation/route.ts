@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { createSettlement } from "@/lib/services/settlement-service"
+import { getOnChainBalance } from "@/lib/services/balance-sync-service"
+import { verifyCronAuth } from "@/lib/cron-auth"
 
 /**
  * GET /api/cron/settlement-reconciliation
@@ -10,15 +12,10 @@ import { createSettlement } from "@/lib/services/settlement-service"
  * Schedule: Once daily at 02:00 UTC
  */
 export async function GET(request: NextRequest) {
-  const start = Date.now()
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
-  // Auth check
-  if (process.env.NODE_ENV === "production") {
-    const authHeader = request.headers.get("authorization")
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-  }
+  const start = Date.now()
 
   try {
     // Get all users with ledger balances
@@ -42,13 +39,26 @@ export async function GET(request: NextRequest) {
 
     for (const balance of balances) {
       try {
+        // Fetch real on-chain balance for reconciliation
+        let onChainBalance: string | undefined
+        try {
+          const onChain = await getOnChainBalance(
+            balance.user_address,
+            balance.token,
+            balance.chain
+          )
+          if (onChain !== null) onChainBalance = onChain
+        } catch {
+          // On-chain fetch failure is non-fatal - reconcile without it
+        }
+
         const result = await createSettlement({
           userAddress: balance.user_address,
           periodStart,
           periodEnd,
           token: balance.token,
           chain: balance.chain,
-          // onChainBalance not provided here - will be added when balance sync is implemented
+          onChainBalance,
         })
 
         created++

@@ -5,6 +5,7 @@ import { getAuthenticatedAddress } from "@/lib/api-auth"
 import { validateAddress, getNetworkForAddress } from "@/lib/address-utils"
 import { ALL_NETWORKS } from "@/lib/networks"
 import { createBatchItems } from "@/lib/services/batch-item-service"
+import { checkIdempotency, completeIdempotency, failIdempotency } from "@/lib/services/idempotency-service"
 
 /**
  * POST /api/batch-payment
@@ -37,6 +38,19 @@ export async function POST(request: NextRequest) {
 
     if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json({ error: "Recipients array required" }, { status: 400 })
+    }
+
+    // Idempotency check
+    const idempotencyKey = request.headers.get("idempotency-key")
+    if (idempotencyKey) {
+      try {
+        const idempResult = await checkIdempotency(idempotencyKey, callerAddress, "/api/batch-payment", { recipients: recipients.length, token, chain })
+        if (idempResult.isDuplicate && idempResult.existingResponse) {
+          return NextResponse.json(idempResult.existingResponse.body, { status: idempResult.existingResponse.statusCode })
+        }
+      } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 409 })
+      }
     }
 
     // Validate batch
@@ -159,7 +173,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({
+    const responseBody = {
       success: true,
       batchId,
       totals,
@@ -169,9 +183,18 @@ export async function POST(request: NextRequest) {
       networkType: finalNetworkType,
       chainId: finalChainId,
       message: `Batch created with ${items.length} payments totaling ${totals.totalAmount} ${token || "USDC"} on ${finalChain}`,
-    })
+    }
+
+    // Mark idempotency as completed
+    if (idempotencyKey) {
+      await completeIdempotency(idempotencyKey, 200, responseBody).catch(() => {})
+    }
+
+    return NextResponse.json(responseBody)
   } catch (error: any) {
     console.error("[BatchPayment] Create error:", error)
+    const key = request.headers.get("idempotency-key")
+    if (key) await failIdempotency(key).catch(() => {})
     return NextResponse.json({ error: error.message || "Failed to create batch" }, { status: 500 })
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scheduledPaymentService } from '@/lib/services/scheduled-payment-service';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 /**
  * GET /api/cron/execute-scheduled-payments
@@ -7,19 +8,10 @@ import { scheduledPaymentService } from '@/lib/services/scheduled-payment-servic
  * Called by Vercel Cron every hour
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Verify cron secret in production
-    if (process.env.NODE_ENV === 'production') {
-      const authHeader = request.headers.get('authorization');
-      const cronSecret = process.env.CRON_SECRET;
-      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
-    }
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
+  try {
     console.log('[Cron] Starting scheduled payment execution...');
 
     // Execute all due payments

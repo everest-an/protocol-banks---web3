@@ -1,25 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processSubscriptionsCron } from '@/lib/services/subscription-payment-executor'
+import { verifyCronAuth } from '@/lib/cron-auth'
 
 /**
  * POST /api/cron/subscriptions
- * 
+ *
  * Cron endpoint to process due subscription payments.
  * Should be called periodically (e.g., every hour) by Vercel Cron or similar.
- * 
- * Security: Requires CRON_SECRET header in production.
  */
 export async function POST(request: NextRequest) {
-  // Verify cron secret — required in ALL environments to prevent unauthorized triggering
-  const cronSecret = request.headers.get('x-cron-secret') || 
-                     request.headers.get('authorization')?.replace('Bearer ', '')
-  
-  if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    )
-  }
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
   try {
     console.log('[SubscriptionCron] Starting subscription processing...')

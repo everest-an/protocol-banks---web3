@@ -1,26 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { budgetService } from '@/lib/services/budget-service'
 import { agentX402Service } from '@/lib/services/agent-x402-service'
+import { verifyCronAuth } from '@/lib/cron-auth'
 
 /**
  * POST /api/cron/budget-reset
  *
  * Cron endpoint to reset expired periodic budgets and expire stale authorizations.
  * Should be called periodically (e.g., every hour) by Vercel Cron or similar.
- *
- * Security: Requires CRON_SECRET header in production.
  */
 export async function POST(request: NextRequest) {
-  // Verify cron secret in production
-  if (process.env.NODE_ENV === 'production') {
-    const cronSecret =
-      request.headers.get('x-cron-secret') ||
-      request.headers.get('authorization')?.replace('Bearer ', '')
-
-    if (cronSecret !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-  }
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
   try {
     console.log('[BudgetResetCron] Starting budget reset processing...')

@@ -1,25 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { executeBatch } from "@/lib/services/batch-execution-worker"
+import { getBatchItems } from "@/lib/services/batch-item-service"
 
 // Base chain ID for CDP settlement (0 fee)
 const BASE_CHAIN_ID = 8453
 
-interface ExecuteResult {
-  recipient: string
-  amount: number
-  status: "success" | "failed" | "pending"
-  txHash?: string
-  error?: string
-}
-
 /**
  * POST /api/batch-payment/execute
- * Execute a pending batch payment
+ * Execute a pending batch payment using the concurrent BatchItem engine.
+ * Each recipient is tracked individually with retry support.
  */
 export async function POST(request: NextRequest) {
   try {
+    const callerAddress = await getAuthenticatedAddress(request)
+    if (!callerAddress) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = await request.json()
-    const { batchId, signatures, chainId } = body
+    const { batchId, chainId } = body
 
     if (!batchId) {
       return NextResponse.json({ error: "batchId required" }, { status: 400 })
@@ -31,83 +32,60 @@ export async function POST(request: NextRequest) {
     })
 
     if (!batch) {
-      // Demo mode - create mock batch
-      const mockResults: ExecuteResult[] = [
-        { recipient: "0x1234...5678", amount: 100, status: "success", txHash: `0x${Date.now().toString(16)}` },
-        { recipient: "0xabcd...efgh", amount: 50, status: "success", txHash: `0x${(Date.now() + 1).toString(16)}` },
-      ]
-
-      return NextResponse.json({
-        success: true,
-        batchId,
-        results: mockResults,
-        summary: {
-          total: mockResults.length,
-          successful: mockResults.filter((r) => r.status === "success").length,
-          failed: 0,
-          totalAmount: mockResults.reduce((sum, r) => sum + r.amount, 0),
-        },
-      })
+      return NextResponse.json({ error: "Batch not found" }, { status: 404 })
     }
 
-    // Determine settlement method based on chain
+    // Security: Only the batch owner can execute
+    if (batch.from_address.toLowerCase() !== callerAddress.toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    if (batch.status === "completed") {
+      return NextResponse.json(
+        { error: "Batch already completed" },
+        { status: 400 }
+      )
+    }
+
+    // Determine settlement method
     const effectiveChainId = chainId || batch.chain_id || BASE_CHAIN_ID
     const isBaseChain = effectiveChainId === BASE_CHAIN_ID
     const settlementMethod = isBaseChain ? "CDP" : "RELAYER"
-
-    // Calculate fees
     const fee = isBaseChain ? 0 : batch.total_amount * 0.001
 
-    // Update batch status to processing
-    await prisma.batchPayment.update({
-      where: { batch_id: batchId },
-      data: { status: "processing" },
-    })
+    // Execute batch using the concurrent worker engine
+    const result = await executeBatch(
+      batchId,
+      callerAddress,
+      batch.network_type || "EVM"
+    )
 
-    // In production, this would interact with the blockchain
-    // For now, simulate successful execution
-    const items = (batch.items as any[]) || []
-    const results: ExecuteResult[] = items.map((item: any) => ({
-      recipient: item.recipient,
-      amount: item.amount,
-      status: "success" as const,
-      txHash: `0x${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`,
-    }))
+    // Get detailed item results
+    const { items, summary } = await getBatchItems(batchId)
 
-    const successCount = results.filter((r) => r.status === "success").length
-    const failedCount = results.filter((r) => r.status === "failed").length
-    const totalPaid = results
-      .filter((r) => r.status === "success")
-      .reduce((sum, r) => sum + r.amount, 0)
-
-    // Update batch with results
+    // Update batch with fee info
     await prisma.batchPayment.update({
       where: { batch_id: batchId },
       data: {
-        status: failedCount === 0 ? "completed" : "partial",
-        results: results as any,
         fee,
         settlement_method: settlementMethod,
-        executed_at: new Date(),
       },
     })
 
     return NextResponse.json({
       success: true,
       batchId,
-      results,
+      execution: result,
+      items,
       summary: {
-        total: results.length,
-        successful: successCount,
-        failed: failedCount,
-        totalAmount: totalPaid,
+        ...summary,
         fee,
-        netAmount: totalPaid - fee,
+        netAmount: Number(summary.completedAmount) - fee,
         settlementMethod,
       },
       message: isBaseChain
-        ? `Batch executed via CDP (0 fee) - ${successCount}/${results.length} successful`
-        : `Batch executed via Relayer (fee: ${fee.toFixed(6)}) - ${successCount}/${results.length} successful`,
+        ? `Batch executed via CDP (0 fee) - ${result.completed}/${result.totalItems} successful`
+        : `Batch executed via Relayer (fee: ${fee.toFixed(6)}) - ${result.completed}/${result.totalItems} successful`,
     })
   } catch (error: any) {
     console.error("[BatchPayment] Execute error:", error)

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { promises as fs } from 'fs';
 import { parseBatchFile } from '@/lib/services/file-parser.service';
 import { validateBatch } from '@/lib/services/batch-validator.service';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 // Vercel Cron Job to process batch files
 // Replaces the background worker for Serverless environment
@@ -12,14 +13,8 @@ export const maxDuration = 60; // 60 seconds (Pro plan limit usually, optimize c
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  // Security: Verify CRON secret in production
-  if (process.env.NODE_ENV === 'production') {
-    const authHeader = req.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  }
+  const authError = verifyCronAuth(req)
+  if (authError) return authError
 
   try {
     // 1. Find ONE queued job (FIFO)

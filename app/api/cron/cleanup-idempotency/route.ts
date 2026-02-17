@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cleanExpiredKeys } from "@/lib/services/idempotency-service"
+import { verifyCronAuth } from "@/lib/cron-auth"
 
 /**
  * GET /api/cron/cleanup-idempotency
@@ -9,15 +10,10 @@ import { cleanExpiredKeys } from "@/lib/services/idempotency-service"
  * Schedule: Every hour at :15
  */
 export async function GET(request: NextRequest) {
-  const start = Date.now()
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
-  // Auth check
-  if (process.env.NODE_ENV === "production") {
-    const authHeader = request.headers.get("authorization")
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-  }
+  const start = Date.now()
 
   try {
     const deletedCount = await cleanExpiredKeys()

@@ -20,6 +20,7 @@ import {
 import { agentX402Service } from './agent-x402-service'
 import { notificationService } from './notification-service'
 import { relayerService, isRelayerConfigured } from './relayer-service'
+import { checkIdempotency, completeIdempotency, failIdempotency } from './idempotency-service'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 import type { Hex, Address } from 'viem'
@@ -93,11 +94,31 @@ export class SubscriptionPaymentExecutor {
   }
 
   /**
-   * Execute a single subscription payment
-   * Checks authorization validity before proceeding.
+   * Execute a single subscription payment.
+   * Uses idempotency key (subscription ID + billing period) to prevent
+   * duplicate charges if the cron runs multiple times.
    */
   async executePayment(subscription: Subscription): Promise<PaymentExecutionResult> {
     console.log(`[SubscriptionExecutor] Processing subscription ${subscription.id}`)
+
+    // Build idempotency key from subscription ID + next payment date
+    const billingPeriod = subscription.next_payment_date
+      ? new Date(subscription.next_payment_date).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10)
+    const idempotencyKey = `sub:${subscription.id}:${billingPeriod}`
+
+    // Check idempotency — if already processed for this billing period, return cached result
+    const idempotencyCheck = await checkIdempotency(
+      idempotencyKey,
+      subscription.owner_address,
+      `/cron/subscriptions/${subscription.id}`,
+      { subscriptionId: subscription.id, period: billingPeriod }
+    )
+
+    if (idempotencyCheck.isDuplicate && idempotencyCheck.existingResponse) {
+      console.log(`[SubscriptionExecutor] Idempotent skip for ${subscription.id} (period ${billingPeriod})`)
+      return idempotencyCheck.existingResponse.body as PaymentExecutionResult
+    }
 
     // Authorization gating: check expiry and spending cap before execution
     const authCheck = checkAuthorizationValidity({
@@ -109,7 +130,7 @@ export class SubscriptionPaymentExecutor {
     if (!authCheck.valid) {
       console.log(`[SubscriptionExecutor] Skipping ${subscription.id}: ${authCheck.reason}`)
       const skipReason = authCheck.reason?.includes('expired') ? 'authorization_expired' as const : 'cap_exceeded' as const
-      return {
+      const result: PaymentExecutionResult = {
         subscriptionId: subscription.id,
         success: false,
         error: authCheck.reason,
@@ -117,6 +138,8 @@ export class SubscriptionPaymentExecutor {
         skipped: true,
         skipReason,
       }
+      await failIdempotency(idempotencyKey)
+      return result
     }
 
     try {
@@ -153,12 +176,17 @@ export class SubscriptionPaymentExecutor {
 
       console.log(`[SubscriptionExecutor] Payment successful for ${subscription.id}: ${txHash}`)
 
-      return {
+      const result: PaymentExecutionResult = {
         subscriptionId: subscription.id,
         success: true,
         txHash,
         method,
       }
+
+      // Store result in idempotency cache
+      await completeIdempotency(idempotencyKey, 200, result)
+
+      return result
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -169,6 +197,9 @@ export class SubscriptionPaymentExecutor {
 
       // Send failure notification
       await this.sendPaymentNotification(subscription, '', false)
+
+      // Mark idempotency as failed (allows retry on next cron run)
+      await failIdempotency(idempotencyKey)
 
       return {
         subscriptionId: subscription.id,
