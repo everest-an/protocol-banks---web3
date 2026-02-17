@@ -18,11 +18,8 @@ export * from './file-parser.service'
 // Re-export from lib for unified access
 export { parsePaymentFile, generateSampleCSV, generateSampleExcel } from '@/lib/excel-parser'
 
-// Authorization Services
-export * from './eip712.service'
-export * from './authorization-generator.service'
-export * from './signature-verifier.service'
-export * from './nonce-manager.service'
+// Authorization/nonce services are server-only.
+// Import directly from their files in API routes or server modules.
 
 // Payment Services
 export * from './relayer-client.service'

@@ -5,11 +5,15 @@ import {
   validateBatch,
   calculateBatchTotals,
   findDuplicateRecipients,
+  type BatchPaymentItem,
+} from "@/lib/services/batch-validator.service"
+import {
   calculateBatchFees,
   formatFee,
+} from "@/lib/services/fee-calculator.service"
+import {
   generateBatchCsvReport,
-  type BatchPaymentItem,
-} from "@/lib/services"
+} from "@/lib/services/report-generator.service"
 import { webhookTriggerService, type PaymentEventData, type BatchPaymentEventData } from "./webhook-trigger-service"
 import { processTronPayment, isValidTronAddress } from "./tron-payment"
 

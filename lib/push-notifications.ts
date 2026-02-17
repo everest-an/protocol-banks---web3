@@ -91,18 +91,18 @@ export class PushNotificationService {
     }
   }
 
-  private urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
+  private urlBase64ToUint8Array(base64String: string): ArrayBuffer {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
     const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
 
     const rawData = window.atob(base64)
     const outputArray = new ArrayBuffer(rawData.length)
-    const view: Uint8Array<ArrayBuffer> = new Uint8Array(outputArray)
+    const view = new Uint8Array(outputArray)
 
     for (let i = 0; i < rawData.length; ++i) {
       view[i] = rawData.charCodeAt(i)
     }
-    return view
+    return outputArray
   }
 
   // Show local notification (for testing)
