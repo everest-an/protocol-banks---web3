@@ -348,6 +348,21 @@ export const POPULAR_TOKENS: Record<string, TokenInfo[]> = {
 
 // Rango API service - uses server-side API route
 class RangoService {
+  private _walletAddress: string | null = null
+
+  /** Set the authenticated wallet address for API calls */
+  setWallet(address: string | null | undefined) {
+    this._walletAddress = address || null
+  }
+
+  private get _headers(): Record<string, string> {
+    const h: Record<string, string> = { "Content-Type": "application/json" }
+    if (this._walletAddress) {
+      h["x-wallet-address"] = this._walletAddress
+    }
+    return h
+  }
+
   // Get all possible routes for a swap via server API
   async getAllRoutes(
     from: RangoAsset,
@@ -358,7 +373,7 @@ class RangoService {
     try {
       const response = await fetch("/api/rango", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this._headers,
         body: JSON.stringify({
           action: "getAllRoutes",
           from: { blockchain: from.blockchain, symbol: from.symbol, address: from.address },
@@ -443,7 +458,7 @@ class RangoService {
     try {
       const response = await fetch("/api/rango", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this._headers,
         body: JSON.stringify({ action: "confirmRoute", requestId, routeId }),
       })
 
@@ -469,7 +484,7 @@ class RangoService {
     try {
       const response = await fetch("/api/rango", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this._headers,
         body: JSON.stringify({
           action: "createTransaction",
           requestId,
@@ -496,7 +511,7 @@ class RangoService {
     try {
       const response = await fetch("/api/rango", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this._headers,
         body: JSON.stringify({ action: "checkStatus", requestId, txId }),
       })
       const data = await response.json()

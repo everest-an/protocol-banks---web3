@@ -63,6 +63,11 @@ export function CrossChainSwap({
   const { address, signer, isConnected } = useUnifiedWallet()
   const { isWeb2User, translateTerm } = useUserType()
 
+  // Keep rango service in sync with the connected wallet
+  useEffect(() => {
+    rangoService.setWallet(address)
+  }, [address])
+
   // Chain & Token Selection
   const [fromChain, setFromChain] = useState<string>(defaultFromChain)
   const [toChain, setToChain] = useState<string>(defaultToChain)

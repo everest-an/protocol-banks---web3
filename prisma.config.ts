@@ -7,6 +7,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // DIRECT_DATABASE_URL: direct PostgreSQL for CLI (db push, migrate, studio)
+    // DATABASE_URL: Prisma Accelerate for runtime (Next.js app + Vercel)
+    url: process.env["DIRECT_DATABASE_URL"] ?? process.env["DATABASE_URL"],
   },
 });

@@ -1,4 +1,4 @@
-module github.com/protocol-bank/payout-engine
+前module github.com/protocol-bank/payout-engine
 
 go 1.24
 
