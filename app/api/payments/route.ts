@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getAuthenticatedAddress } from "@/lib/api-auth"
 import { validateAddress, getNetworkForAddress } from "@/lib/address-utils"
+import { checkIdempotency, completeIdempotency, failIdempotency } from "@/lib/services/idempotency-service"
+import { assessTransaction } from "@/lib/services/risk-service"
 
 /**
  * GET /api/payments
@@ -248,6 +250,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Idempotency check - prevent duplicate payments
+    const idempotencyKey = request.headers.get("idempotency-key")
+    if (idempotencyKey) {
+      try {
+        const idempotencyResult = await checkIdempotency(
+          idempotencyKey,
+          callerAddress,
+          "/api/payments",
+          { from_address, to_address, amount, token, type }
+        )
+        if (idempotencyResult.isDuplicate && idempotencyResult.existingResponse) {
+          return NextResponse.json(
+            idempotencyResult.existingResponse.body,
+            { status: idempotencyResult.existingResponse.statusCode }
+          )
+        }
+      } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 409 })
+      }
+    }
+
     // Validate addresses
     const fromValidation = validateAddress(from_address)
     const toValidation = validateAddress(to_address)
@@ -299,6 +322,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Risk assessment (non-blocking for "approve" decisions)
+    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    try {
+      const riskResult = await assessTransaction({
+        referenceType: "payment",
+        referenceId: paymentId,
+        userAddress: callerAddress,
+        recipient: to_address,
+        amount,
+        token,
+        chain: finalChain || "ethereum",
+      })
+
+      if (riskResult.decision === "block") {
+        if (idempotencyKey) await failIdempotency(idempotencyKey)
+        return NextResponse.json(
+          {
+            error: "Payment blocked by risk assessment",
+            riskLevel: riskResult.riskLevel,
+            riskScore: riskResult.riskScore,
+          },
+          { status: 403 }
+        )
+      }
+    } catch (riskError) {
+      // Risk assessment failure should not block payments - log and continue
+      console.warn("[API] Risk assessment failed, proceeding:", riskError)
+    }
+
     const payment = await prisma.payment.create({
       data: {
         from_address: fromValidation.checksumAddress || from_address,
@@ -332,7 +384,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({
+    const responseBody = {
       payment: {
         ...payment,
         timestamp: payment.created_at.toISOString(),
@@ -345,10 +397,22 @@ export async function POST(request: NextRequest) {
         gas_price: payment.gas_price?.toString(),
         block_number: payment.block_number?.toString(),
       },
-    })
+    }
+
+    // Mark idempotency key as completed
+    if (idempotencyKey) {
+      await completeIdempotency(idempotencyKey, 200, responseBody).catch((e) =>
+        console.warn("[API] Failed to complete idempotency key:", e)
+      )
+    }
+
+    return NextResponse.json(responseBody)
   } catch (error: unknown) {
     console.error("[API] POST /api/payments error:", error)
     const message = error instanceof Error ? error.message : "Internal Server Error"
+    if (request.headers.get("idempotency-key")) {
+      await failIdempotency(request.headers.get("idempotency-key")!).catch(() => {})
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -14,13 +14,9 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
-      name: "AccessControl",
+      name: "Ownable",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.AccessControl__factory>;
-    getContractFactory(
-      name: "IAccessControl",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IAccessControl__factory>;
+    ): Promise<Contracts.Ownable__factory>;
     getContractFactory(
       name: "IERC1155Errors",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -38,33 +34,13 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC1363__factory>;
     getContractFactory(
-      name: "IERC5267",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC5267__factory>;
-    getContractFactory(
       name: "ERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC20__factory>;
     getContractFactory(
-      name: "ERC20Burnable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC20Burnable__factory>;
-    getContractFactory(
-      name: "ERC20Pausable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC20Pausable__factory>;
-    getContractFactory(
-      name: "ERC20Permit",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC20Permit__factory>;
-    getContractFactory(
       name: "IERC20Metadata",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC20Metadata__factory>;
-    getContractFactory(
-      name: "IERC20Permit",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC20Permit__factory>;
     getContractFactory(
       name: "IERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -74,45 +50,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SafeERC20__factory>;
     getContractFactory(
-      name: "ECDSA",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ECDSA__factory>;
-    getContractFactory(
-      name: "EIP712",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.EIP712__factory>;
-    getContractFactory(
-      name: "ERC165",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC165__factory>;
-    getContractFactory(
       name: "IERC165",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
-    getContractFactory(
-      name: "SafeCast",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.SafeCast__factory>;
-    getContractFactory(
-      name: "Nonces",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Nonces__factory>;
-    getContractFactory(
-      name: "Pausable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Pausable__factory>;
     getContractFactory(
       name: "ReentrancyGuard",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ReentrancyGuard__factory>;
     getContractFactory(
-      name: "ShortStrings",
+      name: "BatchTransfer",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ShortStrings__factory>;
-    getContractFactory(
-      name: "Strings",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Strings__factory>;
+    ): Promise<Contracts.BatchTransfer__factory>;
     getContractFactory(
       name: "MockERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -145,33 +93,12 @@ declare module "hardhat/types/runtime" {
       name: "TronPaymentVault",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TronPaymentVault__factory>;
-    getContractFactory(
-      name: "SafeERC20",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.SafeERC20__factory>;
-    getContractFactory(
-      name: "TronPaymentSplitter",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TronPaymentSplitter__factory>;
-    getContractFactory(
-      name: "TronPaymentVault",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TronPaymentVault__factory>;
-    getContractFactory(
-      name: "TronYieldAggregator",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TronYieldAggregator__factory>;
 
     getContractAt(
-      name: "AccessControl",
+      name: "Ownable",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.AccessControl>;
-    getContractAt(
-      name: "IAccessControl",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IAccessControl>;
+    ): Promise<Contracts.Ownable>;
     getContractAt(
       name: "IERC1155Errors",
       address: string | ethers.Addressable,
@@ -193,40 +120,15 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC1363>;
     getContractAt(
-      name: "IERC5267",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC5267>;
-    getContractAt(
       name: "ERC20",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.ERC20>;
     getContractAt(
-      name: "ERC20Burnable",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC20Burnable>;
-    getContractAt(
-      name: "ERC20Pausable",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC20Pausable>;
-    getContractAt(
-      name: "ERC20Permit",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC20Permit>;
-    getContractAt(
       name: "IERC20Metadata",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.IERC20Metadata>;
-    getContractAt(
-      name: "IERC20Permit",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC20Permit>;
     getContractAt(
       name: "IERC20",
       address: string | ethers.Addressable,
@@ -238,55 +140,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.SafeERC20>;
     getContractAt(
-      name: "ECDSA",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ECDSA>;
-    getContractAt(
-      name: "EIP712",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.EIP712>;
-    getContractAt(
-      name: "ERC165",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC165>;
-    getContractAt(
       name: "IERC165",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
-    getContractAt(
-      name: "SafeCast",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.SafeCast>;
-    getContractAt(
-      name: "Nonces",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Nonces>;
-    getContractAt(
-      name: "Pausable",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Pausable>;
     getContractAt(
       name: "ReentrancyGuard",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.ReentrancyGuard>;
     getContractAt(
-      name: "ShortStrings",
+      name: "BatchTransfer",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.ShortStrings>;
-    getContractAt(
-      name: "Strings",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Strings>;
+    ): Promise<Contracts.BatchTransfer>;
     getContractAt(
       name: "MockERC20",
       address: string | ethers.Addressable,
@@ -327,35 +194,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.TronPaymentVault>;
-    getContractAt(
-      name: "SafeERC20",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.SafeERC20>;
-    getContractAt(
-      name: "TronPaymentSplitter",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.TronPaymentSplitter>;
-    getContractAt(
-      name: "TronPaymentVault",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.TronPaymentVault>;
-    getContractAt(
-      name: "TronYieldAggregator",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.TronYieldAggregator>;
 
     deployContract(
-      name: "AccessControl",
+      name: "Ownable",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.AccessControl>;
-    deployContract(
-      name: "IAccessControl",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IAccessControl>;
+    ): Promise<Contracts.Ownable>;
     deployContract(
       name: "IERC1155Errors",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -373,33 +216,13 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC1363>;
     deployContract(
-      name: "IERC5267",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC5267>;
-    deployContract(
       name: "ERC20",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ERC20>;
     deployContract(
-      name: "ERC20Burnable",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ERC20Burnable>;
-    deployContract(
-      name: "ERC20Pausable",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ERC20Pausable>;
-    deployContract(
-      name: "ERC20Permit",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ERC20Permit>;
-    deployContract(
       name: "IERC20Metadata",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC20Metadata>;
-    deployContract(
-      name: "IERC20Permit",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC20Permit>;
     deployContract(
       name: "IERC20",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -409,45 +232,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SafeERC20>;
     deployContract(
-      name: "ECDSA",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ECDSA>;
-    deployContract(
-      name: "EIP712",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.EIP712>;
-    deployContract(
-      name: "ERC165",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ERC165>;
-    deployContract(
       name: "IERC165",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
-    deployContract(
-      name: "SafeCast",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.SafeCast>;
-    deployContract(
-      name: "Nonces",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Nonces>;
-    deployContract(
-      name: "Pausable",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Pausable>;
     deployContract(
       name: "ReentrancyGuard",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ReentrancyGuard>;
     deployContract(
-      name: "ShortStrings",
+      name: "BatchTransfer",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ShortStrings>;
-    deployContract(
-      name: "Strings",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Strings>;
+    ): Promise<Contracts.BatchTransfer>;
     deployContract(
       name: "MockERC20",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -480,33 +275,12 @@ declare module "hardhat/types/runtime" {
       name: "TronPaymentVault",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TronPaymentVault>;
-    deployContract(
-      name: "SafeERC20",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.SafeERC20>;
-    deployContract(
-      name: "TronPaymentSplitter",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TronPaymentSplitter>;
-    deployContract(
-      name: "TronPaymentVault",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TronPaymentVault>;
-    deployContract(
-      name: "TronYieldAggregator",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TronYieldAggregator>;
 
     deployContract(
-      name: "AccessControl",
+      name: "Ownable",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.AccessControl>;
-    deployContract(
-      name: "IAccessControl",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IAccessControl>;
+    ): Promise<Contracts.Ownable>;
     deployContract(
       name: "IERC1155Errors",
       args: any[],
@@ -528,40 +302,15 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC1363>;
     deployContract(
-      name: "IERC5267",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC5267>;
-    deployContract(
       name: "ERC20",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ERC20>;
     deployContract(
-      name: "ERC20Burnable",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ERC20Burnable>;
-    deployContract(
-      name: "ERC20Pausable",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ERC20Pausable>;
-    deployContract(
-      name: "ERC20Permit",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ERC20Permit>;
-    deployContract(
       name: "IERC20Metadata",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC20Metadata>;
-    deployContract(
-      name: "IERC20Permit",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC20Permit>;
     deployContract(
       name: "IERC20",
       args: any[],
@@ -573,55 +322,20 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SafeERC20>;
     deployContract(
-      name: "ECDSA",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ECDSA>;
-    deployContract(
-      name: "EIP712",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.EIP712>;
-    deployContract(
-      name: "ERC165",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ERC165>;
-    deployContract(
       name: "IERC165",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
-    deployContract(
-      name: "SafeCast",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.SafeCast>;
-    deployContract(
-      name: "Nonces",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Nonces>;
-    deployContract(
-      name: "Pausable",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Pausable>;
     deployContract(
       name: "ReentrancyGuard",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ReentrancyGuard>;
     deployContract(
-      name: "ShortStrings",
+      name: "BatchTransfer",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ShortStrings>;
-    deployContract(
-      name: "Strings",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Strings>;
+    ): Promise<Contracts.BatchTransfer>;
     deployContract(
       name: "MockERC20",
       args: any[],
@@ -662,26 +376,6 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TronPaymentVault>;
-    deployContract(
-      name: "SafeERC20",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.SafeERC20>;
-    deployContract(
-      name: "TronPaymentSplitter",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TronPaymentSplitter>;
-    deployContract(
-      name: "TronPaymentVault",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TronPaymentVault>;
-    deployContract(
-      name: "TronYieldAggregator",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TronYieldAggregator>;
 
     // default types
     getContractFactory(

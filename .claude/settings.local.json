@@ -40,7 +40,32 @@
       "Bash(done)",
       "Bash(go mod tidy:*)",
       "Bash(git rm:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(powershell:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(npm audit:*)",
+      "Bash(npx vercel env:*)",
+      "Bash(npx vercel:*)",
+      "Bash(git reset:*)",
+      "Bash(pnpm prisma db push:*)",
+      "WebFetch(domain:protocol-banks-web3.vercel.app)",
+      "Bash(npx next dev)",
+      "Bash(taskkill:*)",
+      "Bash(subst:*)",
+      "Bash(ADDR=\"0x1234567890123456789012345678901234567890\")",
+      "Bash(cmd.exe /c \"rename \"\"E:\\\\Protocol Bank\\\\Development\\\\历史版本\"\" archive\")",
+      "Bash(cmd.exe /c \"ren 历史版本 archive\")",
+      "Bash(powershell.exe -Command \"Set-Location ''E:\\\\''; Rename-Item -Path ''E:\\\\Protocol Bank\\\\Development\\\\历史版本'' -NewName ''archive'' -Force\")",
+      "Bash(powershell.exe -Command \"Copy-Item -Path ''E:\\\\Protocol Bank\\\\Development\\\\历史版本\\\\protocol-banks---web3-main'' -Destination ''E:\\\\Protocol Bank\\\\Development\\\\archive\\\\protocol-banks---web3-main'' -Recurse -Force\")",
+      "Bash(git clone:*)",
+      "Bash(pnpm install:*)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:protocol-banks-web3-everest-ans-projects.vercel.app)",
+      "Bash(npm i:*)",
+      "WebFetch(domain:protocolbanks.vercel.app)",
+      "WebFetch(domain:v0-protocol-banks.vercel.app)",
+      "WebFetch(domain:protocol-bank-k3t3gt2d2-everest-ans-projects.vercel.app)",
+      "Read(//e//**)"
     ]
   }
 }

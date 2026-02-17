@@ -818,6 +818,7 @@ export default function VendorsPage() {
                     size="sm"
                     className="h-7 px-3 text-xs whitespace-nowrap"
                     onClick={() => setSelectedTag(tag)}
+                    data-testid={`vendors-tag-filter-${tag}`}
                   >
                     {tag === "all" ? "All" : config!.label} ({count})
                   </Button>
@@ -827,7 +828,7 @@ export default function VendorsPage() {
 
             <div className="ml-auto min-w-[110px]">
               <Select value={selectedToken} onValueChange={(v: "ALL" | "USDC" | "USDT" | "DAI") => setSelectedToken(v)}>
-                <SelectTrigger className="h-7 text-xs">
+                <SelectTrigger className="h-7 text-xs" data-testid="vendors-token-select-trigger">
                   <SelectValue placeholder="Token" />
                 </SelectTrigger>
                 <SelectContent>
@@ -850,13 +851,13 @@ export default function VendorsPage() {
           <TabsContent value="list" className="m-0 border-none p-0 outline-none">
             {/* Summary Stats Bar */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <GlassCard className="bg-card/50 border-border">
+              <GlassCard className="bg-card/50 border-border" data-testid="vendors-summary-total-contacts">
                 <GlassCardContent className="py-3 px-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Contacts</p>
                   <p className="text-lg sm:text-xl font-mono font-semibold">{sortedVendors.length}</p>
                 </GlassCardContent>
               </GlassCard>
-              <GlassCard className="bg-card/50 border-border">
+              <GlassCard className="bg-card/50 border-border" data-testid="vendors-summary-total-volume">
                 <GlassCardContent className="py-3 px-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Volume (LTV)</p>
                   <p className="text-lg sm:text-xl font-mono font-semibold">

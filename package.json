@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "start": "next start",
     "test": "jest",
+    "test:ui": "playwright test",
+    "test:ui:headed": "playwright test --headed",
+    "test:ui:install": "playwright install",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --runInBand",
@@ -118,6 +121,7 @@
     "@noble/curves": "1.9.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/ioredis": "^4.28.10",

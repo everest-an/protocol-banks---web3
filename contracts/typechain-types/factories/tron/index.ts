@@ -2,6 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export { SafeERC20__factory } from "./SafeERC20__factory";
-export { TronPaymentSplitter__factory } from "./TronPaymentSplitter__factory";
 export { TronPaymentVault__factory } from "./TronPaymentVault__factory";
-export { TronYieldAggregator__factory } from "./TronYieldAggregator__factory";

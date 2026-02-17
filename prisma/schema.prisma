@@ -1503,3 +1503,245 @@ model FiatOrder {
   @@index([order_id])
   @@map("fiat_orders")
 }
+
+// ============================================================================
+// Enterprise Ledger System (总账系统)
+// ============================================================================
+
+/// User balance ledger - cached balance per user/token/chain
+/// This is the source of truth for available and locked balances
+model UserBalance {
+  id            String   @id @default(uuid())
+  user_address  String
+  token         String   // USDC, USDT, ETH, etc.
+  chain         String   // ethereum, base, arbitrum, tron, etc.
+  available     Decimal  @default(0) @db.Decimal(36, 18) // Available for spending
+  locked        Decimal  @default(0) @db.Decimal(36, 18) // Locked for pending txs
+  total         Decimal  @default(0) @db.Decimal(36, 18) // available + locked
+  version       Int      @default(0) // Optimistic locking
+  last_synced   DateTime @default(now()) // Last on-chain sync
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@unique([user_address, token, chain])
+  @@index([user_address])
+  @@map("user_balances")
+}
+
+/// Double-entry ledger entries - every financial event creates a debit+credit pair
+/// Immutable: entries are never updated or deleted
+model LedgerEntry {
+  id               String   @id @default(uuid())
+  idempotency_key  String   // Links debit/credit pair, prevents duplicates
+  account_address  String   // The account this entry belongs to
+  entry_type       String   // DEBIT or CREDIT
+  category         String   // payment, fee, refund, settlement, deposit, withdrawal, lock, unlock
+  amount           Decimal  @db.Decimal(36, 18)
+  token            String
+  chain            String
+  balance_before   Decimal  @db.Decimal(36, 18)
+  balance_after    Decimal  @db.Decimal(36, 18)
+  counterparty     String?  // The other side of the transaction
+  reference_type   String?  // payment, batch_payment, subscription, settlement, etc.
+  reference_id     String?  // ID of the referenced entity
+  tx_hash          String?
+  description      String?
+  metadata         Json?
+  created_at       DateTime @default(now())
+
+  @@index([idempotency_key])
+  @@index([account_address, token, chain])
+  @@index([reference_type, reference_id])
+  @@index([tx_hash])
+  @@index([created_at])
+  @@map("ledger_entries")
+}
+
+/// Idempotency keys - prevents duplicate payment processing
+model IdempotencyKey {
+  id             String    @id @default(uuid())
+  key            String    @unique // Client-provided or system-generated key
+  user_address   String
+  request_path   String    // API endpoint
+  request_hash   String    // SHA-256 of request body
+  response_code  Int?
+  response_body  Json?
+  status         String    @default("processing") // processing, completed, failed
+  created_at     DateTime  @default(now())
+  expires_at     DateTime  // Auto-expire after 24h
+  completed_at   DateTime?
+
+  @@index([user_address])
+  @@index([expires_at])
+  @@map("idempotency_keys")
+}
+
+// ============================================================================
+// Batch Payment Items (批量支付明细)
+// ============================================================================
+
+/// Individual items within a batch payment - tracks each recipient separately
+model BatchItem {
+  id              String    @id @default(uuid())
+  batch_id        String    // References BatchPayment.batch_id
+  index           Int       // Position in batch (0-based)
+  recipient       String    // Recipient address
+  amount          Decimal   @db.Decimal(36, 18)
+  token           String
+  chain           String
+  status          String    @default("pending") // pending, processing, completed, failed, skipped
+  tx_hash         String?
+  error_message   String?
+  retry_count     Int       @default(0)
+  max_retries     Int       @default(3)
+  gas_used        BigInt?
+  energy_used     BigInt?
+  fee_amount      Decimal?  @db.Decimal(36, 18)
+  ledger_entry_id String?   // Links to LedgerEntry
+  created_at      DateTime  @default(now())
+  completed_at    DateTime?
+
+  @@unique([batch_id, index])
+  @@index([batch_id])
+  @@index([status])
+  @@index([recipient])
+  @@map("batch_items")
+}
+
+// ============================================================================
+// Cross-Chain Transaction State Machine (跨链交易状态机)
+// ============================================================================
+
+/// Cross-chain transaction tracking with full state machine
+model CrossChainTransaction {
+  id                String    @id @default(uuid())
+  user_address      String
+  type              String    // swap, bridge, transfer
+  provider          String    // rango, zetachain, manual
+  source_chain      String
+  source_token      String
+  source_amount     Decimal   @db.Decimal(36, 18)
+  source_tx_hash    String?
+  dest_chain        String
+  dest_token        String
+  dest_amount       Decimal?  @db.Decimal(36, 18)
+  dest_tx_hash      String?
+  recipient_address String?   // Defaults to user_address if null
+  state             String    @default("initiated") // initiated, source_confirmed, bridging, dest_pending, completed, failed, refunded
+  sub_state         String?   // Provider-specific sub-state
+  slippage_bps      Int?      // Slippage in basis points
+  route_data        Json?     // Provider route/quote data
+  error_message     String?
+  error_code        String?
+  retry_count       Int       @default(0)
+  estimated_time    Int?      // Estimated completion in seconds
+  idempotency_key   String?   @unique
+  ledger_entry_id   String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  completed_at      DateTime?
+
+  state_transitions CrossChainStateTransition[]
+
+  @@index([user_address])
+  @@index([state])
+  @@index([source_tx_hash])
+  @@index([dest_tx_hash])
+  @@index([created_at])
+  @@map("cross_chain_transactions")
+}
+
+/// State transition log for cross-chain transactions
+model CrossChainStateTransition {
+  id             String   @id @default(uuid())
+  transaction_id String
+  from_state     String
+  to_state       String
+  trigger        String   // user_action, blockchain_event, timeout, error
+  details        Json?
+  created_at     DateTime @default(now())
+
+  transaction CrossChainTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@index([transaction_id])
+  @@map("cross_chain_state_transitions")
+}
+
+// ============================================================================
+// Settlement & Reconciliation (清算对账)
+// ============================================================================
+
+/// Settlement records - periodic reconciliation between on-chain and off-chain
+model SettlementRecord {
+  id                  String    @id @default(uuid())
+  settlement_id       String    @unique // Human-readable ID (e.g., STL-2026-02-001)
+  user_address        String
+  period_start        DateTime
+  period_end          DateTime
+  token               String
+  chain               String
+  total_debits        Decimal   @db.Decimal(36, 18) // Sum of all debits in period
+  total_credits       Decimal   @db.Decimal(36, 18) // Sum of all credits in period
+  net_amount          Decimal   @db.Decimal(36, 18) // credits - debits
+  on_chain_balance    Decimal?  @db.Decimal(36, 18) // Actual on-chain balance at settlement
+  ledger_balance      Decimal?  @db.Decimal(36, 18) // Ledger balance at settlement
+  discrepancy         Decimal?  @db.Decimal(36, 18) // on_chain - ledger (should be 0)
+  entry_count         Int       @default(0)
+  status              String    @default("pending") // pending, processing, reconciled, discrepancy_found, resolved
+  resolution_notes    String?
+  resolved_by         String?
+  created_at          DateTime  @default(now())
+  completed_at        DateTime?
+
+  @@index([user_address])
+  @@index([status])
+  @@index([period_start, period_end])
+  @@map("settlement_records")
+}
+
+// ============================================================================
+// Risk Control & Compliance (风控与合规)
+// ============================================================================
+
+/// Risk assessment for transactions
+model RiskAssessment {
+  id               String   @id @default(uuid())
+  reference_type   String   // payment, batch_payment, cross_chain, withdrawal
+  reference_id     String
+  user_address     String
+  recipient        String?
+  amount           Decimal  @db.Decimal(36, 18)
+  token            String
+  chain            String
+  risk_score       Int      // 0-100 (0=safe, 100=blocked)
+  risk_level       String   // low, medium, high, critical, blocked
+  factors          Json     // Array of risk factors with scores
+  decision         String   // approve, review, block
+  reviewed_by      String?  // If manually reviewed
+  review_notes     String?
+  created_at       DateTime @default(now())
+
+  @@index([reference_type, reference_id])
+  @@index([user_address])
+  @@index([risk_level])
+  @@index([decision])
+  @@map("risk_assessments")
+}
+
+/// Compliance screening results (sanctions, PEP, etc.)
+model ComplianceCheck {
+  id              String   @id @default(uuid())
+  address         String   // Address being checked
+  check_type      String   // sanctions, pep, adverse_media, address_risk
+  provider        String   // chainalysis, elliptic, internal
+  result          String   // clear, match, potential_match, error
+  risk_score      Int?     // Provider-specific risk score
+  details         Json?    // Full screening results
+  expires_at      DateTime // Results validity period
+  created_at      DateTime @default(now())
+
+  @@index([address])
+  @@index([check_type])
+  @@index([expires_at])
+  @@map("compliance_checks")
+}

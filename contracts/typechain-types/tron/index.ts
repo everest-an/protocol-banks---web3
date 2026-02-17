@@ -2,6 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { SafeERC20 } from "./SafeERC20";
-export type { TronPaymentSplitter } from "./TronPaymentSplitter";
 export type { TronPaymentVault } from "./TronPaymentVault";
-export type { TronYieldAggregator } from "./TronYieldAggregator";

@@ -5,3 +5,4 @@ import type * as mocks from "./mocks";
 export type { mocks };
 import type * as tron from "./tron";
 export type { tron };
+export type { BatchTransfer } from "./BatchTransfer";

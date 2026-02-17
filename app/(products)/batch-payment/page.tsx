@@ -66,6 +66,7 @@ import { arbitrum } from "viem/chains"
 import { getVendorDisplayName, getVendorInitials } from "@/lib/utils"
 import { CHAIN_IDS } from "@/lib/web3"
 import { detectAddressType } from "@/lib/address-utils"
+import { useRouter } from "next/navigation"
 
 export default function BatchPaymentPage() {
   const {
@@ -83,6 +84,7 @@ export default function BatchPaymentPage() {
   } = useUnifiedWallet()
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
+  const router = useRouter()
 
   // Use the batch payment hook for API integration
   const {
@@ -225,6 +227,7 @@ export default function BatchPaymentPage() {
 
   // Auto payment states
   const [autoPayments, setAutoPayments] = useState<AutoPayment[]>([])
+  const [x402Link, setX402Link] = useState("")
 
   // Payment history states
   const [paymentHistory, setPaymentHistory] = useState<any[]>([])
@@ -1800,7 +1803,7 @@ export default function BatchPaymentPage() {
                 })()}
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={saveDraft} className="flex-1 bg-transparent">
+                  <Button variant="outline" size="sm" onClick={saveDraft} className="flex-1 bg-transparent" data-testid="batch-save-draft-button">
                     <Save className="mr-2 h-4 w-4" />
                     Save
                   </Button>
@@ -1886,7 +1889,12 @@ export default function BatchPaymentPage() {
                 <GlassCardTitle>Scheduled Auto-Payments</GlassCardTitle>
                 <GlassCardDescription>Manage recurring vendor payments</GlassCardDescription>
               </div>
-              <Button size="sm">
+              <Button
+                size="sm"
+                onClick={() => {
+                  router.push("/subscriptions")
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Auto-Payment
               </Button>
@@ -1923,7 +1931,13 @@ export default function BatchPaymentPage() {
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => toggleAutoPaymentStatus(payment.id)}>
                         {payment.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hidden sm:flex">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 hidden sm:flex"
+                        onClick={() => router.push("/subscriptions")}
+                        title="Configure auto-payment"
+                      >
                         <Settings className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1951,9 +1965,44 @@ export default function BatchPaymentPage() {
             <GlassCardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Payment Link</Label>
-                <Input placeholder="x402://pay?..." className="font-mono" />
+                <Input
+                  placeholder="x402://pay?..."
+                  className="font-mono"
+                  value={x402Link}
+                  onChange={(e) => setX402Link(e.target.value)}
+                />
               </div>
-              <Button className="w-full">
+              <Button
+                className="w-full"
+                disabled={!x402Link.trim()}
+                onClick={() => {
+                  if (!x402Link.trim()) return
+                  try {
+                    const params = new URLSearchParams(x402Link.replace(/^x402:\/\/pay\?/, ""))
+                    const to = params.get("to") || params.get("recipient")
+                    const amount = params.get("amount")
+                    if (to && amount) {
+                      setRecipients([{
+                        id: Date.now().toString(),
+                        address: to,
+                        amount,
+                        vendorName: params.get("name") || "",
+                        vendorId: "",
+                        token: params.get("token") || "USDT",
+                        chain: selectedPaymentChain,
+                      }])
+                      setActiveTab("batch")
+                      setShowBatchForm(true)
+                      toast({ title: "Payment Loaded", description: `Loaded x402 payment to ${to}` })
+                      setX402Link("")
+                    } else {
+                      toast({ title: "Invalid Link", description: "Could not parse payment link. Expected x402://pay?to=...&amount=...", variant: "destructive" })
+                    }
+                  } catch {
+                    toast({ title: "Invalid Link", description: "Failed to parse payment link format", variant: "destructive" })
+                  }
+                }}
+              >
                 <Send className="h-4 w-4 mr-2" />
                 Process Payment
               </Button>

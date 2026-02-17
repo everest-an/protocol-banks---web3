@@ -3,3 +3,4 @@
 /* eslint-disable */
 export * as mocks from "./mocks";
 export * as tron from "./tron";
+export { BatchTransfer__factory } from "./BatchTransfer__factory";

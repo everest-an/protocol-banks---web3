@@ -4,6 +4,7 @@ import { validateBatch, calculateBatchTotals, type BatchPaymentItem } from "@/li
 import { getAuthenticatedAddress } from "@/lib/api-auth"
 import { validateAddress, getNetworkForAddress } from "@/lib/address-utils"
 import { ALL_NETWORKS } from "@/lib/networks"
+import { createBatchItems } from "@/lib/services/batch-item-service"
 
 /**
  * POST /api/batch-payment
@@ -137,6 +138,16 @@ export async function POST(request: NextRequest) {
           memo,
         },
       })
+      // Create individual BatchItem records for per-recipient tracking
+      await createBatchItems({
+        batchId,
+        items: items.map((item) => ({
+          recipient: item.recipient,
+          amount: item.amount.toString(),
+          token: item.token || token || "USDC",
+          chain: finalChain,
+        })),
+      })
     } catch (dbError: any) {
       console.error("[BatchPayment] DB error:", dbError)
       return NextResponse.json(
@@ -207,7 +218,30 @@ export async function GET(request: NextRequest) {
          return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
 
-      return NextResponse.json({ batch })
+      // Include per-recipient BatchItem tracking data
+      const batchItems = await prisma.batchItem.findMany({
+        where: { batch_id: batchId },
+        orderBy: { index: "asc" },
+      })
+
+      const itemsSerialized = batchItems.map((item) => ({
+        ...item,
+        amount: item.amount.toString(),
+        fee_amount: item.fee_amount?.toString() ?? null,
+        gas_used: item.gas_used?.toString() ?? null,
+        energy_used: item.energy_used?.toString() ?? null,
+      }))
+
+      return NextResponse.json({
+        batch,
+        items: itemsSerialized,
+        itemSummary: {
+          total: batchItems.length,
+          completed: batchItems.filter((i) => i.status === "completed").length,
+          failed: batchItems.filter((i) => i.status === "failed").length,
+          pending: batchItems.filter((i) => i.status === "pending").length,
+        },
+      })
     }
 
     // Default to caller address if fromAddress not specific (or enforce it matches)
