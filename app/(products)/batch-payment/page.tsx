@@ -106,30 +106,7 @@ export default function BatchPaymentPage() {
     isPolling: isAsyncPolling
   } = useAsyncBatchPayment()
 
-  if (chainId === CHAIN_IDS.HASHKEY) {
-    return (
-      <div className="container max-w-7xl pt-8 pb-10">
-        <h1 className="text-3xl font-bold tracking-tight mb-6">Batch Payments</h1>
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Unsupported Network</AlertTitle>
-          <AlertDescription className="mt-2">
-            Corporate batch transfers are not available on HashKey Chain due to network constraints.
-            <br />
-            Please use <strong>Base</strong> or <strong>Arbitrum</strong> for bulk corporate settlements.
-          </AlertDescription>
-        </Alert>
-        <div className="flex gap-4">
-          <Button onClick={() => switchNetwork(CHAIN_IDS.BASE)} variant="default">
-            Switch to Base
-          </Button>
-          <Button onClick={() => switchNetwork(CHAIN_IDS.ARBITRUM)} variant="outline">
-            Switch to Arbitrum
-          </Button>
-        </div>
-      </div>
-    )
-  }
+  // HashKey Chain is now supported with USDC tokens
 
   const [activeTab, setActiveTab] = useState<"batch" | "auto" | "x402">("batch")
   const [showBatchForm, setShowBatchForm] = useState(false)
@@ -796,7 +773,8 @@ export default function BatchPaymentPage() {
       setRecipients((prev) =>
         prev.map((recipient) => {
           if (recipient.id !== recipientId) return recipient
-          const nextToken = vendorChain === "TRON" ? "USDT" : recipient.token || "USDT"
+          const currentToken = (recipient.token || "USDT").toUpperCase()
+          const nextToken = vendorChain === "TRON" && !["USDT", "USDC"].includes(currentToken) ? "USDT" : currentToken
           return {
             ...recipient,
             vendorId: vendor.id,
@@ -858,11 +836,13 @@ export default function BatchPaymentPage() {
     setRecipients((prev) =>
       prev.map((recipient) => {
         if (recipient.id !== id) return recipient
-        const nextToken = chain === "TRON" ? "USDT" : recipient.token || "USDT"
+        const tronTokens = ["USDT", "USDC"]
+        const currentToken = (recipient.token || "USDT").toUpperCase()
+        const nextToken = chain === "TRON" && !tronTokens.includes(currentToken) ? "USDT" : currentToken
         return {
           ...recipient,
           chain,
-          token: chain === "TRON" ? "USDT" : nextToken,
+          token: nextToken,
         }
       }),
     )
@@ -912,11 +892,12 @@ export default function BatchPaymentPage() {
     const tronRecipients = validRecipients.filter((r) => (r.chain || selectedPaymentChain) === "TRON")
     const evmRecipients = validRecipients.filter((r) => (r.chain || selectedPaymentChain) !== "TRON")
 
-    const tronTokenMismatch = tronRecipients.find((r) => (r.token || "USDT").toUpperCase() !== "USDT")
+    const TRON_SUPPORTED_TOKENS = ["USDT", "USDC"]
+    const tronTokenMismatch = tronRecipients.find((r) => !TRON_SUPPORTED_TOKENS.includes((r.token || "USDT").toUpperCase()))
     if (tronTokenMismatch) {
       toast({
-        title: "Tron only supports USDT",
-        description: "Switch all Tron recipients to USDT before sending, or update their chain.",
+        title: "Unsupported token for Tron",
+        description: "Tron supports USDT and USDC. Switch token or update chain.",
         variant: "destructive",
       })
       return
@@ -946,6 +927,10 @@ export default function BatchPaymentPage() {
           return "base"
         case CHAIN_IDS.ARBITRUM:
           return "arbitrum"
+        case CHAIN_IDS.POLYGON:
+          return "polygon"
+        case CHAIN_IDS.OPTIMISM:
+          return "optimism"
         case CHAIN_IDS.SEPOLIA:
           return "sepolia"
         case CHAIN_IDS.MAINNET:
@@ -1760,10 +1745,7 @@ export default function BatchPaymentPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="USDT">USDT</SelectItem>
-                                <SelectItem
-                                  value="USDC"
-                                  disabled={(recipient.chain || selectedPaymentChain) === "TRON"}
-                                >
+                                <SelectItem value="USDC">
                                   USDC
                                 </SelectItem>
                                 <SelectItem
@@ -2125,6 +2107,8 @@ export default function BatchPaymentPage() {
                   <SelectItem value="Arbitrum">Arbitrum</SelectItem>
                   <SelectItem value="Base">Base</SelectItem>
                   <SelectItem value="Optimism">Optimism</SelectItem>
+                  <SelectItem value="BSC">BNB Chain</SelectItem>
+                  <SelectItem value="HashKey">HashKey Chain</SelectItem>
                   <SelectItem value="Tron">Tron</SelectItem>
                 </SelectContent>
               </Select>

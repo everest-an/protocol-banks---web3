@@ -42,8 +42,11 @@ export async function POST(request: NextRequest) {
     const { recipientAddress, amount, token, chain, description, merchantName, expiresIn, metadata, amountFiat, fiatCurrency } = body
 
     // Validate required fields
-    if (!recipientAddress || !/^0x[a-fA-F0-9]{40}$/.test(recipientAddress)) {
-      return NextResponse.json({ error: "Invalid recipient address" }, { status: 400 })
+    // Accept EVM (0x...) and TRON (T...) addresses
+    const isEVM = /^0x[a-fA-F0-9]{40}$/.test(recipientAddress)
+    const isTRON = /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(recipientAddress)
+    if (!recipientAddress || (!isEVM && !isTRON)) {
+      return NextResponse.json({ error: "Invalid recipient address. Supports EVM (0x...) and TRON (T...) formats." }, { status: 400 })
     }
 
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
@@ -67,8 +70,8 @@ export async function POST(request: NextRequest) {
                 amount: parseFloat(amount),
                 amount_fiat: amountFiat ? parseFloat(amountFiat) : null,
                 fiat_currency: fiatCurrency || null,
-                token: token || "USDC",
-                chain: chain || "Ethereum", 
+                token: token || (isTRON ? "USDT" : "USDC"),
+                chain: chain || (isTRON ? "TRON" : "Ethereum"),
                 description,
                 merchant_name: merchantName,
                 status: "pending",
@@ -89,8 +92,8 @@ export async function POST(request: NextRequest) {
             amount: parseFloat(amount),
             amount_fiat: amountFiat ? parseFloat(amountFiat) : null,
             fiat_currency: fiatCurrency || null,
-            token: token || "USDC",
-            chain: chain || "Ethereum",
+            token: token || (isTRON ? "USDT" : "USDC"),
+            chain: chain || (isTRON ? "TRON" : "Ethereum"),
             description,
             merchant_name: merchantName,
             status: "pending",

@@ -269,6 +269,20 @@ export const NETWORK_TOKENS: Record<string, TokenConfig[]> = {
     },
   ],
 
+  // HashKey Chain
+  hashkey: [
+    {
+      address: "0x8845E8C74cE5dF8E0d37bf0fe57dc5E0ddD8021b",
+      symbol: "USDC",
+      decimals: 6,
+    },
+    {
+      address: "0x054ed45810DbBAb8B27668922D110669c9D88D0a",
+      symbol: "USDC.e",
+      decimals: 6,
+    },
+  ],
+
   // TRON Mainnet
   tron: [
     {

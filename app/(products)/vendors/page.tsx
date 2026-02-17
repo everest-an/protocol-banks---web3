@@ -71,6 +71,8 @@ const EXPLORER_URLS: Record<string, string> = {
   Base: "https://basescan.org/address/",
   Optimism: "https://optimistic.etherscan.io/address/",
   BSC: "https://bscscan.com/address/",
+  HashKey: "https://hashkey.blockscout.com/address/",
+  Tron: "https://tronscan.org/#/address/",
 }
 
 // Compute reputation tag based on metrics

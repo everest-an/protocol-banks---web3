@@ -33,7 +33,7 @@ export const COMMON_TOKENS: Record<
       8453: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       10: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
       56: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-      // 177: HashKey Chain USDC - add when officially deployed
+      177: "0x8845E8C74cE5dF8E0d37bf0fe57dc5E0ddD8021b",
     },
   },
   USDT: {
@@ -43,8 +43,9 @@ export const COMMON_TOKENS: Record<
       1: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
       137: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
       42161: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      8453: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      10: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
       56: "0x55d398326f99059fF775485246999027B3197955",
-      // 177: HashKey Chain USDT - add when officially deployed
     },
   },
   DAI: {
@@ -54,6 +55,7 @@ export const COMMON_TOKENS: Record<
       1: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
       137: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
       42161: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      8453: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
       10: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
     },
   },
@@ -93,19 +95,38 @@ export const COMMON_TOKENS: Record<
   },
 }
 
-// Get token addresses for a specific chain
+// Get token addresses for a specific chain.
+// Merges data from COMMON_TOKENS (this file) with NETWORK_TOKENS (networks.ts)
+// so tokens only configured in one source still appear.
 export function getTokensForChain(chainId: SupportedChainId): { symbol: string; address: string; decimals: number }[] {
+  const seen = new Set<string>()
   const tokens: { symbol: string; address: string; decimals: number }[] = []
 
+  // Primary: COMMON_TOKENS (tokens.ts)
   for (const [, token] of Object.entries(COMMON_TOKENS)) {
     const address = token.addresses[chainId]
     if (address) {
-      tokens.push({
-        symbol: token.symbol,
-        address,
-        decimals: token.decimals,
-      })
+      tokens.push({ symbol: token.symbol, address, decimals: token.decimals })
+      seen.add(token.symbol)
     }
+  }
+
+  // Secondary: NETWORK_TOKENS (networks.ts) — fills gaps
+  try {
+    // Lazy import to avoid circular dependencies at module level
+    const { getNetworkByChainId, NETWORK_TOKENS } = require("@/lib/networks")
+    const network = getNetworkByChainId(chainId)
+    if (network) {
+      const networkTokens = NETWORK_TOKENS[network.id] || []
+      for (const nt of networkTokens) {
+        if (!seen.has(nt.symbol)) {
+          tokens.push({ symbol: nt.symbol, address: nt.address, decimals: nt.decimals })
+          seen.add(nt.symbol)
+        }
+      }
+    }
+  } catch {
+    // networks.ts not available — use COMMON_TOKENS only
   }
 
   return tokens

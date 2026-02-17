@@ -66,8 +66,10 @@ function CheckoutContent() {
 
   const NETWORK_CHAIN_IDS: Record<string, number> = {
     eth: CHAIN_IDS.MAINNET,
+    polygon: CHAIN_IDS.POLYGON,
     base: CHAIN_IDS.BASE,
     arb: CHAIN_IDS.ARBITRUM,
+    op: CHAIN_IDS.OPTIMISM,
     bnb: CHAIN_IDS.BSC,
     hsk: CHAIN_IDS.HASHKEY,
   };
@@ -301,11 +303,13 @@ function CheckoutContent() {
 
   const NETWORKS = [
     { id: "eth", name: "Ethereum", logo: "/networks/eth.png" },
+    { id: "polygon", name: "Polygon", logo: "/networks/polygon.png" },
     { id: "base", name: "Base", logo: "/networks/base.png" },
     { id: "arb", name: "Arbitrum", logo: "/networks/arb.png" },
+    { id: "op", name: "Optimism", logo: "/networks/optimism.png" },
     { id: "bnb", name: "BNB Chain", logo: "/networks/bnb.png" },
-    { id: "tron", name: "Tron", logo: "/networks/tron.png" },
     { id: "hsk", name: "HashKey Chain", logo: "/networks/hsk.png" },
+    { id: "tron", name: "Tron", logo: "/networks/tron.png" },
   ];
 
   const handleNetworkSelect = (networkId: string) => {
