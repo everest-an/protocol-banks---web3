@@ -880,7 +880,8 @@ export default function BatchPaymentPage() {
   }
 
   const saveDraft = () => {
-    localStorage.setItem("batchPaymentDraft", JSON.stringify(recipients))
+    const draftScope = currentWallet ? currentWallet.toLowerCase() : "anonymous"
+    localStorage.setItem(`batchPaymentDraft:${draftScope}`, JSON.stringify(recipients))
     toast({ title: "Draft Saved", description: "Your payment draft has been saved locally." })
   }
 

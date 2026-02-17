@@ -67,6 +67,8 @@ export default function ContractsPage() {
   const [chainId, setChainId] = useState("")
   const [contractAddress, setContractAddress] = useState("")
 
+  const getContractsStorageKey = () => `pb:admin:contracts:${(address || "global").toLowerCase()}`
+
   useEffect(() => {
     fetchContracts()
   }, [])
@@ -74,7 +76,7 @@ export default function ContractsPage() {
   async function fetchContracts() {
     setLoading(true)
     try {
-      const stored = localStorage.getItem("admin_contract_deployments")
+      const stored = localStorage.getItem(getContractsStorageKey()) || localStorage.getItem("admin_contract_deployments")
       if (stored) {
         setContracts(JSON.parse(stored))
       }
@@ -90,6 +92,11 @@ export default function ContractsPage() {
       return
     }
 
+    if (!/^0x[a-fA-F0-9]{40}$/.test(contractAddress.trim())) {
+      toast.error("Invalid contract address format")
+      return
+    }
+
     setSaving(true)
 
     const chain = SUPPORTED_CHAINS.find((c) => c.id === Number(chainId))
@@ -100,7 +107,7 @@ export default function ContractsPage() {
       contract_type: contractType,
       chain_id: Number(chainId),
       chain_name: chain?.name || "Unknown",
-      address: contractAddress,
+      address: contractAddress.trim(),
       is_verified: false,
       is_active: true,
       version: "1.0.0",
@@ -109,7 +116,7 @@ export default function ContractsPage() {
 
     const updated = [...contracts, newContract]
     setContracts(updated)
-    localStorage.setItem("admin_contract_deployments", JSON.stringify(updated))
+    localStorage.setItem(getContractsStorageKey(), JSON.stringify(updated))
 
     toast.success("Contract added successfully")
     setDialogOpen(false)
@@ -125,7 +132,7 @@ export default function ContractsPage() {
       c.id === id ? { ...c, is_active: !currentStatus } : c,
     )
     setContracts(updated)
-    localStorage.setItem("admin_contract_deployments", JSON.stringify(updated))
+    localStorage.setItem(getContractsStorageKey(), JSON.stringify(updated))
     toast.success(`Contract ${!currentStatus ? "activated" : "deactivated"}`)
   }
 

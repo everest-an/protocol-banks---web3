@@ -75,6 +75,8 @@ export default function AdminFeesPage() {
   const [newMinFee, setNewMinFee] = useState("0.50")
   const [newMaxFee, setNewMaxFee] = useState("500")
 
+  const getFeeConfigStorageKey = () => `pb:admin:fee-config:${(address || "global").toLowerCase()}`
+
   useEffect(() => {
     loadData()
   }, [dateRange])
@@ -83,7 +85,7 @@ export default function AdminFeesPage() {
     setLoading(true)
     try {
       // Load fee config from localStorage (no dedicated API route exists yet)
-      const storedConfig = localStorage.getItem("admin_fee_config")
+      const storedConfig = localStorage.getItem(getFeeConfigStorageKey()) || localStorage.getItem("admin_fee_config")
       if (storedConfig) {
         try {
           const parsed = JSON.parse(storedConfig)
@@ -138,7 +140,7 @@ export default function AdminFeesPage() {
         updatedBy: address || "admin",
         updatedAt: new Date().toISOString(),
       }
-      localStorage.setItem("admin_fee_config", JSON.stringify(config))
+      localStorage.setItem(getFeeConfigStorageKey(), JSON.stringify(config))
 
       setEditingConfig(null)
       await loadData()

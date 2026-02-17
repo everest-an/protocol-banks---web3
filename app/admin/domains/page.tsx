@@ -19,6 +19,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Globe, Plus, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, Info } from "lucide-react"
 import { toast } from "sonner"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 
 export const dynamic = "force-dynamic"
 
@@ -47,6 +48,7 @@ const ENVIRONMENTS = [
 ]
 
 export default function DomainsPage() {
+  const { address } = useUnifiedWallet()
   const [domains, setDomains] = useState<DomainEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -58,6 +60,8 @@ export default function DomainsPage() {
   const [environment, setEnvironment] = useState("production")
   const [notes, setNotes] = useState("")
 
+  const getDomainsStorageKey = () => `pb:admin:domains:${(address || "global").toLowerCase()}`
+
   useEffect(() => {
     fetchDomains()
   }, [])
@@ -65,7 +69,7 @@ export default function DomainsPage() {
   async function fetchDomains() {
     setLoading(true)
     try {
-      const stored = localStorage.getItem("admin_domain_whitelist")
+      const stored = localStorage.getItem(getDomainsStorageKey()) || localStorage.getItem("admin_domain_whitelist")
       if (stored) {
         setDomains(JSON.parse(stored))
       }
@@ -76,15 +80,22 @@ export default function DomainsPage() {
   }
 
   async function addDomain() {
-    if (!domain || !serviceType) {
+    const normalizedDomain = domain.trim().toLowerCase()
+
+    if (!normalizedDomain || !serviceType) {
       toast.error("Please fill required fields")
+      return
+    }
+
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(normalizedDomain)) {
+      toast.error("Invalid domain format")
       return
     }
 
     setSaving(true)
 
     // Check for duplicates
-    if (domains.some((d) => d.domain === domain && d.service_type === serviceType)) {
+    if (domains.some((d) => d.domain === normalizedDomain && d.service_type === serviceType)) {
       toast.error("Domain already exists")
       setSaving(false)
       return
@@ -92,7 +103,7 @@ export default function DomainsPage() {
 
     const newEntry: DomainEntry = {
       id: crypto.randomUUID(),
-      domain,
+      domain: normalizedDomain,
       service_type: serviceType,
       environment,
       notes: notes || null,
@@ -103,7 +114,7 @@ export default function DomainsPage() {
 
     const updated = [...domains, newEntry]
     setDomains(updated)
-    localStorage.setItem("admin_domain_whitelist", JSON.stringify(updated))
+    localStorage.setItem(getDomainsStorageKey(), JSON.stringify(updated))
 
     toast.success("Domain added successfully")
     setDialogOpen(false)
@@ -117,7 +128,7 @@ export default function DomainsPage() {
   async function deleteDomain(id: string) {
     const updated = domains.filter((d) => d.id !== id)
     setDomains(updated)
-    localStorage.setItem("admin_domain_whitelist", JSON.stringify(updated))
+    localStorage.setItem(getDomainsStorageKey(), JSON.stringify(updated))
     toast.success("Domain removed")
   }
 
@@ -126,7 +137,7 @@ export default function DomainsPage() {
       d.id === id ? { ...d, verified_at: new Date().toISOString() } : d,
     )
     setDomains(updated)
-    localStorage.setItem("admin_domain_whitelist", JSON.stringify(updated))
+    localStorage.setItem(getDomainsStorageKey(), JSON.stringify(updated))
     toast.success("Domain marked as verified")
   }
 

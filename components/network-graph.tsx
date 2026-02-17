@@ -43,6 +43,15 @@ const getFixedOffset = (index: number, seed: number) => {
   return value
 }
 
+const getVendorMetricValue = (vendor: Vendor, tokenFilter?: string): number => {
+  const normalizedToken = (tokenFilter || "ALL").toUpperCase()
+  if (normalizedToken === "ALL") {
+    return vendor.monthly_volume || vendor.totalReceived || vendor.ltv || 0
+  }
+
+  return vendor.metadata?.token_volumes?.[normalizedToken] || 0
+}
+
 export function NetworkGraph({
   vendors,
   onSelectVendor,
@@ -75,6 +84,7 @@ export function NetworkGraph({
   const [showSearchResults, setShowSearchResults] = useState(false)
 
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
+  const tokenFilter = (timeRange || "ALL").toUpperCase()
 
   const initialSetupDone = useRef(false)
 
@@ -119,6 +129,7 @@ export function NetworkGraph({
 
     const subsidiaries = vendors.filter((v) => v.tier === "subsidiary")
     subsidiaries.forEach((v, i) => {
+      const metricValue = getVendorMetricValue(v, tokenFilter)
       const angle = (i / Math.max(subsidiaries.length, 1)) * Math.PI * 2 - Math.PI / 2
       const radius = 180
       const offsetX = getFixedOffset(i, 1) * 10
@@ -135,11 +146,12 @@ export function NetworkGraph({
         color: "#10b981",
       }
       processedNodes.push(node)
-      processedEdges.push({ source: rootNode, target: node, weight: 3 })
+      processedEdges.push({ source: rootNode, target: node, weight: metricValue > 0 ? 3 : 1 })
     })
 
     const partners = vendors.filter((v) => v.tier === "partner")
     partners.forEach((v, i) => {
+      const metricValue = getVendorMetricValue(v, tokenFilter)
       const parent = findParent(v.parentId)
       const angleOffset = getFixedOffset(i, 3) * 0.3
       let baseAngle = Math.atan2(parent.y - centerY, parent.x - centerX)
@@ -162,11 +174,12 @@ export function NetworkGraph({
         color: "#3b82f6",
       }
       processedNodes.push(node)
-      processedEdges.push({ source: parent, target: node, weight: 2 })
+      processedEdges.push({ source: parent, target: node, weight: metricValue > 0 ? 2 : 1 })
     })
 
     const regularVendors = vendors.filter((v) => !v.tier || v.tier === "vendor")
     regularVendors.forEach((v, i) => {
+      const metricValue = getVendorMetricValue(v, tokenFilter)
       const parent = findParent(v.parentId)
       const baseAngle = Math.atan2(parent.y - centerY, parent.x - centerX)
       const angle = baseAngle + getFixedOffset(i, 7) * 0.6
@@ -176,7 +189,8 @@ export function NetworkGraph({
 
       const offsetX = getFixedOffset(i, 9) * 20
       const offsetY = getFixedOffset(i, 10) * 20
-      const nodeRadius = 6 + Math.abs(getFixedOffset(i, 11)) * 4
+      const metricScale = metricValue > 0 ? Math.min(Math.log10(metricValue + 1) / 3, 1) : 0
+      const nodeRadius = 6 + Math.abs(getFixedOffset(i, 11)) * 4 + metricScale * 4
       const node: Node = {
         id: v.id,
         x: customPositions[v.id]?.x ?? x + offsetX,
@@ -187,11 +201,11 @@ export function NetworkGraph({
         color: "#71717a",
       }
       processedNodes.push(node)
-      processedEdges.push({ source: parent, target: node, weight: 1 })
+      processedEdges.push({ source: parent, target: node, weight: metricValue > 0 ? 1 : 0.5 })
     })
 
     return { nodes: processedNodes, edges: processedEdges }
-  }, [vendors, dimensions, userAddress, customPositions])
+  }, [vendors, dimensions, userAddress, customPositions, tokenFilter])
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -231,6 +245,14 @@ export function NetworkGraph({
       initialSetupDone.current = true
     }
   }, [nodes, dimensions, onSelectVendor])
+
+  useEffect(() => {
+    if (!selectedNode) return
+    const stillExists = nodes.some((n) => n.id === selectedNode.id)
+    if (!stillExists) {
+      setSelectedNode(nodes.find((n) => n.id === "root") || null)
+    }
+  }, [nodes, selectedNode])
 
   const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault()
@@ -289,7 +311,7 @@ export function NetworkGraph({
     const position = customPositions[draggingNode]
     if (position && userAddress) {
       try {
-        const storageKey = `node_positions_${userAddress}`
+        const storageKey = `node_positions_${userAddress.toLowerCase()}`
         const existing = JSON.parse(localStorage.getItem(storageKey) || "{}")
         existing[draggingNode] = { x: position.x, y: position.y }
         localStorage.setItem(storageKey, JSON.stringify(existing))
@@ -316,7 +338,7 @@ export function NetworkGraph({
     setCustomPositions({})
     if (userAddress) {
       try {
-        localStorage.removeItem(`node_positions_${userAddress}`)
+        localStorage.removeItem(`node_positions_${userAddress.toLowerCase()}`)
       } catch (e) {
         console.error("Failed to clear node positions:", e)
       }
@@ -402,7 +424,7 @@ export function NetworkGraph({
 
     const loadPositions = () => {
       try {
-        const storageKey = `node_positions_${userAddress}`
+        const storageKey = `node_positions_${userAddress.toLowerCase()}`
         const stored = JSON.parse(localStorage.getItem(storageKey) || "{}")
         if (Object.keys(stored).length > 0) {
           setCustomPositions(stored)
@@ -468,7 +490,7 @@ export function NetworkGraph({
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Total Volume</p>
               <p className="text-lg md:text-xl font-light text-foreground">
                 $
-                {(selectedNode.data.monthly_volume || selectedNode.data.totalReceived || 0).toLocaleString(undefined, {
+                {getVendorMetricValue(selectedNode.data, tokenFilter).toLocaleString(undefined, {
                   maximumFractionDigits: 0,
                 })}
               </p>
@@ -491,7 +513,9 @@ export function NetworkGraph({
                 <div
                   key={i}
                   className="flex-1 bg-muted hover:bg-muted-foreground/20 transition-all rounded-t-sm"
-                  style={{ height: `${20 + ((i * 17) % 80)}%` }}
+                  style={{
+                    height: `${20 + ((i * 17 + (selectedNode.data?.id?.charCodeAt(0) || 0) + tokenFilter.length * 13) % 80)}%`,
+                  }}
                 />
               ))}
             </div>
@@ -543,6 +567,14 @@ export function NetworkGraph({
             <div>
               NODES: <span className="text-foreground">{nodes.length}</span>
             </div>
+            <div>
+              TOKEN: <span className="text-foreground">{tokenFilter}</span>
+            </div>
+            {filter && filter !== "all" && (
+              <div>
+                TAG: <span className="text-foreground">{String(filter).toUpperCase()}</span>
+              </div>
+            )}
           </div>
         </div>
 

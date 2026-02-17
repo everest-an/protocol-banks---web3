@@ -57,6 +57,7 @@ export interface Vendor {
     total_volume?: number
     tx_count?: number
     last_activity?: string
+    token_volumes?: Record<string, number>
   }
 }
 

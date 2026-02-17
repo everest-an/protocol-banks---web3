@@ -227,6 +227,7 @@ export default function VendorsPage() {
   const [viewMode, setViewMode] = useState<"list" | "dashboard">("list")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedTag, setSelectedTag] = useState<ReputationTag | "all">("all")
+  const [selectedToken, setSelectedToken] = useState<"ALL" | "USDC" | "USDT" | "DAI">("ALL")
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("")
@@ -283,9 +284,32 @@ export default function VendorsPage() {
 
       const matchesTag = selectedTag === "all" || v.reputation_tag === selectedTag
 
-      return matchesSearch && matchesTag
+      const tokenVolumes = v.metadata?.token_volumes || {}
+      const matchesToken =
+        selectedToken === "ALL" ||
+        ((tokenVolumes[selectedToken] || 0) > 0)
+
+      return matchesSearch && matchesTag && matchesToken
     })
-  }, [vendorsWithTags, searchQuery, selectedTag])
+  }, [vendorsWithTags, searchQuery, selectedTag, selectedToken])
+
+  const getVendorAmountForToken = (vendor: Vendor): number => {
+    if (selectedToken === "ALL") {
+      return vendor.totalReceived || vendor.ltv || 0
+    }
+
+    return vendor.metadata?.token_volumes?.[selectedToken] || 0
+  }
+
+  const totalVolumeForSelection = useMemo(() => {
+    return filteredVendors.reduce((sum, v) => sum + getVendorAmountForToken(v), 0)
+  }, [filteredVendors, selectedToken])
+
+  const avgTransactionForSelection = useMemo(() => {
+    const totalTx = filteredVendors.reduce((sum, v) => sum + (v.transaction_count || 1), 0)
+    if (totalTx <= 0) return 0
+    return Math.round(totalVolumeForSelection / totalTx)
+  }, [filteredVendors, totalVolumeForSelection])
 
   // Sort by LTV descending
   const sortedVendors = useMemo(() => {
@@ -339,6 +363,14 @@ export default function VendorsPage() {
 
         const totalReceived = vendorPayments.reduce((sum: number, p: any) => sum + (Number(p.amount_usd) || 0), 0)
 
+        const tokenVolumes = vendorPayments.reduce((acc: Record<string, number>, p: any) => {
+          const token = String(p.token_symbol || p.token || "").toUpperCase()
+          if (!token) return acc
+          const amount = Number(p.amount_usd) || Number(p.amount) || 0
+          acc[token] = (acc[token] || 0) + amount
+          return acc
+        }, {})
+
         return {
           ...vendor,
           totalReceived,
@@ -346,6 +378,10 @@ export default function VendorsPage() {
           transaction_count: vendorPayments.length || vendor.transaction_count || 0,
           category: vendor.category || categories[vendor.id.charCodeAt(0) % categories.length],
           tier: vendor.tier || "vendor",
+          metadata: {
+            ...(vendor.metadata || {}),
+            token_volumes: tokenVolumes,
+          },
         }
       })
 
@@ -788,6 +824,20 @@ export default function VendorsPage() {
                 )
               })}
             </div>
+
+            <div className="ml-auto min-w-[110px]">
+              <Select value={selectedToken} onValueChange={(v: "ALL" | "USDC" | "USDT" | "DAI") => setSelectedToken(v)}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="Token" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Tokens</SelectItem>
+                  <SelectItem value="USDC">USDC</SelectItem>
+                  <SelectItem value="USDT">USDT</SelectItem>
+                  <SelectItem value="DAI">DAI</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </header>
@@ -1039,6 +1089,8 @@ export default function VendorsPage() {
             <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
               <NetworkGraph
                 vendors={filteredVendors}
+                filter={selectedTag}
+                timeRange={selectedToken}
                 userAddress={wallet || undefined}
                 onAddContact={() => setDialogOpen(true)}
                 onPaymentRequest={handlePaymentRequest}
@@ -1050,12 +1102,12 @@ export default function VendorsPage() {
               <GlassCard className="bg-card/50 border-border">
                 <GlassCardHeader className="pb-2 pt-3 px-3 sm:pt-4 sm:px-4">
                   <GlassCardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Network Volume
+                    Network Volume ({selectedToken})
                   </GlassCardTitle>
                 </GlassCardHeader>
                 <GlassCardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
                   <div className="text-lg sm:text-2xl font-mono font-medium">
-                    ${filteredVendors.reduce((sum, v) => sum + (v.totalReceived || 0), 0).toLocaleString()}
+                    ${totalVolumeForSelection.toLocaleString()}
                   </div>
                 </GlassCardContent>
               </GlassCard>
@@ -1076,14 +1128,7 @@ export default function VendorsPage() {
                   </GlassCardTitle>
                 </GlassCardHeader>
                 <GlassCardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-                  <div className="text-lg sm:text-2xl font-mono font-medium">
-                    ${filteredVendors.length > 0
-                      ? Math.round(
-                          filteredVendors.reduce((sum, v) => sum + (v.totalReceived || 0), 0) /
-                            Math.max(filteredVendors.reduce((sum, v) => sum + (v.transaction_count || 1), 0), 1),
-                        ).toLocaleString()
-                      : "0"}
-                  </div>
+                  <div className="text-lg sm:text-2xl font-mono font-medium">${avgTransactionForSelection.toLocaleString()}</div>
                 </GlassCardContent>
               </GlassCard>
               <GlassCard className="bg-card/50 border-border">

@@ -63,6 +63,11 @@ function TerminalContent() {
   const [merchantName, setMerchantName] = useState("Protocol Banks POS");
   const [paymentMode, setPaymentMode] = useState<"crypto" | "fiat">("crypto");
 
+  const getPosStorageKey = useCallback((kind: "settings" | "transactions", scopeAddress?: string) => {
+    const scope = (scopeAddress || recipientAddress || "default").toLowerCase();
+    return `pos_${kind}:${scope}`;
+  }, [recipientAddress]);
+
   // Load settings from URL params or localStorage
   useEffect(() => {
     // 1. Get URL params
@@ -74,7 +79,9 @@ function TerminalContent() {
     // 2. Get saved settings
     let savedSettings: any = {};
     try {
-      const saved = localStorage.getItem("pos_settings");
+      const scopedKey = getPosStorageKey("settings", addressParam || undefined);
+      const fallbackKey = "pos_settings";
+      const saved = localStorage.getItem(scopedKey) || localStorage.getItem(fallbackKey);
       if (saved) savedSettings = JSON.parse(saved);
     } catch {}
 
@@ -97,7 +104,7 @@ function TerminalContent() {
        // Actually, good UX might be to show settings if it's "fresh"
        // But handleCharge already checks for recipientAddress, so we are safe.
     }
-  }, [searchParams]);
+  }, [searchParams, getPosStorageKey]);
 
   // Online/offline detection
   useEffect(() => {
@@ -115,21 +122,23 @@ function TerminalContent() {
   // Load cached transactions from localStorage
   useEffect(() => {
     try {
-      const cached = localStorage.getItem("pos_transactions");
+      const scopedKey = getPosStorageKey("transactions");
+      const fallbackKey = "pos_transactions";
+      const cached = localStorage.getItem(scopedKey) || localStorage.getItem(fallbackKey);
       if (cached) {
         const parsed = JSON.parse(cached);
         setTransactions(parsed.map((t: any) => ({ ...t, timestamp: new Date(t.timestamp) })));
       }
     } catch {}
-  }, []);
+  }, [getPosStorageKey]);
 
   // Save transactions to localStorage
   const saveTransactions = useCallback((txs: Transaction[]) => {
     setTransactions(txs);
     try {
-      localStorage.setItem("pos_transactions", JSON.stringify(txs));
+      localStorage.setItem(getPosStorageKey("transactions"), JSON.stringify(txs));
     } catch {}
-  }, []);
+  }, [getPosStorageKey]);
 
   const NETWORK_CHAIN_IDS: Record<string, number> = {
     eth: CHAIN_IDS.MAINNET,
@@ -686,7 +695,7 @@ function TerminalContent() {
                   if (recipientAddress) {
                     // Save settings
                     try {
-                      localStorage.setItem("pos_settings", JSON.stringify({
+                      localStorage.setItem(getPosStorageKey("settings"), JSON.stringify({
                         recipientAddress,
                         merchantName,
                         token,
