@@ -59,7 +59,7 @@ if (projectId && projectId !== "") {
         emailShowWallets: true,
         onramp: true, // Enable fiat on-ramp for buying crypto
       },
-      themeMode: "dark",
+      themeMode: "light",
       themeVariables: {
         "--w3m-accent": "hsl(222.2 47.4% 11.2%)",
         "--w3m-border-radius-master": "8px",

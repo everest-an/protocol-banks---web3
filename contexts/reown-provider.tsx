@@ -1,9 +1,11 @@
 "use client"
 
 import { createAppKit } from "@reown/appkit/react"
+import { useAppKitTheme } from "@reown/appkit/react"
 import { EthersAdapter } from "@reown/appkit-adapter-ethers"
 import { mainnet, sepolia, base } from "@reown/appkit/networks"
-import type { ReactNode } from "react"
+import { type ReactNode, useEffect } from "react"
+import { useTheme } from "next-themes"
 
 // Reown Project ID - Get from https://cloud.reown.com
 const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || ""
@@ -30,7 +32,7 @@ if (projectId && typeof window !== "undefined") {
     networks,
     metadata,
     projectId,
-    themeMode: "dark",
+    themeMode: "light",
     themeVariables: {
       "--w3m-accent": "hsl(222.2 47.4% 11.2%)",
       "--w3m-border-radius-master": "8px",
@@ -38,6 +40,25 @@ if (projectId && typeof window !== "undefined") {
   })
 }
 
+/** Syncs Reown AppKit theme with next-themes */
+function ThemeSync() {
+  const { resolvedTheme } = useTheme()
+  const { setThemeMode } = useAppKitTheme()
+
+  useEffect(() => {
+    if (resolvedTheme === "light" || resolvedTheme === "dark") {
+      setThemeMode(resolvedTheme)
+    }
+  }, [resolvedTheme, setThemeMode])
+
+  return null
+}
+
 export function ReownProvider({ children }: { children: ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <ThemeSync />
+      {children}
+    </>
+  )
 }

@@ -59,11 +59,11 @@ export const glassBackgrounds = {
 export const glassBorders = {
   light: {
     /** Standard border for light mode */
-    default: "border border-white/20",
+    default: "border border-gray-200/60",
     /** Strong border for emphasis */
-    strong: "border border-white/30",
+    strong: "border border-gray-300/60",
     /** Subtle border */
-    subtle: "border border-white/10",
+    subtle: "border border-gray-200/40",
     /** Primary branded border */
     primary: "border border-primary/20",
   },
@@ -104,8 +104,8 @@ export const glassCard = {
     // Background & blur
     glassEffects.primary,
     "bg-white/70 dark:bg-slate-900/70",
-    // Border
-    "border border-white/20 dark:border-white/10",
+    // Border - use visible gray in light mode, subtle white in dark mode
+    "border border-gray-200/60 dark:border-white/10",
     // Shadow
     glassShadows.default,
     // Border radius
@@ -168,7 +168,7 @@ export const glassCard = {
   subtle: [
     glassEffects.subtle,
     "bg-white/50 dark:bg-slate-800/50",
-    "border border-white/10 dark:border-white/5",
+    "border border-gray-200/40 dark:border-white/5",
     "shadow-sm",
     "rounded-lg",
     "transition-all duration-300",
@@ -183,7 +183,7 @@ export const glassInteractive = {
   hover: [
     "hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)]",
     "hover:scale-[1.01]",
-    "hover:border-white/30 dark:hover:border-white/20",
+    "hover:border-gray-300/60 dark:hover:border-white/20",
   ].join(" "),
 
   /** Active/pressed state */
@@ -208,7 +208,7 @@ export const glassSection = {
   default: [
     glassEffects.secondary,
     "bg-white/60 dark:bg-slate-900/60",
-    "border border-white/10 dark:border-white/5",
+    "border border-gray-200/40 dark:border-white/5",
     "rounded-2xl",
     "p-6",
   ].join(" "),
@@ -218,7 +218,7 @@ export const glassSection = {
     glassEffects.primary,
     "bg-gradient-to-br from-white/70 via-white/60 to-white/50",
     "dark:from-slate-900/70 dark:via-slate-900/60 dark:to-slate-900/50",
-    "border border-white/20 dark:border-white/10",
+    "border border-gray-200/60 dark:border-white/10",
     "rounded-2xl",
     "p-6",
   ].join(" "),
