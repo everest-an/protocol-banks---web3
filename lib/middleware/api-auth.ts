@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userAddressHeaderSchema } from '@/lib/validations/yield'
 import { logger } from '@/lib/logger/structured-logger'
+import { verifyJwt } from '@/lib/auth/jwt'
 
 export interface AuthResult {
   address: string
@@ -36,6 +37,22 @@ export async function requireAuth(
   const rawAddress = request.headers.get('x-wallet-address') || request.headers.get('x-user-address')
 
   if (!rawAddress) {
+    // Fallback: check Bearer JWT token (AI agent authentication via SIWE)
+    const authHeader = request.headers.get('authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const payload = await verifyJwt(authHeader.slice(7))
+        if (payload?.sub) {
+          const parsed = userAddressHeaderSchema.safeParse(payload.sub)
+          if (parsed.success) {
+            return { address: parsed.data, error: null }
+          }
+        }
+      } catch {
+        // JWT invalid — fall through to error
+      }
+    }
+
     logger.logSecurityEvent('missing_auth_header', 'medium', {
       path: request.nextUrl.pathname,
       method: request.method,
@@ -45,7 +62,7 @@ export async function requireAuth(
     return {
       address: null,
       error: NextResponse.json(
-        { error: 'Authentication required: x-wallet-address header is missing' },
+        { error: 'Authentication required: x-wallet-address header or Bearer token is missing' },
         { status: 401 }
       ),
     }

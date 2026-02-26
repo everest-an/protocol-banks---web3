@@ -88,7 +88,7 @@ export const PUBLIC_PAGES = [
   { path: "/help", text: "Usage Guide" },
   { path: "/privacy", text: "Privacy Policy" },
   { path: "/terms", text: "Terms of Service" },
-  { path: "/whitepaper", text: "Protocol Bank Whitepaper" },
+  { path: "/whitepaper", text: /Protocol Banks? Whitepaper/i },
   { path: "/contact", text: "Contact Us" },
   { path: "/security", text: /Security/i },
   { path: "/fees", text: /Fee/i },

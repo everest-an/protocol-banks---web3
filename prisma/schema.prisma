@@ -711,6 +711,7 @@ model Agent {
   budgets            AgentBudget[]
   activities         AgentActivity[]
   webhook_deliveries AgentWebhookDelivery[]
+  card               AgentCard?
 
   @@map("agents")
 }
@@ -976,6 +977,113 @@ model SessionKey {
   @@index([session_address])
   @@index([is_active])
   @@map("session_keys")
+}
+
+// ============================================================================
+// AI Agent Authentication (SIWE + JWT)
+// ============================================================================
+
+model SiweNonce {
+  id         String   @id @default(uuid())
+  nonce      String   @unique
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@index([nonce])
+  @@index([expires_at])
+  @@map("siwe_nonces")
+}
+
+model AiSession {
+  id              String   @id @default(uuid())
+  wallet_address  String
+  token_hash      String   @unique
+  refresh_hash    String   @unique
+  expires_at      DateTime
+  refresh_expires DateTime
+  is_revoked      Boolean  @default(false)
+  user_agent      String?
+  ip_address      String?
+  created_at      DateTime @default(now())
+  last_active_at  DateTime @default(now())
+
+  @@index([wallet_address])
+  @@index([token_hash])
+  @@index([refresh_hash])
+  @@map("ai_sessions")
+}
+
+// ============================================================================
+// ERC-8004 Agent Card & A2A Protocol Models
+// ============================================================================
+
+model AgentCard {
+  id               String   @id @default(uuid())
+  agent_id         String   @unique
+  did              String   @unique
+  display_name     String
+  description      String?
+  version          String   @default("1.0")
+  capabilities     Json
+  supported_tokens String[] @default([])
+  supported_chains String[] @default([])
+  a2a_endpoint     String?
+  mcp_endpoint     String?
+  auth_schemes     Json?
+  reputation_score Float    @default(0)
+  total_tasks      Int      @default(0)
+  completed_tasks  Int      @default(0)
+  owner_address    String
+  signature        String?
+  is_public        Boolean  @default(false)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  agent Agent @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
+  @@index([owner_address])
+  @@index([is_public])
+  @@map("agent_cards")
+}
+
+model A2AMessage {
+  id            String    @id @default(uuid())
+  message_type  String
+  from_did      String
+  from_address  String
+  to_did        String?
+  payload       Json
+  signature     String
+  nonce         String    @unique
+  timestamp     DateTime
+  status        String    @default("received")
+  response_id   String?
+  error_message String?
+  task_id       String?
+  proposal_id   String?
+  created_at    DateTime  @default(now())
+  processed_at  DateTime?
+
+  @@index([from_did])
+  @@index([task_id])
+  @@index([nonce])
+  @@map("a2a_messages")
+}
+
+model A2ATask {
+  id          String   @id @default(uuid())
+  status      String   @default("submitted")
+  client_did  String
+  server_did  String?
+  description String?
+  artifacts   Json?
+  metadata    Json?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([client_did])
+  @@map("a2a_tasks")
 }
 
 // ============================================================================

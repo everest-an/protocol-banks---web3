@@ -81,10 +81,24 @@ export function middleware(request: NextRequest) {
     response.headers.set(key, value)
   }
 
-  // CORS handling for API routes
-  if (path.startsWith("/api/")) {
+  // CORS handling for API routes, A2A, MCP, and well-known endpoints
+  const needsCors =
+    path.startsWith("/api/") ||
+    path.startsWith("/.well-known/") ||
+    path.startsWith("/api/a2a") ||
+    path.startsWith("/api/mcp")
+
+  if (needsCors) {
     const origin = request.headers.get("origin")
-    if (origin && ALLOWED_ORIGINS.has(origin)) {
+    // A2A and MCP endpoints accept cross-origin requests from any AI agent
+    const isOpenEndpoint =
+      path.startsWith("/.well-known/") ||
+      path.startsWith("/api/a2a") ||
+      path.startsWith("/api/mcp")
+
+    if (isOpenEndpoint) {
+      response.headers.set("Access-Control-Allow-Origin", origin || "*")
+    } else if (origin && ALLOWED_ORIGINS.has(origin)) {
       response.headers.set("Access-Control-Allow-Origin", origin)
     }
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
@@ -99,8 +113,11 @@ export function middleware(request: NextRequest) {
 
   // Rate limit API routes
   if (path.startsWith("/api/")) {
+    // A2A endpoint: stricter rate limit for unauthenticated agents
+    const isA2A = path.startsWith("/api/a2a")
+    const isMcp = path.startsWith("/api/mcp")
     const isProtected = protectedApiPaths.some((p) => path.startsWith(p))
-    const limit = isProtected ? 30 : 100 // Stricter limits for protected routes
+    const limit = isA2A ? 20 : isMcp ? 60 : isProtected ? 30 : 100
     const windowMs = 60 * 1000 // 1 minute
 
     if (!checkRateLimit(ip, limit, windowMs)) {

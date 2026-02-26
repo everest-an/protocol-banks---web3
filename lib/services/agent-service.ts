@@ -662,6 +662,53 @@ export const agentService = {
   },
 
   // ============================================
+  // DID / Agent Card Queries
+  // ============================================
+
+  /**
+   * Get an agent by its Agent Card DID.
+   * Used by the A2A protocol to resolve incoming messages.
+   */
+  async getAgentByDid(did: string): Promise<Agent | null> {
+    if (!useDatabaseStorage) return null
+    try {
+      const card = await prisma.agentCard.findUnique({
+        where: { did },
+        select: { agent_id: true },
+      })
+      if (!card) return null
+      return this.getById(card.agent_id)
+    } catch (error) {
+      console.error('[Agent Service] Failed to get agent by DID:', error)
+      return null
+    }
+  },
+
+  /**
+   * Get an agent together with its Agent Card (if any).
+   */
+  async getAgentWithCard(id: string, ownerAddress: string): Promise<(Agent & { card?: unknown }) | null> {
+    if (!useDatabaseStorage) return null
+    try {
+      const data = await prisma.agent.findFirst({
+        where: { id, owner_address: ownerAddress.toLowerCase() },
+        include: { card: true },
+      })
+      if (!data) return null
+      return {
+        ...data,
+        type: data.type as AgentType,
+        status: data.status as AgentStatus,
+        auto_execute_rules: data.auto_execute_rules as AutoExecuteRules,
+        last_active_at: data.last_active_at ?? undefined,
+      }
+    } catch (error) {
+      console.error('[Agent Service] Failed to get agent with card:', error)
+      return null
+    }
+  },
+
+  // ============================================
   // Test Helpers (for unit tests)
   // ============================================
 

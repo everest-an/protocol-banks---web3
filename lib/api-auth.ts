@@ -1,6 +1,7 @@
 /**
  * Shared API Route Authentication
  * Extracts owner/wallet address from request using:
+ * 0. Authorization: Bearer <JWT> header (AI agents via SIWE)
  * 1. x-wallet-address header (primary – set by client-side authenticated fetch)
  * 2. Wallet query parameter (secondary – for simple GET requests)
  *
@@ -10,6 +11,7 @@
  */
 
 import { type NextRequest } from 'next/server'
+import { verifyJwt } from '@/lib/auth/jwt'
 
 function isEvmAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/i.test(address)
@@ -38,6 +40,20 @@ export async function getRequestAccessMode(request: NextRequest): Promise<'demo'
 }
 
 export async function getAuthenticatedAddress(request: NextRequest): Promise<string | null> {
+  // Priority 0: Bearer JWT token (AI agents authenticated via SIWE)
+  const authHeader = request.headers.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.slice(7)
+      const payload = await verifyJwt(token)
+      if (payload?.sub && isSupportedAddress(payload.sub)) {
+        return normalizeAddress(payload.sub)
+      }
+    } catch {
+      // JWT verification failed — fall through to other methods
+    }
+  }
+
   // Primary: x-wallet-address header (set by createAuthenticatedFetch / authHeaders)
   const walletHeader = request.headers.get('x-wallet-address')
   if (isSupportedAddress(walletHeader)) {

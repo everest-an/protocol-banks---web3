@@ -162,7 +162,7 @@ export async function recordTransfer(params: LedgerTransferParams) {
         reference_id: params.referenceId,
         tx_hash: params.txHash,
         description: params.description,
-        metadata: params.metadata ?? undefined,
+        metadata: params.metadata ? JSON.parse(JSON.stringify(params.metadata)) : undefined,
       },
     })
 
@@ -183,7 +183,7 @@ export async function recordTransfer(params: LedgerTransferParams) {
         reference_id: params.referenceId,
         tx_hash: params.txHash,
         description: params.description,
-        metadata: params.metadata ?? undefined,
+        metadata: params.metadata ? JSON.parse(JSON.stringify(params.metadata)) : undefined,
       },
     })
 

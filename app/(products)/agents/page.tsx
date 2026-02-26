@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { authHeaders } from "@/lib/authenticated-fetch"
-import { Bot, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle, Settings, Pause, Play, Activity } from "lucide-react"
+import { Bot, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle, Settings, Pause, Play, Activity, Globe, Zap, Shield } from "lucide-react"
 import Link from "next/link"
 
 interface Agent {
@@ -642,7 +642,7 @@ export default function AgentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Deactivate Agent</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate "{selectedAgent?.name}"? This action cannot be undone and the agent
+              Are you sure you want to deactivate &ldquo;{selectedAgent?.name}&rdquo;? This action cannot be undone and the agent
               will no longer be able to create proposals or execute payments.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -654,6 +654,111 @@ export default function AgentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Protocol Endpoints */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Globe className="h-4 w-4 text-purple-500" />
+              <h3 className="font-semibold text-sm">ERC-8004 Agent Card</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Discoverable identity card for AI agents. External agents can find your platform capabilities here.
+            </p>
+            <div className="flex items-center gap-1.5">
+              <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+                /.well-known/agent.json
+              </code>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => copyToClipboard(`${window.location.origin}/.well-known/agent.json`)}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+
+        <GlassCard>
+          <GlassCardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="h-4 w-4 text-orange-500" />
+              <h3 className="font-semibold text-sm">A2A Protocol</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Agent-to-Agent signed JSON-RPC 2.0 messaging with EIP-191 signatures and nonce replay protection.
+            </p>
+            <div className="flex items-center gap-1.5">
+              <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+                POST /api/a2a
+              </code>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => copyToClipboard(`${window.location.origin}/api/a2a`)}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+
+        <GlassCard>
+          <GlassCardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-4 w-4 text-cyan-500" />
+              <h3 className="font-semibold text-sm">MCP Server</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              8 payment tools for Claude, GPT, and AI models. Streamable HTTP transport with JWT authentication.
+            </p>
+            <div className="flex items-center gap-1.5">
+              <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+                POST /api/mcp
+              </code>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => copyToClipboard(`${window.location.origin}/api/mcp`)}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+
+      {/* SIWE Auth Info */}
+      <GlassCard className="mt-4">
+        <GlassCardContent className="pt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Bot className="h-4 w-4 text-green-500" />
+            <h3 className="font-semibold text-sm">AI Wallet SDK (SIWE Authentication)</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            AI agents can authenticate autonomously using Sign-In with Ethereum (EIP-4361). No browser needed.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="bg-muted p-3 rounded">
+              <div className="font-medium mb-1">1. Get Nonce</div>
+              <code className="text-muted-foreground">GET /api/auth/siwe/nonce</code>
+            </div>
+            <div className="bg-muted p-3 rounded">
+              <div className="font-medium mb-1">2. Sign &amp; Verify</div>
+              <code className="text-muted-foreground">POST /api/auth/siwe/verify</code>
+            </div>
+            <div className="bg-muted p-3 rounded">
+              <div className="font-medium mb-1">3. Refresh Token</div>
+              <code className="text-muted-foreground">POST /api/auth/siwe/refresh</code>
+            </div>
+          </div>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   )
 }
