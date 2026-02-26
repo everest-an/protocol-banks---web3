@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -120,7 +121,9 @@ export default function SessionKeysPage() {
       if (isDemoMode) {
         setSessionKeys(demoSessionKeys)
       } else if (address) {
-        const response = await fetch(`/api/session-keys?owner=${address}`)
+        const response = await fetch(`/api/session-keys?owner=${address}`, {
+          headers: authHeaders(address, undefined, { isDemoMode }),
+        })
         const data = await response.json()
         if (data.success) {
           setSessionKeys(data.sessionKeys || [])
@@ -158,7 +161,7 @@ export default function SessionKeysPage() {
     try {
       const response = await fetch("/api/session-keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(address, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify({
           owner_address: address,
           chain_id: Number(selectedChain),
@@ -194,7 +197,7 @@ export default function SessionKeysPage() {
     try {
       const response = await fetch(`/api/session-keys/${key.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(address, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify({ is_active: !key.is_active }),
       })
 
@@ -221,7 +224,10 @@ export default function SessionKeysPage() {
     }
 
     try {
-      const response = await fetch(`/api/session-keys/${selectedKey.id}`, { method: "DELETE" })
+      const response = await fetch(`/api/session-keys/${selectedKey.id}`, {
+        method: "DELETE",
+        headers: authHeaders(address, undefined, { isDemoMode }),
+      })
       if (response.ok) {
         setSessionKeys((prev) => prev.filter((k) => k.id !== selectedKey.id))
         toast({ title: "Success", description: "Session key deleted" })

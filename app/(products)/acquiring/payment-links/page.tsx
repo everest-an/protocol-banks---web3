@@ -38,6 +38,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDemo } from "@/contexts/demo-context";
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet";
+import { authHeaders } from "@/lib/authenticated-fetch";
 import { QRCodeSVG } from "qrcode.react";
 
 interface PaymentLink {
@@ -147,6 +149,7 @@ const DEMO_PAYMENT_LINKS: PaymentLink[] = [
 
 export default function PaymentLinksPage() {
   const { isDemoMode } = useDemo();
+  const { address } = useUnifiedWallet();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -193,7 +196,9 @@ export default function PaymentLinksPage() {
 
   const loadLinks = async () => {
     try {
-      const res = await fetch("/api/acquiring/payment-links");
+      const res = await fetch("/api/acquiring/payment-links", {
+        headers: authHeaders(address, undefined, { isDemoMode }),
+      });
       const data = await res.json();
 
       if (data.success) {
@@ -247,7 +252,7 @@ export default function PaymentLinksPage() {
 
       const res = await fetch("/api/acquiring/payment-links", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(address, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify(payload),
       });
 

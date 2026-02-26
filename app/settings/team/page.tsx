@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { Users, Plus, Trash2, UserPlus, Shield, Eye, Crown } from "lucide-react"
 import type { Team, TeamMember, TeamRole } from "@/types/team"
 
@@ -74,7 +75,7 @@ export default function TeamPage() {
     setLoading(true)
     try {
       const response = await fetch("/api/teams", {
-        headers: { "x-user-address": address },
+        headers: authHeaders(address),
       })
       const data = await response.json()
       if (response.ok) {
@@ -94,7 +95,7 @@ export default function TeamPage() {
     if (!address) return
     try {
       const response = await fetch(`/api/teams/${teamId}/members`, {
-        headers: { "x-user-address": address },
+        headers: authHeaders(address),
       })
       const data = await response.json()
       if (response.ok) {
@@ -111,10 +112,7 @@ export default function TeamPage() {
     try {
       const response = await fetch("/api/teams", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": address,
-        },
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
         body: JSON.stringify({
           name: teamName,
           description: teamDescription,
@@ -143,10 +141,7 @@ export default function TeamPage() {
     try {
       const response = await fetch(`/api/teams/${selectedTeam.id}/members`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": address,
-        },
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
         body: JSON.stringify({
           member_address: inviteAddress,
           role: inviteRole,
@@ -176,7 +171,7 @@ export default function TeamPage() {
         `/api/teams/${selectedTeam.id}/members?member_address=${memberToRemove.member_address}`,
         {
           method: "DELETE",
-          headers: { "x-user-address": address },
+          headers: authHeaders(address),
         }
       )
 
@@ -201,10 +196,7 @@ export default function TeamPage() {
     try {
       const response = await fetch(`/api/teams/${selectedTeam.id}/members`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": address,
-        },
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
         body: JSON.stringify({
           action: "change_role",
           member_address: member.member_address,

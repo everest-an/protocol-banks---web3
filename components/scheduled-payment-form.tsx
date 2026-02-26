@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Plus, Trash2, Calendar, Clock, AlertCircle, CheckCircle2 } from "lucide-react"
 import type { ScheduleType, ScheduleConfig, ScheduledRecipient } from "@/types/scheduled-payment"
 import { getScheduleDescription } from "@/types/scheduled-payment"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 interface ScheduledPaymentFormProps {
   userAddress: string
@@ -111,10 +112,7 @@ export function ScheduledPaymentForm({ userAddress, onSuccess }: ScheduledPaymen
     try {
       const response = await fetch("/api/scheduled-payments", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": userAddress,
-        },
+        headers: authHeaders(userAddress, { contentType: "application/json" }),
         body: JSON.stringify({
           name,
           total_amount: totalAmount,

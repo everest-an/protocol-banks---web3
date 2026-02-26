@@ -499,7 +499,7 @@ function PaymentContent() {
           try {
             await fetch("/api/x402/settle", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: authHeaders(senderAddress, { "Content-Type": "application/json" }, { isDemoMode }),
               body: JSON.stringify({
                 authorizationId: auth.nonce || `auth_${Date.now()}`,
                 transactionHash: hash, chainId, amount: amount!, token: token || "USDC",

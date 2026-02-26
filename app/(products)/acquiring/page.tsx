@@ -19,6 +19,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useDemo } from "@/contexts/demo-context";
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet";
+import { authHeaders } from "@/lib/authenticated-fetch";
 
 // Demo stats shown when no wallet is connected
 const DEMO_STATS = {
@@ -31,6 +33,7 @@ const DEMO_STATS = {
 
 export default function AcquiringDashboard() {
   const { isDemoMode } = useDemo();
+  const { address } = useUnifiedWallet();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalMerchants: 0,
@@ -52,8 +55,8 @@ export default function AcquiringDashboard() {
   const loadStats = async () => {
     try {
       const [merchantsRes, ordersRes] = await Promise.all([
-        fetch("/api/acquiring/merchants"),
-        fetch("/api/acquiring/orders?limit=1000"),
+        fetch("/api/acquiring/merchants", { headers: authHeaders(address, undefined, { isDemoMode }) }),
+        fetch("/api/acquiring/orders?limit=1000", { headers: authHeaders(address, undefined, { isDemoMode }) }),
       ]);
 
       const merchantsData = await merchantsRes.json();

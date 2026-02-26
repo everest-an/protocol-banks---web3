@@ -68,7 +68,7 @@ class ProtocolBanks:
     def __post_init__(self):
         self.base_url = self.base_url.rstrip("/")
         self._session = requests.Session()
-        self._session.headers.update({"x-user-address": self.wallet_address})
+        self._session.headers.update({"x-wallet-address": self.wallet_address})
         if self.api_key:
             self._session.headers["x-api-key"] = self.api_key
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -51,9 +52,9 @@ export default function BillingPage() {
     try {
       // Load plans and subscription in parallel
       const [plansRes, subRes] = await Promise.all([
-        fetch("/api/billing/plans"),
+        fetch("/api/billing/plans", { headers: authHeaders(address) }),
         fetch("/api/billing/subscription", {
-          headers: { "x-user-address": address },
+          headers: authHeaders(address),
         }),
       ])
 
@@ -82,10 +83,7 @@ export default function BillingPage() {
     try {
       const response = await fetch("/api/billing/subscription", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": address,
-        },
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
         body: JSON.stringify({ plan_id: selectedPlan.id }),
       })
 

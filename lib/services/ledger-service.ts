@@ -12,7 +12,6 @@
  */
 
 import { getClient } from "@/lib/prisma"
-import { Decimal } from "@prisma/client/runtime/library"
 import { randomUUID } from "crypto"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -68,9 +67,9 @@ export interface BalanceInfo {
  */
 export async function recordTransfer(params: LedgerTransferParams) {
   const prisma = getClient()
-  const amount = new Decimal(params.amount.toString())
+  const amount = parseFloat(params.amount.toString())
 
-  if (amount.lte(0)) {
+  if (amount <= 0) {
     throw new Error("Transfer amount must be positive")
   }
 
@@ -92,7 +91,7 @@ export async function recordTransfer(params: LedgerTransferParams) {
     )
 
     // 2. Check sufficient available balance
-    if (new Decimal(senderBalance.available.toString()).lt(amount)) {
+    if (parseFloat(senderBalance.available.toString()) < amount) {
       throw new Error(
         `Insufficient balance: available=${senderBalance.available}, required=${amount}`
       )
@@ -107,12 +106,8 @@ export async function recordTransfer(params: LedgerTransferParams) {
     )
 
     // 4. Update sender balance (debit)
-    const newSenderAvailable = new Decimal(
-      senderBalance.available.toString()
-    ).minus(amount)
-    const newSenderTotal = new Decimal(senderBalance.total.toString()).minus(
-      amount
-    )
+    const newSenderAvailable = parseFloat(senderBalance.available.toString()) - amount
+    const newSenderTotal = parseFloat(senderBalance.total.toString()) - amount
 
     await tx.userBalance.update({
       where: {
@@ -131,12 +126,8 @@ export async function recordTransfer(params: LedgerTransferParams) {
     })
 
     // 5. Update receiver balance (credit)
-    const newReceiverAvailable = new Decimal(
-      receiverBalance.available.toString()
-    ).plus(amount)
-    const newReceiverTotal = new Decimal(
-      receiverBalance.total.toString()
-    ).plus(amount)
+    const newReceiverAvailable = parseFloat(receiverBalance.available.toString()) + amount
+    const newReceiverTotal = parseFloat(receiverBalance.total.toString()) + amount
 
     await tx.userBalance.update({
       where: {
@@ -164,7 +155,7 @@ export async function recordTransfer(params: LedgerTransferParams) {
         amount,
         token: params.token,
         chain: params.chain,
-        balance_before: senderBalance.available,
+        balance_before: parseFloat(senderBalance.available.toString()),
         balance_after: newSenderAvailable,
         counterparty: params.toAddress,
         reference_type: params.referenceType,
@@ -185,7 +176,7 @@ export async function recordTransfer(params: LedgerTransferParams) {
         amount,
         token: params.token,
         chain: params.chain,
-        balance_before: receiverBalance.available,
+        balance_before: parseFloat(receiverBalance.available.toString()),
         balance_after: newReceiverAvailable,
         counterparty: params.fromAddress,
         reference_type: params.referenceType,
@@ -211,9 +202,9 @@ export async function recordTransfer(params: LedgerTransferParams) {
  */
 export async function lockBalance(params: LedgerLockParams) {
   const prisma = getClient()
-  const amount = new Decimal(params.amount.toString())
+  const amount = parseFloat(params.amount.toString())
 
-  if (amount.lte(0)) {
+  if (amount <= 0) {
     throw new Error("Lock amount must be positive")
   }
 
@@ -225,14 +216,14 @@ export async function lockBalance(params: LedgerLockParams) {
       params.chain
     )
 
-    if (new Decimal(balance.available.toString()).lt(amount)) {
+    if (parseFloat(balance.available.toString()) < amount) {
       throw new Error(
         `Insufficient available balance for lock: available=${balance.available}, required=${amount}`
       )
     }
 
-    const newAvailable = new Decimal(balance.available.toString()).minus(amount)
-    const newLocked = new Decimal(balance.locked.toString()).plus(amount)
+    const newAvailable = parseFloat(balance.available.toString()) - amount
+    const newLocked = parseFloat(balance.locked.toString()) + amount
 
     await tx.userBalance.update({
       where: {
@@ -260,7 +251,7 @@ export async function lockBalance(params: LedgerLockParams) {
         amount,
         token: params.token,
         chain: params.chain,
-        balance_before: balance.available,
+        balance_before: parseFloat(balance.available.toString()),
         balance_after: newAvailable,
         reference_type: params.referenceType,
         reference_id: params.referenceId,
@@ -291,7 +282,7 @@ export async function unlockBalance(params: {
   idempotencyKey: string
 }) {
   const prisma = getClient()
-  const amount = new Decimal(params.amount.toString())
+  const amount = parseFloat(params.amount.toString())
 
   return prisma.$transaction(async (tx) => {
     const balance = await getOrCreateBalance(
@@ -301,18 +292,18 @@ export async function unlockBalance(params: {
       params.chain
     )
 
-    const currentLocked = new Decimal(balance.locked.toString())
-    if (currentLocked.lt(amount)) {
+    const currentLocked = parseFloat(balance.locked.toString())
+    if (currentLocked < amount) {
       throw new Error(
         `Unlock amount exceeds locked balance: locked=${balance.locked}, unlock=${amount}`
       )
     }
 
-    const newLocked = currentLocked.minus(amount)
+    const newLocked = currentLocked - amount
 
     if (params.success) {
       // Funds were spent - remove from locked and total
-      const newTotal = new Decimal(balance.total.toString()).minus(amount)
+      const newTotal = parseFloat(balance.total.toString()) - amount
       await tx.userBalance.update({
         where: {
           user_address_token_chain: {
@@ -330,9 +321,7 @@ export async function unlockBalance(params: {
       })
     } else {
       // Transaction failed - return to available
-      const newAvailable = new Decimal(balance.available.toString()).plus(
-        amount
-      )
+      const newAvailable = parseFloat(balance.available.toString()) + amount
       await tx.userBalance.update({
         where: {
           user_address_token_chain: {
@@ -360,7 +349,7 @@ export async function unlockBalance(params: {
         amount,
         token: params.token,
         chain: params.chain,
-        balance_before: balance.locked,
+        balance_before: parseFloat(balance.locked.toString()),
         balance_after: newLocked,
         reference_type: params.referenceType,
         reference_id: params.referenceId,

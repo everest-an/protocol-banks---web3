@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Plus, Trash2, Save, Play, AlertCircle, CheckCircle2 } from "lucide-react"
 import type { SplitRecipient, SplitTemplate, CreateSplitTemplateInput } from "@/types/split-payment"
 import { validateSplitRecipients, calculateSplitAmounts } from "@/types/split-payment"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 interface SplitPaymentFormProps {
   userAddress: string
@@ -136,10 +137,7 @@ export function SplitPaymentForm({
     try {
       const response = await fetch("/api/split-payment", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": userAddress,
-        },
+        headers: authHeaders(userAddress, { contentType: "application/json" }),
         body: JSON.stringify({
           total_amount: totalAmount,
           token,

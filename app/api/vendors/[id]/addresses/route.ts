@@ -9,6 +9,7 @@ import {
   getVendorWithAddresses,
 } from "@/lib/services/vendor-multi-network.service"
 import { validateAddress } from "@/lib/address-utils"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 /**
  * GET /api/vendors/:id/addresses
@@ -20,7 +21,7 @@ export async function GET(
 ) {
   const { id } = await params
   try {
-    const ownerAddress = req.headers.get("x-user-address")
+    const ownerAddress = await getAuthenticatedAddress(req)
 
     if (!ownerAddress) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -55,7 +56,7 @@ export async function POST(
 ) {
   const { id } = await params
   try {
-    const ownerAddress = req.headers.get("x-user-address")
+    const ownerAddress = await getAuthenticatedAddress(req)
 
     if (!ownerAddress) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

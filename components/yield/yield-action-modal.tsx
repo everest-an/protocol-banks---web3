@@ -28,6 +28,7 @@ import {
   AlertCircle,
   Info,
 } from "lucide-react"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 export type YieldActionType = "deposit" | "withdraw"
 
@@ -124,10 +125,7 @@ export function YieldActionModal({
 
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": wallet,
-        },
+        headers: authHeaders(wallet, { contentType: "application/json" }),
         body: JSON.stringify(body),
       })
 

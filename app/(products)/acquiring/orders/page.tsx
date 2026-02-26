@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDemo } from "@/contexts/demo-context";
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet";
+import { authHeaders } from "@/lib/authenticated-fetch";
 import type { AcquiringOrder, Merchant } from "@/types/acquiring";
 
 // Demo orders shown when no wallet is connected
@@ -149,6 +151,7 @@ const DEMO_MERCHANTS: Merchant[] = [
 
 export default function OrdersPage() {
   const { isDemoMode } = useDemo();
+  const { address } = useUnifiedWallet();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -184,7 +187,9 @@ export default function OrdersPage() {
 
   const loadMerchants = async () => {
     try {
-      const res = await fetch("/api/acquiring/merchants");
+      const res = await fetch("/api/acquiring/merchants", {
+        headers: authHeaders(address, undefined, { isDemoMode }),
+      });
       const data = await res.json();
       if (data.success) {
         setMerchants(data.merchants || []);
@@ -202,7 +207,9 @@ export default function OrdersPage() {
 
   const loadOrders = async () => {
     try {
-      const res = await fetch("/api/acquiring/orders?limit=100");
+      const res = await fetch("/api/acquiring/orders?limit=100", {
+        headers: authHeaders(address, undefined, { isDemoMode }),
+      });
       const data = await res.json();
       if (data.success) {
         setOrders(data.orders || []);
@@ -221,7 +228,7 @@ export default function OrdersPage() {
     try {
       const res = await fetch("/api/acquiring/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(address, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify({
           ...formData,
           amount: parseFloat(formData.amount),

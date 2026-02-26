@@ -6,13 +6,13 @@ This guide explains how to migrate your database to support multi-network functi
 
 ## Migration Status
 
-‚úÖ **Completed:**
+‚ú?**Completed:**
 - Prisma schema updated with multi-network models
 - Prisma client generated (v7.3.0)
 - API routes created with multi-network support
 - UI components created for address management
 
-‚è≥ **Pending:**
+‚è?**Pending:**
 - Database migration execution (requires running PostgreSQL server)
 - End-to-end testing
 
@@ -77,22 +77,22 @@ node scripts/run-migration.js
 ```
 
 **What this does (in addition to Option 1):**
-- ‚úÖ Creates tables and indexes
-- ‚úÖ Migrates existing vendor addresses to new table
-- ‚úÖ Updates existing payment records with network_type and chain_id
-- ‚úÖ Normalizes chain names
-- ‚úÖ Creates database views for easier querying:
+- ‚ú?Creates tables and indexes
+- ‚ú?Migrates existing vendor addresses to new table
+- ‚ú?Updates existing payment records with network_type and chain_id
+- ‚ú?Normalizes chain names
+- ‚ú?Creates database views for easier querying:
   - `vendor_all_addresses` - All vendor addresses with primary flag
   - `payment_stats_by_network` - Aggregated payment statistics
   - `network_distribution_summary` - Network usage summary
-- ‚úÖ Creates helper functions:
+- ‚ú?Creates helper functions:
   - `get_vendor_primary_address(vendor_id, network)` - Get primary address
   - `get_vendor_networks(vendor_id)` - Get all networks for vendor
   - `vendor_has_network(vendor_id, network)` - Check network availability
-- ‚úÖ Creates database triggers:
+- ‚ú?Creates database triggers:
   - `ensure_one_primary_address_per_network()` - Enforces single primary per network
-- ‚úÖ Applies Row-Level Security (RLS) policies
-- ‚úÖ Optimizes query planner with ANALYZE
+- ‚ú?Applies Row-Level Security (RLS) policies
+- ‚ú?Optimizes query planner with ANALYZE
 
 ## Data Migration Details
 
@@ -105,21 +105,21 @@ The migration will automatically:
 
 Example mapping:
 - Vendor with `wallet_address="0x123..."` and `chain="Ethereum"`
-  ‚Üí Creates VendorAddress with `network="ethereum"`, `address="0x123..."`, `is_primary=true`
+  ‚Ü?Creates VendorAddress with `network="ethereum"`, `address="0x123..."`, `is_primary=true`
 
 ### Existing Payments
 
 The migration will:
 1. Set `network_type` based on chain:
-   - TRON chains ‚Üí `network_type="TRON"`
-   - All others ‚Üí `network_type="EVM"`
+   - TRON chains ‚Ü?`network_type="TRON"`
+   - All others ‚Ü?`network_type="EVM"`
 2. Set `chain_id` for EVM networks:
-   - Ethereum Mainnet ‚Üí `chain_id=1`
-   - Sepolia ‚Üí `chain_id=11155111`
-   - Arbitrum ‚Üí `chain_id=42161`
-   - Base ‚Üí `chain_id=8453`
-   - BSC ‚Üí `chain_id=56`
-3. Normalize chain names to lowercase (e.g., "Ethereum" ‚Üí "ethereum")
+   - Ethereum Mainnet ‚Ü?`chain_id=1`
+   - Sepolia ‚Ü?`chain_id=11155111`
+   - Arbitrum ‚Ü?`chain_id=42161`
+   - Base ‚Ü?`chain_id=8453`
+   - BSC ‚Ü?`chain_id=56`
+3. Normalize chain names to lowercase (e.g., "Ethereum" ‚Ü?"ethereum")
 
 ## Verification Steps
 
@@ -287,7 +287,7 @@ EOF
    # Test vendor creation with multiple addresses
    curl -X POST http://localhost:3000/api/vendors/multi-network \
      -H "Content-Type: application/json" \
-     -H "x-user-address: YOUR_ADDRESS" \
+     -H "x-wallet-address: YOUR_ADDRESS" \
      -d '{
        "name": "Test Vendor",
        "addresses": [

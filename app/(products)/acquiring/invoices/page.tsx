@@ -54,6 +54,8 @@ import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import Image from "next/image";
 import { useDemo } from "@/contexts/demo-context";
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet";
+import { authHeaders } from "@/lib/authenticated-fetch";
 import { InvoicePreview } from "@/components/invoice-preview";
 
 interface Invoice {
@@ -79,6 +81,7 @@ interface Invoice {
 
 export default function InvoicesPage() {
   const { isDemoMode } = useDemo();
+  const { address } = useUnifiedWallet();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -193,7 +196,7 @@ export default function InvoicesPage() {
 
       const res = await fetch("/api/invoice", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(address, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify(payload),
       });
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import type { Subscription, SubscriptionStatus, AutoPayUseCase } from "@/types"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 // ============================================
 // Demo Data
@@ -218,12 +219,13 @@ class ApiError extends Error {
 }
 
 async function apiRequest<T>(url: string, options?: RequestInit & { walletAddress?: string }): Promise<T> {
-  const { walletAddress: _wa, ...fetchOptions } = options || {}
+  const { walletAddress, ...fetchOptions } = options || {}
+  const baseHeaders = authHeaders(walletAddress, { "Content-Type": "application/json" })
+
   const response = await fetch(url, {
     ...fetchOptions,
     headers: {
-      "Content-Type": "application/json",
-      ...(options?.walletAddress ? { "x-wallet-address": options.walletAddress } : {}),
+      ...baseHeaders,
       ...fetchOptions?.headers,
     },
   })

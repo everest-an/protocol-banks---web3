@@ -57,7 +57,22 @@ function checkRateLimit(ip: string, limit: number, windowMs: number): boolean {
 const protectedApiPaths = ["/api/verify-payment", "/api/audit-log", "/api/transactions"]
 
 export function middleware(request: NextRequest) {
-  const response = NextResponse.next()
+  const requestHeaders = new Headers(request.headers)
+
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    const walletAddress = requestHeaders.get("x-wallet-address")
+    const userAddress = requestHeaders.get("x-user-address")
+
+    // Bridge old/new auth headers so all API routes behave consistently
+    if (walletAddress && !userAddress) {
+      requestHeaders.set("x-user-address", walletAddress)
+    }
+    if (userAddress && !walletAddress) {
+      requestHeaders.set("x-wallet-address", userAddress)
+    }
+  }
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown"
   const path = request.nextUrl.pathname
 
@@ -73,7 +88,7 @@ export function middleware(request: NextRequest) {
       response.headers.set("Access-Control-Allow-Origin", origin)
     }
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-wallet-address, x-api-key")
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-wallet-address, x-user-address, x-test-mode, x-api-key")
     response.headers.set("Access-Control-Max-Age", "86400")
 
     // Handle preflight

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scheduledPaymentService } from '@/lib/services/scheduled-payment-service';
 import type { ScheduleType } from '@/types/scheduled-payment';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -13,7 +14,7 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(
@@ -124,7 +125,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(
@@ -191,7 +192,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(

@@ -6,7 +6,6 @@
  */
 
 import { getClient } from "@/lib/prisma"
-import { Decimal } from "@prisma/client/runtime/library"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -64,12 +63,11 @@ export async function assessTransaction(
   params: AssessTransactionParams
 ): Promise<RiskAssessmentResult> {
   const prisma = getClient()
-  const amount = new Decimal(params.amount.toString())
+  const amountNum = parseFloat(params.amount.toString())
   const factors: RiskFactor[] = []
 
   // Factor 1: Amount-based risk
   const largeThreshold = LARGE_AMOUNT_USD[params.token] ?? LARGE_AMOUNT_USD.DEFAULT
-  const amountNum = amount.toNumber()
   if (amountNum > largeThreshold * 10) {
     factors.push({
       name: "very_large_amount",
@@ -228,7 +226,7 @@ export async function assessTransaction(
       reference_id: params.referenceId,
       user_address: params.userAddress,
       recipient: params.recipient,
-      amount: new Decimal(params.amount.toString()),
+      amount: parseFloat(params.amount.toString()),
       token: params.token,
       chain: params.chain,
       risk_score: riskScore,

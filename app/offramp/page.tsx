@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { useDemo } from "@/contexts/demo-context"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -61,6 +63,7 @@ type Step = "configure" | "review" | "processing" | "complete"
 
 export default function OfframpPage() {
   const { isConnected, address: wallet } = useUnifiedWallet()
+  const { isDemoMode } = useDemo()
   const [step, setStep] = useState<Step>("configure")
   const [loading, setLoading] = useState(false)
   const [amount, setAmount] = useState("")
@@ -82,7 +85,7 @@ export default function OfframpPage() {
     try {
       const response = await fetch("/api/offramp/quote", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(wallet, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify({
           amount,
           sourceToken,
@@ -118,7 +121,7 @@ export default function OfframpPage() {
     try {
       const response = await fetch("/api/offramp/execute", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(wallet, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify({
           quoteId: quote.id,
           provider: quote.provider,

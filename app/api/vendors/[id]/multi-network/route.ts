@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { getVendorWithAddresses } from "@/lib/services/vendor-multi-network.service"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 /**
  * GET /api/vendors/:id/multi-network
@@ -16,7 +17,7 @@ export async function GET(
 ) {
   const { id } = await params
   try {
-    const ownerAddress = req.headers.get("x-user-address")
+    const ownerAddress = await getAuthenticatedAddress(req)
 
     if (!ownerAddress) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

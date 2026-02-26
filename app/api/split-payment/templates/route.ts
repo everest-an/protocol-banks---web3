@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { splitPaymentService } from '@/lib/services/split-payment-service';
 import { validateSplitRecipients } from '@/types/split-payment';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 /**
  * GET /api/split-payment/templates
@@ -8,7 +9,7 @@ import { validateSplitRecipients } from '@/types/split-payment';
  */
 export async function GET(request: NextRequest) {
   try {
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(

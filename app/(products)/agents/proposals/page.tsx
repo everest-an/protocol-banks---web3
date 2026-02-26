@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { Button } from "@/components/ui/button"
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
@@ -58,7 +59,7 @@ export default function ProposalsPage() {
     try {
       const response = await fetch(`/api/agents/proposals/${proposalId}/approve`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ owner_address: address }),
       })
 
@@ -81,7 +82,7 @@ export default function ProposalsPage() {
     try {
       const response = await fetch(`/api/agents/proposals/${proposalId}/reject`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ owner_address: address }),
       })
 

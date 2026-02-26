@@ -40,7 +40,8 @@ setInterval(() => {
 export function createRateLimiter(config: RateLimitConfig) {
   return {
     check(request: NextRequest): { error: NextResponse | null; remaining: number } {
-      const identifier = request.headers.get('x-user-address')
+      const identifier = request.headers.get('x-wallet-address')
+        || request.headers.get('x-user-address')
         || request.headers.get('x-forwarded-for')
         || 'anonymous'
 

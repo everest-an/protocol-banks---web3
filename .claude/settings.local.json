@@ -65,7 +65,9 @@
       "WebFetch(domain:protocolbanks.vercel.app)",
       "WebFetch(domain:v0-protocol-banks.vercel.app)",
       "WebFetch(domain:protocol-bank-k3t3gt2d2-everest-ans-projects.vercel.app)",
-      "Read(//e//**)"
+      "Read(//e//**)",
+      "WebFetch(domain:developers.circle.com)",
+      "WebFetch(domain:hashkey.blockscout.com)"
     ]
   }
 }

@@ -10,7 +10,6 @@
  */
 
 import { getClient } from "@/lib/prisma"
-import { Decimal } from "@prisma/client/runtime/library"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -84,7 +83,7 @@ export async function createCrossChainTransaction(
       provider: params.provider,
       source_chain: params.sourceChain,
       source_token: params.sourceToken,
-      source_amount: new Decimal(params.sourceAmount.toString()),
+      source_amount: parseFloat(params.sourceAmount.toString()),
       dest_chain: params.destChain,
       dest_token: params.destToken,
       recipient_address: params.recipientAddress,
@@ -152,7 +151,7 @@ export async function transitionState(
     updateData.dest_tx_hash = details.destTxHash
   }
   if (details?.destAmount) {
-    updateData.dest_amount = new Decimal(details.destAmount as string)
+    updateData.dest_amount = parseFloat(details.destAmount as string)
   }
   if (details?.errorMessage) {
     updateData.error_message = details.errorMessage

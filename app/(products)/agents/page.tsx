@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { Bot, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle, Settings, Pause, Play, Activity } from "lucide-react"
 import Link from "next/link"
 
@@ -201,7 +202,7 @@ export default function AgentsPage() {
     try {
       const response = await fetch('/api/agents', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           name: agentName,
           description: agentDescription,
@@ -254,7 +255,7 @@ export default function AgentsPage() {
     try {
       const response = await fetch(`/api/agents/${selectedAgent.id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ owner_address: address }),
       })
 
@@ -290,7 +291,7 @@ export default function AgentsPage() {
     try {
       const response = await fetch(`/api/agents/${agent.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           owner_address: address,
           status: newStatus
@@ -322,7 +323,7 @@ export default function AgentsPage() {
     try {
       const response = await fetch('/api/agents/pause-all', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ owner_address: address }),
       })
 

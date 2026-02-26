@@ -406,7 +406,7 @@ NEXT_PUBLIC_TRON_NETWORK="mainnet"  # or "nile"
 ```typescript
 // Auto-routed via unified payment service
 POST /api/payments
-Headers: { "x-user-address": "YOUR_ADDRESS" }
+Headers: { "x-wallet-address": "YOUR_ADDRESS" }
 Body: {
   "from_address": "YOUR_TRON_ADDRESS",
   "to_address": "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE",
@@ -421,7 +421,7 @@ Body: {
 **Query Payments by Network:**
 ```typescript
 GET /api/payments?network=tron&network_type=TRON&status=completed
-Headers: { "x-user-address": "YOUR_ADDRESS" }
+Headers: { "x-wallet-address": "YOUR_ADDRESS" }
 ```
 
 ### 5.2 Vendor APIs
@@ -429,7 +429,7 @@ Headers: { "x-user-address": "YOUR_ADDRESS" }
 **Create Multi-Network Vendor:**
 ```typescript
 POST /api/vendors/multi-network
-Headers: { "x-user-address": "YOUR_ADDRESS" }
+Headers: { "x-wallet-address": "YOUR_ADDRESS" }
 Body: {
   "name": "Test Vendor",
   "addresses": [
@@ -702,7 +702,7 @@ cd services/payout-engine && go test -v ./internal/service/
 ### 10.2 Data Security
 
 - Row-Level Security (RLS) isolates merchant data
-- API authentication via `x-user-address` header + JWT
+- API authentication via `x-wallet-address` header + JWT
 - Webhook signatures: HMAC-SHA256
 - All API endpoints enforce HTTPS
 

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 interface RiskAssessment {
   id: string
@@ -84,10 +85,10 @@ export default function RiskReviewPage() {
     try {
       const [riskRes, settlementRes] = await Promise.all([
         fetch("/api/risk?view=history&limit=50", {
-          headers: { "x-user-address": adminAddress },
+          headers: authHeaders(adminAddress),
         }),
         fetch("/api/settlements?status=discrepancy_found&limit=50", {
-          headers: { "x-user-address": adminAddress },
+          headers: authHeaders(adminAddress),
         }),
       ])
 
@@ -115,10 +116,7 @@ export default function RiskReviewPage() {
     try {
       const res = await fetch("/api/settlements", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": adminAddress,
-        },
+        headers: authHeaders(adminAddress, { "Content-Type": "application/json" }),
         body: JSON.stringify({ settlementId, notes: resolveNotes }),
       })
       if (res.ok) {

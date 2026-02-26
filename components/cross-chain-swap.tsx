@@ -42,6 +42,7 @@ import {
 } from "@/lib/rango"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useUserType } from "@/contexts/user-type-context"
+import { useDemo } from "@/contexts/demo-context"
 import { toast } from "sonner"
 import Image from "next/image"
 
@@ -62,11 +63,25 @@ export function CrossChainSwap({
 }: CrossChainSwapProps) {
   const { address, signer, isConnected } = useUnifiedWallet()
   const { isWeb2User, translateTerm } = useUserType()
+  const { isDemoMode } = useDemo()
 
   // Keep rango service in sync with the connected wallet
   useEffect(() => {
     rangoService.setWallet(address)
   }, [address])
+
+  // Keep rango service in sync with official TEST badge mode
+  useEffect(() => {
+    rangoService.setTestMode(isDemoMode && !isConnected)
+  }, [isDemoMode, isConnected])
+
+  // Clear stale route data when auth state changes (prevents demo residue after login)
+  useEffect(() => {
+    setRoutes([])
+    setSelectedRoute(null)
+    setRouteId("")
+    setError(null)
+  }, [address, isConnected])
 
   // Chain & Token Selection
   const [fromChain, setFromChain] = useState<string>(defaultFromChain)
@@ -142,9 +157,12 @@ export function CrossChainSwap({
     if (!inputAmount || Number.parseFloat(inputAmount) <= 0 || !fromToken || !toToken) {
       setRoutes([])
       setSelectedRoute(null)
+      setRouteId("")
       setError(null)
       return
     }
+
+    let cancelled = false
 
     const fetchRoutes = async () => {
       setIsLoadingRoutes(true)
@@ -169,24 +187,36 @@ export function CrossChainSwap({
           slippage,
         )
 
+        if (cancelled) return
+
         setRoutes(fetchedRoutes)
         setRouteId(fetchedRouteId)
 
         // Auto-select best route
         if (fetchedRoutes.length > 0) {
           setSelectedRoute(fetchedRoutes[0])
+        } else {
+          setSelectedRoute(null)
         }
       } catch (err) {
+        if (cancelled) return
         setError(err instanceof Error ? err.message : "Failed to get routes")
         setRoutes([])
+        setSelectedRoute(null)
+        setRouteId("")
       } finally {
-        setIsLoadingRoutes(false)
+        if (!cancelled) {
+          setIsLoadingRoutes(false)
+        }
       }
     }
 
     const timer = setTimeout(fetchRoutes, 500)
-    return () => clearTimeout(timer)
-  }, [inputAmount, fromChain, toChain, fromToken, toToken, slippage])
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [inputAmount, fromChain, toChain, fromToken, toToken, slippage, address, isConnected])
 
   // Swap chains
   const handleSwapChains = useCallback(() => {

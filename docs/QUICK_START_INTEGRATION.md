@@ -9,13 +9,15 @@
 1. Sign in at `https://app.protocolbanks.com`
 2. Go to **Settings > API Keys**
 3. Click **Create API Key**, name it (e.g., "Production")
-4. Copy the key — you will not see it again
+4. Copy the key �?you will not see it again
 
 ```bash
 # Your API key looks like: pb_live_abc123...
 export PB_API_KEY="pb_live_abc123..."
 export PB_WALLET="0xYourWalletAddress"
 ```
+
+Use `x-wallet-address` for authenticated API calls (legacy `x-user-address` remains accepted for backward compatibility).
 
 ---
 
@@ -26,7 +28,7 @@ export PB_WALLET="0xYourWalletAddress"
 ```bash
 curl -X POST https://app.protocolbanks.com/api/invoice \
   -H "Content-Type: application/json" \
-  -H "x-user-address: $PB_WALLET" \
+  -H "x-wallet-address: $PB_WALLET" \
   -d '{
     "amount": 25.00,
     "token": "USDC",
@@ -51,7 +53,7 @@ curl -X POST https://app.protocolbanks.com/api/invoice \
 }
 ```
 
-Share `payment_url` with your customer — they can pay with any supported wallet.
+Share `payment_url` with your customer �?they can pay with any supported wallet.
 
 ---
 
@@ -62,7 +64,7 @@ Get notified when a payment is completed:
 ```bash
 curl -X POST https://app.protocolbanks.com/api/webhooks \
   -H "Content-Type: application/json" \
-  -H "x-user-address: $PB_WALLET" \
+  -H "x-wallet-address: $PB_WALLET" \
   -d '{
     "name": "Payment Notifications",
     "url": "https://your-server.com/webhooks/protocol-banks",
@@ -118,7 +120,7 @@ After receiving a webhook, verify the payment on-chain:
 ```bash
 curl -X POST https://app.protocolbanks.com/api/verify-payment \
   -H "Content-Type: application/json" \
-  -H "x-user-address: $PB_WALLET" \
+  -H "x-wallet-address: $PB_WALLET" \
   -d '{
     "txHash": "0xabc123...",
     "orderId": "order_456",
@@ -144,21 +146,21 @@ curl -X POST https://app.protocolbanks.com/api/verify-payment \
 
 ```bash
 curl "https://app.protocolbanks.com/api/payments?status=completed&limit=10" \
-  -H "x-user-address: $PB_WALLET"
+  -H "x-wallet-address: $PB_WALLET"
 ```
 
 ### Analytics Summary
 
 ```bash
 curl "https://app.protocolbanks.com/api/analytics/summary" \
-  -H "x-user-address: $PB_WALLET"
+  -H "x-wallet-address: $PB_WALLET"
 ```
 
 ### Auto-Yield Balance (Earn interest on idle funds)
 
 ```bash
 curl "https://app.protocolbanks.com/api/yield/balance?merchant=$PB_WALLET&summary=true" \
-  -H "x-user-address: $PB_WALLET"
+  -H "x-wallet-address: $PB_WALLET"
 ```
 
 ---
@@ -188,7 +190,7 @@ All errors follow a consistent format:
 | Status Code | Meaning |
 |-------------|---------|
 | 400 | Invalid input (check your parameters) |
-| 401 | Missing or invalid `x-user-address` header |
+| 401 | Missing or invalid `x-wallet-address` header |
 | 404 | Resource not found |
 | 409 | Conflict (duplicate resource) |
 | 429 | Rate limit exceeded (check `Retry-After` header) |
@@ -209,7 +211,7 @@ const res = await fetch(`${PB_API}/invoice`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-user-address': WALLET,
+    'x-wallet-address': WALLET,
   },
   body: JSON.stringify({
     amount: 50.0,
@@ -231,7 +233,7 @@ PB_API = "https://app.protocolbanks.com/api"
 WALLET = "0xYourAddress"
 HEADERS = {
     "Content-Type": "application/json",
-    "x-user-address": WALLET,
+    "x-wallet-address": WALLET,
 }
 
 # Create invoice

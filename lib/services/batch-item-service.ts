@@ -6,7 +6,6 @@
  */
 
 import { getClient } from "@/lib/prisma"
-import { Decimal } from "@prisma/client/runtime/library"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -51,7 +50,7 @@ export async function createBatchItems(params: CreateBatchItemsParams) {
     batch_id: params.batchId,
     index,
     recipient: item.recipient,
-    amount: new Decimal(item.amount.toString()),
+    amount: parseFloat(item.amount.toString()),
     token: item.token,
     chain: item.chain,
     status: "pending" as const,
@@ -77,7 +76,7 @@ export async function updateBatchItem(params: UpdateBatchItemParams) {
   if (params.gasUsed !== undefined) updateData.gas_used = params.gasUsed
   if (params.energyUsed !== undefined) updateData.energy_used = params.energyUsed
   if (params.feeAmount) {
-    updateData.fee_amount = new Decimal(params.feeAmount.toString())
+    updateData.fee_amount = parseFloat(params.feeAmount.toString())
   }
   if (params.ledgerEntryId) updateData.ledger_entry_id = params.ledgerEntryId
 
@@ -118,20 +117,20 @@ export async function getBatchItems(batchId: string) {
     completed: 0,
     failed: 0,
     skipped: 0,
-    totalAmount: new Decimal(0),
-    completedAmount: new Decimal(0),
-    totalFees: new Decimal(0),
+    totalAmount: 0,
+    completedAmount: 0,
+    totalFees: 0,
   }
 
   for (const item of items) {
     summary[item.status as keyof typeof summary] =
       (summary[item.status as keyof typeof summary] as number) + 1
-    summary.totalAmount = summary.totalAmount.plus(item.amount)
+    summary.totalAmount += parseFloat(item.amount.toString())
     if (item.status === "completed") {
-      summary.completedAmount = summary.completedAmount.plus(item.amount)
+      summary.completedAmount += parseFloat(item.amount.toString())
     }
     if (item.fee_amount) {
-      summary.totalFees = summary.totalFees.plus(item.fee_amount)
+      summary.totalFees += parseFloat(item.fee_amount.toString())
     }
   }
 

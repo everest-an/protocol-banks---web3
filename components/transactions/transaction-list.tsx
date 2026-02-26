@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ArrowUpRight, ArrowDownLeft, ExternalLink, Filter } from "lucide-react"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 interface Transaction {
   id: string
@@ -105,9 +106,7 @@ export function TransactionList({ userAddress, initialFilters = {} }: Transactio
       }
 
       const response = await fetch(`/api/payments?${params.toString()}`, {
-        headers: {
-          "x-user-address": userAddress,
-        },
+        headers: authHeaders(userAddress),
       })
 
       const data = await response.json()

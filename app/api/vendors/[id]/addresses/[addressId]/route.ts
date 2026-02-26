@@ -8,6 +8,7 @@ import {
   updateVendorAddress,
   deleteVendorAddress,
 } from "@/lib/services/vendor-multi-network.service"
+import { getAuthenticatedAddress } from "@/lib/api-auth"
 
 /**
  * PATCH /api/vendors/:id/addresses/:addressId
@@ -19,7 +20,7 @@ export async function PATCH(
 ) {
   const { id, addressId } = await params
   try {
-    const ownerAddress = req.headers.get("x-user-address")
+    const ownerAddress = await getAuthenticatedAddress(req)
 
     if (!ownerAddress) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -68,7 +69,7 @@ export async function DELETE(
 ) {
   const { id, addressId } = await params
   try {
-    const ownerAddress = req.headers.get("x-user-address")
+    const ownerAddress = await getAuthenticatedAddress(req)
 
     if (!ownerAddress) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

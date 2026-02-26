@@ -2,7 +2,7 @@
  * API Authentication Middleware
  *
  * Provides reusable authentication for API routes.
- * Validates the x-user-address header and optionally checks API keys.
+ * Validates wallet auth headers and optionally checks API keys.
  *
  * Usage:
  *   const auth = await requireAuth(request)
@@ -25,7 +25,7 @@ export interface AuthError {
 }
 
 /**
- * Require authenticated user via x-user-address header.
+ * Require authenticated user via x-wallet-address (or legacy x-user-address) header.
  * Returns the validated address or an error response.
  */
 export async function requireAuth(
@@ -33,7 +33,7 @@ export async function requireAuth(
   options?: { component?: string }
 ): Promise<AuthResult | AuthError> {
   const component = options?.component || 'api-auth'
-  const rawAddress = request.headers.get('x-user-address')
+  const rawAddress = request.headers.get('x-wallet-address') || request.headers.get('x-user-address')
 
   if (!rawAddress) {
     logger.logSecurityEvent('missing_auth_header', 'medium', {
@@ -45,7 +45,7 @@ export async function requireAuth(
     return {
       address: null,
       error: NextResponse.json(
-        { error: 'Authentication required: x-user-address header is missing' },
+        { error: 'Authentication required: x-wallet-address header is missing' },
         { status: 401 }
       ),
     }
@@ -62,7 +62,7 @@ export async function requireAuth(
     return {
       address: null,
       error: NextResponse.json(
-        { error: 'Invalid x-user-address header: must be a valid wallet address' },
+        { error: 'Invalid wallet address header: must be a valid wallet address' },
         { status: 401 }
       ),
     }

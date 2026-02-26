@@ -20,7 +20,7 @@ async function apiCall(
 ) {
   const headers = {
     'Content-Type': 'application/json',
-    'x-user-address': userAddress,
+    'x-wallet-address': userAddress,
     ...options.headers,
   }
 
@@ -354,7 +354,7 @@ describe('Error Handling', () => {
     const response = await fetch(`${BASE_URL}/api/vendors/multi-network`, {
       headers: {
         'Content-Type': 'application/json',
-        // No x-user-address header
+        // No x-wallet-address header
       },
     })
 

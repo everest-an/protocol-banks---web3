@@ -29,6 +29,7 @@ import {
 import { ALL_NETWORKS } from "@/lib/networks"
 import { validateAddress, detectAddressType } from "@/lib/address-utils"
 import { Trash2, Plus, Edit, Star, StarOff, Check, X } from "lucide-react"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 interface VendorAddress {
   id: string
@@ -115,10 +116,7 @@ export function VendorAddressManager({
 
       const response = await fetch(`/api/vendors/${vendorId}/addresses`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-address": userAddress,
-        },
+        headers: authHeaders(userAddress, { contentType: "application/json" }),
         body: JSON.stringify({
           network: newAddress.network,
           address: validation.checksumAddress || newAddress.address,
@@ -165,10 +163,7 @@ export function VendorAddressManager({
         `/api/vendors/${vendorId}/addresses/${editingAddress.id}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-address": userAddress,
-          },
+          headers: authHeaders(userAddress, { contentType: "application/json" }),
           body: JSON.stringify({
             label: editForm.label.trim() || undefined,
             isPrimary: editForm.isPrimary,
@@ -209,9 +204,7 @@ export function VendorAddressManager({
         `/api/vendors/${vendorId}/addresses/${addressId}`,
         {
           method: "DELETE",
-          headers: {
-            "x-user-address": userAddress,
-          },
+          headers: authHeaders(userAddress),
         }
       )
 

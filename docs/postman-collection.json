@@ -7,7 +7,7 @@
   "auth": {
     "type": "apikey",
     "apikey": [
-      { "key": "key", "value": "x-user-address", "type": "string" },
+      { "key": "key", "value": "x-wallet-address", "type": "string" },
       { "key": "value", "value": "{{wallet_address}}", "type": "string" },
       { "key": "in", "value": "header", "type": "string" }
     ]

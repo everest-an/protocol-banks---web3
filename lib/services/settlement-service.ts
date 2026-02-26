@@ -6,7 +6,6 @@
  */
 
 import { getClient } from "@/lib/prisma"
-import { Decimal } from "@prisma/client/runtime/library"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,11 +78,9 @@ export async function createSettlement(
     _count: true,
   })
 
-  const totalDebits = debits._sum.amount ?? new Decimal(0)
-  const totalCredits = credits._sum.amount ?? new Decimal(0)
-  const netAmount = new Decimal(totalCredits.toString()).minus(
-    totalDebits.toString()
-  )
+  const totalDebits = parseFloat((debits._sum.amount ?? 0).toString())
+  const totalCredits = parseFloat((credits._sum.amount ?? 0).toString())
+  const netAmount = totalCredits - totalDebits
   const entryCount = (debits._count ?? 0) + (credits._count ?? 0)
 
   // 2. Get current ledger balance
@@ -98,22 +95,22 @@ export async function createSettlement(
   })
 
   const ledgerBalance = userBalance
-    ? new Decimal(userBalance.total.toString())
-    : new Decimal(0)
+    ? parseFloat(userBalance.total.toString())
+    : 0
 
   // 3. Calculate discrepancy if on-chain balance provided
-  let discrepancy: Decimal | null = null
+  let discrepancy: number | null = null
   let status: SettlementStatus = "pending"
 
   if (params.onChainBalance !== undefined) {
-    const onChain = new Decimal(params.onChainBalance.toString())
-    discrepancy = onChain.minus(ledgerBalance)
+    const onChain = parseFloat(params.onChainBalance.toString())
+    discrepancy = onChain - ledgerBalance
 
     // Tolerance: allow up to 0.000001 difference (rounding)
-    const tolerance = new Decimal("0.000001")
-    if (discrepancy.abs().lte(tolerance)) {
+    const tolerance = 0.000001
+    if (Math.abs(discrepancy) <= tolerance) {
       status = "reconciled"
-      discrepancy = new Decimal(0)
+      discrepancy = 0
     } else {
       status = "discrepancy_found"
     }
@@ -142,7 +139,7 @@ export async function createSettlement(
       total_credits: totalCredits,
       net_amount: netAmount,
       on_chain_balance: params.onChainBalance
-        ? new Decimal(params.onChainBalance.toString())
+        ? parseFloat(params.onChainBalance.toString())
         : null,
       ledger_balance: ledgerBalance,
       discrepancy,

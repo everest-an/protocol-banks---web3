@@ -3,10 +3,10 @@
 ## Prerequisites
 
 Before testing, ensure:
-1. ✅ Database migration has been run successfully
-2. ✅ Prisma client has been generated (`pnpm prisma generate`)
-3. ✅ Development server is running (`pnpm dev`)
-4. ✅ You have a wallet connected (MetaMask for EVM, TronLink for TRON)
+1. �?Database migration has been run successfully
+2. �?Prisma client has been generated (`pnpm prisma generate`)
+3. �?Development server is running (`pnpm dev`)
+4. �?You have a wallet connected (MetaMask for EVM, TronLink for TRON)
 
 ## Test Environment Setup
 
@@ -46,7 +46,7 @@ pnpm dev
 ```bash
 curl -X POST http://localhost:3000/api/vendors/multi-network \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "name": "Test Multi-Network Vendor",
     "addresses": [
@@ -74,11 +74,11 @@ curl -X POST http://localhost:3000/api/vendors/multi-network \
 ```
 
 **Expected Result:**
-- ✅ Vendor created successfully
-- ✅ All three addresses saved
-- ✅ Each address marked as primary for its network
-- ✅ Network badges displayed correctly
-- ✅ Addresses formatted with proper checksums
+- �?Vendor created successfully
+- �?All three addresses saved
+- �?Each address marked as primary for its network
+- �?Network badges displayed correctly
+- �?Addresses formatted with proper checksums
 
 #### Test 1.2: Add Address to Existing Vendor
 
@@ -95,7 +95,7 @@ curl -X POST http://localhost:3000/api/vendors/multi-network \
 ```bash
 curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "network": "arbitrum",
     "address": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
@@ -105,10 +105,10 @@ curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
 ```
 
 **Expected Result:**
-- ✅ New address added to vendor
-- ✅ Arbitrum network badge appears
-- ✅ Address is marked as primary for Arbitrum
-- ✅ Total address count increased
+- �?New address added to vendor
+- �?Arbitrum network badge appears
+- �?Address is marked as primary for Arbitrum
+- �?Total address count increased
 
 #### Test 1.3: Update Address Label and Primary Status
 
@@ -123,7 +123,7 @@ curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
 ```bash
 curl -X PATCH http://localhost:3000/api/vendors/VENDOR_ID/addresses/ADDRESS_ID \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "label": "Updated label",
     "isPrimary": false
@@ -131,10 +131,10 @@ curl -X PATCH http://localhost:3000/api/vendors/VENDOR_ID/addresses/ADDRESS_ID \
 ```
 
 **Expected Result:**
-- ✅ Label updated successfully
-- ✅ Primary status changed
-- ✅ UI reflects changes immediately
-- ✅ No duplicate primary addresses on same network
+- �?Label updated successfully
+- �?Primary status changed
+- �?UI reflects changes immediately
+- �?No duplicate primary addresses on same network
 
 #### Test 1.4: Delete Address
 
@@ -146,13 +146,13 @@ curl -X PATCH http://localhost:3000/api/vendors/VENDOR_ID/addresses/ADDRESS_ID \
 **Using API:**
 ```bash
 curl -X DELETE http://localhost:3000/api/vendors/VENDOR_ID/addresses/ADDRESS_ID \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 ```
 
 **Expected Result:**
-- ✅ Address removed from list
-- ✅ If deleting primary address, another address becomes primary
-- ✅ Cannot delete last address (error message shown)
+- �?Address removed from list
+- �?If deleting primary address, another address becomes primary
+- �?Cannot delete last address (error message shown)
 
 #### Test 1.5: Network Auto-Detection
 
@@ -162,17 +162,17 @@ curl -X DELETE http://localhost:3000/api/vendors/VENDOR_ID/addresses/ADDRESS_ID 
 3. Observe network dropdown
 
 **Expected Result:**
-- ✅ Network automatically set to "TRON"
-- ✅ Address validated as TRON format
-- ✅ Save button enabled
+- �?Network automatically set to "TRON"
+- �?Address validated as TRON format
+- �?Save button enabled
 
 **Repeat with EVM address:**
 1. Clear and paste: `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2`
 
 **Expected Result:**
-- ✅ Network automatically set to "Ethereum" (default EVM)
-- ✅ Address validated and checksummed
-- ✅ Can manually change to other EVM networks (Base, Arbitrum, etc.)
+- �?Network automatically set to "Ethereum" (default EVM)
+- �?Address validated and checksummed
+- �?Can manually change to other EVM networks (Base, Arbitrum, etc.)
 
 ### 2. Payment Multi-Network Support
 
@@ -182,7 +182,7 @@ curl -X DELETE http://localhost:3000/api/vendors/VENDOR_ID/addresses/ADDRESS_ID 
 ```bash
 curl -X POST http://localhost:3000/api/payments \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "from_address": "YOUR_WALLET_ADDRESS",
     "to_address": "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE",
@@ -196,10 +196,10 @@ curl -X POST http://localhost:3000/api/payments \
 ```
 
 **Expected Result:**
-- ✅ Payment created with `network_type: "TRON"`
-- ✅ `chain` set to "tron"
-- ✅ `chain_id` is null (TRON doesn't use chain IDs)
-- ✅ `energy_used` and `bandwidth_used` saved correctly
+- �?Payment created with `network_type: "TRON"`
+- �?`chain` set to "tron"
+- �?`chain_id` is null (TRON doesn't use chain IDs)
+- �?`energy_used` and `bandwidth_used` saved correctly
 
 #### Test 2.2: Create Payment to EVM Address
 
@@ -207,7 +207,7 @@ curl -X POST http://localhost:3000/api/payments \
 ```bash
 curl -X POST http://localhost:3000/api/payments \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "from_address": "YOUR_WALLET_ADDRESS",
     "to_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2",
@@ -222,10 +222,10 @@ curl -X POST http://localhost:3000/api/payments \
 ```
 
 **Expected Result:**
-- ✅ Payment created with `network_type: "EVM"`
-- ✅ `chain` set to "ethereum"
-- ✅ `chain_id` set to 1
-- ✅ `gas_used` and `gas_price` saved correctly
+- �?Payment created with `network_type: "EVM"`
+- �?`chain` set to "ethereum"
+- �?`chain_id` set to 1
+- �?`gas_used` and `gas_price` saved correctly
 
 #### Test 2.3: Filter Payments by Network
 
@@ -233,33 +233,33 @@ curl -X POST http://localhost:3000/api/payments \
 ```bash
 # Get TRON payments only
 curl -X GET "http://localhost:3000/api/payments?network=tron" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 
 # Get all EVM payments
 curl -X GET "http://localhost:3000/api/payments?network_type=EVM" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 
 # Get Base network payments
 curl -X GET "http://localhost:3000/api/payments?network=base" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 ```
 
 **Expected Result:**
-- ✅ Only payments matching filter are returned
-- ✅ Pagination works correctly
-- ✅ `total` count reflects filtered results
+- �?Only payments matching filter are returned
+- �?Pagination works correctly
+- �?`total` count reflects filtered results
 
 #### Test 2.4: Filter Payments by Status and Date
 
 **Using API:**
 ```bash
 curl -X GET "http://localhost:3000/api/payments?status=completed&start_date=2026-01-01&network_type=TRON" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 ```
 
 **Expected Result:**
-- ✅ Only completed TRON payments after Jan 1, 2026 are returned
-- ✅ Multiple filters work together correctly
+- �?Only completed TRON payments after Jan 1, 2026 are returned
+- �?Multiple filters work together correctly
 
 #### Test 2.5: Get Payment Statistics
 
@@ -267,11 +267,11 @@ curl -X GET "http://localhost:3000/api/payments?status=completed&start_date=2026
 ```bash
 # Overall stats
 curl -X GET "http://localhost:3000/api/payments/stats" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 
 # TRON-only stats
 curl -X GET "http://localhost:3000/api/payments/stats?network_type=TRON" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 ```
 
 **Expected Result:**
@@ -303,7 +303,7 @@ curl -X GET "http://localhost:3000/api/payments/stats?network_type=TRON" \
 ```bash
 curl -X POST http://localhost:3000/api/batch-payment \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "recipients": [
       {"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2", "amount": "10.00"},
@@ -314,10 +314,10 @@ curl -X POST http://localhost:3000/api/batch-payment \
 ```
 
 **Expected Result:**
-- ✅ Batch created successfully
-- ✅ Network auto-detected as "ethereum" from first recipient
-- ✅ `network_type` set to "EVM"
-- ✅ `chain_id` set correctly
+- �?Batch created successfully
+- �?Network auto-detected as "ethereum" from first recipient
+- �?`network_type` set to "EVM"
+- �?`chain_id` set correctly
 
 #### Test 3.2: Create TRON Batch Payment
 
@@ -325,7 +325,7 @@ curl -X POST http://localhost:3000/api/batch-payment \
 ```bash
 curl -X POST http://localhost:3000/api/batch-payment \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "recipients": [
       {"address": "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE", "amount": "50.00"},
@@ -336,22 +336,22 @@ curl -X POST http://localhost:3000/api/batch-payment \
 ```
 
 **Expected Result:**
-- ✅ Batch created for TRON network
-- ✅ `network_type` set to "TRON"
-- ✅ `chain` set to "tron"
-- ✅ `chain_id` is null
+- �?Batch created for TRON network
+- �?`network_type` set to "TRON"
+- �?`chain` set to "tron"
+- �?`chain_id` is null
 
 #### Test 3.3: Filter Batches by Network
 
 **Using API:**
 ```bash
 curl -X GET "http://localhost:3000/api/batch-payment?network=tron" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 ```
 
 **Expected Result:**
-- ✅ Only TRON batches returned
-- ✅ Batch count accurate
+- �?Only TRON batches returned
+- �?Batch count accurate
 
 ### 4. UI Component Testing
 
@@ -368,11 +368,11 @@ curl -X GET "http://localhost:3000/api/batch-payment?network=tron" \
 4. Verify all operations work smoothly
 
 **Expected Behavior:**
-- ✅ Dialogs open/close correctly
-- ✅ Forms validate input
-- ✅ Error messages display for invalid addresses
-- ✅ Success feedback after operations
-- ✅ List updates immediately after changes
+- �?Dialogs open/close correctly
+- �?Forms validate input
+- �?Error messages display for invalid addresses
+- �?Success feedback after operations
+- �?List updates immediately after changes
 
 #### Test 4.2: TransactionList Component
 
@@ -385,11 +385,11 @@ curl -X GET "http://localhost:3000/api/batch-payment?network=tron" \
 3. Verify results update
 
 **Expected Behavior:**
-- ✅ Filters apply correctly
-- ✅ Network badges show correct colors
-- ✅ Gas/Energy fields display based on network type
-- ✅ Block explorer links work
-- ✅ Pagination loads more results
+- �?Filters apply correctly
+- �?Network badges show correct colors
+- �?Gas/Energy fields display based on network type
+- �?Block explorer links work
+- �?Pagination loads more results
 
 #### Test 4.3: NetworkSelector Component
 
@@ -400,10 +400,10 @@ curl -X GET "http://localhost:3000/api/batch-payment?network=tron" \
 4. Select different networks
 
 **Expected Behavior:**
-- ✅ All networks listed (Ethereum, TRON, Base, Arbitrum, BSC)
-- ✅ Network badges display in dropdown
-- ✅ Selection updates parent component
-- ✅ "All Networks" option appears if includeAll=true
+- �?All networks listed (Ethereum, TRON, Base, Arbitrum, BSC)
+- �?Network badges display in dropdown
+- �?Selection updates parent component
+- �?"All Networks" option appears if includeAll=true
 
 ### 5. Edge Cases and Error Handling
 
@@ -413,7 +413,7 @@ curl -X GET "http://localhost:3000/api/batch-payment?network=tron" \
 ```bash
 curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "network": "ethereum",
     "address": "invalid-address",
@@ -422,9 +422,9 @@ curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
 ```
 
 **Expected Result:**
-- ✅ Returns 400 error
-- ✅ Error message: "Invalid address: ..."
-- ✅ No database changes
+- �?Returns 400 error
+- �?Error message: "Invalid address: ..."
+- �?No database changes
 
 #### Test 5.2: Duplicate Network Address
 
@@ -433,7 +433,7 @@ curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
 # Add address on network that already has one
 curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
   -H "Content-Type: application/json" \
-  -H "x-user-address: YOUR_WALLET_ADDRESS" \
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS" \
   -d '{
     "network": "ethereum",
     "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2",
@@ -442,9 +442,9 @@ curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
 ```
 
 **Expected Result:**
-- ✅ Returns 409 error
-- ✅ Error message: "Address already exists for this network"
-- ✅ No duplicate created
+- �?Returns 409 error
+- �?Error message: "Address already exists for this network"
+- �?No duplicate created
 
 #### Test 5.3: Delete Last Address
 
@@ -452,13 +452,13 @@ curl -X POST http://localhost:3000/api/vendors/VENDOR_ID/addresses \
 ```bash
 # Try to delete vendor's only address
 curl -X DELETE http://localhost:3000/api/vendors/VENDOR_ID/addresses/LAST_ADDRESS_ID \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 ```
 
 **Expected Result:**
-- ✅ Returns 400 error
-- ✅ Error message: "Cannot delete the last address"
-- ✅ Address not deleted
+- �?Returns 400 error
+- �?Error message: "Cannot delete the last address"
+- �?Address not deleted
 
 #### Test 5.4: Unauthorized Access
 
@@ -466,13 +466,13 @@ curl -X DELETE http://localhost:3000/api/vendors/VENDOR_ID/addresses/LAST_ADDRES
 ```bash
 # Try to access another user's vendor
 curl -X GET http://localhost:3000/api/vendors/OTHER_USER_VENDOR_ID/addresses \
-  -H "x-user-address: YOUR_WALLET_ADDRESS"
+  -H "x-wallet-address: YOUR_WALLET_ADDRESS"
 ```
 
 **Expected Result:**
-- ✅ Returns 401 or 403 error
-- ✅ No data leaked
-- ✅ RLS policies working
+- �?Returns 401 or 403 error
+- �?No data leaked
+- �?RLS policies working
 
 ### 6. Performance Testing
 
@@ -484,9 +484,9 @@ curl -X GET http://localhost:3000/api/vendors/OTHER_USER_VENDOR_ID/addresses \
 3. Measure load time
 
 **Expected Result:**
-- ✅ Page loads in < 2 seconds
-- ✅ All addresses render correctly
-- ✅ No UI lag or jank
+- �?Page loads in < 2 seconds
+- �?All addresses render correctly
+- �?No UI lag or jank
 
 #### Test 6.2: Filter Large Transaction List
 
@@ -496,9 +496,9 @@ curl -X GET http://localhost:3000/api/vendors/OTHER_USER_VENDOR_ID/addresses \
 3. Measure response time
 
 **Expected Result:**
-- ✅ API responds in < 1 second
-- ✅ Database indexes being used (check query plan)
-- ✅ Pagination works efficiently
+- �?API responds in < 1 second
+- �?Database indexes being used (check query plan)
+- �?Pagination works efficiently
 
 ## Automated Testing
 
@@ -526,7 +526,7 @@ describe("Vendor Multi-Network API", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-user-address": testAddress,
+        "x-wallet-address": testAddress,
       },
       body: JSON.stringify({
         name: "Test Vendor",
@@ -598,7 +598,8 @@ pnpm prisma generate
 ### Issue: "RLS policies blocking queries"
 
 **Solution:**
-- Ensure `x-user-address` header is set
+- Ensure `x-wallet-address` header is set
+- Legacy `x-user-address` is accepted for backward compatibility
 - Check if current user owns the vendor
 - Review RLS policies in migration script
 

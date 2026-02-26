@@ -173,7 +173,7 @@ export class ProtocolBanks {
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${this.baseUrl}${path}`
     const headers: Record<string, string> = {
-      'x-user-address': this.walletAddress,
+      'x-wallet-address': this.walletAddress,
     }
     if (this.apiKey) {
       headers['x-api-key'] = this.apiKey
@@ -206,7 +206,7 @@ export class ProtocolBanks {
     }
   }
 
-  /** Quick health check â€” no auth required */
+  /** Quick health check â€?no auth required */
   async health(): Promise<{ status: string; timestamp: string }> {
     const res = await fetch(`${this.baseUrl}/health`)
     return res.json()

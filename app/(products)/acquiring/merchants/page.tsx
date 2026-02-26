@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Copy, CheckCircle2, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDemo } from "@/contexts/demo-context";
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet";
+import { authHeaders } from "@/lib/authenticated-fetch";
 import type { Merchant } from "@/types/acquiring";
 
 // Demo merchants shown when no wallet is connected
@@ -57,6 +59,7 @@ const DEMO_MERCHANTS: Merchant[] = [
 
 export default function MerchantsPage() {
   const { isDemoMode } = useDemo();
+  const { address } = useUnifiedWallet();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -86,7 +89,9 @@ export default function MerchantsPage() {
 
   const loadMerchants = async () => {
     try {
-      const res = await fetch("/api/acquiring/merchants");
+      const res = await fetch("/api/acquiring/merchants", {
+        headers: authHeaders(address, undefined, { isDemoMode }),
+      });
       const data = await res.json();
 
       if (data.success) {
@@ -106,7 +111,7 @@ export default function MerchantsPage() {
     try {
       const res = await fetch("/api/acquiring/merchants", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(address, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify(formData),
       });
 

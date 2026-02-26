@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scheduledPaymentService } from '@/lib/services/scheduled-payment-service';
 import type { ScheduleType } from '@/types/scheduled-payment';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 /**
  * GET /api/scheduled-payments
@@ -8,7 +9,7 @@ import type { ScheduleType } from '@/types/scheduled-payment';
  */
 export async function GET(request: NextRequest) {
   try {
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(

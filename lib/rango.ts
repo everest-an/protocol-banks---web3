@@ -425,16 +425,25 @@ export const POPULAR_TOKENS: Record<string, TokenInfo[]> = {
 // Rango API service - uses server-side API route
 class RangoService {
   private _walletAddress: string | null = null
+  private _testMode = false
 
   /** Set the authenticated wallet address for API calls */
   setWallet(address: string | null | undefined) {
     this._walletAddress = address || null
   }
 
+  /** Sync official TEST badge mode to request headers */
+  setTestMode(enabled: boolean) {
+    this._testMode = !!enabled
+  }
+
   private get _headers(): Record<string, string> {
     const h: Record<string, string> = { "Content-Type": "application/json" }
     if (this._walletAddress) {
       h["x-wallet-address"] = this._walletAddress
+    }
+    if (this._testMode) {
+      h["x-test-mode"] = "true"
     }
     return h
   }

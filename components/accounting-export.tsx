@@ -15,6 +15,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Download, FileSpreadsheet, FileText, Calendar } from "lucide-react"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 interface AccountingExportProps {
   userAddress: string
@@ -47,7 +48,7 @@ export function AccountingExport({ userAddress }: AccountingExportProps) {
       })
 
       const response = await fetch(`/api/reports/accounting?${params}`, {
-        headers: { "x-user-address": userAddress },
+        headers: authHeaders(userAddress),
       })
 
       if (!response.ok) {

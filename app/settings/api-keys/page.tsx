@@ -29,8 +29,31 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { apiKeyService, API_PERMISSIONS, type ApiKey } from "@/lib/security/api-keys"
 import { Key, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle } from "lucide-react"
+
+// Client-safe types and constants (avoid importing server-only lib/security/api-keys)
+interface ApiKey {
+  id: string
+  name: string
+  key_prefix: string
+  owner_address: string
+  permissions: string[]
+  rate_limit_per_minute: number
+  rate_limit_per_day: number
+  usage_count: number
+  is_active: boolean
+  created_at: string
+}
+
+const API_PERMISSIONS = [
+  "read",
+  "write",
+  "payments.create",
+  "payments.read",
+  "vendors.manage",
+  "analytics.read",
+  "webhooks.manage",
+] as const
 
 export default function ApiKeysPage() {
   const { address } = useUnifiedWallet()
@@ -60,8 +83,13 @@ export default function ApiKeysPage() {
     if (!address) return
     setLoading(true)
     try {
-      const keys = await apiKeyService.getApiKeys(address)
-      setApiKeys(keys)
+      const res = await fetch("/api/settings/api-keys", {
+        headers: { "x-wallet-address": address },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setApiKeys(data.keys ?? [])
+      }
     } catch (error) {
       console.error("Failed to load API keys:", error)
     } finally {
@@ -73,25 +101,35 @@ export default function ApiKeysPage() {
     if (!address || !keyName) return
 
     try {
-      const result = await apiKeyService.createApiKey({
-        name: keyName,
-        ownerAddress: address,
-        permissions: selectedPermissions,
-        rateLimitPerMinute: rateLimitMinute,
-        rateLimitPerDay: rateLimitDay,
-        expiresInDays,
+      const res = await fetch("/api/settings/api-keys", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-wallet-address": address,
+        },
+        body: JSON.stringify({
+          name: keyName,
+          permissions: selectedPermissions,
+          rate_limit_per_minute: rateLimitMinute,
+          rate_limit_per_day: rateLimitDay,
+          expires_at: expiresInDays
+            ? new Date(Date.now() + expiresInDays * 86400000).toISOString()
+            : undefined,
+        }),
       })
-
-      setNewSecretKey(result.secretKey)
-      setApiKeys((prev) => [result.apiKey, ...prev])
-      toast({
-        title: "API Key Created",
-        description: "Make sure to copy your secret key now. It won't be shown again.",
-      })
-
-      // Reset form but keep dialog open to show secret
-      setKeyName("")
-      setSelectedPermissions(["read"])
+      const data = await res.json()
+      if (res.ok) {
+        setNewSecretKey(data.secret)
+        setApiKeys((prev) => [{ ...data.key, usage_count: 0, is_active: true } as ApiKey, ...prev])
+        toast({
+          title: "API Key Created",
+          description: "Make sure to copy your secret key now. It won't be shown again.",
+        })
+        setKeyName("")
+        setSelectedPermissions(["read"])
+      } else {
+        throw new Error(data.message || "Failed to create API key")
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -105,7 +143,10 @@ export default function ApiKeysPage() {
     if (!address || !selectedKey) return
 
     try {
-      await apiKeyService.deleteApiKey(selectedKey.id, address)
+      await fetch(`/api/settings/api-keys/${selectedKey.id}`, {
+        method: "DELETE",
+        headers: { "x-wallet-address": address },
+      })
       setApiKeys((prev) => prev.filter((k) => k.id !== selectedKey.id))
       toast({ title: "API Key Deleted" })
     } catch (error) {

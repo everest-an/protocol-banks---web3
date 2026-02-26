@@ -11,7 +11,7 @@
 import { getClient } from "@/lib/prisma"
 import { createPublicClient, http, formatUnits, defineChain, type Address, type Chain } from "viem"
 import { mainnet, polygon, arbitrum, base, optimism, bsc } from "viem/chains"
-import { Decimal } from "@prisma/client/runtime/library"
+
 import {
   EVM_NETWORKS,
   TRON_NETWORKS,
@@ -324,7 +324,7 @@ export async function syncUserBalances(
 
   for (const ob of onChainBalances) {
     try {
-      const onChainAmount = new Decimal(ob.balance)
+      const onChainAmount = parseFloat(ob.balance)
       syncedChains.add(ob.chain)
 
       // Upsert the balance record
@@ -340,8 +340,8 @@ export async function syncUserBalances(
 
       if (existing) {
         // Preserve locked amount, recalculate available
-        const locked = new Decimal(existing.locked.toString())
-        const newAvailable = Decimal.max(onChainAmount.minus(locked), new Decimal(0))
+        const locked = parseFloat(existing.locked.toString())
+        const newAvailable = Math.max(onChainAmount - locked, 0)
 
         await prisma.userBalance.update({
           where: {

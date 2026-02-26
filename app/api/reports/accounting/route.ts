@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exportService } from '@/lib/services/export-service';
 import type { ExportFormat } from '@/lib/services/export-service';
+import { getAuthenticatedAddress } from '@/lib/api-auth';
 
 /**
  * GET /api/reports/accounting
@@ -13,7 +14,7 @@ import type { ExportFormat } from '@/lib/services/export-service';
  */
 export async function GET(request: NextRequest) {
   try {
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(
@@ -101,7 +102,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const userAddress = request.headers.get('x-user-address');
+    const userAddress = await getAuthenticatedAddress(request);
 
     if (!userAddress) {
       return NextResponse.json(

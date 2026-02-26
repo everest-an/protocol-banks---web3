@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { Button } from "@/components/ui/button"
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Input } from "@/components/ui/input"
@@ -127,7 +128,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     try {
       const response = await fetch(`/api/agents/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           owner_address: address,
           name,
@@ -162,7 +163,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     try {
       const response = await fetch(`/api/agents/${id}/budgets`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           owner_address: address,
           token_symbol: newBudgetToken,
@@ -191,7 +192,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     try {
       const response = await fetch(`/api/agents/${id}/budgets/${budgetId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ owner_address: address }),
       })
 

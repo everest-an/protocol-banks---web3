@@ -73,7 +73,7 @@ const prismaClientSingleton = async () => {
 // Use a sync wrapper that initializes once
 let clientPromise: Promise<PrismaClient> | null = null
 
-function getClient(): PrismaClient {
+export function getClient(): PrismaClient {
   // If already resolved, return the cached client
   if (globalForPrisma.prisma) {
     return globalForPrisma.prisma

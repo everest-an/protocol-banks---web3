@@ -1,4 +1,4 @@
-# Protocol Banks â€” Security Audit Report
+# Protocol Banks â€?Security Audit Report
 
 **Date:** 2026-02-09
 **Scope:** Full codebase audit (TypeScript + Go + Solidity)
@@ -28,22 +28,22 @@
 **Impact:** Complete compromise of all infrastructure
 
 Exposed secrets:
-- `DEPLOYER_PRIVATE_KEY` â€” 64-char hex EVM private key (controls all deployed contracts)
-- `DEPLOYER_MNEMONIC` â€” 12-word BIP39 mnemonic (derives unlimited accounts)
-- `REDIS_URL` â€” Full connection string with password to cloud Redis
-- `RANGO_API_KEY` â€” DEX swap API key
-- `DATABASE_URL` â€” Base64-encoded PostgreSQL credentials (`postgres:postgres`, SSL disabled)
+- `DEPLOYER_PRIVATE_KEY` â€?64-char hex EVM private key (controls all deployed contracts)
+- `DEPLOYER_MNEMONIC` â€?12-word BIP39 mnemonic (derives unlimited accounts)
+- `REDIS_URL` â€?Full connection string with password to cloud Redis
+- `RANGO_API_KEY` â€?DEX swap API key
+- `DATABASE_URL` â€?Base64-encoded PostgreSQL credentials (`postgres:postgres`, SSL disabled)
 
 **Remediation:**
 1. **TODAY:** Rotate ALL exposed credentials (Redis, Rango, DB password)
-2. **TODAY:** Assume deployer key/mnemonic compromised â€” migrate contracts & funds to new wallet
+2. **TODAY:** Assume deployer key/mnemonic compromised â€?migrate contracts & funds to new wallet
 3. Remove `.env` from git history: `git filter-branch --tree-filter 'rm -f .env'`
 4. Use Vercel Secrets / HashiCorp Vault for production
 5. Add `.env` to `.gitignore` (verify it's not tracked)
 
 ---
 
-### C-02: Admin panel â€” client-side only authentication
+### C-02: Admin panel â€?client-side only authentication
 
 **Files:** `app/admin/page.tsx`, `app/admin/fees/page.tsx`, `app/admin/contracts/page.tsx`, `app/admin/domains/page.tsx`
 **Impact:** Any user can access admin functions (fee config, contract deployment, domain whitelisting)
@@ -57,13 +57,13 @@ Exposed secrets:
 
 ---
 
-### C-03: Audit log GET â€” no authentication, no user isolation
+### C-03: Audit log GET â€?no authentication, no user isolation
 
 **File:** `app/api/audit-log/route.ts` lines 61-100
 **Impact:** Any unauthenticated client can query ALL audit logs for ANY wallet address
 
 ```
-GET /api/audit-log?actor=0x[any_address]  â†’  Returns complete activity history
+GET /api/audit-log?actor=0x[any_address]  â†? Returns complete activity history
 ```
 
 POST handler has auth, but GET handler has none.
@@ -72,13 +72,13 @@ POST handler has auth, but GET handler has none.
 
 ---
 
-### C-04: Accounting reports â€” header-only auth (spoofable)
+### C-04: Accounting reports â€?header-only auth (spoofable)
 
 **File:** `app/api/reports/accounting/route.ts` lines 14-23
 **Impact:** Financial data leakage for any user via header spoofing
 
 ```bash
-curl -H "x-user-address: 0x[victim]" /api/reports/accounting?format=csv
+curl -H "x-wallet-address: 0x[victim]" /api/reports/accounting?format=csv
 ```
 
 Uses raw header check instead of `requireAuth()` middleware.
@@ -87,10 +87,10 @@ Uses raw header check instead of `requireAuth()` middleware.
 
 ---
 
-### C-05: X.402 verify â€” unauthenticated + no on-chain verification
+### C-05: X.402 verify â€?unauthenticated + no on-chain verification
 
 **File:** `app/api/x402/verify/route.ts` lines 24-132
-**Impact:** Payment fraud â€” anyone can mark any payment as verified with a fake txHash
+**Impact:** Payment fraud â€?anyone can mark any payment as verified with a fake txHash
 
 - No authentication required
 - Accepts any 0x-prefixed 64-char hex as valid txHash
@@ -117,16 +117,16 @@ Uses raw header check instead of `requireAuth()` middleware.
 **File:** `app/api/webhooks/verify/route.ts` lines 44-45, 72-78
 **Impact:** Authentication bypass vector via error message differentiation
 
-Response distinguishes "payload tampered" vs "secret incorrect" â€” enables secret enumeration.
+Response distinguishes "payload tampered" vs "secret incorrect" â€?enables secret enumeration.
 
 **Remediation:** Return uniform error message regardless of failure reason.
 
 ---
 
-### C-08: `getAuthenticatedAddress()` â€” no signature verification
+### C-08: `getAuthenticatedAddress()` â€?no signature verification
 
 **File:** `lib/api-auth.ts` lines 23-37
-**Impact:** Identity spoofing â€” any client can impersonate any wallet
+**Impact:** Identity spoofing â€?any client can impersonate any wallet
 
 ```typescript
 const walletHeader = request.headers.get('x-wallet-address')
@@ -195,7 +195,7 @@ return (num % 1000000).toString().padStart(6, "0")  // Modulo bias
 
 ---
 
-### H-06: Batch payment recipients â€” no type validation
+### H-06: Batch payment recipients â€?no type validation
 
 **File:** `app/api/batch-payment/route.ts` lines 40-48
 **Impact:** `any` type casting, NaN amounts, unsupported tokens accepted
@@ -212,7 +212,7 @@ const items = recipients.map((r: any, idx: number) => ({
 
 ---
 
-### H-07: File upload â€” no type validation
+### H-07: File upload â€?no type validation
 
 **File:** `app/api/batch/upload/route.ts` lines 23-44
 **Impact:** Accepts any file type (`.exe`, `.sh`, `.html`)
@@ -230,7 +230,7 @@ Only checks file size (50MB limit), not extension or MIME type.
 | M-01 | X-Forwarded-For spoofing | `middleware.ts:61` | Rate limit bypass via IP header spoofing |
 | M-02 | In-memory nonce store | `lib/security/security-middleware.ts:121` | Not distributed-system safe; replay attacks across instances |
 | M-03 | Error messages leak internals | `app/api/payments/route.ts:138` + 5 others | `error.message` returned to clients (DB host, table names) |
-| M-04 | MCP subscriptions â€” no Zod validation | `app/api/mcp-subscriptions/route.ts:40` | 8 unvalidated fields directly to Prisma |
+| M-04 | MCP subscriptions â€?no Zod validation | `app/api/mcp-subscriptions/route.ts:40` | 8 unvalidated fields directly to Prisma |
 | M-05 | Prototype pollution in audit log | `app/api/audit-log/route.ts:29` | `{ ...details }` spreads arbitrary user object; `for...in` iterates inherited props |
 | M-06 | Email regex too permissive | `app/api/send-contact-email/route.ts:57` + `magic-link/send` | Accepts `a@b.c`, `@example.com` |
 | M-07 | Uploaded files stored unencrypted in `/tmp` | `app/api/batch/upload/route.ts:38-44` | World-readable temp directory |
@@ -248,11 +248,11 @@ Only checks file size (50MB limit), not extension or MIME type.
 npm audit: 12 vulnerabilities (8 moderate, 2 high, 2 critical)
 
 CRITICAL:
-  jspdf <=4.0.0       â€” Path traversal + PDF injection + DoS
+  jspdf <=4.0.0       â€?Path traversal + PDF injection + DoS
 
 HIGH:
-  next 10.0.0-15.5.9   â€” Image Optimizer DoS + RSC deserialization DoS
-  xlsx *                â€” Prototype Pollution + ReDoS (no fix available)
+  next 10.0.0-15.5.9   â€?Image Optimizer DoS + RSC deserialization DoS
+  xlsx *                â€?Prototype Pollution + ReDoS (no fix available)
 ```
 
 **Remediation:**

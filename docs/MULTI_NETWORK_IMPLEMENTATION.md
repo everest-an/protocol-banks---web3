@@ -7,7 +7,7 @@ This document summarizes the multi-network support implementation for Protocol B
 ## Implementation Date
 
 **Date:** 2026-02-07
-**Status:** ‚úÖ Implementation Complete | ‚è≥ Database Migration Pending
+**Status:** ‚ú?Implementation Complete | ‚è?Database Migration Pending
 
 ## Key Features
 
@@ -101,7 +101,7 @@ model Payment {
 ```http
 GET /api/vendors/multi-network
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
 
 Response:
 {
@@ -131,7 +131,7 @@ Response:
 ```http
 POST /api/vendors/multi-network
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
   Content-Type: application/json
 
 Body:
@@ -164,7 +164,7 @@ Response:
 ```http
 POST /api/vendors/:id/addresses
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
   Content-Type: application/json
 
 Body:
@@ -180,7 +180,7 @@ Body:
 ```http
 PATCH /api/vendors/:id/addresses/:addressId
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
   Content-Type: application/json
 
 Body:
@@ -194,7 +194,7 @@ Body:
 ```http
 DELETE /api/vendors/:id/addresses/:addressId
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
 
 Note: Cannot delete the last address for a vendor
 ```
@@ -205,7 +205,7 @@ Note: Cannot delete the last address for a vendor
 ```http
 GET /api/payments?network=tron&status=completed&limit=50&offset=0
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
 
 Query Parameters:
   - network: "ethereum" | "tron" | "base" | "arbitrum" | "bsc"
@@ -231,7 +231,7 @@ Response:
 ```http
 POST /api/payments
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
   Content-Type: application/json
 
 Body:
@@ -263,7 +263,7 @@ Response:
 ```http
 GET /api/payments/stats?network_type=TRON&start_date=2026-01-01
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
 
 Response:
 {
@@ -311,7 +311,7 @@ Response:
 ```http
 GET /api/batch-payment?network=base&status=pending
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
 
 Query Parameters:
   - network: network name
@@ -324,7 +324,7 @@ Query Parameters:
 ```http
 POST /api/batch-payment
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
   Content-Type: application/json
 
 Body:
@@ -352,7 +352,7 @@ Response:
 ```http
 GET /api/batch-payment/stats
 Headers:
-  x-user-address: <user_wallet_address>
+  x-wallet-address: <user_wallet_address>
 
 Response:
 {
@@ -388,11 +388,11 @@ import { VendorAddressManager } from "@/components/vendors/vendor-address-manage
 ```
 
 **Features:**
-- ‚úÖ Add new addresses with network auto-detection
-- ‚úÖ Edit address labels and primary status
-- ‚úÖ Delete addresses (with safety checks)
-- ‚úÖ Visual network badges
-- ‚úÖ Primary address indicators
+- ‚ú?Add new addresses with network auto-detection
+- ‚ú?Edit address labels and primary status
+- ‚ú?Delete addresses (with safety checks)
+- ‚ú?Visual network badges
+- ‚ú?Primary address indicators
 
 ### VendorAddressList
 
@@ -410,10 +410,10 @@ import { VendorAddressList } from "@/components/vendors/vendor-address-list"
 ```
 
 **Features:**
-- ‚úÖ Network badges with color coding
-- ‚úÖ Copy-to-clipboard functionality
-- ‚úÖ Compact and full view modes
-- ‚úÖ Primary and verified indicators
+- ‚ú?Network badges with color coding
+- ‚ú?Copy-to-clipboard functionality
+- ‚ú?Compact and full view modes
+- ‚ú?Primary and verified indicators
 
 ### NetworkBadge
 
@@ -466,11 +466,11 @@ import { TransactionList } from "@/components/transactions/transaction-list"
 ```
 
 **Features:**
-- ‚úÖ Network and status filtering
-- ‚úÖ Search by address, tx hash, vendor
-- ‚úÖ Pagination support
-- ‚úÖ Block explorer links
-- ‚úÖ Network-specific field display (gas/energy)
+- ‚ú?Network and status filtering
+- ‚ú?Search by address, tx hash, vendor
+- ‚ú?Pagination support
+- ‚ú?Block explorer links
+- ‚ú?Network-specific field display (gas/energy)
 
 ## Utility Functions
 

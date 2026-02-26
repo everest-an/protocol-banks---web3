@@ -5,6 +5,7 @@ import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { useSubscriptions } from "@/hooks/use-subscriptions"
 import { usePaymentHistory } from "@/hooks/use-payment-history"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import {
   validateSubscription,
   calculateNextPaymentDate,
@@ -161,7 +162,7 @@ export default function SubscriptionsPage() {
     try {
       const res = await fetch("/api/subscriptions/execute", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-wallet-address": currentWallet },
+        headers: authHeaders(currentWallet, { "Content-Type": "application/json" }, { isDemoMode }),
         body: JSON.stringify({
           recipient: subscription.recipient_address,
           amount: Number(subscription.amount),
