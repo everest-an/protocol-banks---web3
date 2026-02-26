@@ -61,7 +61,7 @@ export class PaymentQueueService {
 
     // 初始化队列
     this.queue = new Queue(QUEUE_CONFIG.name, {
-      connection: this.redis,
+      connection: this.redis as unknown as import('bullmq').ConnectionOptions,
       defaultJobOptions: {
         attempts: QUEUE_CONFIG.attempts,
         backoff: {
@@ -285,7 +285,7 @@ export class PaymentQueueService {
         }
       },
       {
-        connection: this.redis,
+        connection: this.redis as unknown as import('bullmq').ConnectionOptions,
         concurrency: QUEUE_CONFIG.concurrency,
         lockDuration: QUEUE_CONFIG.jobTimeout,
         stalledInterval: QUEUE_CONFIG.stalledInterval,
