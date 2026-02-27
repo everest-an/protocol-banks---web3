@@ -1,0 +1,58 @@
+# Smithery.ai MCP Server Registry
+# https://smithery.ai/docs/config
+# Submit: smithery publish
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      PROTOCOL_BANKS_JWT:
+        type: string
+        description: "JWT token from SIWE authentication (optional, needed for authenticated tools)"
+    required: []
+  commandFunction: |-
+    (config) => ({
+      command: "npx",
+      args: ["ts-node", "-r", "dotenv/config", "-r", "tsconfig-paths/register", "lib/mcp/stdio-server.ts"],
+      env: {
+        PROTOCOL_BANKS_JWT: config.PROTOCOL_BANKS_JWT || ""
+      }
+    })
+
+# MCP Server Metadata
+name: protocol-banks
+displayName: Protocol Banks
+description: |
+  AI-native stablecoin payment infrastructure. Send payments, create invoices,
+  check balances across Ethereum, Base, Polygon, Arbitrum, Optimism, and TRON.
+
+  8 tools available:
+  - list_supported_tokens (no auth)
+  - get_payment_quote (no auth)
+  - create_payment (JWT required)
+  - check_payment_status (JWT required)
+  - list_payments (JWT required)
+  - create_invoice (JWT required)
+  - list_invoices (JWT required)
+  - get_balance (JWT required)
+
+  Authentication: SIWE (Sign-In with Ethereum) → JWT
+  Docs: https://app.protocolbanks.com/llms-full.txt
+
+tags:
+  - payments
+  - stablecoin
+  - web3
+  - crypto
+  - usdc
+  - ethereum
+  - defi
+  - ai-agent
+  - invoice
+  - multi-chain
+
+category: finance
+license: MIT
+homepage: https://app.protocolbanks.com
+repository: https://github.com/everest-an/protocol-banks---web3

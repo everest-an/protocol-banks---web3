@@ -1,0 +1,242 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Protocol Banks Payment API",
+    "version": "2.0.0",
+    "description": "AI-native stablecoin payment infrastructure. Send USDC/USDT payments, create invoices, check balances across Ethereum, Base, Polygon, Arbitrum, Optimism, and TRON. Authenticate via SIWE (Sign-In with Ethereum) to get JWT."
+  },
+  "servers": [
+    {
+      "url": "https://app.protocolbanks.com"
+    }
+  ],
+  "paths": {
+    "/api/auth/siwe/nonce": {
+      "get": {
+        "operationId": "getSiweNonce",
+        "summary": "Get authentication nonce",
+        "description": "Returns a one-time nonce for SIWE (Sign-In with Ethereum) authentication flow.",
+        "responses": {
+          "200": {
+            "description": "Nonce for SIWE message signing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "nonce": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/siwe/verify": {
+      "post": {
+        "operationId": "verifySiweSignature",
+        "summary": "Verify SIWE signature and get JWT",
+        "description": "Verifies an EIP-4361 SIWE signed message and returns JWT access + refresh tokens.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message", "signature"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "Full EIP-4361 SIWE message"
+                  },
+                  "signature": {
+                    "type": "string",
+                    "description": "EIP-191 signature (0x prefixed)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JWT tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": { "type": "string" },
+                    "refreshToken": { "type": "string" },
+                    "expiresAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/agent.json": {
+      "get": {
+        "operationId": "getAgentCard",
+        "summary": "Get ERC-8004 Agent Card",
+        "description": "Returns the platform's Agent Card describing capabilities, supported tokens, chains, and communication endpoints.",
+        "responses": {
+          "200": {
+            "description": "ERC-8004 Agent Card",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "did": { "type": "string" },
+                    "name": { "type": "string" },
+                    "description": { "type": "string" },
+                    "capabilities": { "type": "object" },
+                    "supported_tokens": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "supported_chains": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "a2a_endpoint": { "type": "string" },
+                    "mcp_endpoint": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments": {
+      "post": {
+        "operationId": "createPayment",
+        "summary": "Send a stablecoin payment",
+        "description": "Create and send a stablecoin payment to any wallet address. Supports USDC, USDT, DAI across 6 chains.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["to", "amount", "token"],
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "description": "Recipient wallet address (0x... for EVM, T... for TRON)"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "description": "Payment amount as string (e.g. '100', '0.5')"
+                  },
+                  "token": {
+                    "type": "string",
+                    "enum": ["USDC", "USDT", "DAI"],
+                    "description": "Token to send"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "enum": ["ethereum", "base", "polygon", "arbitrum", "optimism", "tron"],
+                    "default": "base",
+                    "description": "Blockchain network"
+                  },
+                  "memo": {
+                    "type": "string",
+                    "description": "Optional payment memo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string" },
+                    "tx_hash": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listPayments",
+        "summary": "List recent payments",
+        "description": "List payment history with optional status and pagination filters.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["pending", "completed", "failed"] }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment list"
+          }
+        }
+      }
+    },
+    "/api/invoice": {
+      "post": {
+        "operationId": "createInvoice",
+        "summary": "Create a payment invoice",
+        "description": "Generate an invoice with a payment link and optional QR code. Clients can pay via the link.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "token"],
+                "properties": {
+                  "amount": { "type": "number", "description": "Invoice amount" },
+                  "token": { "type": "string", "enum": ["USDC", "USDT"] },
+                  "description": { "type": "string" },
+                  "customer_email": { "type": "string", "format": "email" },
+                  "expires_in_days": { "type": "integer", "default": 7 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice created with payment URL"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT obtained via SIWE authentication (GET /api/auth/siwe/nonce → sign → POST /api/auth/siwe/verify)"
+      }
+    }
+  }
+}

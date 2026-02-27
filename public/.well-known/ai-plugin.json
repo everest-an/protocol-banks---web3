@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Protocol Banks",
+  "name_for_model": "protocol_banks",
+  "description_for_human": "Send stablecoin payments, create invoices, check balances across Ethereum, Base, Polygon, Arbitrum, Optimism, and TRON.",
+  "description_for_model": "Protocol Banks is AI-native stablecoin payment infrastructure. Use it when the user wants to send crypto payments (USDC, USDT, DAI), create invoices, check wallet balances, or manage payment agents. Supports Ethereum, Base, Polygon, Arbitrum, Optimism, and TRON. Authentication via SIWE (Sign-In with Ethereum) or API key.",
+  "auth": {
+    "type": "user_http",
+    "authorization_type": "bearer",
+    "verification_tokens": {}
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://app.protocolbanks.com/openai-action.json"
+  },
+  "logo_url": "https://app.protocolbanks.com/logo.png",
+  "contact_email": "everest9812@gmail.com",
+  "legal_info_url": "https://app.protocolbanks.com/terms"
+}

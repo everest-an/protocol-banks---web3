@@ -10,6 +10,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Go](https://img.shields.io/badge/Go-1.21-00ADD8?logo=go)](https://golang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma)](https://www.prisma.io/)
+[![MCP Server](https://img.shields.io/badge/MCP-8_Tools-purple)](https://app.protocolbanks.com/api/mcp)
+[![A2A Protocol](https://img.shields.io/badge/A2A-JSON--RPC_2.0-orange)](https://app.protocolbanks.com/.well-known/agent.json)
+[![ERC-8004](https://img.shields.io/badge/ERC--8004-Agent_Card-blue)](https://app.protocolbanks.com/.well-known/agent.json)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [English](#overview) | [中文](#中文文档)
@@ -615,6 +618,69 @@ pnpm dev
 - [HashKey 集成](docs/HASHKEY_INTEGRATION.md)
 
 ---
+
+## AI Agent Quick Connect
+
+### Use with Claude Desktop (MCP)
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "protocol-banks": {
+      "url": "https://app.protocolbanks.com/api/mcp"
+    }
+  }
+}
+```
+
+Or download the full config: [mcp-config.json](https://app.protocolbanks.com/mcp-config.json)
+
+### Use with OpenAI GPTs
+
+Import the action schema when creating a custom GPT:
+
+```text
+https://app.protocolbanks.com/openai-action.json
+```
+
+### Use Programmatically (AI Wallet SDK)
+
+```typescript
+import { privateKeyToAccount } from 'viem/accounts'
+
+const account = privateKeyToAccount('0x...')
+
+// 1. Get nonce
+const { nonce } = await fetch('https://app.protocolbanks.com/api/auth/siwe/nonce').then(r => r.json())
+
+// 2. Sign SIWE message & verify
+const message = `app.protocolbanks.com wants you to sign in with your Ethereum account:\n${account.address}\n\nSign in to Protocol Banks\n\nURI: https://app.protocolbanks.com\nVersion: 1\nChain ID: 1\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`
+const signature = await account.signMessage({ message })
+const { accessToken } = await fetch('https://app.protocolbanks.com/api/auth/siwe/verify', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ message, signature })
+}).then(r => r.json())
+
+// 3. Make payments with JWT
+await fetch('https://app.protocolbanks.com/api/payments', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ to: '0x...', amount: '100', token: 'USDC', chain: 'base' })
+})
+```
+
+### Discovery Endpoints
+
+| URL | Purpose |
+| --- | ------- |
+| [`/.well-known/agent.json`](https://app.protocolbanks.com/.well-known/agent.json) | ERC-8004 Agent Card |
+| [`/llms.txt`](https://app.protocolbanks.com/llms.txt) | AI crawler summary |
+| [`/llms-full.txt`](https://app.protocolbanks.com/llms-full.txt) | Full AI integration docs |
+| [`/api/openapi`](https://app.protocolbanks.com/api/openapi) | OpenAPI 3.1 spec |
+| [`/mcp-config.json`](https://app.protocolbanks.com/mcp-config.json) | MCP Server config |
+| [`/openai-action.json`](https://app.protocolbanks.com/openai-action.json) | OpenAI GPT Action schema |
 
 ## Contact
 
