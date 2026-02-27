@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# AI Agent Discovery
+# llms.txt: https://llmstxt.org/
+Sitemap: https://app.protocolbanks.com/sitemap.xml
+
+# AI-readable documentation
+# /llms.txt        — Summary for AI crawlers
+# /llms-full.txt   — Full API reference for AI integration
+# /.well-known/agent.json — ERC-8004 Agent Card
+# /mcp-config.json — MCP Server configuration for Claude Desktop

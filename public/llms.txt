@@ -1,0 +1,55 @@
+# Protocol Banks — AI-Native Stablecoin Payment Infrastructure
+
+> Non-custodial, multi-chain stablecoin payment platform with native AI agent support.
+
+## What This Is
+
+Protocol Banks is payment infrastructure for AI agents and businesses. AI agents can autonomously create wallets, authenticate, and make stablecoin payments across 6+ blockchains.
+
+## Supported Chains
+
+Ethereum, Base, Polygon, Arbitrum, Optimism, TRON
+
+## Supported Tokens
+
+USDC, USDT, DAI, ETH
+
+## AI Integration Endpoints
+
+- Agent Card (ERC-8004): GET /.well-known/agent.json
+- A2A Protocol: POST /api/a2a (JSON-RPC 2.0, EIP-191 signed)
+- MCP Server: POST /api/mcp (Streamable HTTP transport)
+- SIWE Auth: GET /api/auth/siwe/nonce → POST /api/auth/siwe/verify
+
+## MCP Tools (8 tools)
+
+- list_supported_tokens: List all supported tokens and chains (no auth)
+- get_payment_quote: Get fee estimate for a payment (no auth)
+- create_payment: Send stablecoin payment (requires JWT)
+- check_payment_status: Check payment status (requires JWT)
+- list_payments: List recent payments (requires JWT)
+- create_invoice: Create payment invoice (requires JWT)
+- list_invoices: List invoices (requires JWT)
+- get_balance: Check wallet balance (requires JWT)
+
+## How an AI Agent Can Use This
+
+1. Generate an Ethereum wallet (viem: privateKeyToAccount)
+2. Authenticate via SIWE (GET /api/auth/siwe/nonce → sign → POST /api/auth/siwe/verify)
+3. Receive JWT token (1h access + 30d refresh)
+4. Call MCP tools or REST APIs with Bearer token
+5. Make payments, create invoices, check balances
+
+## Authentication Methods
+
+- SIWE + JWT: For autonomous AI agents with Ethereum private keys
+- API Key: For registered agents (x-api-key header)
+- A2A Signature: For cross-platform agent communication (EIP-191)
+
+## Links
+
+- Full API docs: /llms-full.txt
+- Agent Card: /.well-known/agent.json
+- MCP Config: /mcp-config.json
+- Whitepaper: /whitepaper
+- Documentation: /help

@@ -94,7 +94,8 @@ export function middleware(request: NextRequest) {
     const isOpenEndpoint =
       path.startsWith("/.well-known/") ||
       path.startsWith("/api/a2a") ||
-      path.startsWith("/api/mcp")
+      path.startsWith("/api/mcp") ||
+      path === "/api/openapi"
 
     if (isOpenEndpoint) {
       response.headers.set("Access-Control-Allow-Origin", origin || "*")

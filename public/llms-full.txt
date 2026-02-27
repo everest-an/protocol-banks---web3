@@ -1,0 +1,281 @@
+# Protocol Banks — Full AI Integration Reference
+
+> Complete technical reference for AI agents integrating with Protocol Banks.
+
+---
+
+## 1. Quick Start (5 steps)
+
+```typescript
+import { privateKeyToAccount } from 'viem/accounts'
+
+// Step 1: Generate wallet
+const account = privateKeyToAccount('0x...')
+
+// Step 2: Get SIWE nonce
+const { nonce } = await fetch('https://app.protocolbanks.com/api/auth/siwe/nonce').then(r => r.json())
+
+// Step 3: Build & sign EIP-4361 message
+const message = `app.protocolbanks.com wants you to sign in with your Ethereum account:\n${account.address}\n\nSign in to Protocol Banks\n\nURI: https://app.protocolbanks.com\nVersion: 1\nChain ID: 1\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`
+const signature = await account.signMessage({ message })
+
+// Step 4: Verify and get JWT
+const { accessToken, refreshToken } = await fetch('https://app.protocolbanks.com/api/auth/siwe/verify', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ message, signature })
+}).then(r => r.json())
+
+// Step 5: Make a payment
+const payment = await fetch('https://app.protocolbanks.com/api/payments', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    to: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
+    amount: '100',
+    token: 'USDC',
+    chain: 'base'
+  })
+}).then(r => r.json())
+```
+
+---
+
+## 2. Discovery Endpoint
+
+### GET /.well-known/agent.json
+
+Returns the platform's ERC-8004 Agent Card:
+
+```json
+{
+  "did": "did:pkh:eip155:1:0x0000000000000000000000000000000000000001",
+  "name": "Protocol Banks Payment Agent",
+  "description": "Non-custodial stablecoin payment infrastructure...",
+  "capabilities": {
+    "skills": [
+      { "id": "payment", "name": "Stablecoin Payment", "tags": ["payment", "usdc", "cross-chain"] },
+      { "id": "invoice", "name": "Invoice Creation", "tags": ["invoice", "receive", "billing"] },
+      { "id": "batch_payment", "name": "Batch Payment", "tags": ["batch", "payroll", "bulk"] },
+      { "id": "x402", "name": "x402 Micropayment", "tags": ["x402", "micropayment", "api"] }
+    ],
+    "supported_protocols": ["a2a", "mcp", "x402"]
+  },
+  "supported_tokens": ["USDC", "USDT", "DAI", "ETH"],
+  "supported_chains": ["ethereum", "base", "polygon", "arbitrum", "optimism", "tron"],
+  "a2a_endpoint": "https://app.protocolbanks.com/api/a2a",
+  "mcp_endpoint": "https://app.protocolbanks.com/api/mcp",
+  "auth_schemes": [
+    { "type": "bearer", "in": "header", "name": "Authorization" },
+    { "type": "apiKey", "in": "header", "name": "x-api-key" }
+  ]
+}
+```
+
+---
+
+## 3. Authentication
+
+### 3.1 SIWE (Sign-In with Ethereum) — Recommended for AI Agents
+
+**Step 1: Get Nonce**
+```
+GET /api/auth/siwe/nonce
+Response: { "nonce": "abc123def456" }
+```
+
+**Step 2: Build EIP-4361 Message**
+```
+app.protocolbanks.com wants you to sign in with your Ethereum account:
+0xYourAddress
+
+Sign in to Protocol Banks
+
+URI: https://app.protocolbanks.com
+Version: 1
+Chain ID: 1
+Nonce: abc123def456
+Issued At: 2026-02-27T12:00:00.000Z
+```
+
+**Step 3: Sign & Verify**
+```
+POST /api/auth/siwe/verify
+Body: { "message": "...", "signature": "0x..." }
+Response: {
+  "accessToken": "eyJ...",   // 1 hour expiry
+  "refreshToken": "eyJ...",  // 30 day expiry
+  "expiresAt": "2026-02-27T13:00:00.000Z"
+}
+```
+
+**Step 4: Refresh Token (before expiry)**
+```
+POST /api/auth/siwe/refresh
+Body: { "refreshToken": "eyJ..." }
+Response: { "accessToken": "eyJ...", "expiresAt": "..." }
+```
+
+### 3.2 API Key — For Pre-Registered Agents
+
+```
+Header: x-api-key: pb_sk_xxxxxx
+```
+
+Create agents and get API keys via the dashboard at /agents.
+
+---
+
+## 4. MCP Server
+
+### Endpoint
+```
+POST /api/mcp
+Content-Type: application/json
+```
+
+### Transport
+Streamable HTTP (MCP 2025-03-26 spec). Also available via stdio for Claude Desktop.
+
+### Tools
+
+#### list_supported_tokens (no auth)
+List all supported tokens with chain and contract info.
+```json
+{ "include_testnets": false, "network": "base" }
+```
+
+#### get_payment_quote (no auth)
+Get fee estimate for a payment.
+```json
+{ "network": "base", "token": "USDC", "amount": "100" }
+```
+Returns: `{ amount, fee, total, fee_percentage, network, token }`
+
+#### create_payment (requires JWT)
+Send a stablecoin payment.
+```json
+{ "to": "0x...", "amount": "100", "token": "USDC", "chain": "base", "memo": "Invoice #42" }
+```
+
+#### check_payment_status (requires JWT)
+```json
+{ "payment_id": "pay_xxx" }
+```
+
+#### list_payments (requires JWT)
+```json
+{ "status": "completed", "limit": 10, "offset": 0 }
+```
+
+#### create_invoice (requires JWT)
+```json
+{ "amount": 250, "token": "USDC", "description": "Service fee", "expires_in_days": 7 }
+```
+
+#### list_invoices (requires JWT)
+```json
+{ "status": "pending", "limit": 10 }
+```
+
+#### get_balance (requires JWT)
+```json
+{ "network": "base", "token": "USDC" }
+```
+
+---
+
+## 5. A2A Protocol (Agent-to-Agent)
+
+### Endpoint
+```
+POST /api/a2a
+Content-Type: application/json
+```
+
+### Message Format (JSON-RPC 2.0)
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "msg-1",
+  "method": "a2a.requestPayment",
+  "params": {
+    "amount": "100",
+    "token": "USDC",
+    "to": "0xRecipient",
+    "chain": "base",
+    "nonce": "unique-uuid-here",
+    "timestamp": "2026-02-27T12:00:00.000Z",
+    "signature": "0xEIP191Signature"
+  }
+}
+```
+
+### Methods
+- `a2a.handshake` — Establish connection between agents
+- `a2a.requestPayment` — Request a payment quote
+- `a2a.confirmPayment` — Confirm and execute payment
+- `a2a.paymentStatus` — Check payment status
+
+### Security
+- Every message must include EIP-191 signature
+- Nonce must be unique (replay protection)
+- Timestamp must be within 5 minutes
+- Signatures verified against sender's Agent Card DID
+
+---
+
+## 6. x402 Protocol (Micropayments)
+
+HTTP 402-based machine-to-machine payments.
+
+```
+POST /api/x402/authorize
+Body: {
+  "from": "0xSender",
+  "to": "0xRecipient",
+  "amount": "1000000",
+  "token": "USDC",
+  "chainId": 8453
+}
+```
+
+---
+
+## 7. Supported Networks
+
+| Network   | Chain ID | Tokens          |
+|-----------|----------|-----------------|
+| Ethereum  | 1        | USDC, USDT, DAI |
+| Base      | 8453     | USDC, USDT      |
+| Polygon   | 137      | USDC, USDT      |
+| Arbitrum  | 42161    | USDC, USDT      |
+| Optimism  | 10       | USDC, USDT      |
+| TRON      | 728126428| USDT            |
+
+---
+
+## 8. Rate Limits
+
+| Endpoint       | Unauthenticated | Authenticated |
+|----------------|-----------------|---------------|
+| /api/auth/siwe | 10/min          | N/A           |
+| /api/a2a       | 20/min          | Agent config  |
+| /api/mcp       | 30/min          | 120/min       |
+| /api/payments  | N/A             | 60/min        |
+
+---
+
+## 9. Error Codes
+
+| Code | Meaning              |
+|------|----------------------|
+| 400  | Invalid request      |
+| 401  | Authentication failed|
+| 403  | Insufficient budget  |
+| 409  | Duplicate nonce      |
+| 429  | Rate limited         |
+| 500  | Internal error       |

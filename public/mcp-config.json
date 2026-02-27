@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "protocol-banks": {
+      "url": "https://app.protocolbanks.com/api/mcp",
+      "description": "Protocol Banks — AI-native stablecoin payment infrastructure. Send payments, create invoices, check balances across Ethereum, Base, Polygon, Arbitrum, Optimism, and TRON.",
+      "tools": [
+        "list_supported_tokens",
+        "get_payment_quote",
+        "create_payment",
+        "check_payment_status",
+        "list_payments",
+        "create_invoice",
+        "list_invoices",
+        "get_balance"
+      ],
+      "auth": {
+        "type": "bearer",
+        "note": "Obtain JWT via SIWE: GET /api/auth/siwe/nonce → sign → POST /api/auth/siwe/verify"
+      }
+    }
+  }
+}
