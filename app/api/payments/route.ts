@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import { validateAddress, getNetworkForAddress } from "@/lib/address-utils"
 import { checkIdempotency, completeIdempotency, failIdempotency } from "@/lib/services/idempotency-service"
 import { assessTransaction } from "@/lib/services/risk-service"
@@ -21,7 +21,7 @@ import { assessTransaction } from "@/lib/services/risk-service"
  * - limit: number of results (default 100, max 1000)
  * - offset: pagination offset (default 0)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, authAddress: string) => {
   try {
     const { searchParams } = new URL(request.url)
     const walletParam = searchParams.get("wallet")
@@ -34,12 +34,6 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("end_date")
     const limit = Math.min(Number.parseInt(searchParams.get("limit") || "100"), 1000)
     const offset = Number.parseInt(searchParams.get("offset") || "0")
-
-    // Security: Enforce authentication
-    const authAddress = await getAuthenticatedAddress(request);
-    if (!authAddress) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
 
     // If wallet param is provided, it must match auth address
     // (unless we are an admin, but for now we enforce strict isolation)
@@ -139,19 +133,14 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'payments' })
 
 /**
  * PATCH /api/payments
  * Update payment tags (authenticated)
  */
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request)
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const body = await request.json()
     const { id, tags } = body as { id?: string; tags?: string[] }
 
@@ -196,19 +185,14 @@ export async function PATCH(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'payments' })
 
 /**
  * POST /api/payments
  * Create a new payment record using Prisma with automatic network detection
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json()
 
     const {
@@ -415,4 +399,4 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'payments' })

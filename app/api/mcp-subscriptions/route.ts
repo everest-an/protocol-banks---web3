@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 // GET: List subscriptions for authenticated wallet
-export async function GET(request: NextRequest) {
-  const walletAddress = await getAuthenticatedAddress(request)
-  if (!walletAddress) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const GET = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
     const subscriptions = await prisma.mcpSubscription.findMany({
       where: { owner_address: walletAddress.toLowerCase() },
@@ -27,15 +22,10 @@ export async function GET(request: NextRequest) {
     console.error("[API] mcp-subscriptions GET error:", err)
     return NextResponse.json({ error: err.message || "Failed to fetch subscriptions" }, { status: 500 })
   }
-}
+}, { component: 'mcp-subscriptions' })
 
 // POST: Create a new subscription
-export async function POST(request: NextRequest) {
-  const walletAddress = await getAuthenticatedAddress(request)
-  if (!walletAddress) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const POST = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
     const body = await request.json()
 
@@ -63,15 +53,10 @@ export async function POST(request: NextRequest) {
     console.error("[API] mcp-subscriptions POST error:", err)
     return NextResponse.json({ error: err.message || "Failed to create subscription" }, { status: 500 })
   }
-}
+}, { component: 'mcp-subscriptions' })
 
 // PATCH: Update subscription (cancel / change plan)
-export async function PATCH(request: NextRequest) {
-  const walletAddress = await getAuthenticatedAddress(request)
-  if (!walletAddress) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const PATCH = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
     const body = await request.json()
     const { id, status, plan, calls_limit } = body
@@ -100,4 +85,4 @@ export async function PATCH(request: NextRequest) {
     console.error("[API] mcp-subscriptions PATCH error:", err)
     return NextResponse.json({ error: err.message || "Failed to update subscription" }, { status: 500 })
   }
-}
+}, { component: 'mcp-subscriptions' })

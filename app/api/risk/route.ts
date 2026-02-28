@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import { screenAddress, getRiskHistory } from "@/lib/services/risk-service"
 
 /**
@@ -11,13 +11,8 @@ import { screenAddress, getRiskHistory } from "@/lib/services/risk-service"
  * - address: address to screen (required for view=screen)
  * - limit/offset: pagination for history
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request)
-    if (!userAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const view = searchParams.get("view") || "history"
 
@@ -51,4 +46,4 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'risk' })

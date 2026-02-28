@@ -1,29 +1,21 @@
 /**
  * Agent Activities API Route
- * 
+ *
  * GET /api/agents/activities - Get all agent activities
- * 
+ *
  * @module app/api/agents/activities/route
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { agentActivityService } from '@/lib/services/agent-activity-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 // ============================================
 // GET /api/agents/activities - Get all agent activities
 // ============================================
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(req);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '50');
 
@@ -42,4 +34,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'agents-activities' });

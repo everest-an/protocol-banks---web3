@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 /**
  * GET /api/batch-payment/stats
@@ -17,19 +17,13 @@ import { getAuthenticatedAddress } from "@/lib/api-auth"
  * - start_date: filter batches after this date (ISO format)
  * - end_date: filter batches before this date (ISO format)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, authAddress: string) => {
   try {
     const { searchParams } = new URL(request.url)
     const network = searchParams.get("network")
     const networkType = searchParams.get("network_type")
     const startDate = searchParams.get("start_date")
     const endDate = searchParams.get("end_date")
-
-    // Security: Enforce authentication
-    const authAddress = await getAuthenticatedAddress(request)
-    if (!authAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
 
     // Build base filter
     const baseFilter: Record<string, any> = {
@@ -169,4 +163,4 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'batch-payment-stats' })

@@ -7,23 +7,15 @@ import {
   verifyVendorIntegrity,
   createAuditLog,
 } from "@/lib/security/security"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 /**
  * GET /api/vendors?owner=0x...
  * List vendors by owner with integrity verification
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, authenticatedAddress: string) => {
   const { searchParams } = new URL(request.url)
   const ownerParam = searchParams.get("owner")
-  
-  // Security: Enforce authentication
-  const authenticatedAddress = await getAuthenticatedAddress(request);
-  
-  // If no auth, deny access. (Or allow strictly public data if designed, but here we want isolation)
-  if (!authenticatedAddress) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
 
   // If a specific owner is requested, it MUST match the authenticated user
   if (ownerParam) {
@@ -78,19 +70,14 @@ export async function GET(request: NextRequest) {
     console.error("[Vendors API] GET error:", error)
     return NextResponse.json({ error: "Failed to fetch vendors" }, { status: 500 })
   }
-}
+}, { component: 'vendors' })
 
 /**
  * POST /api/vendors
  * Create a new vendor with validation, sanitization, and integrity hash
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json()
     const {
       name,
@@ -113,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Security: Enforce creator is the authenticated caller
     const creatorValidation = validateAndChecksumAddress(callerAddress)
-    
+
     // Check if body.created_by matches (optional validation, but we override it)
     if (created_by && created_by.toLowerCase() !== callerAddress.toLowerCase()) {
         return NextResponse.json({ error: "Forbidden: Cannot create vendor for another user" }, { status: 403 })
@@ -185,4 +172,4 @@ export async function POST(request: NextRequest) {
     console.error("[Vendors API] POST error:", error)
     return NextResponse.json({ error: error.message || "Failed to create vendor" }, { status: 500 })
   }
-}
+}, { component: 'vendors' })

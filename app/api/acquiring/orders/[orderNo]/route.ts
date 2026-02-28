@@ -4,7 +4,7 @@
 
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 export async function GET(
   request: NextRequest,
@@ -57,79 +57,76 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ orderNo: string }> },
 ) {
-  try {
-    const callerAddress = await getAuthenticatedAddress(request)
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+  return withAuth(async (req, callerAddress) => {
+    try {
+      const { orderNo } = await params
+      const body = await req.json()
+      const { status, payment_method, payer_address, tx_hash } = body
 
-    const { orderNo } = await params
-    const body = await request.json()
-    const { status, payment_method, payer_address, tx_hash } = body
+      const updateData: any = {
+        status,
+        updated_at: new Date(),
+      }
 
-    const updateData: any = {
-      status,
-      updated_at: new Date(),
-    }
+      if (payment_method) updateData.payment_method = payment_method
+      if (payer_address) updateData.payer_address = payer_address
+      if (tx_hash) updateData.tx_hash = tx_hash
+      if (status === "paid") updateData.paid_at = new Date()
 
-    if (payment_method) updateData.payment_method = payment_method
-    if (payer_address) updateData.payer_address = payer_address
-    if (tx_hash) updateData.tx_hash = tx_hash
-    if (status === "paid") updateData.paid_at = new Date()
-
-    const order = await prisma.acquiringOrder.update({
-      where: { order_no: orderNo },
-      data: updateData,
-    })
-
-    // If order is paid, update merchant balance
-    if (status === "paid" && order) {
-      const existingBalance = await prisma.merchantBalance.findFirst({
-        where: { merchant_id: order.merchant_id, token: order.token },
+      const order = await prisma.acquiringOrder.update({
+        where: { order_no: orderNo },
+        data: updateData,
       })
 
-      if (existingBalance) {
-        await prisma.merchantBalance.update({
-          where: { id: existingBalance.id },
-          data: {
-            balance: String(parseFloat(existingBalance.balance) + order.amount),
-            updated_at: new Date(),
-          },
+      // If order is paid, update merchant balance
+      if (status === "paid" && order) {
+        const existingBalance = await prisma.merchantBalance.findFirst({
+          where: { merchant_id: order.merchant_id, token: order.token },
         })
-      } else {
-        await prisma.merchantBalance.create({
-          data: {
-            merchant_id: order.merchant_id,
-            token: order.token,
-            balance: String(order.amount),
-          },
-        })
-      }
 
-      // Send Webhook notification (if configured)
-      if (order.notify_url) {
-        try {
-          await fetch(order.notify_url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              event: "order.paid",
-              order_no: order.order_no,
-              amount: order.amount,
-              token: order.token,
-              tx_hash: order.tx_hash,
-              paid_at: order.paid_at,
-            }),
+        if (existingBalance) {
+          await prisma.merchantBalance.update({
+            where: { id: existingBalance.id },
+            data: {
+              balance: String(parseFloat(existingBalance.balance) + order.amount),
+              updated_at: new Date(),
+            },
           })
-        } catch (webhookError) {
-          console.error("[API] Webhook notification error:", webhookError)
+        } else {
+          await prisma.merchantBalance.create({
+            data: {
+              merchant_id: order.merchant_id,
+              token: order.token,
+              balance: String(order.amount),
+            },
+          })
+        }
+
+        // Send Webhook notification (if configured)
+        if (order.notify_url) {
+          try {
+            await fetch(order.notify_url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                event: "order.paid",
+                order_no: order.order_no,
+                amount: order.amount,
+                token: order.token,
+                tx_hash: order.tx_hash,
+                paid_at: order.paid_at,
+              }),
+            })
+          } catch (webhookError) {
+            console.error("[API] Webhook notification error:", webhookError)
+          }
         }
       }
-    }
 
-    return NextResponse.json({ success: true, order })
-  } catch (error: any) {
-    console.error("[API] Order update error:", error)
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 })
-  }
+      return NextResponse.json({ success: true, order })
+    } catch (error: any) {
+      console.error("[API] Order update error:", error)
+      return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 })
+    }
+  }, { component: 'acquiring-orders-id' })(request)
 }

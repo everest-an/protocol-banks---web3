@@ -6,7 +6,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { WebhookService, type WebhookEvent } from '@/lib/services/webhook-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 const webhookService = new WebhookService();
 
@@ -29,17 +29,8 @@ const VALID_EVENTS: WebhookEvent[] = [
  * POST /api/webhooks
  * Create a new webhook
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, ownerAddress: string) => {
   try {
-    // Get authenticated user
-    const ownerAddress = await getAuthenticatedAddress(request);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     // Parse request body
     const body = await request.json();
     const { name, url, events, retry_count, timeout_ms } = body;
@@ -136,23 +127,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'webhooks' })
 
 /**
  * GET /api/webhooks
  * List all webhooks for the authenticated user
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, ownerAddress: string) => {
   try {
-    // Get authenticated user
-    const ownerAddress = await getAuthenticatedAddress(request);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     // List webhooks
     const webhooks = await webhookService.list(ownerAddress);
 
@@ -182,4 +164,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'webhooks' })

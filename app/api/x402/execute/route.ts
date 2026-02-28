@@ -1,16 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { relayerService, isRelayerConfigured } from "@/lib/services/relayer-service"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import type { Hex, Address } from "viem"
 
 /**
  * x402 Protocol - Payment Execution Endpoint
- * 
+ *
  * Executes a pre-authorized payment. This endpoint is called by:
  * 1. Relayer services for gasless execution
  * 2. Backend services for automated payments (subscriptions, scheduled)
- * 
+ *
  * The actual on-chain transaction is handled by the configured relayer.
  */
 
@@ -36,17 +36,8 @@ const CHAIN_RPCS: Record<number, string> = {
   10: process.env.NEXT_PUBLIC_RPC_OPTIMISM || "https://optimism.llamarpc.com",
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<X402ExecuteResponse>> {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string): Promise<NextResponse<X402ExecuteResponse>> => {
   try {
-    // Authenticate the request - only authorized callers can execute payments
-    const callerAddress = await getAuthenticatedAddress(request)
-    if (!callerAddress) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-
     const body = await request.json() as X402ExecuteRequest
     const { transferId, signature } = body
 
@@ -88,12 +79,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Execu
     // Check if expired
     const now = new Date()
     // Prisma returns Date objects, so we can use them directly
-    const validBefore = auth.valid_before; 
-    
+    const validBefore = auth.valid_before;
+
     if (now > validBefore) {
       await prisma.x402Authorization.update({
         where: { id: auth.id },
-        data: { status: "expired" } 
+        data: { status: "expired" }
       });
 
       return NextResponse.json(
@@ -124,17 +115,17 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Execu
         nonce: auth.nonce as Hex,
         signature: signature as Hex,
       })
-      
+
       if (result.status === "failed") {
         throw new Error(result.error || "Relayer execution failed")
       }
-      
+
       txHash = result.transactionHash || result.taskId
     } else {
       // Development mode: simulate execution
       console.warn("[x402] No relayer configured, simulating execution")
       txHash = generateMockTxHash()
-      
+
       // Simulate some delay
       await new Promise(resolve => setTimeout(resolve, 500))
     }
@@ -162,13 +153,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Execu
       { status: 500 }
     )
   }
-}
+}, { component: 'x402-execute' })
 
 /**
  * Generate mock transaction hash for development
  */
 function generateMockTxHash(): string {
-  return "0x" + Array.from({ length: 64 }, () => 
+  return "0x" + Array.from({ length: 64 }, () =>
     Math.floor(Math.random() * 16).toString(16)
   ).join("")
 }

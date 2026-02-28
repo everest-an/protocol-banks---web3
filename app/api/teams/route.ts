@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { teamService } from '@/lib/services/team-service';
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from '@/lib/middleware/api-auth';
 
 /**
  * GET /api/teams
  * List all teams for the current user
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const teams = await teamService.listTeams(userAddress);
 
     return NextResponse.json({ teams });
@@ -27,23 +18,14 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'teams' })
 
 /**
  * POST /api/teams
  * Create a new team
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const { name, description } = body;
 
@@ -67,4 +49,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'teams' })

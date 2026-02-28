@@ -5,21 +5,12 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { NotificationService } from '@/lib/services/notification-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 const notificationService = new NotificationService();
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const endpoint = searchParams.get('endpoint');
     const all = searchParams.get('all') === 'true';
@@ -47,4 +38,4 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'notifications-unsubscribe' });

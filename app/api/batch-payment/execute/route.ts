@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import { executeBatch } from "@/lib/services/batch-execution-worker"
 import { getBatchItems } from "@/lib/services/batch-item-service"
 
@@ -12,13 +12,8 @@ const BASE_CHAIN_ID = 8453
  * Execute a pending batch payment using the concurrent BatchItem engine.
  * Each recipient is tracked individually with retry support.
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request)
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const body = await request.json()
     const { batchId, chainId } = body
 
@@ -91,4 +86,4 @@ export async function POST(request: NextRequest) {
     console.error("[BatchPayment] Execute error:", error)
     return NextResponse.json({ error: error.message || "Execution failed" }, { status: 500 })
   }
-}
+}, { component: 'batch-payment-execute' })

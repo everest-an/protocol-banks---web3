@@ -1,8 +1,8 @@
 /**
  * Agent Analytics API Route
- * 
+ *
  * GET /api/agents/analytics - Get agent analytics
- * 
+ *
  * @module app/api/agents/analytics/route
  */
 
@@ -10,22 +10,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { agentActivityService } from '@/lib/services/agent-activity-service';
 import { agentService } from '@/lib/services/agent-service';
 import { proposalService } from '@/lib/services/proposal-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 // ============================================
 // GET /api/agents/analytics - Get agent analytics
 // ============================================
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(req);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     // Get base analytics from activity service
     const analytics = await agentActivityService.getAnalytics(ownerAddress);
 
@@ -49,4 +41,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'agents-analytics' });

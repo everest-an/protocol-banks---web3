@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import { getUserBalances, getLedgerEntries } from "@/lib/services/ledger-service"
 
 /**
@@ -14,13 +14,8 @@ import { getUserBalances, getLedgerEntries } from "@/lib/services/ledger-service
  * - limit: pagination limit (default 50)
  * - offset: pagination offset (default 0)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request)
-    if (!userAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const view = searchParams.get("view") || "balances"
 
@@ -50,4 +45,4 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'ledger' })

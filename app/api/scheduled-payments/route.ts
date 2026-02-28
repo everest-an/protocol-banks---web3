@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scheduledPaymentService } from '@/lib/services/scheduled-payment-service';
 import type { ScheduleType } from '@/types/scheduled-payment';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 /**
  * GET /api/scheduled-payments
  * List all scheduled payments for the user
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const payments = await scheduledPaymentService.list(userAddress);
 
     return NextResponse.json({ payments });
@@ -28,23 +19,14 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'scheduled-payments' })
 
 /**
  * POST /api/scheduled-payments
  * Create a new scheduled payment
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const {
       name,
@@ -106,4 +88,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'scheduled-payments' })

@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 /**
  * GET /api/payment-groups?owner=0x...
  * List payment groups for an address
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request)
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const groups = await prisma.paymentGroup.findMany({
       where: { owner_address: { equals: callerAddress, mode: "insensitive" } },
       orderBy: { created_at: "desc" },
@@ -34,19 +29,14 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'payment-groups' })
 
 /**
  * POST /api/payment-groups
  * Create a new payment group
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json()
     const { name, description, owner_address, purpose, tags } = body
 
@@ -85,4 +75,4 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'payment-groups' })

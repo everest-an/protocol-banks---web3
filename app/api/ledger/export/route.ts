@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 /**
  * GET /api/ledger/export
@@ -15,13 +15,8 @@ import { getAuthenticatedAddress } from "@/lib/api-auth"
  * - chain: filter by chain
  * - format: "csv" (default) | "json" | "pdf"
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request)
-    if (!userAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get("start_date")
     const endDate = searchParams.get("end_date")
@@ -143,7 +138,7 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'ledger-export' })
 
 // ─── PDF Generation ───────────────────────────────────────────────────────────
 

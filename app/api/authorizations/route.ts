@@ -5,16 +5,11 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 // GET - List authorizations
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
-    const walletAddress = await getAuthenticatedAddress(request)
-    if (!walletAddress) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-
     // Parse query parameters
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status") // pending, used, cancelled, expired
@@ -57,4 +52,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { component: 'authorizations' })

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts"
 import { encryptSessionKey } from "@/lib/security/encryption"
 
@@ -18,13 +18,8 @@ interface CreateSessionKeyRequest {
 }
 
 // GET - List session keys
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
-    const walletAddress = await getAuthenticatedAddress(request)
-    if (!walletAddress) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-
     // Fetch session keys
     const sessionKeys = await prisma.sessionKey.findMany({
       where: { owner_address: walletAddress.toLowerCase() },
@@ -57,16 +52,11 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { component: 'session-keys' })
 
 // POST - Create session key
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
-    const walletAddress = await getAuthenticatedAddress(request)
-    if (!walletAddress) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-
     // Parse request body
     const body: CreateSessionKeyRequest = await request.json()
 
@@ -123,4 +113,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { component: 'session-keys' })

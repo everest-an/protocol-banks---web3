@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { splitPaymentService } from '@/lib/services/split-payment-service';
 import { validateSplitRecipients } from '@/types/split-payment';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 /**
  * POST /api/split-payment
  * Execute a split payment
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const { total_amount, recipients, token = 'USDT', chain_id = 42161, template_id, team_id } = body;
 
@@ -62,23 +53,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'split-payment' })
 
 /**
  * GET /api/split-payment
  * Get split payment history
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
 
@@ -92,4 +74,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'split-payment' })

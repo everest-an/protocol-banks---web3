@@ -5,16 +5,11 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server'
-import { getAuthenticatedAddress } from '@/lib/api-auth'
+import { withAuth } from '@/lib/middleware/api-auth'
 import { a2aService } from '@/lib/services/a2a-service'
 import { generateDid } from '@/lib/a2a/types'
 
-export async function GET(request: NextRequest) {
-  const address = await getAuthenticatedAddress(request)
-  if (!address) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-  }
-
+export const GET = withAuth(async (request: NextRequest, address: string) => {
   const did = generateDid(address)
   const { searchParams } = new URL(request.url)
 
@@ -26,4 +21,4 @@ export async function GET(request: NextRequest) {
   })
 
   return NextResponse.json(result)
-}
+}, { component: 'a2a-messages' })

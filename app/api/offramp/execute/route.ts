@@ -8,7 +8,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 interface OfframpExecuteRequest {
   quoteId: string
@@ -53,13 +53,8 @@ const PROVIDERS = {
   },
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body: OfframpExecuteRequest = await request.json()
     const {
       quoteId,
@@ -155,7 +150,7 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
-}
+}, { component: 'offramp-execute' })
 
 async function executeBridgeOfframp(request: OfframpExecuteRequest) {
   const response = await fetch(`${PROVIDERS.bridge.apiUrl}/v0/transfers`, {

@@ -6,16 +6,11 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server'
-import { getAuthenticatedAddress } from '@/lib/api-auth'
+import { withAuth } from '@/lib/middleware/api-auth'
 import { a2aService } from '@/lib/services/a2a-service'
 import { generateDid } from '@/lib/a2a/types'
 
-export async function GET(request: NextRequest) {
-  const address = await getAuthenticatedAddress(request)
-  if (!address) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-  }
-
+export const GET = withAuth(async (request: NextRequest, address: string) => {
   const did = generateDid(address)
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status') || undefined
@@ -24,16 +19,11 @@ export async function GET(request: NextRequest) {
 
   const result = await a2aService.listTasks(did, { status, limit, offset })
   return NextResponse.json(result)
-}
+}, { component: 'a2a-tasks' })
 
-export async function POST(request: NextRequest) {
-  const address = await getAuthenticatedAddress(request)
-  if (!address) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-  }
-
+export const POST = withAuth(async (request: NextRequest, address: string) => {
   const body = await request.json()
   const did = generateDid(address)
   const task = await a2aService.createTask(did, body.description)
   return NextResponse.json(task, { status: 201 })
-}
+}, { component: 'a2a-tasks' })

@@ -1,9 +1,9 @@
 /**
  * Agent Proposals API Routes
- * 
+ *
  * POST /api/agents/proposals - Create proposal (agent auth)
  * GET /api/agents/proposals - List proposals (owner auth)
- * 
+ *
  * @module app/api/agents/proposals/route
  */
 
@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { proposalService, ProposalStatus } from '@/lib/services/proposal-service';
 import { agentService } from '@/lib/services/agent-service';
 import { getAgentContext, extractAgentApiKey, validateAgentAuth } from '@/lib/middleware/agent-auth';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 // ============================================
 // POST /api/agents/proposals - Create proposal (agent auth)
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     // Check for agent authentication
     const apiKey = extractAgentApiKey(req);
-    
+
     if (apiKey) {
       // Agent authentication
       const authResult = await validateAgentAuth(apiKey);
@@ -86,54 +86,48 @@ export async function POST(req: NextRequest) {
     }
 
     // Owner authentication - create proposal on behalf of agent
-    const ownerAddress = await getAuthenticatedAddress(req);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    return withAuth(async (request, ownerAddress) => {
+      const body = await request.json();
 
-    const body = await req.json();
+      // Validate agent_id for owner-created proposals
+      if (!body.agent_id) {
+        return NextResponse.json(
+          { error: 'agent_id is required when creating proposal as owner' },
+          { status: 400 }
+        );
+      }
 
-    // Validate agent_id for owner-created proposals
-    if (!body.agent_id) {
-      return NextResponse.json(
-        { error: 'agent_id is required when creating proposal as owner' },
-        { status: 400 }
-      );
-    }
+      // Verify agent belongs to owner
+      const agent = await agentService.get(body.agent_id, ownerAddress);
+      if (!agent) {
+        return NextResponse.json(
+          { error: 'Agent not found' },
+          { status: 404 }
+        );
+      }
 
-    // Verify agent belongs to owner
-    const agent = await agentService.get(body.agent_id, ownerAddress);
-    if (!agent) {
-      return NextResponse.json(
-        { error: 'Agent not found' },
-        { status: 404 }
-      );
-    }
+      const proposal = await proposalService.create({
+        agent_id: body.agent_id,
+        owner_address: ownerAddress,
+        recipient_address: body.recipient_address,
+        amount: body.amount,
+        token: body.token,
+        chain_id: body.chain_id,
+        reason: body.reason,
+        metadata: body.metadata,
+        budget_id: body.budget_id,
+      });
 
-    const proposal = await proposalService.create({
-      agent_id: body.agent_id,
-      owner_address: ownerAddress,
-      recipient_address: body.recipient_address,
-      amount: body.amount,
-      token: body.token,
-      chain_id: body.chain_id,
-      reason: body.reason,
-      metadata: body.metadata,
-      budget_id: body.budget_id,
-    });
-
-    return NextResponse.json({
-      success: true,
-      proposal,
-      message: 'Proposal created successfully',
-    }, { status: 201 });
+      return NextResponse.json({
+        success: true,
+        proposal,
+        message: 'Proposal created successfully',
+      }, { status: 201 });
+    }, { component: 'agents-proposals' })(req);
 
   } catch (error) {
     console.error('Error creating proposal:', error);
-    
+
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -149,16 +143,8 @@ export async function POST(req: NextRequest) {
 // GET /api/agents/proposals - List proposals (owner auth)
 // ============================================
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(req);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status') as ProposalStatus | null;
     const agentId = searchParams.get('agent_id');
@@ -188,4 +174,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'agents-proposals' });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import { syncUserBalances, getSupportedSyncTargets } from "@/lib/services/balance-sync-service"
 
 /**
@@ -20,13 +20,8 @@ export async function GET() {
  * Body (optional):
  * - chains: string[] — limit sync to specific chains (e.g., ["ethereum", "tron"])
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request)
-    if (!userAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     let chains: string[] | undefined
     try {
       const body = await request.json()
@@ -49,4 +44,4 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'ledger-sync' })

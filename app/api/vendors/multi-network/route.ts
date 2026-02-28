@@ -9,21 +9,14 @@ import {
   listVendorsWithAddresses,
 } from "@/lib/services/vendor-multi-network.service"
 import { validateAddress } from "@/lib/address-utils"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 /**
  * GET /api/vendors/multi-network
  * List all vendors with their network addresses
  */
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: NextRequest, ownerAddress: string) => {
   try {
-    // Get user address from headers or auth
-    const ownerAddress = await getAuthenticatedAddress(req)
-
-    if (!ownerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const vendors = await listVendorsWithAddresses(ownerAddress)
 
     return NextResponse.json({
@@ -37,20 +30,14 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { component: 'vendors-multi-network' })
 
 /**
  * POST /api/vendors/multi-network
  * Create a new vendor with multi-network addresses
  */
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(req)
-
-    if (!ownerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const body = await req.json()
     const { name, addresses, companyName, email, category, tags } = body
 
@@ -111,4 +98,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}, { component: 'vendors-multi-network' })

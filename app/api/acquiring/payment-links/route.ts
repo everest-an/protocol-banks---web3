@@ -8,7 +8,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 // ============================================
 // Helpers
@@ -44,13 +44,8 @@ function buildPaymentUrl(linkId: string, recipientAddress: string, amount: strin
 // POST - Create payment link
 // ============================================
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request)
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const body = await request.json()
     const {
       merchantId, title, description, amount, currency, token,
@@ -107,7 +102,7 @@ export async function POST(request: NextRequest) {
     console.error("[API] Payment link creation error:", error)
     return NextResponse.json({ error: error.message || "Failed to create payment link" }, { status: 500 })
   }
-}
+}, { component: 'acquiring-payment-links' })
 
 // ============================================
 // GET - Fetch payment links
@@ -161,13 +156,8 @@ export async function GET(request: NextRequest) {
 // PATCH - Update payment link
 // ============================================
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request)
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const body = await request.json()
     const { linkId, status, ...updates } = body
 
@@ -191,19 +181,14 @@ export async function PATCH(request: NextRequest) {
     console.error("[API] Payment link update error:", error)
     return NextResponse.json({ error: error.message || "Failed to update payment link" }, { status: 500 })
   }
-}
+}, { component: 'acquiring-payment-links' })
 
 // ============================================
 // DELETE - Remove payment link
 // ============================================
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request)
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const linkId = searchParams.get("linkId")
 
@@ -220,4 +205,4 @@ export async function DELETE(request: NextRequest) {
     console.error("[API] Payment link delete error:", error)
     return NextResponse.json({ error: error.message || "Failed to delete payment link" }, { status: 500 })
   }
-}
+}, { component: 'acquiring-payment-links' })

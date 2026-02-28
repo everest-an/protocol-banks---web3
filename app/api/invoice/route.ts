@@ -7,7 +7,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 // Generate secure invoice ID
 function generateInvoiceId(): string {
@@ -31,13 +31,8 @@ function generateSignature(data: string): string {
   return crypto.createHmac("sha256", getPaymentLinkSecret()).update(data).digest("hex").slice(0, 16)
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json()
     const { recipientAddress, amount, token, chain, description, merchantName, expiresIn, metadata, amountFiat, fiatCurrency } = body
 
@@ -120,7 +115,7 @@ export async function POST(request: NextRequest) {
     console.error("[API] Invoice creation error:", error)
     return NextResponse.json({ error: error.message || "Failed to create invoice" }, { status: 500 })
   }
-}
+}, { component: 'invoice' })
 
 export async function GET(request: NextRequest) {
   try {
@@ -162,13 +157,8 @@ export async function GET(request: NextRequest) {
 }
 
 // Update invoice status (e.g., after payment)
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json()
     const { invoiceId, status, txHash, paidBy } = body
 
@@ -178,11 +168,6 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: any = {
       status,
-      // updated_at is automatically handled by Prisma if configured, but we can try setting it or ignore it if not in schema. 
-      // Based on typical Prisma schema, updated_at is usually @updatedAt. 
-      // If it fails, I'll remove it. But schema inspection earlier showed standard timestamp fields might exist or not. 
-      // Let's assume standard behavior or explicit set.
-      // Wait, earlier I didn't see updated_at in the CREATE called.
     }
 
     if (txHash) updateData.tx_hash = txHash
@@ -199,4 +184,4 @@ export async function PATCH(request: NextRequest) {
     console.error("[API] Invoice update error:", error)
     return NextResponse.json({ error: error.message || "Failed to update invoice" }, { status: 500 })
   }
-}
+}, { component: 'invoice' })

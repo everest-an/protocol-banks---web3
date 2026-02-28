@@ -1,32 +1,24 @@
 /**
  * Agent API Routes
- * 
+ *
  * POST /api/agents - Create new agent
  * GET /api/agents - List all agents for owner
- * 
+ *
  * @module app/api/agents/route
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { agentService, CreateAgentInput, AgentType } from '@/lib/services/agent-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 // ============================================
 // POST /api/agents - Create new agent
 // ============================================
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(req);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json();
-    
+
     // Validate required fields
     if (!body.name || typeof body.name !== 'string') {
       return NextResponse.json(
@@ -79,7 +71,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Error creating agent:', error);
-    
+
     if (error instanceof Error && error.message.includes('is required')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -89,22 +81,14 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'agents' });
 
 // ============================================
 // GET /api/agents - List all agents
 // ============================================
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(req);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const agents = await agentService.list(ownerAddress);
 
     return NextResponse.json({
@@ -120,4 +104,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'agents' });

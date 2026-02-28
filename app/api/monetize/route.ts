@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 // GET: Fetch config and API keys for authenticated wallet
-export async function GET(request: NextRequest) {
-  const walletAddress = await getAuthenticatedAddress(request)
-  if (!walletAddress) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const GET = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
     const config = await prisma.monetizeConfig.findUnique({
       where: { owner_address: walletAddress.toLowerCase() },
@@ -32,15 +27,10 @@ export async function GET(request: NextRequest) {
     console.error("[API] monetize GET error:", err)
     return NextResponse.json({ error: err.message || "Failed to fetch monetize data" }, { status: 500 })
   }
-}
+}, { component: 'monetize' })
 
 // POST: Create a new API key
-export async function POST(request: NextRequest) {
-  const walletAddress = await getAuthenticatedAddress(request)
-  if (!walletAddress) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const POST = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
     const body = await request.json()
 
@@ -67,15 +57,10 @@ export async function POST(request: NextRequest) {
     console.error("[API] monetize POST error:", err)
     return NextResponse.json({ error: err.message || "Failed to create API key" }, { status: 500 })
   }
-}
+}, { component: 'monetize' })
 
 // PUT: Upsert monetize config
-export async function PUT(request: NextRequest) {
-  const walletAddress = await getAuthenticatedAddress(request)
-  if (!walletAddress) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const PUT = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
     const body = await request.json()
     const ownerAddress = walletAddress.toLowerCase()
@@ -105,15 +90,10 @@ export async function PUT(request: NextRequest) {
     console.error("[API] monetize PUT error:", err)
     return NextResponse.json({ error: err.message || "Failed to update config" }, { status: 500 })
   }
-}
+}, { component: 'monetize' })
 
 // PATCH: Revoke an API key
-export async function PATCH(request: NextRequest) {
-  const walletAddress = await getAuthenticatedAddress(request)
-  if (!walletAddress) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const PATCH = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
     const body = await request.json()
     const { keyId } = body
@@ -137,4 +117,4 @@ export async function PATCH(request: NextRequest) {
     console.error("[API] monetize PATCH error:", err)
     return NextResponse.json({ error: err.message || "Failed to revoke API key" }, { status: 500 })
   }
-}
+}, { component: 'monetize' })

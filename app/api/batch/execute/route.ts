@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 /**
  * POST /api/batch/execute
  * Trigger execution for a parsed batch job
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
-    const walletAddress = await getAuthenticatedAddress(request)
-    if (!walletAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const { jobId } = await request.json()
     if (!jobId) {
       return NextResponse.json({ error: "Job ID required" }, { status: 400 })
@@ -45,12 +40,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Mark for Execution (Cron or downstream system will pick up)
-    // We update status to 'APPROVED'. A separate Cron or the Go Payout Engine 
+    // We update status to 'APPROVED'. A separate Cron or the Go Payout Engine
     // should poll for APPROVED jobs and move them to PROCESSING.
-    
+
     // For Vercel-only demo: We just simulate marking it.
     // In production, your Go Engine watches this table.
-    
+
     /*
     // Previous Redis Code (Removed)
     for (const chunk of chunks) {
@@ -64,13 +59,13 @@ export async function POST(request: NextRequest) {
       data: { status: 'APPROVED' } // Ready for Payout Engine
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Job ${jobId} approved for execution (${chunks.length} chunks)` 
+    return NextResponse.json({
+      success: true,
+      message: `Job ${jobId} approved for execution (${chunks.length} chunks)`
     })
 
   } catch (error: any) {
     console.error("Batch execute error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-}
+}, { component: 'batch-execute' })

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import { writeFile, mkdir } from "fs/promises"
 import { tmpdir } from "os"
 import path from "path"
@@ -12,18 +12,12 @@ import path from "path"
  * - Creates Prisma Record (QUEUED)
  * - Vercel Cron will pick it up
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, walletAddress: string) => {
   try {
-    // 1. Auth Check (wallet-address-based)
-    const walletAddress = await getAuthenticatedAddress(request)
-    if (!walletAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // 2. Handle File Upload
+    // Handle File Upload
     const formData = await request.formData()
     const file = formData.get("file") as File
-    
+
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
     }
@@ -35,7 +29,7 @@ export async function POST(request: NextRequest) {
     const fileExt = file.name.split(".").pop()
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
 
-    // 3. Save file to local filesystem
+    // Save file to local filesystem
     const uploadDir = path.join(tmpdir(), "batch-files", walletAddress.toLowerCase())
     await mkdir(uploadDir, { recursive: true })
 
@@ -43,12 +37,12 @@ export async function POST(request: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer())
     await writeFile(filePath, fileBuffer)
 
-    // 4. Create Job Record (Prisma)
+    // Create Job Record (Prisma)
     // Status "QUEUED" allows the Cron to pick it up automatically
     const job = await prisma.batchJob.create({
       data: {
         user_id: walletAddress.toLowerCase(),
-        status: "QUEUED", 
+        status: "QUEUED",
         file_url: filePath,
         total_lines: 0
       }
@@ -56,14 +50,14 @@ export async function POST(request: NextRequest) {
 
     // No Redis push needed! Vercel Cron checks DB every minute.
 
-    return NextResponse.json({ 
-      jobId: job.id, 
-      status: "queued", 
-      message: "File uploaded. Processing will start shortly." 
+    return NextResponse.json({
+      jobId: job.id,
+      status: "queued",
+      message: "File uploaded. Processing will start shortly."
     })
 
   } catch (error: any) {
     console.error("Upload API Error:", error)
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
   }
-}
+}, { component: 'batch-upload' })

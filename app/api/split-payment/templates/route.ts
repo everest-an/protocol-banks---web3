@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { splitPaymentService } from '@/lib/services/split-payment-service';
 import { validateSplitRecipients } from '@/types/split-payment';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 /**
  * GET /api/split-payment/templates
  * List all split payment templates
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const templates = await splitPaymentService.listTemplates(userAddress);
 
     return NextResponse.json({ templates });
@@ -28,23 +19,14 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'split-payment-templates' })
 
 /**
  * POST /api/split-payment/templates
  * Create a new split payment template
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const { name, description, recipients, team_id } = body;
 
@@ -86,4 +68,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'split-payment-templates' })

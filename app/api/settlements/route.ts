@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import {
   createSettlement,
   listSettlements,
@@ -10,13 +10,8 @@ import {
  * GET /api/settlements
  * List settlement records for the authenticated user
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request)
-    if (!userAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
 
     const result = await listSettlements({
@@ -34,19 +29,14 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'settlements' })
 
 /**
  * POST /api/settlements
  * Create a new settlement/reconciliation record
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request)
-    if (!userAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const body = await request.json()
     const { periodStart, periodEnd, token, chain, onChainBalance } = body
 
@@ -72,19 +62,14 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'settlements' })
 
 /**
  * PATCH /api/settlements
  * Resolve a discrepancy
  */
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request)
-    if (!userAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const body = await request.json()
     const { settlementId, notes } = body
 
@@ -102,4 +87,4 @@ export async function PATCH(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal Server Error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
+}, { component: 'settlements' })

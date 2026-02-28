@@ -8,15 +8,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { distributeAsset, checkAssetAvailability, type AssetDistributionConfig } from "@/lib/asset-distribution"
 import { prisma } from "@/lib/prisma"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json()
     const {
       paymentTxHash,
@@ -136,7 +131,7 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
-}
+}, { component: 'distribute-asset' })
 
 // Check asset availability without distributing
 export async function GET(request: NextRequest) {

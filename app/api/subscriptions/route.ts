@@ -6,7 +6,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { SubscriptionService, type SubscriptionFrequency } from '@/lib/services/subscription-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 const subscriptionService = new SubscriptionService();
 
@@ -17,16 +17,8 @@ const VALID_TOKENS = ['USDC', 'USDT', 'DAI', 'ETH', 'WETH', 'WBTC'];
  * POST /api/subscriptions
  * Create a new subscription
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(request);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required. Connect wallet or sign in.' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const {
       service_name, wallet_address, amount, token, frequency, chain_id, start_date, memo,
@@ -144,22 +136,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'subscriptions' })
 
 /**
  * GET /api/subscriptions
  * List all subscriptions for the authenticated user
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(request);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required. Connect wallet or sign in.' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as any;
     const use_case = searchParams.get('use_case') as any;
@@ -203,4 +187,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'subscriptions' })

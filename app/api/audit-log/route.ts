@@ -7,15 +7,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security/security"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json()
     const { action, actor, target_type, target_id, details } = body
 
@@ -56,7 +51,7 @@ export async function POST(request: NextRequest) {
     console.error("[API] Audit log error:", error)
     return NextResponse.json({ error: error.message || "Failed to create audit log" }, { status: 500 })
   }
-}
+}, { component: 'audit-log' })
 
 export async function GET(request: NextRequest) {
   try {

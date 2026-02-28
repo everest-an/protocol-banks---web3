@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exportService } from '@/lib/services/export-service';
 import type { ExportFormat } from '@/lib/services/export-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 /**
  * GET /api/reports/accounting
@@ -12,17 +12,8 @@ import { getAuthenticatedAddress } from '@/lib/api-auth';
  *   - format: Export format (json, csv, xlsx)
  *   - include_pending: Include pending transactions (true/false)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('start');
     const endDate = searchParams.get('end');
@@ -94,23 +85,14 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'reports-accounting' })
 
 /**
  * POST /api/reports/accounting
  * Generate accounting report with more options
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const {
       start_date,
@@ -184,4 +166,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'reports-accounting' })

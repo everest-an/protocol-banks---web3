@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security/security"
 import { addSecurityHeaders, validateOrigin } from "@/lib/security/security-middleware"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 // Regex for basic Ethereum address validation
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/
@@ -20,16 +20,10 @@ const TOKENS = {
   },
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, callerAddress: string) => {
   const originValidation = validateOrigin(request)
   if (!originValidation.valid) {
     return addSecurityHeaders(NextResponse.json({ error: originValidation.error }, { status: 403 }))
-  }
-
-  // Authenticate the request
-  const callerAddress = await getAuthenticatedAddress(request)
-  if (!callerAddress) {
-    return addSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }))
   }
 
   const searchParams = request.nextUrl.searchParams
@@ -119,4 +113,4 @@ export async function GET(request: NextRequest) {
     console.error("Indexer fetch error:", error)
     return addSecurityHeaders(NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 }))
   }
-}
+}, { component: 'transactions' })

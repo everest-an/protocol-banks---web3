@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { validateBatch, calculateBatchTotals, type BatchPaymentItem } from "@/lib/services"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 import { validateAddress, getNetworkForAddress } from "@/lib/address-utils"
 import { ALL_NETWORKS } from "@/lib/networks"
 import { createBatchItems } from "@/lib/services/batch-item-service"
@@ -11,13 +11,8 @@ import { checkIdempotency, completeIdempotency, failIdempotency } from "@/lib/se
  * POST /api/batch-payment
  * Create a new batch payment job
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json()
     const {
       recipients,
@@ -197,7 +192,7 @@ export async function POST(request: NextRequest) {
     if (key) await failIdempotency(key).catch(() => {})
     return NextResponse.json({ error: error.message || "Failed to create batch" }, { status: 500 })
   }
-}
+}, { component: 'batch-payment' })
 
 /**
  * GET /api/batch-payment
@@ -211,13 +206,8 @@ export async function POST(request: NextRequest) {
  * - status: filter by batch status
  * - limit: number of results (default 50, max 100)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
-    const callerAddress = await getAuthenticatedAddress(request);
-    if (!callerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url)
     const batchId = searchParams.get("batchId")
     const fromAddressParam = searchParams.get("fromAddress")
@@ -317,4 +307,4 @@ export async function GET(request: NextRequest) {
     console.error("[BatchPayment] Get error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-}
+}, { component: 'batch-payment' })

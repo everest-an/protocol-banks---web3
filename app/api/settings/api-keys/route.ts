@@ -6,7 +6,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService, type Permission } from '@/lib/services/api-key-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 const apiKeyService = new APIKeyService();
 
@@ -17,18 +17,8 @@ const VALID_PERMISSIONS: Permission[] = ['read', 'write', 'payments', 'webhooks'
  * POST /api/settings/api-keys
  * Create a new API key
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, ownerAddress: string) => {
   try {
-    // Get authenticated user
-    const ownerAddress = await getAuthenticatedAddress(request);
-
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     // Parse request body
     const body = await request.json();
     const { name, permissions, rate_limit_per_minute, rate_limit_per_day, allowed_ips, allowed_origins, expires_at } = body;
@@ -134,24 +124,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'settings-api-keys' })
 
 /**
  * GET /api/settings/api-keys
  * List all API keys for the authenticated user
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, ownerAddress: string) => {
   try {
-    // Get authenticated user
-    const ownerAddress = await getAuthenticatedAddress(request);
-
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     // List API keys (without secrets)
     const keys = await apiKeyService.list(ownerAddress);
 
@@ -185,4 +165,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'settings-api-keys' })

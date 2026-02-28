@@ -8,7 +8,7 @@ import {
   updateVendorAddress,
   deleteVendorAddress,
 } from "@/lib/services/vendor-multi-network.service"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 /**
  * PATCH /api/vendors/:id/addresses/:addressId
@@ -18,45 +18,41 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; addressId: string }> }
 ) {
-  const { id, addressId } = await params
-  try {
-    const ownerAddress = await getAuthenticatedAddress(req)
+  return withAuth(async (request, ownerAddress) => {
+    const { id, addressId } = await params
+    try {
+      const body = await request.json()
+      const { label, isPrimary } = body
 
-    if (!ownerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+      const updatedAddress = await updateVendorAddress(
+        addressId,
+        ownerAddress,
+        {
+          label: label?.trim(),
+          isPrimary,
+        }
+      )
 
-    const body = await req.json()
-    const { label, isPrimary } = body
+      return NextResponse.json({
+        address: updatedAddress,
+        message: "Address updated successfully",
+      })
+    } catch (error: any) {
+      console.error(
+        `[API] PATCH /api/vendors/${id}/addresses/${addressId} error:`,
+        error
+      )
 
-    const updatedAddress = await updateVendorAddress(
-      addressId,
-      ownerAddress,
-      {
-        label: label?.trim(),
-        isPrimary,
+      if (error.message.includes("not found")) {
+        return NextResponse.json({ error: error.message }, { status: 404 })
       }
-    )
 
-    return NextResponse.json({
-      address: updatedAddress,
-      message: "Address updated successfully",
-    })
-  } catch (error: any) {
-    console.error(
-      `[API] PATCH /api/vendors/${id}/addresses/${addressId} error:`,
-      error
-    )
-
-    if (error.message.includes("not found")) {
-      return NextResponse.json({ error: error.message }, { status: 404 })
+      return NextResponse.json(
+        { error: error.message || "Failed to update address" },
+        { status: 500 }
+      )
     }
-
-    return NextResponse.json(
-      { error: error.message || "Failed to update address" },
-      { status: 500 }
-    )
-  }
+  }, { component: 'vendors-id-addresses-id' })(req);
 }
 
 /**
@@ -67,36 +63,32 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; addressId: string }> }
 ) {
-  const { id, addressId } = await params
-  try {
-    const ownerAddress = await getAuthenticatedAddress(req)
+  return withAuth(async (request, ownerAddress) => {
+    const { id, addressId } = await params
+    try {
+      await deleteVendorAddress(addressId, ownerAddress)
 
-    if (!ownerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({
+        message: "Address deleted successfully",
+      })
+    } catch (error: any) {
+      console.error(
+        `[API] DELETE /api/vendors/${id}/addresses/${addressId} error:`,
+        error
+      )
+
+      if (error.message.includes("not found")) {
+        return NextResponse.json({ error: error.message }, { status: 404 })
+      }
+
+      if (error.message.includes("Cannot delete the last address")) {
+        return NextResponse.json({ error: error.message }, { status: 400 })
+      }
+
+      return NextResponse.json(
+        { error: error.message || "Failed to delete address" },
+        { status: 500 }
+      )
     }
-
-    await deleteVendorAddress(addressId, ownerAddress)
-
-    return NextResponse.json({
-      message: "Address deleted successfully",
-    })
-  } catch (error: any) {
-    console.error(
-      `[API] DELETE /api/vendors/${id}/addresses/${addressId} error:`,
-      error
-    )
-
-    if (error.message.includes("not found")) {
-      return NextResponse.json({ error: error.message }, { status: 404 })
-    }
-
-    if (error.message.includes("Cannot delete the last address")) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-
-    return NextResponse.json(
-      { error: error.message || "Failed to delete address" },
-      { status: 500 }
-    )
-  }
+  }, { component: 'vendors-id-addresses-id' })(req);
 }

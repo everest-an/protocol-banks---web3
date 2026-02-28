@@ -1,29 +1,21 @@
 /**
  * Resume All Agents API Route
- * 
+ *
  * POST /api/agents/resume-all - Resume all paused agents
- * 
+ *
  * @module app/api/agents/resume-all/route
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { agentService } from '@/lib/services/agent-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 // ============================================
 // POST /api/agents/resume-all - Resume all paused agents
 // ============================================
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(req);
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const resumedCount = await agentService.resumeAll(ownerAddress);
 
     return NextResponse.json({
@@ -39,4 +31,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'agents-resume-all' });

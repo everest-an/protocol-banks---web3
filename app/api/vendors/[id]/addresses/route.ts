@@ -9,7 +9,7 @@ import {
   getVendorWithAddresses,
 } from "@/lib/services/vendor-multi-network.service"
 import { validateAddress } from "@/lib/address-utils"
-import { getAuthenticatedAddress } from "@/lib/api-auth"
+import { withAuth } from "@/lib/middleware/api-auth"
 
 /**
  * GET /api/vendors/:id/addresses
@@ -19,31 +19,27 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
-  try {
-    const ownerAddress = await getAuthenticatedAddress(req)
+  return withAuth(async (request, ownerAddress) => {
+    const { id } = await params
+    try {
+      const vendor = await getVendorWithAddresses(id, ownerAddress)
 
-    if (!ownerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      if (!vendor) {
+        return NextResponse.json({ error: "Vendor not found" }, { status: 404 })
+      }
+
+      return NextResponse.json({
+        addresses: vendor.addresses,
+        count: vendor.addresses.length,
+      })
+    } catch (error: any) {
+      console.error(`[API] GET /api/vendors/${id}/addresses error:`, error)
+      return NextResponse.json(
+        { error: error.message || "Failed to fetch addresses" },
+        { status: 500 }
+      )
     }
-
-    const vendor = await getVendorWithAddresses(id, ownerAddress)
-
-    if (!vendor) {
-      return NextResponse.json({ error: "Vendor not found" }, { status: 404 })
-    }
-
-    return NextResponse.json({
-      addresses: vendor.addresses,
-      count: vendor.addresses.length,
-    })
-  } catch (error: any) {
-    console.error(`[API] GET /api/vendors/${id}/addresses error:`, error)
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch addresses" },
-      { status: 500 }
-    )
-  }
+  }, { component: 'vendors-id-addresses' })(req);
 }
 
 /**
@@ -54,61 +50,57 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
-  try {
-    const ownerAddress = await getAuthenticatedAddress(req)
+  return withAuth(async (request, ownerAddress) => {
+    const { id } = await params
+    try {
+      const body = await request.json()
+      const { network, address, label, isPrimary } = body
 
-    if (!ownerAddress) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+      // Validation
+      if (!network || !network.trim()) {
+        return NextResponse.json({ error: "Network is required" }, { status: 400 })
+      }
 
-    const body = await req.json()
-    const { network, address, label, isPrimary } = body
+      if (!address || !address.trim()) {
+        return NextResponse.json({ error: "Address is required" }, { status: 400 })
+      }
 
-    // Validation
-    if (!network || !network.trim()) {
-      return NextResponse.json({ error: "Network is required" }, { status: 400 })
-    }
+      // Validate address format
+      const validation = validateAddress(address.trim())
+      if (!validation.isValid) {
+        return NextResponse.json(
+          { error: `Invalid address: ${validation.error}` },
+          { status: 400 }
+        )
+      }
 
-    if (!address || !address.trim()) {
-      return NextResponse.json({ error: "Address is required" }, { status: 400 })
-    }
+      // Add address
+      const newAddress = await addVendorAddress(id, ownerAddress, {
+        network: network.trim().toLowerCase(),
+        address: validation.checksumAddress!,
+        label: label?.trim(),
+        isPrimary: isPrimary || false,
+      })
 
-    // Validate address format
-    const validation = validateAddress(address.trim())
-    if (!validation.isValid) {
+      return NextResponse.json({
+        address: newAddress,
+        message: "Address added successfully",
+      }, { status: 201 })
+    } catch (error: any) {
+      console.error(`[API] POST /api/vendors/${id}/addresses error:`, error)
+
+      if (error.message.includes("not found")) {
+        return NextResponse.json({ error: error.message }, { status: 404 })
+      }
+
+      if (error.message.includes("already exists")) {
+        return NextResponse.json({ error: error.message }, { status: 409 })
+      }
+
       return NextResponse.json(
-        { error: `Invalid address: ${validation.error}` },
-        { status: 400 }
+        { error: error.message || "Failed to add address" },
+        { status: 500 }
       )
     }
-
-    // Add address
-    const newAddress = await addVendorAddress(id, ownerAddress, {
-      network: network.trim().toLowerCase(),
-      address: validation.checksumAddress!,
-      label: label?.trim(),
-      isPrimary: isPrimary || false,
-    })
-
-    return NextResponse.json({
-      address: newAddress,
-      message: "Address added successfully",
-    }, { status: 201 })
-  } catch (error: any) {
-    console.error(`[API] POST /api/vendors/${id}/addresses error:`, error)
-
-    if (error.message.includes("not found")) {
-      return NextResponse.json({ error: error.message }, { status: 404 })
-    }
-
-    if (error.message.includes("already exists")) {
-      return NextResponse.json({ error: error.message }, { status: 409 })
-    }
-
-    return NextResponse.json(
-      { error: error.message || "Failed to add address" },
-      { status: 500 }
-    )
-  }
+  }, { component: 'vendors-id-addresses' })(req);
 }

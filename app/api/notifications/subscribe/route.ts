@@ -5,21 +5,12 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { NotificationService } from '@/lib/services/notification-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 const notificationService = new NotificationService();
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const { endpoint, keys } = body;
 
@@ -53,4 +44,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'notifications-subscribe' });
