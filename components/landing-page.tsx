@@ -13,7 +13,7 @@ import {
   Users,
   RefreshCw,
   Lock,
-  Layers,
+  BarChart3,
   Bot,
   CreditCard,
   ChevronRight,
@@ -24,6 +24,7 @@ import {
   Receipt,
   PieChart,
   Check,
+  TrendingUp,
 } from "lucide-react"
 
 interface LandingPageProps {
@@ -239,17 +240,17 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </div>
           </Link>
 
-          {/* Gasless Checkout */}
-          <Link href="/checkout" className="group">
+          {/* Card */}
+          <Link href="/card" className="group">
             <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
               <div className="p-2.5 rounded-lg bg-yellow-500/10 w-fit mb-3">
-                <Zap className="h-5 w-5 text-yellow-500" />
+                <CreditCard className="h-5 w-5 text-yellow-500" />
               </div>
               <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Gasless Checkout
+                Card
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Accept USDC without gas tokens. x402 protocol separates signing from execution.
+                Spend crypto balances anywhere. Virtual and physical cards backed by your onchain treasury.
               </p>
             </div>
           </Link>
@@ -284,17 +285,17 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </div>
           </Link>
 
-          {/* Swap */}
-          <Link href="/swap" className="group">
+          {/* Yield */}
+          <Link href="/yield" className="group">
             <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
               <div className="p-2.5 rounded-lg bg-emerald-500/10 w-fit mb-3">
-                <Globe className="h-5 w-5 text-emerald-500" />
+                <TrendingUp className="h-5 w-5 text-emerald-500" />
               </div>
               <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Cross-Chain Swap
+                Yield
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Swap across 50+ chains and 100+ DEXs. Powered by Rango Exchange.
+                Put idle treasury to work. Earn yield on stablecoins via curated DeFi protocols.
               </p>
             </div>
           </Link>
@@ -348,7 +349,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
           <Link href="/analytics" className="group">
             <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
               <div className="p-2.5 rounded-lg bg-rose-500/10 w-fit mb-3">
-                <Layers className="h-5 w-5 text-rose-500" />
+                <BarChart3 className="h-5 w-5 text-rose-500" />
               </div>
               <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
                 Analytics
@@ -370,7 +371,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                 <NetworkGraphDemo />
               </div>
               <p className="text-center text-xs text-muted-foreground mt-3 group-hover:text-primary transition-colors">
-                Click to explore full Network Atlas →
+                Click to explore Analytics Dashboard →
               </p>
             </Link>
           </div>
