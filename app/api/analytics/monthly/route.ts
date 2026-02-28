@@ -5,28 +5,15 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { AnalyticsService } from '@/lib/services/analytics-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 const analyticsService = new AnalyticsService();
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, ownerAddress: string) => {
   try {
-    const ownerAddress = await getAuthenticatedAddress(request);
-
-    if (!ownerAddress) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const monthlyData = await analyticsService.getMonthlyData(ownerAddress);
 
-    return NextResponse.json({
-      success: true,
-      data: monthlyData,
-    });
-
+    return NextResponse.json({ success: true, data: monthlyData });
   } catch (error: any) {
     console.error('[Analytics] Monthly error:', error);
     return NextResponse.json(
@@ -34,4 +21,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'analytics-monthly' });

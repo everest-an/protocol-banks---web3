@@ -1,36 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { billingService } from '@/lib/services/billing-service';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 /**
  * GET /api/billing/subscription
  * Get current user's subscription
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
-    // Ensure subscription exists (creates Free plan if not)
     const subscription = await billingService.ensureSubscription(userAddress);
-
-    // Get usage metrics
     const usage = await billingService.getUsageMetrics(userAddress);
-
-    // Get plan limits
     const limits = await billingService.getPlanLimits(userAddress);
 
-    return NextResponse.json({
-      subscription,
-      usage,
-      limits,
-    });
+    return NextResponse.json({ subscription, usage, limits });
   } catch (error: any) {
     console.error('[API] Failed to get subscription:', error);
     return NextResponse.json(
@@ -38,23 +20,14 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'billing-subscription' });
 
 /**
  * POST /api/billing/subscription
  * Change subscription plan
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userAddress: string) => {
   try {
-    const userAddress = await getAuthenticatedAddress(request);
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'User address required' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const { plan_id, action } = body;
 
@@ -64,19 +37,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (!plan_id) {
-      return NextResponse.json(
-        { error: 'plan_id is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'plan_id is required' }, { status: 400 });
     }
 
-    // Verify plan exists
     const plan = await billingService.getPlan(plan_id);
     if (!plan) {
-      return NextResponse.json(
-        { error: 'Plan not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
     }
 
     const subscription = await billingService.changePlan(userAddress, plan_id);
@@ -89,4 +55,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'billing-subscription' });

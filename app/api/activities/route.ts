@@ -5,7 +5,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getAuthenticatedAddress } from '@/lib/api-auth';
+import { withAuth } from '@/lib/middleware/api-auth';
 
 // Activity types
 type ActivityType =
@@ -53,17 +53,8 @@ const STATUS_MAP: Record<string, "success" | "pending" | "failed"> = {
   cancelled: "failed",
 };
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, wallet: string) => {
   try {
-    // Authenticate the request
-    const wallet = await getAuthenticatedAddress(request);
-    if (!wallet) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required. Connect wallet or sign in.' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '15', 10);
     const type = searchParams.get('type'); // Filter by type: payments, subscriptions, etc.
@@ -362,7 +353,7 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { component: 'activities' });
 
 // Helper function to shorten wallet address
 function shortenAddress(address: string): string {
