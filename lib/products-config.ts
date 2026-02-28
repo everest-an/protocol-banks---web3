@@ -3,7 +3,6 @@ import {
   Users,
   Link as LinkIcon,
   RefreshCw,
-  Layers,
   Clock,
   Bot,
   ArrowRightLeft,
@@ -18,8 +17,6 @@ import {
   BarChart3,
   FileCheck,
   SplitSquareHorizontal,
-  Monitor,
-  ShoppingCart,
 } from "lucide-react"
 
 export interface ProductItem {
@@ -124,18 +121,6 @@ export const receivingProducts: ProductItem[] = [
     description: "Generate QR codes and shareable links",
     icon: LinkIcon,
   },
-  {
-    href: "/checkout",
-    title: "Checkout",
-    description: "Hosted checkout pages for merchants",
-    icon: ShoppingCart,
-  },
-  {
-    href: "/terminal",
-    title: "POS Terminal",
-    description: "Point-of-sale payment terminal",
-    icon: Monitor,
-  },
 ]
 
 // DeFi
@@ -145,12 +130,6 @@ export const defiProducts: ProductItem[] = [
     title: "Swap",
     description: "Exchange tokens or off-ramp to fiat",
     icon: RefreshCw,
-  },
-  {
-    href: "/omnichain",
-    title: "Bridge",
-    description: "Cross-chain asset transfers",
-    icon: Layers,
   },
   {
     href: "/yield",

@@ -35,7 +35,6 @@ import {
   Legend,
 } from "recharts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import PaymentNetworkGraph from "@/components/payment-network-graph"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { getTopCategories } from "@/lib/business-logic"
@@ -591,10 +590,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Network Graph Section */}
-      <GlassCard className="bg-black border-border overflow-hidden">
-        <PaymentNetworkGraph />
-      </GlassCard>
 
       <div className="grid gap-6 md:grid-cols-2">
         <GlassCard className="bg-card border-border">

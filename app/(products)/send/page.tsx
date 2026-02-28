@@ -84,7 +84,7 @@ export default function SendPage() {
 
           {/* Cross-Chain Transfer */}
           <GlassCard className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
-            <Link href="/omnichain">
+            <Link href="/swap">
               <GlassCardHeader>
                 <div className="flex items-center justify-between mb-2">
                   <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
@@ -141,7 +141,7 @@ export default function SendPage() {
 
           {/* Cross-Chain Batch */}
           <GlassCard className="bg-card border-border hover:border-primary/50 transition-all group cursor-pointer">
-            <Link href="/omnichain">
+            <Link href="/swap">
               <GlassCardHeader>
                 <div className="flex items-center justify-between mb-2">
                   <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">

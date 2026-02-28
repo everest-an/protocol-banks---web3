@@ -284,17 +284,17 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </div>
           </Link>
 
-          {/* Omnichain */}
-          <Link href="/omnichain" className="group">
+          {/* Swap */}
+          <Link href="/swap" className="group">
             <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
               <div className="p-2.5 rounded-lg bg-emerald-500/10 w-fit mb-3">
                 <Globe className="h-5 w-5 text-emerald-500" />
               </div>
               <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Omnichain Vault
+                Cross-Chain Swap
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                One address for all chains. Manage BTC, ETH, SOL from a unified interface.
+                Swap across 50+ chains and 100+ DEXs. Powered by Rango Exchange.
               </p>
             </div>
           </Link>
@@ -329,17 +329,17 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </div>
           </Link>
 
-          {/* Terminal */}
-          <Link href="/terminal" className="group">
+          {/* Acquiring */}
+          <Link href="/acquiring" className="group">
             <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
               <div className="p-2.5 rounded-lg bg-gray-500/10 w-fit mb-3">
                 <CreditCard className="h-5 w-5 text-gray-500" />
               </div>
               <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                POS Terminal
+                Acquiring
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Accept in-person crypto payments. Full-screen mode for retail checkout.
+                Hosted checkout pages, invoicing, and payment links for merchants.
               </p>
             </div>
           </Link>

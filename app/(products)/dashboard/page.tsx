@@ -159,13 +159,13 @@ export default function DashboardPage() {
           </GlassCardHeader>
           <GlassCardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Link href="/checkout">
+              <Link href="/acquiring">
                 <div className="flex items-center gap-3 p-3 rounded-lg border border-white/10 dark:border-white/5 hover:bg-primary/5 dark:hover:bg-primary/10 backdrop-blur-sm transition-all cursor-pointer">
                   <div className="p-2 rounded-lg bg-green-500/10 backdrop-blur-sm">
                     <CreditCard className="h-4 w-4 text-green-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Checkout</p>
+                    <p className="text-sm font-medium">Acquiring</p>
                     <p className="text-xs text-muted-foreground">Accept payments</p>
                   </div>
                 </div>
@@ -192,14 +192,14 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </Link>
-              <Link href="/omnichain">
+              <Link href="/swap">
                 <div className="flex items-center gap-3 p-3 rounded-lg border border-white/10 dark:border-white/5 hover:bg-primary/5 dark:hover:bg-primary/10 backdrop-blur-sm transition-all cursor-pointer">
                   <div className="p-2 rounded-lg bg-orange-500/10 backdrop-blur-sm">
                     <TrendingUp className="h-4 w-4 text-orange-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Omnichain</p>
-                    <p className="text-xs text-muted-foreground">Cross-chain vault</p>
+                    <p className="text-sm font-medium">Swap</p>
+                    <p className="text-xs text-muted-foreground">Cross-chain swap</p>
                   </div>
                 </div>
               </Link>
