@@ -181,7 +181,7 @@ export function AuthGateway({ isOpen, onClose, onSuccess }: AuthGatewayProps) {
   }
 
   return (
-    <AuthModal isOpen={isOpen} onClose={onClose} glowColor={mode === "personal" ? "cyan" : "amber"}>
+    <AuthModal isOpen={isOpen} onClose={onClose}>
       {renderContent()}
     </AuthModal>
   )

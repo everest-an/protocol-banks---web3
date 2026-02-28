@@ -27,7 +27,6 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
   const setCurrentPin = step === "enter" ? setPin : setConfirmPin
 
   useEffect(() => {
-    // Focus first input on mount
     inputRefs.current[0]?.focus()
   }, [step])
 
@@ -40,7 +39,6 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
     setCurrentPin(updatedPin)
     setError("")
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus()
     }
@@ -58,7 +56,6 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
       return
     }
 
-    // Check for weak PINs
     const weakPINs = ["000000", "111111", "123456", "654321", "123123"]
     if (mode === "setup" && weakPINs.includes(currentPin)) {
       setError("PIN is too weak. Please choose a stronger PIN.")
@@ -99,12 +96,12 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
 
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
-      <div className="h-16 w-16 rounded-full bg-cyan-500/20 flex items-center justify-center mx-auto mb-4">
-        <Shield className="h-8 w-8 text-cyan-400" />
+      <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+        <Shield className="h-8 w-8 text-primary" />
       </div>
 
-      <h2 className="text-xl font-bold text-white mb-2">{displayTitle}</h2>
-      <p className="text-white/60 text-sm mb-6">{displayDescription}</p>
+      <h2 className="text-xl font-bold text-foreground mb-2">{displayTitle}</h2>
+      <p className="text-muted-foreground text-sm mb-6">{displayDescription}</p>
 
       {/* PIN Input */}
       <div className="flex justify-center gap-2 mb-4">
@@ -120,7 +117,7 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
             value={currentPin[index] || ""}
             onChange={(e) => handleDigitChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
-            className="w-12 h-14 text-center text-2xl font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors"
+            className="w-12 h-14 text-center text-2xl font-bold bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
             disabled={isLoading}
           />
         ))}
@@ -130,7 +127,7 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
       <button
         type="button"
         onClick={() => setShowPin(!showPin)}
-        className="flex items-center gap-2 text-white/40 hover:text-white/60 mx-auto mb-4 text-sm transition-colors"
+        className="flex items-center gap-2 text-muted-foreground/60 hover:text-muted-foreground mx-auto mb-4 text-sm transition-colors"
       >
         {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         {showPin ? "Hide PIN" : "Show PIN"}
@@ -138,7 +135,7 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 justify-center text-red-400 text-sm mb-4">
+        <div className="flex items-center gap-2 justify-center text-red-500 text-sm mb-4">
           <AlertCircle className="h-4 w-4" />
           {error}
         </div>
@@ -147,7 +144,7 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
       {/* Submit Button */}
       <Button
         onClick={handleSubmit}
-        className="w-full h-12 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold"
+        className="w-full h-12 font-semibold"
         disabled={isLoading || currentPin.length !== 6}
       >
         {isLoading ? (
@@ -164,7 +161,7 @@ export function PinSetup({ onSubmit, isLoading = false, mode = "setup", title, d
 
       {/* Security Note */}
       {mode === "setup" && (
-        <p className="text-white/30 text-xs mt-4">Never share your PIN. Protocol Bank staff will never ask for it.</p>
+        <p className="text-muted-foreground/50 text-xs mt-4">Never share your PIN. Protocol Bank staff will never ask for it.</p>
       )}
     </motion.div>
   )

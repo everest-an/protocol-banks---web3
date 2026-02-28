@@ -39,17 +39,17 @@ export function EmailInput({ onSubmit, onBack, isLoading = false }: EmailInputPr
   if (sent) {
     return (
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
-        <div className="h-16 w-16 rounded-full bg-cyan-500/20 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="h-8 w-8 text-cyan-400" />
+        <div className="h-16 w-16 rounded-full bg-cyan-500/15 flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
         </div>
-        <h3 className="text-xl font-semibold text-white mb-2">Check your email</h3>
-        <p className="text-white/60 text-sm mb-4">
-          We sent a magic link to <span className="text-cyan-400">{email}</span>
+        <h3 className="text-xl font-semibold text-foreground mb-2">Check your email</h3>
+        <p className="text-muted-foreground text-sm mb-4">
+          We sent a magic link to <span className="text-cyan-600 dark:text-cyan-400">{email}</span>
         </p>
-        <p className="text-white/40 text-xs">
+        <p className="text-muted-foreground/60 text-xs">
           Click the link in your email to sign in. The link expires in 15 minutes.
         </p>
-        <Button variant="ghost" className="mt-6 text-white/60" onClick={onBack}>
+        <Button variant="ghost" className="mt-6 text-muted-foreground" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Use a different email
         </Button>
@@ -61,18 +61,18 @@ export function EmailInput({ onSubmit, onBack, isLoading = false }: EmailInputPr
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-white/60 hover:text-white mb-6 transition-colors"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         <span className="text-sm">Back</span>
       </button>
 
       <div className="text-center mb-6">
-        <div className="h-14 w-14 rounded-xl bg-cyan-500/20 flex items-center justify-center mx-auto mb-4">
-          <Mail className="h-7 w-7 text-cyan-400" />
+        <div className="h-14 w-14 rounded-xl bg-cyan-500/15 flex items-center justify-center mx-auto mb-4">
+          <Mail className="h-7 w-7 text-cyan-600 dark:text-cyan-400" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-1">Enter your email</h2>
-        <p className="text-white/60 text-sm">We'll send you a magic link to sign in</p>
+        <h2 className="text-xl font-bold text-foreground mb-1">Enter your email</h2>
+        <p className="text-muted-foreground text-sm">We'll send you a magic link to sign in</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -82,16 +82,16 @@ export function EmailInput({ onSubmit, onBack, isLoading = false }: EmailInputPr
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-12 border border-white/15 bg-white/5 text-white placeholder:text-white/30 backdrop-blur-sm focus-visible:ring-2 focus-visible:ring-cyan-400/40"
+            className="h-12 border border-black/10 dark:border-white/15 bg-black/3 dark:bg-white/5 text-foreground placeholder:text-muted-foreground/50 backdrop-blur-sm focus-visible:ring-2 focus-visible:ring-primary/40"
             disabled={isLoading}
             autoFocus
           />
-          {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+          {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
         </div>
 
         <Button
           type="submit"
-          className="h-12 w-full rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-sky-500 font-semibold text-slate-950 shadow-[0_14px_32px_rgba(6,182,212,0.35)] transition-all hover:from-cyan-300 hover:to-sky-400"
+          className="h-12 w-full rounded-xl font-semibold"
           disabled={isLoading || !email}
         >
           {isLoading ? (

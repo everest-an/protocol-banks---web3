@@ -21,42 +21,40 @@ export function PersonalLogin({ onLogin, isLoading = false }: PersonalLoginProps
     >
       {/* Header */}
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-1">Welcome Back</h2>
-        <p className="text-white/60 text-sm">Banking for your daily life</p>
+        <h2 className="text-2xl font-bold text-foreground mb-1">Welcome Back</h2>
+        <p className="text-muted-foreground text-sm">Banking for your daily life</p>
       </div>
 
       {/* Login Options */}
       <div className="space-y-3">
         {/* Email */}
         <button
-          className="group relative w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-[0_18px_34px_rgba(6,11,30,0.35)] backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 disabled:opacity-50"
+          className="group relative w-full overflow-hidden rounded-2xl border border-black/8 dark:border-white/10 bg-black/3 dark:bg-white/5 p-4 text-left shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-black/15 dark:hover:border-white/20 hover:bg-black/5 dark:hover:bg-white/10 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50"
           onClick={() => onLogin("email")}
           disabled={isLoading}
         >
-          <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-white/40" />
+          <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-black/5 dark:bg-white/20" />
           <div className="relative z-10 flex items-center gap-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/20 text-cyan-400 shadow-[0_0_24px_rgba(6,182,212,0.35)]">
-              <Mail className="h-6 w-6 text-cyan-400" />
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 dark:bg-cyan-500/20">
+              <Mail className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-white">Email Login / Sign up</p>
-              <p className="text-sm text-white/60">Continue with your email</p>
+              <p className="font-semibold text-foreground">Email Login / Sign up</p>
+              <p className="text-sm text-muted-foreground">Continue with your email</p>
             </div>
-            <ArrowRight className="h-5 w-5 flex-shrink-0 text-white/40 transition-colors group-hover:text-cyan-300" />
+            <ArrowRight className="h-5 w-5 flex-shrink-0 text-muted-foreground/50 transition-colors group-hover:text-primary" />
           </div>
         </button>
 
-        {/* Google - Using proper Google logo SVG */}
+        {/* Google */}
         <button
-          className="group relative w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-[0_18px_34px_rgba(6,11,30,0.35)] backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:opacity-50"
+          className="group relative w-full overflow-hidden rounded-2xl border border-black/8 dark:border-white/10 bg-black/3 dark:bg-white/5 p-4 text-left shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-black/15 dark:hover:border-white/20 hover:bg-black/5 dark:hover:bg-white/10 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-50"
           onClick={() => onLogin("google")}
           disabled={isLoading}
         >
-          <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-white/30" />
+          <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-black/5 dark:bg-white/15" />
           <div className="relative z-10 flex items-center gap-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-black/10 dark:border-white/15 bg-white dark:bg-white/10">
               <svg className="h-6 w-6" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -77,16 +75,16 @@ export function PersonalLogin({ onLogin, isLoading = false }: PersonalLoginProps
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-white">Continue with Google</p>
-              <p className="text-sm text-white/50">Quick and secure</p>
+              <p className="font-medium text-foreground">Continue with Google</p>
+              <p className="text-sm text-muted-foreground">Quick and secure</p>
             </div>
-            <ArrowRight className="h-5 w-5 flex-shrink-0 text-white/40 transition-colors group-hover:text-white" />
+            <ArrowRight className="h-5 w-5 flex-shrink-0 text-muted-foreground/50 transition-colors group-hover:text-foreground" />
           </div>
         </button>
       </div>
 
       {/* Security Note */}
-      <div className="mt-5 flex items-center gap-2 justify-center text-white/40 text-xs">
+      <div className="mt-5 flex items-center gap-2 justify-center text-muted-foreground text-xs">
         <Shield className="h-3 w-3" />
         <span>No crypto experience needed</span>
       </div>
