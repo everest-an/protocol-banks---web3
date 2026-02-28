@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { BatchPaymentDemo } from "@/components/batch-payment-demo"
 import { NetworkGraphDemo } from "@/components/network-graph-demo"
+import { UnicornHero } from "@/components/unicorn-hero"
 import {
   ArrowRight,
   Shield,
@@ -39,9 +40,12 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
 
-        {/* Full-section Diagonal Water Flow */}
+        {/* Unicorn Studio WebGL hero — light mode only */}
+        <UnicornHero />
+
+        {/* CSS Diagonal Water Flow — dark mode fallback */}
         <div
-          className="absolute inset-0 pointer-events-none overflow-hidden hidden sm:block"
+          className="absolute inset-0 pointer-events-none overflow-hidden hidden dark:block"
           style={{
             maskImage: [
               'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
