@@ -17,6 +17,7 @@ import {
   BarChart3,
   FileCheck,
   SplitSquareHorizontal,
+  FileText,
 } from "lucide-react"
 
 export interface ProductItem {
@@ -146,6 +147,12 @@ export const advancedProducts: ProductItem[] = [
     title: "AI Agents",
     description: "Autonomous payments with session keys",
     icon: Bot,
+  },
+  {
+    href: "/agents/proposals",
+    title: "Agent Proposals",
+    description: "Review and approve AI payment requests",
+    icon: FileText,
   },
   {
     href: "/embed",

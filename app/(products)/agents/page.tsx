@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { authHeaders } from "@/lib/authenticated-fetch"
-import { Bot, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle, Settings, Pause, Play, Activity, Globe, Zap, Shield } from "lucide-react"
+import { Bot, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle, Settings, Pause, Play, Activity, Globe, Zap, Shield, FileText } from "lucide-react"
 import Link from "next/link"
 
 interface Agent {
@@ -364,6 +364,12 @@ export default function AgentsPage() {
           <p className="text-muted-foreground">Create and manage AI agents that can interact with Protocol Banks</p>
         </div>
         <div className="flex gap-2">
+          <Link href="/agents/proposals">
+            <Button variant="outline">
+              <FileText className="h-4 w-4 mr-2" />
+              Proposals
+            </Button>
+          </Link>
           <Button variant="outline" onClick={handlePauseAll}>
             <Pause className="h-4 w-4 mr-2" />
             Pause All
@@ -611,8 +617,8 @@ export default function AgentsPage() {
                             <Settings className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Link href={`/agents/${agent.id}/activity`}>
-                          <Button variant="ghost" size="icon">
+                        <Link href={`/agents/${agent.id}?tab=activity`}>
+                          <Button variant="ghost" size="icon" title="View Activity">
                             <Activity className="h-4 w-4" />
                           </Button>
                         </Link>

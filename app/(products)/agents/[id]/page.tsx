@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, use } from "react"
+import { useSearchParams } from "next/navigation"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params)
   const { address } = useUnifiedWallet()
   const { toast } = useToast()
+  const searchParams = useSearchParams()
+  const initialTab = searchParams.get("tab") || "settings"
   const [agent, setAgent] = useState<Agent | null>(null)
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
@@ -266,7 +269,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         </Badge>
       </div>
 
-      <Tabs defaultValue="settings" className="space-y-4">
+      <Tabs defaultValue={initialTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="budgets">Budgets</TabsTrigger>
