@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import { Bot, ArrowLeft, Save, Plus, Trash2, DollarSign, Clock, TrendingUp } from "lucide-react"
+import { Bot, ArrowLeft, Save, Plus, Trash2, DollarSign, Clock, TrendingUp, RefreshCw, Eye, EyeOff, Copy, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 
 interface Agent {
@@ -58,6 +58,9 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [rotating, setRotating] = useState(false)
+  const [rotatedKey, setRotatedKey] = useState<string | null>(null)
+  const [showRotatedKey, setShowRotatedKey] = useState(false)
 
   // Form state
   const [name, setName] = useState("")
@@ -157,6 +160,29 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleRotateKey = async () => {
+    if (!address) return
+    setRotating(true)
+    try {
+      const response = await fetch(`/api/agents/${id}/rotate-key`, {
+        method: "POST",
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setRotatedKey(data.api_key)
+        setShowRotatedKey(false)
+        toast({ title: "API Key Rotated", description: "Save the new key — it won't be shown again." })
+      } else {
+        throw new Error("Failed to rotate key")
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to rotate API key", variant: "destructive" })
+    } finally {
+      setRotating(false)
     }
   }
 
@@ -353,6 +379,56 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
+            </GlassCardContent>
+          </GlassCard>
+
+          {/* API Key Rotation */}
+          <GlassCard className="border-destructive/20">
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2 text-base">
+                <RefreshCw className="h-4 w-4" />
+                Rotate API Key
+              </GlassCardTitle>
+              <GlassCardDescription>
+                Generate a new API key and immediately invalidate the current one.
+                Any services using the old key will need to be updated.
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
+              {rotatedKey ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0" />
+                    <p className="text-sm text-yellow-600">Save this key now — it will not be shown again.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-3 py-2 bg-muted rounded text-sm font-mono truncate">
+                      {showRotatedKey ? rotatedKey : "•".repeat(40)}
+                    </code>
+                    <Button size="icon" variant="ghost" onClick={() => setShowRotatedKey(!showRotatedKey)}>
+                      {showRotatedKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => {
+                      navigator.clipboard.writeText(rotatedKey)
+                      toast({ title: "Copied to clipboard" })
+                    }}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setRotatedKey(null)}>
+                    Done
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="destructive"
+                  onClick={handleRotateKey}
+                  disabled={rotating}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${rotating ? "animate-spin" : ""}`} />
+                  {rotating ? "Rotating..." : "Rotate API Key"}
+                </Button>
+              )}
             </GlassCardContent>
           </GlassCard>
         </TabsContent>

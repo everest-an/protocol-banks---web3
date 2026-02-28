@@ -104,9 +104,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Autho
       // Continue even if DB fails - authorization can still work
     }
 
-    // Generate signature placeholder (in production, this would be done by a signing service)
-    // The actual signature is generated client-side using the user's wallet
-    const signatureMessage = JSON.stringify({
+    // The authorization message follows EIP-3009 transferWithAuthorization.
+    // The SERVER returns the structured message; the CLIENT signs it with their
+    // wallet private key and submits the signature to POST /api/x402/execute.
+    const messageToSign = {
       from,
       to,
       amount,
@@ -115,18 +116,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Autho
       nonce,
       validAfter: authValidAfter,
       validBefore: authValidBefore,
-    })
-
-    const signature = `pending_signature_${crypto.createHash("sha256").update(signatureMessage).digest("hex").slice(0, 40)}`
+      transferId,
+    }
 
     return NextResponse.json({
       success: true,
       authorization: {
-        signature,
+        signature: "",  // filled by client wallet after signing messageToSign
         nonce,
         validAfter: authValidAfter,
         validBefore: authValidBefore,
         transferId,
+        messageToSign,
       },
     })
   } catch (error) {
