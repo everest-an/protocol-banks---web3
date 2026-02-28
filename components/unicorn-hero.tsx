@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { useTheme } from "next-themes"
 
 const CDN_URL = "https://cdn.unicorn.studio/v2.0.5/unicornStudio.umd.js"
 
-// Singleton script-load promise so we never insert the tag twice
 let scriptPromise: Promise<void> | null = null
 
 function loadUnicornStudio(): Promise<void> {
@@ -30,10 +30,30 @@ function loadUnicornStudio(): Promise<void> {
   return scriptPromise
 }
 
+/** Patch the gradient layer background color in the compiled GLSL */
+function patchBgColor(data: any, isDark: boolean): any {
+  const cloned = JSON.parse(JSON.stringify(data))
+  const gradient = cloned.history?.find((l: any) => l.id === "gradient")
+  if (gradient?.compiledFragmentShaders?.[0]) {
+    gradient.compiledFragmentShaders[0] = gradient.compiledFragmentShaders[0].replace(
+      /return vec3\([^)]+\);(\s*\}void main)/,
+      isDark
+        ? "return vec3(0.0, 0.0, 0.0);$1"
+        : "return vec3(0.8549019607843137, 0.9803921568627451, 1.0);$1"
+    )
+  }
+  return cloned
+}
+
 export function UnicornHero() {
   const sceneRef = useRef<any>(null)
+  const dataRef = useRef<any>(null)
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
+    // Wait until next-themes has resolved the theme
+    if (!resolvedTheme) return
+
     let cancelled = false
 
     async function init() {
@@ -41,8 +61,11 @@ export function UnicornHero() {
         await loadUnicornStudio()
         if (cancelled) return
 
-        const res = await fetch("/scenes/hero-discs.json")
-        const data = await res.json()
+        // Fetch JSON only once, cache in ref
+        if (!dataRef.current) {
+          const res = await fetch("/scenes/hero-discs.json")
+          dataRef.current = await res.json()
+        }
         if (cancelled) return
 
         const US = (window as any).UnicornStudio
@@ -50,7 +73,7 @@ export function UnicornHero() {
 
         sceneRef.current = await US.addScene({
           elementId: "unicorn-hero-canvas",
-          data,
+          data: patchBgColor(dataRef.current, resolvedTheme === "dark"),
           fps: 60,
           scale: 1,
           dpi: 1.5,
@@ -61,6 +84,10 @@ export function UnicornHero() {
       }
     }
 
+    // Destroy previous scene before re-init on theme switch
+    sceneRef.current?.destroy?.()
+    sceneRef.current = null
+
     init()
 
     return () => {
@@ -68,12 +95,12 @@ export function UnicornHero() {
       sceneRef.current?.destroy?.()
       sceneRef.current = null
     }
-  }, [])
+  }, [resolvedTheme])
 
   return (
     <div
       id="unicorn-hero-canvas"
-      className="absolute inset-0 pointer-events-none dark:hidden"
+      className="absolute inset-0 pointer-events-none hidden sm:block"
       aria-hidden="true"
     />
   )
