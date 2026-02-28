@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
 
-const CDN_URL = "https://cdn.unicorn.studio/v2.0.5/unicornStudio.umd.js"
+const CDN_URL = "/unicorn-studio.umd.js"
 
 let scriptPromise: Promise<void> | null = null
 
