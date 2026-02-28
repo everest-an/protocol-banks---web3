@@ -39,12 +39,20 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
 
-        {/* Diagonal Water Flow — Right */}
+        {/* Full-section Diagonal Water Flow */}
         <div
-          className="absolute right-0 top-0 bottom-0 w-[55%] hidden lg:block pointer-events-none overflow-hidden"
+          className="absolute inset-0 pointer-events-none overflow-hidden hidden sm:block"
           style={{
-            maskImage: 'linear-gradient(to left, black 50%, transparent)',
-            WebkitMaskImage: 'linear-gradient(to left, black 50%, transparent)',
+            maskImage: [
+              'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
+              'linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%)',
+            ].join(', '),
+            WebkitMaskImage: [
+              'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
+              'linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%)',
+            ].join(', '),
+            maskComposite: 'intersect',
+            WebkitMaskComposite: 'source-in',
           }}
         >
           <style jsx global>{`
@@ -56,62 +64,91 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               from { transform: translateY(0); }
               to { transform: translateY(60px); }
             }
-            /* Light mode — dark lines on light bg */
-            .water-base-layer {
-              background: linear-gradient(160deg, transparent 20%, rgba(0,0,0,0.03) 50%, rgba(0,0,0,0.06) 75%, transparent 100%);
-            }
+            /* Light mode — subtle dark lines, transparent bg */
             .water-layer-1 {
-              background: repeating-linear-gradient(30deg, transparent 0px, transparent 28px, rgba(0,0,0,0.03) 30px, rgba(0,0,0,0.10) 32px, rgba(0,0,0,0.03) 34px, transparent 35px);
+              background: repeating-linear-gradient(
+                30deg,
+                transparent 0px, transparent 28px,
+                rgba(0,0,0,0.025) 30px, rgba(0,0,0,0.07) 32px,
+                rgba(0,0,0,0.025) 34px, transparent 35px
+              );
             }
             .water-layer-2 {
-              background: repeating-linear-gradient(30deg, transparent 0px, transparent 42px, rgba(0,0,0,0.02) 44px, rgba(0,0,0,0.07) 48px, rgba(0,0,0,0.02) 50px, transparent 52px);
+              background: repeating-linear-gradient(
+                30deg,
+                transparent 0px, transparent 44px,
+                rgba(0,0,0,0.015) 46px, rgba(0,0,0,0.05) 50px,
+                rgba(0,0,0,0.015) 52px, transparent 54px
+              );
             }
-            /* Dark mode — white lines on dark bg */
-            :is(.dark) .water-base-layer {
-              background: linear-gradient(160deg, transparent 20%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 75%, transparent 100%);
+            .water-layer-3 {
+              background: repeating-linear-gradient(
+                28deg,
+                transparent 0px, transparent 18px,
+                rgba(0,0,0,0.012) 20px, rgba(0,0,0,0.035) 21px,
+                rgba(0,0,0,0.012) 22px, transparent 24px
+              );
             }
+            /* Dark mode — subtle white lines */
             :is(.dark) .water-layer-1 {
-              background: repeating-linear-gradient(30deg, transparent 0px, transparent 28px, rgba(255,255,255,0.04) 30px, rgba(255,255,255,0.12) 32px, rgba(255,255,255,0.04) 34px, transparent 35px);
+              background: repeating-linear-gradient(
+                30deg,
+                transparent 0px, transparent 28px,
+                rgba(255,255,255,0.03) 30px, rgba(255,255,255,0.10) 32px,
+                rgba(255,255,255,0.03) 34px, transparent 35px
+              );
             }
             :is(.dark) .water-layer-2 {
-              background: repeating-linear-gradient(30deg, transparent 0px, transparent 42px, rgba(255,255,255,0.03) 44px, rgba(255,255,255,0.08) 48px, rgba(255,255,255,0.03) 50px, transparent 52px);
+              background: repeating-linear-gradient(
+                30deg,
+                transparent 0px, transparent 44px,
+                rgba(255,255,255,0.02) 46px, rgba(255,255,255,0.07) 50px,
+                rgba(255,255,255,0.02) 52px, transparent 54px
+              );
+            }
+            :is(.dark) .water-layer-3 {
+              background: repeating-linear-gradient(
+                28deg,
+                transparent 0px, transparent 18px,
+                rgba(255,255,255,0.015) 20px, rgba(255,255,255,0.045) 21px,
+                rgba(255,255,255,0.015) 22px, transparent 24px
+              );
             }
           `}</style>
-          {/* Frosted glass base layer */}
-          <div
-            className="absolute inset-0 water-base-layer"
-            style={{
-              backdropFilter: 'blur(0.5px)',
-              WebkitBackdropFilter: 'blur(0.5px)',
-            }}
-          />
-          {/* Layer 1 — visible diagonal bands with soft glass edges */}
+
+          {/* Layer 1 — primary diagonal bands */}
           <div
             className="water-layer-1"
             style={{
               position: 'absolute',
-              top: '-50%',
-              left: '-50%',
-              width: '200%',
-              height: '200%',
-              animation: 'diagonalFlow 2s linear infinite',
+              top: '-50%', left: '-50%',
+              width: '200%', height: '200%',
+              animation: 'diagonalFlow 2.2s linear infinite',
             }}
           />
-          {/* Layer 2 — wider softer bands for depth */}
+          {/* Layer 2 — wider, slower bands for depth */}
           <div
             className="water-layer-2"
             style={{
               position: 'absolute',
-              top: '-50%',
-              left: '-50%',
-              width: '200%',
-              height: '200%',
-              animation: 'diagonalFlowSlow 3.5s linear infinite',
+              top: '-50%', left: '-50%',
+              width: '200%', height: '200%',
+              animation: 'diagonalFlowSlow 3.8s linear infinite',
+            }}
+          />
+          {/* Layer 3 — fine texture layer */}
+          <div
+            className="water-layer-3"
+            style={{
+              position: 'absolute',
+              top: '-50%', left: '-50%',
+              width: '200%', height: '200%',
+              animation: 'diagonalFlow 1.5s linear infinite',
             }}
           />
         </div>
 
-        <div className="container mx-auto px-4 pt-16 pb-20 sm:pt-24 sm:pb-28 md:pt-32 md:pb-36 relative">
+        <div className="container mx-auto px-4 pt-16 pb-20 sm:pt-24 sm:pb-28 md:pt-32 md:pb-36 relative z-10">
           <div className="max-w-4xl">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
               Payment infrastructure
