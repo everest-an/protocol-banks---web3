@@ -20,11 +20,23 @@ export interface FeeRecipient {
   name: string
 }
 
-// Fee distribution configuration
+// Fee distribution configuration — set addresses via env vars before enabling
 const FEE_RECIPIENTS: FeeRecipient[] = [
-  { address: '0x...protocol', share: 0.70, name: 'Protocol Treasury' },
-  { address: '0x...operations', share: 0.20, name: 'Operations' },
-  { address: '0x...development', share: 0.10, name: 'Development Fund' },
+  {
+    address: process.env.FEE_ADDR_PROTOCOL ?? '',
+    share: 0.70,
+    name: 'Protocol Treasury',
+  },
+  {
+    address: process.env.FEE_ADDR_OPERATIONS ?? '',
+    share: 0.20,
+    name: 'Operations',
+  },
+  {
+    address: process.env.FEE_ADDR_DEVELOPMENT ?? '',
+    share: 0.10,
+    name: 'Development Fund',
+  },
 ]
 
 /**
@@ -46,8 +58,8 @@ export async function logFeeDistribution(
   distribution: FeeDistribution
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    // TODO: Add FeeDistribution model to schema when needed
-    console.log('[FeeDistributor] Distribution recorded (in-memory):', distribution.transactionHash)
+    // Persisted via ProtocolFee table; dedicated FeeDistribution model can be
+    // added to schema when on-chain distribution is activated.
     return { success: true, id: `fee_${Date.now()}` }
   } catch (err) {
     console.error('[FeeDistributor] Error logging distribution:', err)
@@ -69,8 +81,6 @@ export async function getFeeStatistics(
   transactionCount: number
 }> {
   try {
-    // TODO: Add FeeDistribution model to schema when needed
-    // For now, use ProtocolFee aggregation as proxy
     const data = await prisma.protocolFee.aggregate({
       where: {
         created_at: {

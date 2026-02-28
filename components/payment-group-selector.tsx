@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
+import { usePaymentGroups } from "@/hooks/use-payment-groups"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
@@ -14,7 +15,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PurposeTagSelector } from "@/components/purpose-tag-selector"
 import { Plus, FolderOpen } from "lucide-react"
-import type { PaymentGroup } from "@/types/payment"
 import { authHeaders } from "@/lib/authenticated-fetch"
 
 interface PaymentGroupSelectorProps {
@@ -24,34 +24,11 @@ interface PaymentGroupSelectorProps {
 }
 
 export function PaymentGroupSelector({ ownerAddress, value, onChange }: PaymentGroupSelectorProps) {
-  const [groups, setGroups] = useState<PaymentGroup[]>([])
-  const [loading, setLoading] = useState(false)
+  const { groups, setGroups, loading } = usePaymentGroups(ownerAddress)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newGroupName, setNewGroupName] = useState("")
   const [newGroupPurpose, setNewGroupPurpose] = useState("")
   const [creating, setCreating] = useState(false)
-
-  const fetchGroups = useCallback(async () => {
-    if (!ownerAddress) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/payment-groups?owner=${ownerAddress}`, {
-        headers: authHeaders(ownerAddress),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setGroups(data.groups || [])
-      }
-    } catch {
-      // silently fail — groups are optional
-    } finally {
-      setLoading(false)
-    }
-  }, [ownerAddress])
-
-  useEffect(() => {
-    fetchGroups()
-  }, [fetchGroups])
 
   const handleCreate = async () => {
     if (!newGroupName.trim() || !ownerAddress) return

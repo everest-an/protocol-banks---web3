@@ -5,7 +5,9 @@
  * Displays payment transactions with filtering and network badges
  */
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useTransactions } from "@/hooks/use-transactions"
+import type { Transaction } from "@/hooks/use-transactions"
 import { NetworkBadge } from "@/components/vendors/network-badge"
 import { NetworkSelector, NetworkTypeSelector } from "@/components/ui/network-selector"
 import { Badge } from "@/components/ui/badge"
@@ -19,27 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ArrowUpRight, ArrowDownLeft, ExternalLink, Filter } from "lucide-react"
-import { authHeaders } from "@/lib/authenticated-fetch"
-
-interface Transaction {
-  id: string
-  from_address: string
-  to_address: string
-  amount: string
-  token_symbol?: string
-  chain: string
-  network_type?: string
-  status: string
-  type: string
-  tx_hash?: string
-  created_at: string
-  vendor_name?: string
-  // Network-specific fields
-  gas_used?: string
-  gas_price?: string
-  energy_used?: string
-  bandwidth_used?: string
-}
 
 interface TransactionListProps {
   userAddress: string
@@ -52,81 +33,23 @@ interface TransactionListProps {
 }
 
 export function TransactionList({ userAddress, initialFilters = {} }: TransactionListProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
 
-  // Filters
-  const [filters, setFilters] = useState({
-    network: initialFilters.network || "all",
-    networkType: initialFilters.networkType || "all",
-    status: initialFilters.status || "all",
-    type: initialFilters.type || "all",
-    search: "",
+  const {
+    transactions,
+    loading,
+    error,
+    filters,
+    setFilters,
+    pagination,
+    setPagination,
+    refetch,
+  } = useTransactions(userAddress, {
+    network: initialFilters.network,
+    networkType: initialFilters.networkType,
+    status: initialFilters.status,
+    type: initialFilters.type,
   })
-
-  // Pagination
-  const [pagination, setPagination] = useState({
-    total: 0,
-    limit: 50,
-    offset: 0,
-    hasMore: false,
-  })
-
-  // Fetch transactions
-  useEffect(() => {
-    fetchTransactions()
-  }, [filters, pagination.offset])
-
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const params = new URLSearchParams({
-        limit: pagination.limit.toString(),
-        offset: pagination.offset.toString(),
-      })
-
-      if (filters.network && filters.network !== "all") {
-        params.append("network", filters.network)
-      }
-
-      if (filters.networkType && filters.networkType !== "all") {
-        params.append("network_type", filters.networkType)
-      }
-
-      if (filters.status && filters.status !== "all") {
-        params.append("status", filters.status)
-      }
-
-      if (filters.type && filters.type !== "all") {
-        params.append("type", filters.type)
-      }
-
-      const response = await fetch(`/api/payments?${params.toString()}`, {
-        headers: authHeaders(userAddress),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch transactions")
-      }
-
-      setTransactions(data.payments || [])
-      setPagination(prev => ({
-        ...prev,
-        total: data.total || 0,
-        hasMore: data.hasMore || false,
-      }))
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const formatAmount = (amount: string, symbol?: string) => {
     const num = parseFloat(amount)

@@ -291,6 +291,21 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               </p>
             </div>
           </Link>
+
+          {/* Reconciliation */}
+          <Link href="/reconciliation" className="group">
+            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
+              <div className="p-2.5 rounded-lg bg-indigo-500/10 w-fit mb-3">
+                <RefreshCw className="h-5 w-5 text-indigo-500" />
+              </div>
+              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
+                Reconciliation
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Match on-chain transactions with records. Audit-ready reports.
+              </p>
+            </div>
+          </Link>
         </div>
       </section>
 

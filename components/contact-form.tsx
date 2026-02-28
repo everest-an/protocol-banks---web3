@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { Loader2, Send, CheckCircle2, Shield } from "lucide-react"
-import { getRecaptchaSiteKey } from "@/app/actions/get-recaptcha-key"
+import { getRecaptchaSiteKey } from "@/lib/actions/get-recaptcha-key"
 
 declare global {
   interface Window {

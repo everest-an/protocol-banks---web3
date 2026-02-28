@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import useSWR from "swr"
+import { useState } from "react"
+import { useActivities } from "@/hooks/use-activities"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,53 +24,13 @@ import {
 import { formatDistanceToNow } from "date-fns"
 import { zhCN } from "date-fns/locale"
 
-// Activity types from dashboard-activity-service
-type ActivityType = 
-  | "payment_sent"
-  | "payment_received"
-  | "batch_payment"
-  | "subscription_charged"
-  | "subscription_created"
-  | "subscription_cancelled"
-  | "multisig_proposed"
-  | "multisig_signed"
-  | "multisig_executed"
-  | "webhook_triggered"
-  | "api_key_created"
-  | "vendor_added"
-  | "vendor_updated"
-
-interface Activity {
-  id: string
-  type: ActivityType
-  timestamp: string
-  title: string
-  description: string
-  amount?: number
-  token?: string
-  status: "success" | "pending" | "failed"
-  metadata?: {
-    tx_hash?: string
-    vendor_name?: string
-    recipient_count?: number
-    subscription_name?: string
-    webhook_event?: string
-    signer_address?: string
-    threshold?: string
-  }
-}
+import type { ActivityType, Activity } from "@/hooks/use-activities"
 
 interface DashboardActivityProps {
   walletAddress?: string
   limit?: number
   showTabs?: boolean
   compact?: boolean
-}
-
-const fetcher = async (url: string) => {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error("Failed to fetch activities")
-  return res.json()
 }
 
 export function DashboardActivity({
@@ -80,16 +40,8 @@ export function DashboardActivity({
   compact = false,
 }: DashboardActivityProps) {
   const [activeTab, setActiveTab] = useState("all")
-  
-  // Fetch activities from API - use /api/activities for real transaction data
-  const { data, error, isLoading, mutate } = useSWR<{ activities: Activity[]; total: number }>(
-    walletAddress ? `/api/activities?wallet=${walletAddress}&limit=${limit}` : null,
-    fetcher,
-    {
-      refreshInterval: 30000, // Refresh every 30 seconds
-      revalidateOnFocus: true,
-    }
-  )
+
+  const { activities: fetchedActivities, error, isLoading, refresh } = useActivities(walletAddress, limit)
 
   // Demo data for when API is not available
   const demoActivities: Activity[] = [
@@ -157,7 +109,7 @@ export function DashboardActivity({
     },
   ]
 
-  const activities = data?.activities || demoActivities
+  const activities = fetchedActivities || demoActivities
 
   const getActivityIcon = (type: ActivityType) => {
     switch (type) {
@@ -300,7 +252,7 @@ export function DashboardActivity({
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => mutate()}
+          onClick={() => refresh()}
           className="h-8 w-8"
         >
           <RefreshCw className="h-4 w-4" />
