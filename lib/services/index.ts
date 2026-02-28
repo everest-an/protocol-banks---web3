@@ -25,9 +25,6 @@ export {
 } from './account-validator.service'
 
 export {
-  BatchPaymentItem,
-  BatchValidationResult,
-  BatchValidationError,
   MAX_BATCH_SIZE,
   MIN_AMOUNT,
   validateBatchItem,
@@ -35,6 +32,8 @@ export {
   findDuplicateRecipients,
   calculateBatchTotals,
 } from './batch-validator.service'
+
+export type { BatchPaymentItem } from './batch-validator.service'
 
 // vendor-service exports validateAddress — keep it accessible under its own alias
 // (account-validator does NOT export a plain validateAddress, so no conflict there)
@@ -51,8 +50,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  DomainInput,
-  AuthorizationMessage,
   DOMAIN_TYPE,
   TRANSFER_WITH_AUTHORIZATION_TYPES,
   buildDomain,
@@ -65,8 +62,6 @@ export {
 } from './eip712.service'
 
 export {
-  AuthorizationParams,
-  GeneratedAuthorization,
   generateAuthorization,
   generateBatchAuthorizations,
   encodeTransferWithAuthorization,
@@ -98,7 +93,6 @@ export {
 } from './validity-window.service'
 
 export {
-  VerificationResult as SignatureVerificationResult,
   verifyAuthorizationSignature,
   validateAuthorization,
   verifyBatchSignatures,
@@ -111,8 +105,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  FeeBreakdown,
-  FeeConfig,
   DEFAULT_FEE_CONFIG,
   NETWORK_GAS_ESTIMATES,
   calculateFees,
@@ -122,7 +114,6 @@ export {
 } from './fee-calculator.service'
 
 export {
-  RelayerFeeBreakdown,
   estimateGas,
   calculateRelayerFee,
   calculateBatchRelayerFee,
@@ -131,8 +122,6 @@ export {
 } from './x402-fee-calculator.service'
 
 export {
-  FeeDistribution,
-  FeeRecipient,
   calculateDistribution,
   logFeeDistribution,
   getFeeStatistics,
@@ -144,8 +133,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  ParsedRow,
-  ParseResult,
   parseCsv,
   parseExcel,
   parseFile,
@@ -153,8 +140,6 @@ export {
 } from './file-parser.service'
 
 export {
-  BatchReportItem,
-  BatchReport,
   generateBatchCsvReport,
   createBatchReport,
   downloadCsvReport,
@@ -183,7 +168,6 @@ export {
 } from './payment-service'
 
 export {
-  IdempotencyResult,
   checkIdempotency,
   completeIdempotency,
   failIdempotency,
@@ -191,14 +175,10 @@ export {
 } from './idempotency-service'
 
 export {
-  BatchExecutionResult,
   executeBatch,
 } from './batch-execution-worker'
 
 export {
-  BatchItemStatus,
-  CreateBatchItemsParams,
-  UpdateBatchItemParams,
   createBatchItems,
   updateBatchItem,
   getBatchItems,
@@ -213,9 +193,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  BatchTransferRecipient,
-  BatchTransferResult,
-  ContractStats,
   // TOKEN_ADDRESSES conflicts with public-batch-transfer-service — alias both
   TOKEN_ADDRESSES as BATCH_TRANSFER_TOKEN_ADDRESSES,
   BatchTransferService,
@@ -226,8 +203,6 @@ export {
   PUBLIC_BATCH_CONTRACTS,
   // TOKEN_ADDRESSES conflicts with batch-transfer-service — alias
   TOKEN_ADDRESSES as PUBLIC_BATCH_TOKEN_ADDRESSES,
-  BatchRecipient,
-  BatchResult,
   PublicBatchTransferService,
   publicBatchTransferService,
 } from './public-batch-transfer-service'
@@ -237,11 +212,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  RelayerProvider,
-  RelayerConfig,
-  RelayRequest,
-  RelayResponse,
-  ERC3009RelayRequest,
   RelayerService,
   relayerService,
   executeGaslessUSDCTransfer,
@@ -250,9 +220,6 @@ export {
 } from './relayer-service'
 
 export {
-  RelayerSubmission,
-  RelayerResponse,
-  RelayerStatus,
   submitToRelayer,
   checkRelayerStatus,
   submitBatchToRelayer,
@@ -264,9 +231,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  FailedItem,
-  RetryResult,
-  RecoveryConfig,
   calculateRetryDelay,
   shouldRetry,
   // retryFailedItems conflicts with batch-item-service — alias
@@ -283,16 +247,17 @@ export {
 // vendor-payment-service exports Vendor/VendorStats — namespace to avoid
 // conflicts with the Vendor/VendorStats types defined in @/types
 export {
-  Vendor as VendorRecord,
-  VendorPayment,
-  VendorStats as VendorPaymentStats,
   VendorPaymentService,
   vendorPaymentService,
 } from './vendor-payment-service'
 
+export type {
+  Vendor as VendorRecord,
+  VendorPayment,
+  VendorStats as VendorPaymentStats,
+} from './vendor-payment-service'
+
 export {
-  VendorAddress,
-  VendorWithAddresses,
   createVendorWithAddresses,
   getVendorWithAddresses,
   listVendorsWithAddresses,
@@ -303,17 +268,16 @@ export {
   getVendorByAddress,
 } from './vendor-multi-network.service'
 
+export type {
+  VendorAddress,
+  VendorWithAddresses,
+} from './vendor-multi-network.service'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Webhook Services
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  WebhookEvent,
-  Webhook,
-  CreateWebhookInput,
-  UpdateWebhookInput,
-  WebhookDelivery,
-  WebhookPayload,
   generateWebhookSecret,
   hashWebhookSecret,
   // generateWebhookSignature conflicts with agent-webhook-service — alias
@@ -324,19 +288,29 @@ export {
   webhookService,
 } from './webhook-service'
 
+export type {
+  WebhookEvent,
+  Webhook,
+  CreateWebhookInput,
+  UpdateWebhookInput,
+  WebhookDelivery,
+  WebhookPayload,
+} from './webhook-service'
+
 export {
-  PaymentEventData,
-  BatchPaymentEventData,
-  MultisigEventData,
-  SubscriptionEventData,
   WebhookTriggerService,
   webhookTriggerService,
   processWebhookDeliveries,
 } from './webhook-trigger-service'
 
+export type {
+  PaymentEventData,
+  BatchPaymentEventData,
+  MultisigEventData,
+  SubscriptionEventData,
+} from './webhook-trigger-service'
+
 export {
-  AgentWebhookEvent,
-  AgentWebhookDelivery,
   // setUseDatabaseStorage conflicts across multiple files — alias per domain
   setUseDatabaseStorage as setAgentWebhookUseDatabaseStorage,
   // generateWebhookSignature conflicts with webhook-service — alias
@@ -346,17 +320,25 @@ export {
   agentWebhookService,
 } from './agent-webhook-service'
 
+export type {
+  AgentWebhookEvent,
+  AgentWebhookDelivery,
+} from './agent-webhook-service'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Notification Service
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
+  NotificationService,
+  notificationService,
+} from './notification-service'
+
+export type {
   PushSubscription,
   NotificationPreferences,
   NotificationPayload,
   NotificationType,
-  NotificationService,
-  notificationService,
 } from './notification-service'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -364,22 +346,28 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  SubscriptionFrequency,
-  SubscriptionStatus,
-  Subscription,
-  CreateSubscriptionInput,
-  UpdateSubscriptionInput,
   isSubscriptionDue,
   SubscriptionService,
   subscriptionService,
 } from './subscription-service'
 
+export type {
+  SubscriptionFrequency,
+  SubscriptionStatus,
+  Subscription,
+  CreateSubscriptionInput,
+  UpdateSubscriptionInput,
+} from './subscription-service'
+
 export {
-  PaymentExecutionResult,
-  PaymentExecutorConfig,
   SubscriptionPaymentExecutor,
   subscriptionPaymentExecutor,
   processSubscriptionsCron,
+} from './subscription-payment-executor'
+
+export type {
+  PaymentExecutionResult,
+  PaymentExecutorConfig,
 } from './subscription-payment-executor'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -409,11 +397,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  MultisigTransactionStatus,
-  MultisigWallet,
-  MultisigTransaction,
-  MultisigConfirmation,
-  CreateTransactionInput,
   // verifySignature conflicts with eip712.service — alias
   verifySignature as verifyMultisigSignature,
   createTransactionMessage,
@@ -422,21 +405,37 @@ export {
   multisigService,
 } from './multisig-service'
 
+export type {
+  MultisigTransactionStatus,
+  MultisigWallet,
+  MultisigTransaction,
+  MultisigConfirmation,
+  CreateTransactionInput,
+} from './multisig-service'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Analytics & Reporting
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
+  AnalyticsService,
+  analyticsService,
+} from './analytics-service'
+
+export type {
   AnalyticsSummary,
   MonthlyData,
   VendorAnalytics,
   ChainAnalytics,
   DateRange,
-  AnalyticsService,
-  analyticsService,
 } from './analytics-service'
 
 export {
+  ExportService,
+  exportService,
+} from './export-service'
+
+export type {
   AccountingReport,
   TokenBreakdown,
   CategoryBreakdown,
@@ -444,8 +443,6 @@ export {
   AccountingTransaction,
   ReportParams,
   ExportFormat,
-  ExportService,
-  exportService,
 } from './export-service'
 
 export {
@@ -462,24 +459,30 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  CreateSubscriptionParams,
-  RecordFeeParams,
-  UsageMetrics,
   BillingService,
   billingService,
 } from './billing-service'
 
+export type {
+  CreateSubscriptionParams,
+  RecordFeeParams,
+  UsageMetrics,
+} from './billing-service'
+
 export {
+  // setUseDatabaseStorage conflicts across multiple files — alias
+  setUseDatabaseStorage as setBudgetUseDatabaseStorage,
+  BudgetService,
+  budgetService,
+} from './budget-service'
+
+export type {
   BudgetPeriod,
   AgentBudget,
   CreateBudgetInput,
   UpdateBudgetInput,
   BudgetUtilization,
   BudgetAvailability,
-  // setUseDatabaseStorage conflicts across multiple files — alias
-  setUseDatabaseStorage as setBudgetUseDatabaseStorage,
-  BudgetService,
-  budgetService,
 } from './budget-service'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -496,11 +499,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  Permission,
-  APIKey,
-  CreateAPIKeyInput,
-  APIKeyValidationResult,
-  APIKeyUsageLog,
   generateAPIKeySecret,
   hashAPIKeySecret,
   extractKeyPrefix,
@@ -509,35 +507,52 @@ export {
   apiKeyService,
 } from './api-key-service'
 
+export type {
+  Permission,
+  APIKey,
+  CreateAPIKeyInput,
+  APIKeyValidationResult,
+  APIKeyUsageLog,
+} from './api-key-service'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Health & Infrastructure
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  ServiceStatus,
-  ComponentHealth,
-  HealthCheckResult,
-  BasicHealthResult,
   HealthMonitorService,
   healthMonitorService,
 } from './health-monitor-service'
 
+export type {
+  ServiceStatus,
+  ComponentHealth,
+  HealthCheckResult,
+  BasicHealthResult,
+} from './health-monitor-service'
+
 export {
-  CircuitState,
-  CircuitBreakerConfig,
-  CircuitBreakerStats,
   CircuitBreaker,
   CircuitBreakerOpenError,
   getCircuitBreaker,
   getAllCircuitBreakerStats,
 } from './circuit-breaker'
 
+export type {
+  CircuitState,
+  CircuitBreakerConfig,
+  CircuitBreakerStats,
+} from './circuit-breaker'
+
 export {
+  GoServicesBridge,
+  goServicesBridge,
+} from './go-services-bridge'
+
+export type {
   PayoutRequest,
   PayoutResponse,
   FallbackEvent,
-  GoServicesBridge,
-  goServicesBridge,
 } from './go-services-bridge'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -545,10 +560,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  EntryCategory,
-  LedgerTransferParams,
-  LedgerLockParams,
-  BalanceInfo,
   recordTransfer,
   lockBalance,
   unlockBalance,
@@ -557,34 +568,50 @@ export {
   generateIdempotencyKey,
 } from './ledger-service'
 
+export type {
+  EntryCategory,
+  LedgerTransferParams,
+  LedgerLockParams,
+  BalanceInfo,
+} from './ledger-service'
+
 export {
-  SettlementStatus,
-  CreateSettlementParams,
-  ReconciliationResult,
   createSettlement,
   resolveDiscrepancy,
   listSettlements,
   getDiscrepancies,
 } from './settlement-service'
 
+export type {
+  SettlementStatus,
+  CreateSettlementParams,
+  ReconciliationResult,
+} from './settlement-service'
+
 export {
-  RiskLevel,
-  RiskDecision,
-  RiskFactor,
-  RiskAssessmentResult,
-  AssessTransactionParams,
   assessTransaction,
   screenAddress,
   getRiskHistory,
 } from './risk-service'
 
+export type {
+  RiskLevel,
+  RiskDecision,
+  RiskFactor,
+  RiskAssessmentResult,
+  AssessTransactionParams,
+} from './risk-service'
+
 export {
-  OnChainBalance,
-  SyncResult,
   fetchOnChainBalances,
   syncUserBalances,
   getOnChainBalance,
   getSupportedSyncTargets,
+} from './balance-sync-service'
+
+export type {
+  OnChainBalance,
+  SyncResult,
 } from './balance-sync-service'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -592,14 +619,17 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  CrossChainState,
-  TransitionTrigger,
-  CreateCrossChainParams,
   createCrossChainTransaction,
   transitionState,
   getCrossChainTransaction,
   listCrossChainTransactions,
   findStalledTransactions,
+} from './cross-chain-state-machine'
+
+export type {
+  CrossChainState,
+  TransitionTrigger,
+  CreateCrossChainParams,
 } from './cross-chain-state-machine'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -628,13 +658,6 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  PaymentChannel,
-  ChannelStatus,
-  MicropaymentRequest,
-  MicropaymentResult,
-  PaymentRequiredResponse,
-  SettlementResult,
-  ChannelPayment,
   openPaymentChannel,
   getPaymentChannel,
   closePaymentChannel,
@@ -648,18 +671,21 @@ export {
   checkPaymentRequired,
 } from './pb-stream-service'
 
+export type {
+  PaymentChannel,
+  ChannelStatus,
+  MicropaymentRequest,
+  MicropaymentResult,
+  PaymentRequiredResponse,
+  SettlementResult,
+  ChannelPayment,
+} from './pb-stream-service'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Agent Services
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  AgentType,
-  AgentStatus,
-  AutoExecuteRules,
-  Agent,
-  CreateAgentInput,
-  UpdateAgentInput,
-  AgentValidationResult,
   // setUseDatabaseStorage conflicts — alias
   setUseDatabaseStorage as setAgentUseDatabaseStorage,
   generateAgentApiKey,
@@ -669,54 +695,82 @@ export {
   agentService,
 } from './agent-service'
 
+export type {
+  AgentType,
+  AgentStatus,
+  AutoExecuteRules,
+  Agent,
+  CreateAgentInput,
+  UpdateAgentInput,
+  AgentValidationResult,
+} from './agent-service'
+
 export {
-  AgentAction,
-  AgentActivity,
-  AgentAnalytics,
   // setUseDatabaseStorage conflicts — alias
   setUseDatabaseStorage as setAgentActivityUseDatabaseStorage,
   AgentActivityService,
   agentActivityService,
 } from './agent-activity-service'
 
+export type {
+  AgentAction,
+  AgentActivity,
+  AgentAnalytics,
+} from './agent-activity-service'
+
 export {
-  X402Authorization,
-  X402Signature,
-  X402ExecutionResult,
   // setUseDatabaseStorage conflicts — alias
   setUseDatabaseStorage as setAgentX402UseDatabaseStorage,
   AgentX402Service,
   agentX402Service,
 } from './agent-x402-service'
 
+export type {
+  X402Authorization,
+  X402Signature,
+  X402ExecutionResult,
+} from './agent-x402-service'
+
 export {
-  AutoExecuteResult,
-  RuleCheckResult,
   AutoExecuteService,
   autoExecuteService,
 } from './auto-execute-service'
 
+export type {
+  AutoExecuteResult,
+  RuleCheckResult,
+} from './auto-execute-service'
+
 export {
-  ProposalStatus,
-  PaymentProposal,
-  CreateProposalInput,
-  ProposalFilters,
   // setUseDatabaseStorage conflicts — alias
   setUseDatabaseStorage as setProposalUseDatabaseStorage,
   ProposalService,
   proposalService,
 } from './proposal-service'
 
+export type {
+  ProposalStatus,
+  PaymentProposal,
+  CreateProposalInput,
+  ProposalFilters,
+} from './proposal-service'
+
 export {
-  ProposalLifecycleResult,
-  AuditLogEntry,
   AgentIntegrationService,
   agentIntegrationService,
 } from './agent-integration-service'
 
+export type {
+  ProposalLifecycleResult,
+  AuditLogEntry,
+} from './agent-integration-service'
+
 export {
-  AgentCardRecord,
   agentCardService,
+} from './agent-card-service'
+
+export type {
+  AgentCardRecord,
 } from './agent-card-service'
 
 export {
@@ -728,10 +782,13 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  ActivityItem,
-  DashboardActivity,
   DashboardActivityService,
   dashboardActivityService,
+} from './dashboard-activity-service'
+
+export type {
+  ActivityItem,
+  DashboardActivity,
 } from './dashboard-activity-service'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -739,10 +796,13 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  // VerificationResult conflicts with signature-verifier.service — alias
-  VerificationResult as DoubleSpendVerificationResult,
   DoubleSpendPreventionService,
   doubleSpendPreventionService,
+} from './security/double-spend-prevention.service'
+
+export type {
+  // VerificationResult conflicts with signature-verifier.service — alias
+  VerificationResult as DoubleSpendVerificationResult,
 } from './security/double-spend-prevention.service'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -750,36 +810,42 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export {
-  YieldNetwork,
-  MerchantYieldBalance,
-  DepositRecord,
-  WithdrawalRecord,
   YieldAggregatorService,
   yieldAggregatorService,
 } from './yield/yield-aggregator.service'
 
+export type {
+  YieldNetwork,
+  MerchantYieldBalance,
+  DepositRecord,
+  WithdrawalRecord,
+} from './yield/yield-aggregator.service'
+
 export {
-  TronNetwork,
-  TronYieldBalance,
   TronYieldService,
   tronYieldService,
   tronYieldServiceNile,
 } from './yield/tron-yield.service'
 
+export type {
+  TronNetwork,
+  TronYieldBalance,
+} from './yield/tron-yield.service'
+
 export {
-  AllNetworks,
-  UnifiedYieldBalance,
-  CrossNetworkSummary,
   UnifiedYieldService,
   unifiedYieldService,
 } from './yield/unified-yield.service'
 
+export type {
+  AllNetworks,
+  UnifiedYieldBalance,
+} from './yield/unified-yield.service'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-directory: Queue
+// NOTE: queue/payment-queue.service is intentionally excluded from this barrel.
+// It initialises a BullMQ queue (Redis connection) on import, which causes
+// side-effect crashes when the barrel is loaded in build-time static analysis.
+// Import directly: import { paymentQueueService } from '@/lib/services/queue/payment-queue.service'
 // ─────────────────────────────────────────────────────────────────────────────
-
-export {
-  PaymentTask,
-  PaymentQueueService,
-  paymentQueueService,
-} from './queue/payment-queue.service'

@@ -32,6 +32,10 @@ const config = {
     'node_modules/.pnpm/(?!(uuid|winston|logform|triple-beam|@colors|readable-stream|string_decoder|safe-stable-stringify|fecha|fn\\.name|one-time|stack-trace|is-stream)@)',
     'node_modules/(?!(\\.pnpm|uuid|winston|logform|triple-beam|@colors|readable-stream|string_decoder|safe-stable-stringify|fecha|fn\\.name|one-time|stack-trace|is-stream))',
   ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/.claude/worktrees/',
+  ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testTimeout: 30000,
   verbose: true,

@@ -54,7 +54,7 @@ export async function requireAuth(
     }
 
     logger.logSecurityEvent('missing_auth_header', 'medium', {
-      path: request.nextUrl.pathname,
+      path: request.nextUrl?.pathname ?? request.url,
       method: request.method,
       ip: request.headers.get('x-forwarded-for') || 'unknown',
     }, { component })
@@ -71,7 +71,7 @@ export async function requireAuth(
   const parsed = userAddressHeaderSchema.safeParse(rawAddress)
   if (!parsed.success) {
     logger.logSecurityEvent('invalid_auth_header', 'high', {
-      path: request.nextUrl.pathname,
+      path: request.nextUrl?.pathname ?? request.url,
       method: request.method,
       rawAddress: rawAddress.substring(0, 10) + '...', // Don't log full invalid input
     }, { component })
