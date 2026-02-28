@@ -30,28 +30,11 @@ function loadUnicornStudio(): Promise<void> {
   return scriptPromise
 }
 
-/** Patch the gradient layer background color in the compiled GLSL */
-function patchBgColor(data: any, isDark: boolean): any {
-  const cloned = JSON.parse(JSON.stringify(data))
-  const gradient = cloned.history?.find((l: any) => l.id === "gradient")
-  if (gradient?.compiledFragmentShaders?.[0]) {
-    gradient.compiledFragmentShaders[0] = gradient.compiledFragmentShaders[0].replace(
-      /return vec3\([^)]+\);(\s*\}void main)/,
-      isDark
-        ? "return vec3(0.0, 0.0, 0.0);$1"
-        : "return vec3(0.8549019607843137, 0.9803921568627451, 1.0);$1"
-    )
-  }
-  return cloned
-}
-
 export function UnicornHero() {
-  const sceneRef = useRef<any>(null)
-  const dataRef = useRef<any>(null)
   const { resolvedTheme } = useTheme()
+  const sceneRef = useRef<any>(null)
 
   useEffect(() => {
-    // Wait until next-themes has resolved the theme
     if (!resolvedTheme) return
 
     let cancelled = false
@@ -61,32 +44,27 @@ export function UnicornHero() {
         await loadUnicornStudio()
         if (cancelled) return
 
-        // Fetch JSON only once, cache in ref
-        if (!dataRef.current) {
-          const res = await fetch("/scenes/hero-discs.json")
-          dataRef.current = await res.json()
-        }
-        if (cancelled) return
-
         const US = (window as any).UnicornStudio
         if (!US?.addScene) return
 
+        // Destroy previous scene instance before reinitialising
+        sceneRef.current?.destroy?.()
+        sceneRef.current = null
+
         sceneRef.current = await US.addScene({
           elementId: "unicorn-hero-canvas",
-          data: patchBgColor(dataRef.current, resolvedTheme === "dark"),
+          filePath: resolvedTheme === "dark"
+            ? "/scenes/hero-discs-dark.json"
+            : "/scenes/hero-discs.json",
           fps: 60,
           scale: 1,
           dpi: 1.5,
           lazyLoad: false,
         })
-      } catch {
-        // Fail silently — page renders fine without the animation
+      } catch (err) {
+        console.warn("[UnicornHero]", err)
       }
     }
-
-    // Destroy previous scene before re-init on theme switch
-    sceneRef.current?.destroy?.()
-    sceneRef.current = null
 
     init()
 
@@ -100,7 +78,7 @@ export function UnicornHero() {
   return (
     <div
       id="unicorn-hero-canvas"
-      className="absolute inset-0 pointer-events-none hidden sm:block"
+      className="absolute inset-0 pointer-events-none hidden sm:block overflow-hidden"
       aria-hidden="true"
     />
   )
