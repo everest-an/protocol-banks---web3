@@ -40,35 +40,40 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
 
-        {/* Unicorn Studio WebGL hero — light blue bg in light mode, black in dark mode */}
-        <UnicornHero />
-
         <div className="container mx-auto px-4 pt-16 pb-20 sm:pt-24 sm:pb-28 md:pt-32 md:pb-36 relative z-10">
-          <div className="max-w-4xl">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
-              Payment infrastructure
-              <br />
-              <span className="text-primary">for the onchain economy</span>
-            </h1>
-            <p className="mt-6 sm:mt-8 text-lg sm:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-              Accept payments, manage treasury, and automate payroll across 10+ blockchains.
-              Non-custodial, gasless, enterprise-grade.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-8 sm:mt-10">
-              <Button size="lg" onClick={onConnectWallet} className="text-base px-8 py-6">
-                Start Now
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline" onClick={onTryDemo} className="text-base px-8 py-6">
-                <Play className="mr-2 h-4 w-4" />
-                Try Live Test
-              </Button>
-              <Link href="/contact">
-                <Button size="lg" variant="ghost" className="text-base px-8 py-6 text-muted-foreground w-full sm:w-auto">
-                  Contact Sales
-                  <ChevronRight className="ml-1 h-4 w-4" />
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left: Text content */}
+            <div>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
+                Payment infrastructure
+                <br />
+                <span className="text-primary">for the onchain economy</span>
+              </h1>
+              <p className="mt-6 sm:mt-8 text-lg sm:text-xl text-muted-foreground max-w-2xl leading-relaxed">
+                Accept payments, manage treasury, and automate payroll across 10+ blockchains.
+                Non-custodial, gasless, enterprise-grade.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-8 sm:mt-10">
+                <Button size="lg" onClick={onConnectWallet} className="text-base px-8 py-6">
+                  Start Now
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-              </Link>
+                <Button size="lg" variant="outline" onClick={onTryDemo} className="text-base px-8 py-6">
+                  <Play className="mr-2 h-4 w-4" />
+                  Try Live Test
+                </Button>
+                <Link href="/contact">
+                  <Button size="lg" variant="ghost" className="text-base px-8 py-6 text-muted-foreground w-full sm:w-auto">
+                    Contact Sales
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: Unicorn Studio WebGL visual */}
+            <div className="hidden lg:block relative aspect-square max-h-[560px]">
+              <UnicornHero />
             </div>
           </div>
         </div>

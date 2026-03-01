@@ -13,14 +13,12 @@ function loadUnicornStudio(): Promise<void> {
   if (scriptPromise) return scriptPromise
 
   scriptPromise = new Promise<void>((resolve, reject) => {
-    // Check if the script is already fully loaded
     const existing = document.querySelector(`script[src="${SCRIPT_URL}"]`) as HTMLScriptElement | null
     if (existing) {
       if ((window as any).UnicornStudio) {
         resolve()
         return
       }
-      // Script tag exists but not yet loaded — wait for it
       existing.addEventListener("load", () => resolve(), { once: true })
       existing.addEventListener("error", () => reject(new Error("Failed to load Unicorn Studio")), { once: true })
       return
@@ -62,7 +60,6 @@ export function UnicornHero() {
           return
         }
 
-        // Verify container element exists
         const container = document.getElementById("unicorn-hero-canvas")
         if (!container) {
           console.warn("[UnicornHero] Container element #unicorn-hero-canvas not found")
@@ -84,6 +81,7 @@ export function UnicornHero() {
           scale: 1,
           dpi: 1.5,
           lazyLoad: false,
+          production: true,
           interactivity: {
             mouse: { disableMobile: true },
           },
@@ -107,7 +105,7 @@ export function UnicornHero() {
   return (
     <div
       id="unicorn-hero-canvas"
-      className="absolute inset-0 z-[1] pointer-events-none hidden sm:block"
+      className="w-full h-full min-h-[400px]"
       aria-hidden="true"
     />
   )
