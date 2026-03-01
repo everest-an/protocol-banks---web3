@@ -74,9 +74,7 @@ export function UnicornHero() {
 
         sceneRef.current = await US.addScene({
           elementId: "unicorn-hero-canvas",
-          filePath: resolvedTheme === "dark"
-            ? "/scenes/hero-discs-dark.json"
-            : "/scenes/hero-discs.json",
+          filePath: "/scenes/hero-discs.json",
           fps: 60,
           scale: 1,
           dpi: 1.5,
