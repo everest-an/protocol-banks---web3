@@ -10,6 +10,8 @@
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger/structured-logger'
 import { extractAddressFromDid } from '../types'
+import { txExecutorService } from '@/lib/services/tx-executor-service'
+import { budgetGuardService } from '@/lib/services/budget-guard-service'
 import type {
   requestPaymentParamsSchema,
   paymentStatusParamsSchema,
@@ -17,6 +19,7 @@ import type {
   cancelPaymentParamsSchema,
 } from '../message-types'
 import type { z } from 'zod'
+import type { Address, Hex } from 'viem'
 
 const component = 'a2a-payment-handler'
 
@@ -119,7 +122,8 @@ export async function handlePaymentStatus(
 }
 
 /**
- * Handle a2a.confirmPayment — update proposal with tx hash.
+ * Handle a2a.confirmPayment — update proposal with tx hash,
+ * or auto-execute on-chain if executor key is configured and no tx_hash provided.
  */
 export async function handleConfirmPayment(
   params: z.infer<typeof confirmPaymentParamsSchema>
@@ -131,29 +135,101 @@ export async function handleConfirmPayment(
     return { error: 'Request not found', request_id: params.request_id }
   }
 
+  // If tx_hash is provided, just record it
+  if (params.tx_hash) {
+    const updated = await prisma.paymentProposal.update({
+      where: { id: params.request_id },
+      data: {
+        status: params.status === 'completed' ? 'executed' : params.status === 'failed' ? 'failed' : 'executing',
+        tx_hash: params.tx_hash,
+        executed_at: params.status === 'completed' ? new Date() : undefined,
+      },
+    })
+
+    logger.info('A2A payment confirmed with tx_hash', {
+      component,
+      action: 'confirm_payment',
+      metadata: { request_id: params.request_id, tx_hash: params.tx_hash, status: params.status },
+    })
+
+    return {
+      request_id: updated.id,
+      status: updated.status,
+      tx_hash: updated.tx_hash,
+    }
+  }
+
+  // No tx_hash: try auto-execute if executor key is available
+  const executorKey = process.env.AGENT_EXECUTOR_PRIVATE_KEY
+  if (executorKey && proposal.status === 'pending') {
+    const guardResult = await budgetGuardService.check({
+      agentId: proposal.agent_id,
+      ownerAddress: proposal.owner_address,
+      amount: proposal.amount,
+      token: proposal.token,
+      chainId: proposal.chain_id ?? 1,
+    })
+
+    if (!guardResult.allowed) {
+      return {
+        request_id: proposal.id,
+        status: 'rejected',
+        error: `BudgetGuard: ${guardResult.reason}`,
+      }
+    }
+
+    const txResult = await txExecutorService.smartExecute({
+      privateKey: executorKey as Hex,
+      to: proposal.recipient_address as Address,
+      amount: proposal.amount,
+      token: proposal.token,
+      chainId: proposal.chain_id ?? 1,
+    })
+
+    if (txResult.success) {
+      budgetGuardService.recordSuccess(proposal.agent_id, parseFloat(proposal.amount))
+
+      const updated = await prisma.paymentProposal.update({
+        where: { id: params.request_id },
+        data: {
+          status: 'executed',
+          tx_hash: txResult.txHash,
+          executed_at: new Date(),
+        },
+      })
+
+      logger.info('A2A payment auto-executed on-chain', {
+        component,
+        action: 'confirm_payment_auto_execute',
+        metadata: { request_id: params.request_id, tx_hash: txResult.txHash },
+      })
+
+      return {
+        request_id: updated.id,
+        status: 'executed',
+        tx_hash: txResult.txHash,
+        auto_executed: true,
+      }
+    } else {
+      budgetGuardService.recordFailure(proposal.agent_id)
+      return {
+        request_id: proposal.id,
+        status: 'failed',
+        error: txResult.error,
+      }
+    }
+  }
+
+  // No executor key, no tx_hash — mark as executing
   const updated = await prisma.paymentProposal.update({
     where: { id: params.request_id },
-    data: {
-      status: params.status === 'completed' ? 'executed' : params.status === 'failed' ? 'failed' : 'executing',
-      tx_hash: params.tx_hash,
-      executed_at: params.status === 'completed' ? new Date() : undefined,
-    },
-  })
-
-  logger.info('A2A payment confirmed', {
-    component,
-    action: 'confirm_payment',
-    metadata: {
-      request_id: params.request_id,
-      tx_hash: params.tx_hash,
-      status: params.status,
-    },
+    data: { status: 'executing' },
   })
 
   return {
     request_id: updated.id,
     status: updated.status,
-    tx_hash: updated.tx_hash,
+    message: 'Awaiting on-chain transaction submission.',
   }
 }
 

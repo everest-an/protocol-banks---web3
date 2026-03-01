@@ -143,6 +143,7 @@
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "web-push": "^3.6.7",
     "winston": "^3.19.0"

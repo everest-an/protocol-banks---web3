@@ -22,6 +22,9 @@ import { isRelayerConfigured } from './relayer-service';
 import { isERC3009Supported } from '@/lib/erc3009';
 import { submitBatchPayment } from '@/lib/grpc/payout-bridge';
 import { getTokenAddress, CHAIN_IDS } from '@/lib/web3';
+import { txExecutorService, type TxResult } from './tx-executor-service';
+import { budgetGuardService } from './budget-guard-service';
+import type { Address, Hex } from 'viem';
 
 // ============================================
 // Types
@@ -316,11 +319,10 @@ export class AutoExecuteService {
   }
 
   /**
-   * Execute payment - tries x402/relayer for gasless transfers, falls back to payout bridge.
-   *
-   * Execution strategy:
-   * 1. If ERC-3009 is supported for the token+chain AND relayer is configured → use x402 service
-   * 2. Otherwise → use the payout bridge (Go engine or TS fallback)
+   * Execute payment with 3-tier strategy:
+   * 1. x402 + Relayer for gasless ERC-3009 transfers (if configured)
+   * 2. Direct on-chain via TxExecutorService (if agent private key available)
+   * 3. Payout bridge (Go engine or TS fallback)
    */
   private async executePayment(proposal: PaymentProposal): Promise<string> {
     const chainId = proposal.chain_id || CHAIN_IDS.BASE;
@@ -331,13 +333,66 @@ export class AutoExecuteService {
       try {
         return await this.executeViaX402(proposal);
       } catch (error) {
-        console.warn('[AutoExecute] x402 execution failed, falling back to payout bridge:', error);
-        // Fall through to payout bridge
+        console.warn('[AutoExecute] x402 execution failed, trying direct transfer:', error);
       }
     }
 
-    // Strategy 2: Payout bridge (Go engine or TypeScript fallback)
+    // Strategy 2: Direct on-chain execution via TxExecutorService
+    const agentPrivateKey = process.env.AGENT_EXECUTOR_PRIVATE_KEY;
+    if (agentPrivateKey) {
+      try {
+        return await this.executeViaTxExecutor(proposal, agentPrivateKey as Hex);
+      } catch (error) {
+        console.warn('[AutoExecute] Direct tx execution failed, falling back to payout bridge:', error);
+      }
+    }
+
+    // Strategy 3: Payout bridge (Go engine or TypeScript fallback)
     return await this.executeViaPayout(proposal);
+  }
+
+  /**
+   * Execute via direct on-chain transaction (TxExecutorService)
+   */
+  private async executeViaTxExecutor(proposal: PaymentProposal, privateKey: Hex): Promise<string> {
+    const chainId = proposal.chain_id || CHAIN_IDS.BASE;
+    const token = proposal.token || 'USDC';
+
+    // Run 6-layer budget guard check
+    const guardResult = await budgetGuardService.guardedCheck(
+      {
+        agentId: proposal.agent_id,
+        ownerAddress: proposal.owner_address,
+        amount: proposal.amount,
+        token,
+        chainId,
+        senderAddress: proposal.owner_address as Address,
+      },
+      // Rules are already checked by checkRules(), but budget guard adds
+      // hardcoded ceiling, rate limit, circuit breaker, and balance check
+    );
+
+    if (!guardResult.allowed) {
+      throw new Error(`BudgetGuard blocked: [${guardResult.layer}] ${guardResult.reason}`);
+    }
+
+    console.log(`[AutoExecute] Executing direct transfer for proposal ${proposal.id}`);
+
+    const result: TxResult = await txExecutorService.smartExecute({
+      privateKey,
+      to: proposal.recipient_address as Address,
+      amount: proposal.amount,
+      token,
+      chainId,
+    });
+
+    if (!result.success) {
+      budgetGuardService.recordFailure(proposal.agent_id);
+      throw new Error(result.error || 'Direct transaction execution failed');
+    }
+
+    budgetGuardService.recordSuccess(proposal.agent_id, parseFloat(proposal.amount));
+    return result.txHash;
   }
 
   /**

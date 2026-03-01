@@ -6,8 +6,12 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import path from 'path';
+import { createPublicClient, createWalletClient, http, parseAbi, parseUnits } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { mainnet, polygon, base, arbitrum, optimism, bsc, type Chain } from 'viem/chains';
 import { getCircuitBreaker, CircuitBreakerOpenError } from './circuit-breaker';
 import { HealthMonitorService } from './health-monitor-service';
+import { ERC3009_TOKENS } from '../erc3009';
 
 // ============================================
 // Types
@@ -38,6 +42,27 @@ export interface FallbackEvent {
 
 // ============================================
 // Constants
+// ============================================
+
+// ============================================
+// Chain & Token Configuration
+// ============================================
+
+const CHAIN_BY_ID: Record<number, Chain> = {
+  1: mainnet,
+  137: polygon,
+  8453: base,
+  42161: arbitrum,
+  10: optimism,
+  56: bsc,
+}
+
+const ERC20_ABI = parseAbi([
+  'function transfer(address to, uint256 amount) returns (bool)',
+])
+
+// ============================================
+// Go Service Config
 // ============================================
 
 const GO_SERVICE_CONFIG = {
@@ -175,17 +200,51 @@ export class GoServicesBridge {
   }
 
   /**
-   * TypeScript fallback implementation for payout
+   * TypeScript fallback implementation for payout.
+   * Uses RELAYER_PRIVATE_KEY to sign and broadcast an ERC-20 transfer on-chain.
+   * Requires the relayer wallet to hold the token balance.
    */
   private async executePayoutTypescript(request: PayoutRequest): Promise<PayoutResponse> {
     console.log('[GoServicesBridge] Executing payout via TypeScript fallback:', request);
-    
-    // In production, this would use ethers.js/viem
-    return {
-      success: true,
-      tx_hash: `0x${Date.now().toString(16)}${'0'.repeat(48)}`, 
-      executed_by: 'typescript',
-    };
+
+    const privateKey = process.env.RELAYER_PRIVATE_KEY;
+    if (!privateKey) {
+      console.warn('[GoServicesBridge] RELAYER_PRIVATE_KEY not set; TypeScript fallback unavailable');
+      return { success: false, error: 'Relayer not configured (RELAYER_PRIVATE_KEY missing)', executed_by: 'typescript' };
+    }
+
+    const chain = CHAIN_BY_ID[request.chain_id];
+    if (!chain) {
+      return { success: false, error: `Unsupported chain ID: ${request.chain_id}`, executed_by: 'typescript' };
+    }
+
+    const tokenInfo = ERC3009_TOKENS[request.chain_id]?.[request.token.toUpperCase()];
+    if (!tokenInfo) {
+      return { success: false, error: `Token ${request.token} not found on chain ${request.chain_id}`, executed_by: 'typescript' };
+    }
+
+    try {
+      const account = privateKeyToAccount(privateKey as `0x${string}`);
+      const walletClient = createWalletClient({ account, chain, transport: http() });
+      const publicClient = createPublicClient({ chain, transport: http() });
+
+      const amountInUnits = parseUnits(request.amount, tokenInfo.decimals);
+
+      const txHash = await walletClient.writeContract({
+        address: tokenInfo.address as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [request.to_address as `0x${string}`, amountInUnits],
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      console.log('[GoServicesBridge] TypeScript fallback tx confirmed:', txHash);
+      return { success: true, tx_hash: txHash, executed_by: 'typescript' };
+    } catch (error: any) {
+      console.error('[GoServicesBridge] TypeScript fallback tx failed:', error.message);
+      return { success: false, error: error.message || 'Transaction failed', executed_by: 'typescript' };
+    }
   }
 
   /**

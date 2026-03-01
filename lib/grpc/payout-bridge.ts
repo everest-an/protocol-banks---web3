@@ -106,7 +106,8 @@ async function submitViaGoService(
 }
 
 /**
- * Submit via TypeScript (existing implementation)
+ * Submit via TypeScript — uses BatchOrchestratorService for real on-chain execution.
+ * Falls back to record-only mode if no executor private key is configured.
  */
 async function submitViaTypeScript(
   batchId: string,
@@ -119,34 +120,54 @@ async function submitViaTypeScript(
     priority?: "low" | "medium" | "high" | "urgent"
   },
 ): Promise<BatchPaymentResult> {
-  // Import existing payment service functions
-  const { processBatchPayments } = await import("@/lib/services/payment-service")
+  const executorKey = process.env.AGENT_EXECUTOR_PRIVATE_KEY
+  if (!executorKey) {
+    // No executor key — create pending records only
+    console.warn('[PayoutBridge] No AGENT_EXECUTOR_PRIVATE_KEY, creating pending records')
+    return {
+      batchId,
+      status: "pending",
+      totalRecipients: recipients.length,
+      successCount: 0,
+      failureCount: 0,
+      transactions: recipients.map((r) => ({
+        address: r.address,
+        txHash: "",
+        status: "pending" as const,
+      })),
+    }
+  }
 
-  // Use existing TypeScript implementation
-  const results = await processBatchPayments(
-    recipients.map((r) => ({
-      address: r.address,
-      amount: typeof r.amount === "string" ? Number(r.amount) : r.amount,
+  // Use BatchOrchestratorService for real on-chain execution
+  const { batchOrchestratorService } = await import("@/lib/services/batch-orchestrator-service")
+
+  const result = await batchOrchestratorService.submitBatch({
+    privateKey: executorKey as `0x${string}`,
+    ownerAddress: senderAddress as `0x${string}`,
+    payments: recipients.map((r) => ({
+      to: r.address as `0x${string}`,
+      amount: r.amount,
       token: r.token,
+      chainId: r.chainId,
+      memo: r.vendorName,
     })),
-    senderAddress,
-    "EVM",
-  )
-
-  const successful = results.filter((r) => r.success).length
-  const failed = results.filter((r) => !r.success).length
+    strategy: 'concurrent',
+    maxConcurrency: 5,
+    retryOnFailure: true,
+    maxRetries: 3,
+  })
 
   return {
-    batchId,
-    status: failed > 0 ? "partial_failure" : "completed",
-    totalRecipients: recipients.length,
-    successCount: successful,
-    failureCount: failed,
-    transactions: results.map((r: any) => ({
-      address: r.recipient || "",
-      txHash: r.txHash || "",
-      status: r.success ? "confirmed" : "failed",
-      error: r.error,
+    batchId: result.batchId,
+    status: result.status,
+    totalRecipients: result.totalCount,
+    successCount: result.successCount,
+    failureCount: result.failureCount,
+    transactions: result.transactions.map((tx) => ({
+      address: tx.to,
+      txHash: tx.txHash,
+      status: tx.status === 'confirmed' ? 'confirmed' : 'failed',
+      error: tx.error,
     })),
   }
 }

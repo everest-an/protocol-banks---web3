@@ -22,9 +22,15 @@ import {
   createPaymentTool,
   checkPaymentStatusTool,
   listPaymentsTool,
+  estimateGasTool,
+  compareChainFeesTool,
+  executePaymentTool,
   handleCreatePayment,
   handleCheckPaymentStatus,
   handleListPayments,
+  handleEstimateGas,
+  handleCompareChainFees,
+  handleExecutePayment,
 } from './tools/payment-tools'
 
 import {
@@ -75,6 +81,34 @@ export function createMcpServer(getAuthContext: () => McpAuthContext) {
     async (args) => {
       try {
         const result = await handleGetPaymentQuote(args as { network: string; token: string; amount: string })
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.tool(
+    estimateGasTool.name,
+    estimateGasTool.description,
+    estimateGasTool.inputSchema.properties as Record<string, unknown>,
+    async (args) => {
+      try {
+        const result = await handleEstimateGas(args as Parameters<typeof handleEstimateGas>[0])
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.tool(
+    compareChainFeesTool.name,
+    compareChainFeesTool.description,
+    compareChainFeesTool.inputSchema.properties as Record<string, unknown>,
+    async (args) => {
+      try {
+        const result = await handleCompareChainFees(args as Parameters<typeof handleCompareChainFees>[0])
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
       } catch (err) {
         return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
@@ -161,6 +195,20 @@ export function createMcpServer(getAuthContext: () => McpAuthContext) {
     async (args) => {
       try {
         const result = await handleGetBalance(args as { network?: string; token?: string }, getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.tool(
+    executePaymentTool.name,
+    executePaymentTool.description,
+    executePaymentTool.inputSchema.properties as Record<string, unknown>,
+    async (args) => {
+      try {
+        const result = await handleExecutePayment(args as Parameters<typeof handleExecutePayment>[0], getAuthContext())
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
       } catch (err) {
         return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }

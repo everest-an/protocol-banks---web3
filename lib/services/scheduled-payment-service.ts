@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { goServicesBridge } from '@/lib/services/go-services-bridge';
 import type {
   ScheduledPayment,
   ScheduledPaymentLog,
@@ -448,10 +449,52 @@ export class ScheduledPaymentService {
 
     for (const payment of duePayments) {
       try {
+        // Step 1: Create log entry + advance schedule (no blockchain call)
         const result = await this.executePayment(payment.id);
         results.push(result);
 
-        if (result.success) {
+        if (!result.success || !result.log_id) {
+          failed++;
+          continue;
+        }
+
+        // Step 2: Execute actual on-chain transfers for each recipient
+        const recipients = payment.recipients as any as ScheduledRecipient[];
+        let successfulCount = 0;
+        let failedCount = 0;
+        const details: Array<{ address: string; amount: string; status: string; error?: string }> = [];
+        let firstTxHash: string | undefined;
+
+        for (const recipient of recipients) {
+          const payout = await goServicesBridge.executePayout({
+            from_address: payment.owner_address,
+            to_address: recipient.address,
+            amount: recipient.amount,
+            token: (payment as any).token || 'USDT',
+            chain_id: (payment as any).chain_id || 42161,
+            memo: `Scheduled: ${payment.name}`,
+          });
+
+          if (payout.success) {
+            successfulCount++;
+            firstTxHash = firstTxHash || payout.tx_hash;
+            details.push({ address: recipient.address, amount: recipient.amount, status: 'completed' });
+          } else {
+            failedCount++;
+            details.push({ address: recipient.address, amount: recipient.amount, status: 'failed', error: payout.error });
+          }
+        }
+
+        // Step 3: Update log with real execution results
+        await this.updateExecutionLog(result.log_id, {
+          status: failedCount === 0 ? 'success' : successfulCount === 0 ? 'failed' : 'partial' as any,
+          tx_hash: firstTxHash,
+          successful_count: successfulCount,
+          failed_count: failedCount,
+          details,
+        });
+
+        if (failedCount === 0) {
           successful++;
         } else {
           failed++;

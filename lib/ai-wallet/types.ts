@@ -27,6 +27,14 @@ export interface AIWalletConfig {
 
   /** Called when the access token is refreshed (for logging/storage) */
   onTokenRefresh?: (token: string) => void
+
+  /**
+   * Optional: Agent's private key for autonomous on-chain execution.
+   * If provided, the SDK can execute payments directly on-chain
+   * via the execute_payment API endpoint.
+   * WARNING: Only use in secure server environments, never in browsers.
+   */
+  privateKey?: string
 }
 
 // ─── Authentication ─────────────────────────────────────────────────

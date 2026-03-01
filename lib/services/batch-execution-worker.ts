@@ -15,6 +15,7 @@
 import { getClient } from "@/lib/prisma"
 import { claimBatchItem, updateBatchItem } from "@/lib/services/batch-item-service"
 import { recordTransfer, generateIdempotencyKey } from "@/lib/services/ledger-service"
+import { goServicesBridge } from "@/lib/services/go-services-bridge"
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -22,6 +23,17 @@ const CONCURRENCY: Record<string, number> = {
   EVM: 10,
   TRON: 3,
   DEFAULT: 5,
+}
+
+// Chain name → EVM chain ID mapping
+const CHAIN_ID_BY_NAME: Record<string, number> = {
+  ethereum: 1,
+  base: 8453,
+  polygon: 137,
+  arbitrum: 42161,
+  optimism: 10,
+  bsc: 56,
+  tron: 728126428,
 }
 
 // Delay between items on the same chain (ms) to avoid nonce conflicts
@@ -171,11 +183,23 @@ async function processItem(
   }
 
   try {
-    // Execute the payment
-    // In production, this would call the actual on-chain transfer function.
-    // For now, we simulate by creating a payment record.
-    const prisma = getClient()
+    // Execute the payment via Go payout-engine (or TypeScript fallback)
+    const chainId = CHAIN_ID_BY_NAME[item.chain.toLowerCase()] ?? 1
+    const payout = await goServicesBridge.executePayout({
+      from_address: fromAddress,
+      to_address: item.recipient,
+      amount: item.amount,
+      token: item.token,
+      chain_id: chainId,
+      memo: `Batch ${item.batchId} item #${item.index}`,
+    })
 
+    if (!payout.success) {
+      throw new Error(payout.error || 'Payout execution failed')
+    }
+
+    // Record payment with the real on-chain tx_hash
+    const prisma = getClient()
     const payment = await prisma.payment.create({
       data: {
         from_address: fromAddress,
@@ -187,6 +211,7 @@ async function processItem(
         status: "completed",
         type: "sent",
         method: "batch",
+        tx_hash: payout.tx_hash,
         memo: `Batch ${item.batchId} item #${item.index}`,
       },
     })

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
 
-const CDN_URL = "/unicorn-studio.umd.js"
+const SCRIPT_URL = "/unicorn-studio.umd.js"
 
 let scriptPromise: Promise<void> | null = null
 
@@ -13,14 +13,20 @@ function loadUnicornStudio(): Promise<void> {
   if (scriptPromise) return scriptPromise
 
   scriptPromise = new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${CDN_URL}"]`)
+    // Check if the script is already fully loaded
+    const existing = document.querySelector(`script[src="${SCRIPT_URL}"]`) as HTMLScriptElement | null
     if (existing) {
-      existing.addEventListener("load", () => resolve())
-      existing.addEventListener("error", reject)
+      if ((window as any).UnicornStudio) {
+        resolve()
+        return
+      }
+      // Script tag exists but not yet loaded — wait for it
+      existing.addEventListener("load", () => resolve(), { once: true })
+      existing.addEventListener("error", () => reject(new Error("Failed to load Unicorn Studio")), { once: true })
       return
     }
     const script = document.createElement("script")
-    script.src = CDN_URL
+    script.src = SCRIPT_URL
     script.async = true
     script.onload = () => resolve()
     script.onerror = () => reject(new Error("Failed to load Unicorn Studio"))
@@ -33,6 +39,12 @@ function loadUnicornStudio(): Promise<void> {
 export function UnicornHero() {
   const { resolvedTheme } = useTheme()
   const sceneRef = useRef<any>(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   useEffect(() => {
     if (!resolvedTheme) return
@@ -42,14 +54,26 @@ export function UnicornHero() {
     async function init() {
       try {
         await loadUnicornStudio()
-        if (cancelled) return
+        if (cancelled || !mountedRef.current) return
 
         const US = (window as any).UnicornStudio
-        if (!US?.addScene) return
+        if (!US?.addScene) {
+          console.warn("[UnicornHero] UnicornStudio.addScene not available")
+          return
+        }
+
+        // Verify container element exists
+        const container = document.getElementById("unicorn-hero-canvas")
+        if (!container) {
+          console.warn("[UnicornHero] Container element #unicorn-hero-canvas not found")
+          return
+        }
 
         // Destroy previous scene instance before reinitialising
-        sceneRef.current?.destroy?.()
-        sceneRef.current = null
+        if (sceneRef.current) {
+          try { sceneRef.current.destroy?.() } catch { /* ignore */ }
+          sceneRef.current = null
+        }
 
         sceneRef.current = await US.addScene({
           elementId: "unicorn-hero-canvas",
@@ -60,9 +84,12 @@ export function UnicornHero() {
           scale: 1,
           dpi: 1.5,
           lazyLoad: false,
+          interactivity: {
+            mouse: { disableMobile: true },
+          },
         })
       } catch (err) {
-        console.warn("[UnicornHero]", err)
+        console.warn("[UnicornHero] Failed to initialise scene:", err)
       }
     }
 
@@ -70,15 +97,17 @@ export function UnicornHero() {
 
     return () => {
       cancelled = true
-      sceneRef.current?.destroy?.()
-      sceneRef.current = null
+      if (sceneRef.current) {
+        try { sceneRef.current.destroy?.() } catch { /* ignore */ }
+        sceneRef.current = null
+      }
     }
   }, [resolvedTheme])
 
   return (
     <div
       id="unicorn-hero-canvas"
-      className="absolute inset-0 pointer-events-none hidden sm:block overflow-hidden"
+      className="absolute inset-0 z-[1] pointer-events-none hidden sm:block"
       aria-hidden="true"
     />
   )

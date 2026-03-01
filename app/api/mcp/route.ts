@@ -54,9 +54,12 @@ export async function POST(request: NextRequest) {
       const tools = [
         { name: 'list_supported_tokens', description: 'List all supported tokens and networks.' },
         { name: 'get_payment_quote', description: 'Get a fee estimate for a payment.' },
+        { name: 'estimate_gas', description: 'Estimate gas cost for an ERC-20 transfer on a specific chain.' },
+        { name: 'compare_chain_fees', description: 'Compare transfer fees across all supported chains to find the cheapest.' },
         { name: 'create_payment', description: 'Create a new payment (auth required).' },
         { name: 'check_payment_status', description: 'Check payment status (auth required).' },
         { name: 'list_payments', description: 'List recent payments (auth required).' },
+        { name: 'execute_payment', description: 'Execute an on-chain payment autonomously (auth required).' },
         { name: 'create_invoice', description: 'Create an invoice (auth required).' },
         { name: 'list_invoices', description: 'List invoices (auth required).' },
         { name: 'get_balance', description: 'Get wallet balances (auth required).' },
@@ -157,7 +160,7 @@ async function dispatchToolCall(
 ): Promise<unknown> {
   // Import handlers lazily to avoid circular dependencies
   const { handleListSupportedTokens, handleGetPaymentQuote } = await import('@/lib/mcp/tools/token-tools')
-  const { handleCreatePayment, handleCheckPaymentStatus, handleListPayments } = await import('@/lib/mcp/tools/payment-tools')
+  const { handleCreatePayment, handleCheckPaymentStatus, handleListPayments, handleEstimateGas, handleCompareChainFees, handleExecutePayment } = await import('@/lib/mcp/tools/payment-tools')
   const { handleCreateInvoice, handleListInvoices } = await import('@/lib/mcp/tools/invoice-tools')
   const { handleGetBalance } = await import('@/lib/mcp/tools/balance-tools')
 
@@ -166,12 +169,18 @@ async function dispatchToolCall(
       return handleListSupportedTokens(args as Parameters<typeof handleListSupportedTokens>[0])
     case 'get_payment_quote':
       return handleGetPaymentQuote(args as Parameters<typeof handleGetPaymentQuote>[0])
+    case 'estimate_gas':
+      return handleEstimateGas(args as Parameters<typeof handleEstimateGas>[0])
+    case 'compare_chain_fees':
+      return handleCompareChainFees(args as Parameters<typeof handleCompareChainFees>[0])
     case 'create_payment':
       return handleCreatePayment(args as Parameters<typeof handleCreatePayment>[0], authCtx)
     case 'check_payment_status':
       return handleCheckPaymentStatus(args as Parameters<typeof handleCheckPaymentStatus>[0], authCtx)
     case 'list_payments':
       return handleListPayments(args as Parameters<typeof handleListPayments>[0], authCtx)
+    case 'execute_payment':
+      return handleExecutePayment(args as Parameters<typeof handleExecutePayment>[0], authCtx)
     case 'create_invoice':
       return handleCreateInvoice(args as Parameters<typeof handleCreateInvoice>[0], authCtx)
     case 'list_invoices':

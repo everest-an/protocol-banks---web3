@@ -24,7 +24,8 @@ const securityHeaders = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com https://cdn.unicorn.studio",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.llamarpc.com https://*.infura.io https://*.alchemy.com wss://*.walletconnect.com https://*.walletconnect.com wss://*.walletconnect.org https://*.walletconnect.org https://*.reown.com wss://*.reown.com https://api.web3modal.com https://api.web3modal.org https://rpc.walletconnect.com https://api.rango.exchange https://*.trongrid.io https://*.etherscan.io https://eth.llamarpc.com https://rpc.sepolia.org https://polygon-rpc.com https://mainnet.optimism.io https://mainnet.base.org https://arb1.arbitrum.io https://bsc-dataseed.binance.org https://mainnet.hsk.xyz https://*.basescan.org https://*.arbiscan.io https://*.bscscan.com https://*.polygonscan.com https://*.optimistic.etherscan.io https://cdn.unicorn.studio https://assets.unicorn.studio",
+    "worker-src 'self' blob:",
+    "connect-src 'self' https://*.llamarpc.com https://*.infura.io https://*.alchemy.com wss://*.walletconnect.com https://*.walletconnect.com wss://*.walletconnect.org https://*.walletconnect.org https://*.reown.com wss://*.reown.com https://api.web3modal.com https://api.web3modal.org https://rpc.walletconnect.com https://api.rango.exchange https://*.trongrid.io https://*.etherscan.io https://eth.llamarpc.com https://rpc.sepolia.org https://polygon-rpc.com https://mainnet.optimism.io https://mainnet.base.org https://arb1.arbitrum.io https://bsc-dataseed.binance.org https://mainnet.hsk.xyz https://*.basescan.org https://*.arbiscan.io https://*.bscscan.com https://*.polygonscan.com https://*.optimistic.etherscan.io https://cdn.unicorn.studio https://assets.unicorn.studio https://*.publicnode.com",
     "frame-src 'self' https://www.google.com https://verify.walletconnect.com https://secure.walletconnect.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -156,7 +157,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except static files
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Match all paths except static files (images, fonts, standalone scripts)
+    "/((?!_next/static|_next/image|favicon.ico|scenes/|unicorn-studio|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)",
   ],
 }

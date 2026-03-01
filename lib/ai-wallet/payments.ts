@@ -23,6 +23,21 @@ import type {
   x402VerifyResult,
 } from './types'
 
+/** Response from execute_payment (on-chain execution) */
+export interface ExecutedPayment {
+  status: 'executed' | 'failed'
+  tx_hash: string
+  from: string
+  to: string
+  amount: string
+  token: string
+  network: string
+  chain_id: number
+  block_number?: string
+  gas_used?: string
+  message: string
+}
+
 /** Authenticated request function provided by the SDK */
 type RequestFn = <T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown) => Promise<T>
 
@@ -45,6 +60,27 @@ export class PaymentClient {
   async list(filters?: PaymentFilters): Promise<Payment[]> {
     const query = filters ? '?' + toQueryString(filters as unknown as Record<string, unknown>) : ''
     return this.request<Payment[]>('GET', `/api/payments${query}`)
+  }
+
+  /**
+   * Create AND execute a payment on-chain in one step.
+   * Requires the server to have AGENT_EXECUTOR_PRIVATE_KEY configured.
+   */
+  async execute(params: PaymentRequest): Promise<ExecutedPayment> {
+    return this.request<ExecutedPayment>('POST', '/api/payments/execute', {
+      to_address: params.to,
+      amount: params.amount,
+      token: params.token,
+      network: params.chain || 'base',
+      memo: params.memo,
+    })
+  }
+
+  /**
+   * Estimate gas cost for a transfer
+   */
+  async estimateGas(params: { network: string; token: string; amount: string; to_address: string }): Promise<unknown> {
+    return this.request('POST', '/api/payments/estimate-gas', params)
   }
 
   /**
