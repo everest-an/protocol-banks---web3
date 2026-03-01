@@ -41,15 +41,14 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
 
         <div className="container mx-auto px-4 pt-16 pb-20 sm:pt-24 sm:pb-28 md:pt-32 md:pb-36 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 lg:gap-16 items-center">
             {/* Left: Text content */}
             <div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
-                Payment infrastructure
-                <br />
-                <span className="text-primary">for the onchain economy</span>
+              <h1 className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.15]">
+                Payment infrastructure for the{" "}
+                <span className="text-primary">onchain economy</span>
               </h1>
-              <p className="mt-6 sm:mt-8 text-lg sm:text-xl text-muted-foreground max-w-2xl leading-relaxed">
+              <p className="mt-6 sm:mt-8 text-lg sm:text-xl text-muted-foreground leading-relaxed">
                 Accept payments, manage treasury, and automate payroll across 10+ blockchains.
                 Non-custodial, gasless, enterprise-grade.
               </p>
@@ -71,8 +70,8 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               </div>
             </div>
 
-            {/* Right: Unicorn Studio WebGL visual */}
-            <div className="hidden lg:block relative aspect-square max-h-[560px]">
+            {/* Right: Unicorn Studio WebGL visual — shifted right with more space */}
+            <div className="hidden lg:block relative aspect-square max-h-[560px] lg:translate-x-4 xl:translate-x-8">
               <UnicornHero />
             </div>
           </div>
