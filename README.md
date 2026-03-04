@@ -13,7 +13,7 @@
 [![MCP Server](https://img.shields.io/badge/MCP-8_Tools-purple)](https://app.protocolbanks.com/api/mcp)
 [![A2A Protocol](https://img.shields.io/badge/A2A-JSON--RPC_2.0-orange)](https://app.protocolbanks.com/.well-known/agent.json)
 [![ERC-8004](https://img.shields.io/badge/ERC--8004-Agent_Card-blue)](https://app.protocolbanks.com/.well-known/agent.json)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 [English](#overview) | [中文](#中文文档)
 
@@ -690,7 +690,9 @@ await fetch('https://app.protocolbanks.com/api/payments', {
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+GNU General Public License v3.0 only (GPL-3.0-only) - see [LICENSE](LICENSE) for details.
+
+For additional infringement and commercial compliance terms, see [ADDITIONAL_LEGAL_TERMS.md](ADDITIONAL_LEGAL_TERMS.md).
 
 ---
 

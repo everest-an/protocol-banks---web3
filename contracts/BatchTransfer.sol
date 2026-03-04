@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+﻿// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -7,9 +7,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title BatchTransfer
- * @dev 批量转账合约 - 一次签名发送多笔ERC20代币转账
- * @notice 支持单次交易向多个地址转账，节省Gas和签名次数
- */
+ * @dev 鎵归噺杞处鍚堢害 - 涓€娆＄鍚嶅彂閫佸绗擡RC20浠ｅ竵杞处
+ * @notice 鏀寔鍗曟浜ゆ槗鍚戝涓湴鍧€杞处锛岃妭鐪丟as鍜岀鍚嶆鏁? */
 contract BatchTransfer is Ownable, ReentrancyGuard {
 
     // ============================================
@@ -40,16 +39,13 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
     // State Variables
     // ============================================
 
-    // 平台手续费（基点，1 = 0.01%，例如 10 = 0.1%）
-    uint16 public platformFeeBps = 0; // 默认0手续费
-
-    // 手续费收取地址
+    // 骞冲彴鎵嬬画璐癸紙鍩虹偣锛? = 0.01%锛屼緥濡?10 = 0.1%锛?    uint16 public platformFeeBps = 0; // 榛樿0鎵嬬画璐?
+    // 鎵嬬画璐规敹鍙栧湴鍧€
     address public feeCollector;
 
-    // 最大单次批量转账数量（防止Gas耗尽）
-    uint256 public maxBatchSize = 200;
+    // 鏈€澶у崟娆℃壒閲忚浆璐︽暟閲忥紙闃叉Gas鑰楀敖锛?    uint256 public maxBatchSize = 200;
 
-    // 统计数据
+    // 缁熻鏁版嵁
     uint256 public totalBatchesProcessed;
     uint256 public totalRecipientsServed;
 
@@ -67,11 +63,10 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
     // ============================================
 
     /**
-     * @notice 批量转账ERC20代币（推荐使用此方法）
-     * @param token ERC20代币合约地址
-     * @param recipients 接收地址数组
-     * @param amounts 对应金额数组（必须与recipients长度一致）
-     * @return successCount 成功转账数量
+     * @notice 鎵归噺杞处ERC20浠ｅ竵锛堟帹鑽愪娇鐢ㄦ鏂规硶锛?     * @param token ERC20浠ｅ竵鍚堢害鍦板潃
+     * @param recipients 鎺ユ敹鍦板潃鏁扮粍
+     * @param amounts 瀵瑰簲閲戦鏁扮粍锛堝繀椤讳笌recipients闀垮害涓€鑷达級
+     * @return successCount 鎴愬姛杞处鏁伴噺
      */
     function batchTransfer(
         address token,
@@ -86,15 +81,13 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
         IERC20 tokenContract = IERC20(token);
         uint256 totalAmount = 0;
 
-        // 计算总金额
-        for (uint256 i = 0; i < amounts.length; i++) {
+        // 璁＄畻鎬婚噾棰?        for (uint256 i = 0; i < amounts.length; i++) {
             require(recipients[i] != address(0), "Invalid recipient");
             require(amounts[i] > 0, "Invalid amount");
             totalAmount += amounts[i];
         }
 
-        // 计算手续费
-        uint256 feeAmount = 0;
+        // 璁＄畻鎵嬬画璐?        uint256 feeAmount = 0;
         if (platformFeeBps > 0) {
             feeAmount = (totalAmount * platformFeeBps) / 10000;
             require(feeAmount < totalAmount, "Fee too high");
@@ -102,14 +95,12 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
 
         uint256 totalRequired = totalAmount + feeAmount;
 
-        // 检查并转入代币到合约
-        require(
+        // 妫€鏌ュ苟杞叆浠ｅ竵鍒板悎绾?        require(
             tokenContract.transferFrom(msg.sender, address(this), totalRequired),
             "Transfer to contract failed"
         );
 
-        // 收取手续费
-        if (feeAmount > 0) {
+        // 鏀跺彇鎵嬬画璐?        if (feeAmount > 0) {
             require(
                 tokenContract.transfer(feeCollector, feeAmount),
                 "Fee transfer failed"
@@ -117,7 +108,7 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
             emit FeeCollected(token, msg.sender, feeAmount);
         }
 
-        // 批量转账
+        // 鎵归噺杞处
         successCount = 0;
         for (uint256 i = 0; i < recipients.length; i++) {
             bool success = tokenContract.transfer(recipients[i], amounts[i]);
@@ -128,7 +119,7 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
             }
         }
 
-        // 更新统计
+        // 鏇存柊缁熻
         totalBatchesProcessed++;
         totalRecipientsServed += successCount;
 
@@ -144,11 +135,10 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice 批量转账（相同金额）- Gas优化版本
-     * @param token ERC20代币合约地址
-     * @param recipients 接收地址数组
-     * @param amount 每个地址接收的金额（所有人相同）
-     * @return successCount 成功转账数量
+     * @notice 鎵归噺杞处锛堢浉鍚岄噾棰濓級- Gas浼樺寲鐗堟湰
+     * @param token ERC20浠ｅ竵鍚堢害鍦板潃
+     * @param recipients 鎺ユ敹鍦板潃鏁扮粍
+     * @param amount 姣忎釜鍦板潃鎺ユ敹鐨勯噾棰濓紙鎵€鏈変汉鐩稿悓锛?     * @return successCount 鎴愬姛杞处鏁伴噺
      */
     function batchTransferEqual(
         address token,
@@ -163,22 +153,20 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
         IERC20 tokenContract = IERC20(token);
         uint256 totalAmount = amount * recipients.length;
 
-        // 计算手续费
-        uint256 feeAmount = 0;
+        // 璁＄畻鎵嬬画璐?        uint256 feeAmount = 0;
         if (platformFeeBps > 0) {
             feeAmount = (totalAmount * platformFeeBps) / 10000;
         }
 
         uint256 totalRequired = totalAmount + feeAmount;
 
-        // 转入代币
+        // 杞叆浠ｅ竵
         require(
             tokenContract.transferFrom(msg.sender, address(this), totalRequired),
             "Transfer to contract failed"
         );
 
-        // 收取手续费
-        if (feeAmount > 0) {
+        // 鏀跺彇鎵嬬画璐?        if (feeAmount > 0) {
             require(
                 tokenContract.transfer(feeCollector, feeAmount),
                 "Fee transfer failed"
@@ -186,7 +174,7 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
             emit FeeCollected(token, msg.sender, feeAmount);
         }
 
-        // 批量转账
+        // 鎵归噺杞处
         successCount = 0;
         for (uint256 i = 0; i < recipients.length; i++) {
             require(recipients[i] != address(0), "Invalid recipient");
@@ -198,7 +186,7 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
             }
         }
 
-        // 更新统计
+        // 鏇存柊缁熻
         totalBatchesProcessed++;
         totalRecipientsServed += successCount;
 
@@ -218,17 +206,15 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
     // ============================================
 
     /**
-     * @notice 设置平台手续费（仅管理员）
-     * @param newFeeBps 新手续费（基点，最大500 = 5%）
-     */
+     * @notice 璁剧疆骞冲彴鎵嬬画璐癸紙浠呯鐞嗗憳锛?     * @param newFeeBps 鏂版墜缁垂锛堝熀鐐癸紝鏈€澶?00 = 5%锛?     */
     function setPlatformFee(uint16 newFeeBps) external onlyOwner {
-        require(newFeeBps <= 500, "Fee too high"); // 最高5%
+        require(newFeeBps <= 500, "Fee too high"); // 鏈€楂?%
         platformFeeBps = newFeeBps;
     }
 
     /**
-     * @notice 设置手续费收取地址（仅管理员）
-     * @param newCollector 新的手续费收取地址
+     * @notice 璁剧疆鎵嬬画璐规敹鍙栧湴鍧€锛堜粎绠＄悊鍛橈級
+     * @param newCollector 鏂扮殑鎵嬬画璐规敹鍙栧湴鍧€
      */
     function setFeeCollector(address newCollector) external onlyOwner {
         require(newCollector != address(0), "Invalid collector");
@@ -236,18 +222,15 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice 设置最大批量大小（仅管理员）
-     * @param newMaxSize 新的最大批量大小
-     */
+     * @notice 璁剧疆鏈€澶ф壒閲忓ぇ灏忥紙浠呯鐞嗗憳锛?     * @param newMaxSize 鏂扮殑鏈€澶ф壒閲忓ぇ灏?     */
     function setMaxBatchSize(uint256 newMaxSize) external onlyOwner {
         require(newMaxSize > 0 && newMaxSize <= 500, "Invalid size");
         maxBatchSize = newMaxSize;
     }
 
     /**
-     * @notice 紧急提取代币（仅管理员，用于救援意外发送的代币）
-     * @param token 代币地址
-     * @param amount 提取数量
+     * @notice 绱ф€ユ彁鍙栦唬甯侊紙浠呯鐞嗗憳锛岀敤浜庢晳鎻存剰澶栧彂閫佺殑浠ｅ竵锛?     * @param token 浠ｅ竵鍦板潃
+     * @param amount 鎻愬彇鏁伴噺
      */
     function emergencyWithdraw(address token, uint256 amount) external onlyOwner {
         IERC20(token).transfer(owner(), amount);
@@ -258,11 +241,9 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
     // ============================================
 
     /**
-     * @notice 计算批量转账所需的总金额（包含手续费）
-     * @param amounts 金额数组
-     * @return totalRequired 所需总金额
-     * @return feeAmount 手续费金额
-     */
+     * @notice 璁＄畻鎵归噺杞处鎵€闇€鐨勬€婚噾棰濓紙鍖呭惈鎵嬬画璐癸級
+     * @param amounts 閲戦鏁扮粍
+     * @return totalRequired 鎵€闇€鎬婚噾棰?     * @return feeAmount 鎵嬬画璐归噾棰?     */
     function calculateTotalRequired(uint256[] calldata amounts)
         external
         view
@@ -278,12 +259,11 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice 获取合约统计信息
-     * @return batchesProcessed 已处理批次数
-     * @return recipientsServed 已服务接收者数
-     * @return currentFee 当前手续费率
-     * @return currentMaxBatch 当前最大批量大小
-     */
+     * @notice 鑾峰彇鍚堢害缁熻淇℃伅
+     * @return batchesProcessed 宸插鐞嗘壒娆℃暟
+     * @return recipientsServed 宸叉湇鍔℃帴鏀惰€呮暟
+     * @return currentFee 褰撳墠鎵嬬画璐圭巼
+     * @return currentMaxBatch 褰撳墠鏈€澶ф壒閲忓ぇ灏?     */
     function getStats()
         external
         view

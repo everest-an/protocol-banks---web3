@@ -1,63 +1,63 @@
-# 自动生息功能 - 集成 Aave 协议
+﻿# 鑷姩鐢熸伅鍔熻兘 - 闆嗘垚 Aave 鍗忚
 
-**更新日期:** 2026-02-08
-**状态:** 设计完成，待实施
+**鏇存柊鏃ユ湡:** 2026-02-08
+**鐘舵€?** 璁捐瀹屾垚锛屽緟瀹炴柦
 
 ---
 
-## 1. 架构概览
+## 1. 鏋舵瀯姒傝
 
-### 1.1 为什么使用 Aave？
+### 1.1 涓轰粈涔堜娇鐢?Aave锛?
 
-**✅ 优势:**
-- 经过多次审计，安全性高
-- TVL > $10B，流动性充足
-- 支持多链（Ethereum, Base, Arbitrum, Polygon）
-- 利率自动调整（供需平衡）
-- 无需编写和审计自定义合约
+**鉁?浼樺娍:**
+- 缁忚繃澶氭瀹¤锛屽畨鍏ㄦ€ч珮
+- TVL > $10B锛屾祦鍔ㄦ€у厖瓒?
+- 鏀寔澶氶摼锛圗thereum, Base, Arbitrum, Polygon锛?
+- 鍒╃巼鑷姩璋冩暣锛堜緵闇€骞宠　锛?
+- 鏃犻渶缂栧啓鍜屽璁¤嚜瀹氫箟鍚堢害
 
-**❌ 不使用自定义合约的原因:**
-- 智能合约审计成本高（$50k+）
-- 安全风险大（资金损失风险）
-- 需要专业的 DeFi 团队维护
+**鉂?涓嶄娇鐢ㄨ嚜瀹氫箟鍚堢害鐨勫師鍥?**
+- 鏅鸿兘鍚堢害瀹¤鎴愭湰楂橈紙$50k+锛?
+- 瀹夊叏椋庨櫓澶э紙璧勯噾鎹熷け椋庨櫓锛?
+- 闇€瑕佷笓涓氱殑 DeFi 鍥㈤槦缁存姢
 
-### 1.2 多链策略
+### 1.2 澶氶摼绛栫暐
 
-| 网络 | 协议 | USDT 收益率 | 集成难度 |
+| 缃戠粶 | 鍗忚 | USDT 鏀剁泭鐜?| 闆嗘垚闅惧害 |
 |------|------|------------|----------|
-| **TRON** | JustLend | 8-12% APY | ⭐⭐ 中等 |
-| **Ethereum** | Aave V3 | 3-5% APY | ⭐⭐⭐ 简单 |
-| **Base** | Aave V3 | 4-6% APY | ⭐⭐⭐ 简单 |
-| **Arbitrum** | Aave V3 | 4-6% APY | ⭐⭐⭐ 简单 |
+| **TRON** | JustLend | 8-12% APY | 猸愨瓙 涓瓑 |
+| **Ethereum** | Aave V3 | 3-5% APY | 猸愨瓙猸?绠€鍗?|
+| **Base** | Aave V3 | 4-6% APY | 猸愨瓙猸?绠€鍗?|
+| **Arbitrum** | Aave V3 | 4-6% APY | 猸愨瓙猸?绠€鍗?|
 
 ---
 
-## 2. Aave V3 集成设计
+## 2. Aave V3 闆嗘垚璁捐
 
-### 2.1 核心概念
+### 2.1 鏍稿績姒傚康
 
-**Aave 工作原理:**
+**Aave 宸ヤ綔鍘熺悊:**
 ```
-用户存入 USDT
-    ↓
-Aave 返回 aUSDT (生息代币)
-    ↓
-aUSDT 余额自动增长 (每秒计息)
-    ↓
-赎回 aUSDT → 获得本金 + 利息
+鐢ㄦ埛瀛樺叆 USDT
+    鈫?
+Aave 杩斿洖 aUSDT (鐢熸伅浠ｅ竵)
+    鈫?
+aUSDT 浣欓鑷姩澧為暱 (姣忕璁℃伅)
+    鈫?
+璧庡洖 aUSDT 鈫?鑾峰緱鏈噾 + 鍒╂伅
 ```
 
-**关键合约:**
-- `Pool`: 存款和提款的主合约
-- `aToken`: 生息代币（aUSDT, aUSDC）
-- `PoolAddressesProvider`: 获取 Pool 地址
+**鍏抽敭鍚堢害:**
+- `Pool`: 瀛樻鍜屾彁娆剧殑涓诲悎绾?
+- `aToken`: 鐢熸伅浠ｅ竵锛坅USDT, aUSDC锛?
+- `PoolAddressesProvider`: 鑾峰彇 Pool 鍦板潃
 
-### 2.2 智能合约设计
+### 2.2 鏅鸿兘鍚堢害璁捐
 
-**简化版商户生息管理器:**
+**绠€鍖栫増鍟嗘埛鐢熸伅绠＄悊鍣?**
 
 ```solidity
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
 
 import "@aave/core-v3/contracts/interfaces/IPool.sol";
@@ -67,29 +67,29 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title MerchantYieldManager
- * @notice 商户资金自动生息管理器 (集成 Aave V3)
- * @dev 不自己编写借贷逻辑，仅作为 Aave 的封装层
+ * @notice 鍟嗘埛璧勯噾鑷姩鐢熸伅绠＄悊鍣?(闆嗘垚 Aave V3)
+ * @dev 涓嶈嚜宸辩紪鍐欏€熻捶閫昏緫锛屼粎浣滀负 Aave 鐨勫皝瑁呭眰
  */
 contract MerchantYieldManager is ReentrancyGuard {
-    // Aave V3 Pool 合约
+    // Aave V3 Pool 鍚堢害
     IPool public immutable aavePool;
 
-    // USDT 和 aUSDT 地址
+    // USDT 鍜?aUSDT 鍦板潃
     IERC20 public immutable usdt;
     IAToken public immutable aUSDT;
 
-    // 商户余额映射 (记录本金)
+    // 鍟嗘埛浣欓鏄犲皠 (璁板綍鏈噾)
     mapping(address => uint256) public merchantPrincipal;
 
-    // 事件
+    // 浜嬩欢
     event Deposited(address indexed merchant, uint256 amount);
     event Withdrawn(address indexed merchant, uint256 principal, uint256 interest);
 
     /**
-     * @notice 构造函数
-     * @param _aavePool Aave Pool 合约地址
-     * @param _usdt USDT 代币地址
-     * @param _aUSDT aUSDT 代币地址
+     * @notice 鏋勯€犲嚱鏁?
+     * @param _aavePool Aave Pool 鍚堢害鍦板潃
+     * @param _usdt USDT 浠ｅ竵鍦板潃
+     * @param _aUSDT aUSDT 浠ｅ竵鍦板潃
      */
     constructor(
         address _aavePool,
@@ -102,77 +102,77 @@ contract MerchantYieldManager is ReentrancyGuard {
     }
 
     /**
-     * @notice 商户存入 USDT 到 Aave 生息
-     * @param amount 存入金额
+     * @notice 鍟嗘埛瀛樺叆 USDT 鍒?Aave 鐢熸伅
+     * @param amount 瀛樺叆閲戦
      */
     function deposit(uint256 amount) external nonReentrant {
         require(amount > 0, "Amount must be greater than 0");
 
-        // 1. 从商户转入 USDT
+        // 1. 浠庡晢鎴疯浆鍏?USDT
         require(
             usdt.transferFrom(msg.sender, address(this), amount),
             "USDT transfer failed"
         );
 
-        // 2. 授权 Aave Pool
+        // 2. 鎺堟潈 Aave Pool
         usdt.approve(address(aavePool), amount);
 
-        // 3. 存入 Aave (会自动收到 aUSDT)
+        // 3. 瀛樺叆 Aave (浼氳嚜鍔ㄦ敹鍒?aUSDT)
         aavePool.supply(
-            address(usdt),    // 资产地址
-            amount,           // 数量
-            address(this),    // 接收 aUSDT 的地址
-            0                 // referralCode (未使用)
+            address(usdt),    // 璧勪骇鍦板潃
+            amount,           // 鏁伴噺
+            address(this),    // 鎺ユ敹 aUSDT 鐨勫湴鍧€
+            0                 // referralCode (鏈娇鐢?
         );
 
-        // 4. 记录商户本金
+        // 4. 璁板綍鍟嗘埛鏈噾
         merchantPrincipal[msg.sender] += amount;
 
         emit Deposited(msg.sender, amount);
     }
 
     /**
-     * @notice 商户提取本金 + 利息
-     * @param amount 提取本金数量 (0 = 全部提取)
+     * @notice 鍟嗘埛鎻愬彇鏈噾 + 鍒╂伅
+     * @param amount 鎻愬彇鏈噾鏁伴噺 (0 = 鍏ㄩ儴鎻愬彇)
      */
     function withdraw(uint256 amount) external nonReentrant {
         uint256 principal = merchantPrincipal[msg.sender];
         require(principal > 0, "No deposit found");
 
-        // 0 表示提取全部
+        // 0 琛ㄧず鎻愬彇鍏ㄩ儴
         if (amount == 0) {
             amount = principal;
         }
 
         require(amount <= principal, "Insufficient principal");
 
-        // 计算实际 USDT 数量（包含利息）
+        // 璁＄畻瀹為檯 USDT 鏁伴噺锛堝寘鍚埄鎭級
         uint256 aTokenBalance = aUSDT.balanceOf(address(this));
         uint256 shareRatio = (amount * 1e18) / getTotalPrincipal();
         uint256 withdrawAmount = (aTokenBalance * shareRatio) / 1e18;
 
-        // 从 Aave 赎回
+        // 浠?Aave 璧庡洖
         uint256 actualWithdrawn = aavePool.withdraw(
             address(usdt),
             withdrawAmount,
-            msg.sender  // 直接发送给商户
+            msg.sender  // 鐩存帴鍙戦€佺粰鍟嗘埛
         );
 
-        // 更新商户本金
+        // 鏇存柊鍟嗘埛鏈噾
         merchantPrincipal[msg.sender] -= amount;
 
-        // 计算利息
+        // 璁＄畻鍒╂伅
         uint256 interest = actualWithdrawn > amount ? actualWithdrawn - amount : 0;
 
         emit Withdrawn(msg.sender, amount, interest);
     }
 
     /**
-     * @notice 查询商户余额（本金 + 利息）
-     * @param merchant 商户地址
-     * @return principal 本金
-     * @return interest 累计利息
-     * @return total 总余额
+     * @notice 鏌ヨ鍟嗘埛浣欓锛堟湰閲?+ 鍒╂伅锛?
+     * @param merchant 鍟嗘埛鍦板潃
+     * @return principal 鏈噾
+     * @return interest 绱鍒╂伅
+     * @return total 鎬讳綑棰?
      */
     function getMerchantBalance(address merchant)
         external
@@ -189,40 +189,40 @@ contract MerchantYieldManager is ReentrancyGuard {
             return (0, 0, 0);
         }
 
-        // 计算该商户在 aUSDT 中的份额
+        // 璁＄畻璇ュ晢鎴峰湪 aUSDT 涓殑浠介
         uint256 totalPrincipal = getTotalPrincipal();
         uint256 aTokenBalance = aUSDT.balanceOf(address(this));
 
-        // 总价值 = aUSDT 余额（自动增长）
+        // 鎬讳环鍊?= aUSDT 浣欓锛堣嚜鍔ㄥ闀匡級
         uint256 shareRatio = (principal * 1e18) / totalPrincipal;
         total = (aTokenBalance * shareRatio) / 1e18;
 
-        // 利息 = 总价值 - 本金
+        // 鍒╂伅 = 鎬讳环鍊?- 鏈噾
         interest = total > principal ? total - principal : 0;
     }
 
     /**
-     * @notice 获取当前 APY
-     * @return 年化收益率 (basis points, 1% = 100)
+     * @notice 鑾峰彇褰撳墠 APY
+     * @return 骞村寲鏀剁泭鐜?(basis points, 1% = 100)
      */
     function getCurrentAPY() external view returns (uint256) {
-        // 从 Aave Pool 获取当前存款利率
+        // 浠?Aave Pool 鑾峰彇褰撳墠瀛樻鍒╃巼
         IPool.ReserveData memory reserveData = aavePool.getReserveData(address(usdt));
-        return reserveData.currentLiquidityRate / 1e23; // 转换为 basis points
+        return reserveData.currentLiquidityRate / 1e23; // 杞崲涓?basis points
     }
 
     /**
-     * @notice 获取总本金
-     * @return 所有商户的本金总和
+     * @notice 鑾峰彇鎬绘湰閲?
+     * @return 鎵€鏈夊晢鎴风殑鏈噾鎬诲拰
      */
     function getTotalPrincipal() public view returns (uint256) {
-        // 实际实现需要遍历或维护一个总和变量
-        // 这里简化处理
+        // 瀹為檯瀹炵幇闇€瑕侀亶鍘嗘垨缁存姢涓€涓€诲拰鍙橀噺
+        // 杩欓噷绠€鍖栧鐞?
         return aUSDT.balanceOf(address(this));
     }
 
     /**
-     * @notice 紧急提取（仅所有者）
+     * @notice 绱ф€ユ彁鍙栵紙浠呮墍鏈夎€咃級
      */
     function emergencyWithdraw() external onlyOwner {
         uint256 balance = usdt.balanceOf(address(this));
@@ -233,29 +233,29 @@ contract MerchantYieldManager is ReentrancyGuard {
 
 ---
 
-## 3. TRON JustLend 集成
+## 3. TRON JustLend 闆嗘垚
 
-### 3.1 JustLend 接口
+### 3.1 JustLend 鎺ュ彛
 
 ```solidity
-// TRON JustLend 接口
+// TRON JustLend 鎺ュ彛
 interface IJustLend {
-    // 存入 USDT，返回 jUSDT
+    // 瀛樺叆 USDT锛岃繑鍥?jUSDT
     function mint(uint256 mintAmount) external returns (uint256);
 
-    // 赎回 jUSDT，获得 USDT
+    // 璧庡洖 jUSDT锛岃幏寰?USDT
     function redeem(uint256 redeemTokens) external returns (uint256);
 
-    // 查询汇率
+    // 鏌ヨ姹囩巼
     function exchangeRateStored() external view returns (uint256);
 
-    // 查询 jUSDT 余额
+    // 鏌ヨ jUSDT 浣欓
     function balanceOf(address owner) external view returns (uint256);
 }
 
 /**
  * @title TronMerchantYieldManager
- * @notice TRON 版本的生息管理器
+ * @notice TRON 鐗堟湰鐨勭敓鎭鐞嗗櫒
  */
 contract TronMerchantYieldManager {
     IJustLend public immutable jUSDT;
@@ -272,7 +272,7 @@ contract TronMerchantYieldManager {
         usdt.transferFrom(msg.sender, address(this), amount);
         usdt.approve(address(jUSDT), amount);
 
-        // 存入 JustLend
+        // 瀛樺叆 JustLend
         uint256 result = jUSDT.mint(amount);
         require(result == 0, "JustLend mint failed");
 
@@ -280,15 +280,15 @@ contract TronMerchantYieldManager {
     }
 
     function withdraw(uint256 amount) external {
-        // 计算需要赎回的 jUSDT 数量
+        // 璁＄畻闇€瑕佽祹鍥炵殑 jUSDT 鏁伴噺
         uint256 exchangeRate = jUSDT.exchangeRateStored();
         uint256 jTokensToRedeem = (amount * 1e18) / exchangeRate;
 
-        // 从 JustLend 赎回
+        // 浠?JustLend 璧庡洖
         uint256 result = jUSDT.redeem(jTokensToRedeem);
         require(result == 0, "JustLend redeem failed");
 
-        // 转账给商户
+        // 杞处缁欏晢鎴?
         usdt.transfer(msg.sender, amount);
 
         merchantPrincipal[msg.sender] -= amount;
@@ -301,12 +301,12 @@ contract TronMerchantYieldManager {
     {
         principal = merchantPrincipal[merchant];
 
-        // 根据 jUSDT 余额和汇率计算总价值
+        // 鏍规嵁 jUSDT 浣欓鍜屾眹鐜囪绠楁€讳环鍊?
         uint256 jTokenBalance = jUSDT.balanceOf(address(this));
         uint256 exchangeRate = jUSDT.exchangeRateStored();
         uint256 totalValue = (jTokenBalance * exchangeRate) / 1e18;
 
-        // 按比例计算该商户的份额
+        // 鎸夋瘮渚嬭绠楄鍟嗘埛鐨勪唤棰?
         uint256 shareRatio = (principal * 1e18) / getTotalPrincipal();
         total = (totalValue * shareRatio) / 1e18;
 
@@ -323,7 +323,7 @@ contract TronMerchantYieldManager {
 
 ---
 
-## 4. 前端集成
+## 4. 鍓嶇闆嗘垚
 
 ### 4.1 TypeScript Service
 
@@ -333,7 +333,7 @@ contract TronMerchantYieldManager {
 import { ethers } from 'ethers'
 
 /**
- * Aave V3 合约 ABI (简化版)
+ * Aave V3 鍚堢害 ABI (绠€鍖栫増)
  */
 const AAVE_POOL_ABI = [
   'function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode)',
@@ -349,7 +349,7 @@ const MERCHANT_YIELD_ABI = [
 ]
 
 /**
- * Aave 生息服务
+ * Aave 鐢熸伅鏈嶅姟
  */
 export class AaveYieldService {
   private provider: ethers.providers.Provider
@@ -367,12 +367,12 @@ export class AaveYieldService {
   }
 
   /**
-   * 存入 USDT 生息
+   * 瀛樺叆 USDT 鐢熸伅
    */
   async deposit(amount: string, signer: ethers.Signer) {
     const contract = this.yieldContract.connect(signer)
 
-    // 1. 先授权 USDT
+    // 1. 鍏堟巿鏉?USDT
     const usdtAddress = this.getUSDTAddress()
     const usdt = new ethers.Contract(
       usdtAddress,
@@ -380,13 +380,13 @@ export class AaveYieldService {
       signer
     )
 
-    const amountWei = ethers.utils.parseUnits(amount, 6)  // USDT 是 6 位小数
+    const amountWei = ethers.utils.parseUnits(amount, 6)  // USDT 鏄?6 浣嶅皬鏁?
 
     console.log('[AaveYield] Approving USDT...')
     const approveTx = await usdt.approve(this.yieldContract.address, amountWei)
     await approveTx.wait()
 
-    // 2. 存入
+    // 2. 瀛樺叆
     console.log('[AaveYield] Depositing...')
     const depositTx = await contract.deposit(amountWei)
     const receipt = await depositTx.wait()
@@ -399,7 +399,7 @@ export class AaveYieldService {
   }
 
   /**
-   * 提取本金 + 利息
+   * 鎻愬彇鏈噾 + 鍒╂伅
    */
   async withdraw(amount: string, signer: ethers.Signer) {
     const contract = this.yieldContract.connect(signer)
@@ -417,7 +417,7 @@ export class AaveYieldService {
   }
 
   /**
-   * 查询余额
+   * 鏌ヨ浣欓
    */
   async getBalance(merchantAddress: string) {
     const [principal, interest, total] = await this.yieldContract.getMerchantBalance(
@@ -432,11 +432,11 @@ export class AaveYieldService {
   }
 
   /**
-   * 获取当前 APY
+   * 鑾峰彇褰撳墠 APY
    */
   async getCurrentAPY(): Promise<number> {
     const apyBps = await this.yieldContract.getCurrentAPY()
-    return apyBps.toNumber() / 100  // 转换为百分比
+    return apyBps.toNumber() / 100  // 杞崲涓虹櫨鍒嗘瘮
   }
 
   private getProvider(network: string): ethers.providers.Provider {
@@ -467,9 +467,9 @@ export class AaveYieldService {
 
 ---
 
-## 5. 合约地址配置
+## 5. 鍚堢害鍦板潃閰嶇疆
 
-### 5.1 Aave V3 官方地址
+### 5.1 Aave V3 瀹樻柟鍦板潃
 
 ```typescript
 // lib/config/aave-addresses.ts
@@ -484,7 +484,7 @@ export const AAVE_V3_ADDRESSES = {
   base: {
     pool: '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5',
     poolAddressesProvider: '0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D',
-    usdt: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',  // Base 上的 USDT
+    usdt: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',  // Base 涓婄殑 USDT
     aUSDT: '0xYourATokenAddress'
   },
   arbitrum: {
@@ -505,22 +505,22 @@ export const JUSTLEND_ADDRESSES = {
 
 ---
 
-## 6. 部署计划
+## 6. 閮ㄧ讲璁″垝
 
-### 6.1 部署步骤
+### 6.1 閮ㄧ讲姝ラ
 
 ```bash
-# 1. 安装依赖
+# 1. 瀹夎渚濊禆
 npm install @aave/core-v3 @openzeppelin/contracts
 
-# 2. 编写部署脚本
+# 2. 缂栧啓閮ㄧ讲鑴氭湰
 # scripts/deploy-yield-manager.ts
 
 import { ethers } from 'hardhat'
 import { AAVE_V3_ADDRESSES } from '../lib/config/aave-addresses'
 
 async function main() {
-  const network = 'base'  // 或 'ethereum', 'arbitrum'
+  const network = 'base'  // 鎴?'ethereum', 'arbitrum'
   const addresses = AAVE_V3_ADDRESSES[network]
 
   const MerchantYieldManager = await ethers.getContractFactory('MerchantYieldManager')
@@ -538,43 +538,43 @@ async function main() {
 main()
 ```
 
-### 6.2 测试网部署
+### 6.2 娴嬭瘯缃戦儴缃?
 
 ```bash
 # Base Sepolia Testnet
 npx hardhat run scripts/deploy-yield-manager.ts --network base-sepolia
 
-# 验证合约
+# 楠岃瘉鍚堢害
 npx hardhat verify --network base-sepolia <CONTRACT_ADDRESS> \
   <POOL_ADDRESS> <USDT_ADDRESS> <AUSDT_ADDRESS>
 ```
 
 ---
 
-## 7. 优势总结
+## 7. 浼樺娍鎬荤粨
 
-### ✅ 使用 Aave 的优势
+### 鉁?浣跨敤 Aave 鐨勪紭鍔?
 
-| 方面 | 自定义合约 | Aave 集成 |
+| 鏂归潰 | 鑷畾涔夊悎绾?| Aave 闆嗘垚 |
 |------|-----------|-----------|
-| **安全性** | 需要审计 ($50k+) | ✅ 已审计，久经考验 |
-| **开发时间** | 4-6 周 | ✅ 1 周 |
-| **流动性** | 需要自建 | ✅ $10B+ TVL |
-| **利率** | 需要设计算法 | ✅ 自动调整 |
-| **维护成本** | 高 | ✅ 低（Aave 团队维护）|
+| **瀹夊叏鎬?* | 闇€瑕佸璁?($50k+) | 鉁?宸插璁★紝涔呯粡鑰冮獙 |
+| **寮€鍙戞椂闂?* | 4-6 鍛?| 鉁?1 鍛?|
+| **娴佸姩鎬?* | 闇€瑕佽嚜寤?| 鉁?$10B+ TVL |
+| **鍒╃巼** | 闇€瑕佽璁＄畻娉?| 鉁?鑷姩璋冩暣 |
+| **缁存姢鎴愭湰** | 楂?| 鉁?浣庯紙Aave 鍥㈤槦缁存姢锛墊
 
 ---
 
-## 8. 下一步行动
+## 8. 涓嬩竴姝ヨ鍔?
 
-1. ✅ 部署测试合约到 Base Sepolia
-2. ✅ 前端集成测试
-3. ✅ 编写完整测试用例
-4. ✅ 审计合约代码（简单封装层，风险低）
-5. ✅ 主网部署
+1. 鉁?閮ㄧ讲娴嬭瘯鍚堢害鍒?Base Sepolia
+2. 鉁?鍓嶇闆嗘垚娴嬭瘯
+3. 鉁?缂栧啓瀹屾暣娴嬭瘯鐢ㄤ緥
+4. 鉁?瀹¤鍚堢害浠ｇ爜锛堢畝鍗曞皝瑁呭眰锛岄闄╀綆锛?
+5. 鉁?涓荤綉閮ㄧ讲
 
-**预计时间:** 1-2 周
+**棰勮鏃堕棿:** 1-2 鍛?
 
 ---
 
-**结论:** 使用 Aave/JustLend 是最佳方案，安全、高效、成熟。
+**缁撹:** 浣跨敤 Aave/JustLend 鏄渶浣虫柟妗堬紝瀹夊叏銆侀珮鏁堛€佹垚鐔熴€?

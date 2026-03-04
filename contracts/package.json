@@ -1,6 +1,7 @@
 {
   "name": "protocol-banks-contracts",
   "version": "1.0.0",
+  "license": "GPL-3.0-only",
   "description": "Smart contracts for Protocol Banks batch transfer",
   "scripts": {
     "compile": "hardhat compile",

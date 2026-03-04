@@ -1,92 +1,92 @@
-# TRON Yield Aggregator - JustLend Integration
+﻿# TRON Yield Aggregator - JustLend Integration
 
-自动收益聚合器，将商户闲置资金存入JustLend赚取利息，支持随时提现和收益分配。
+鑷姩鏀剁泭鑱氬悎鍣紝灏嗗晢鎴烽棽缃祫閲戝瓨鍏ustLend璧氬彇鍒╂伅锛屾敮鎸侀殢鏃舵彁鐜板拰鏀剁泭鍒嗛厤銆?
 
-## 概览
+## 姒傝
 
-| 组件 | 描述 | 状态 |
+| 缁勪欢 | 鎻忚堪 | 鐘舵€?|
 |------|------|------|
-| `IJustLend.sol` | JustLend协议接口定义 | ✅ 完成 |
-| `TronYieldAggregator.sol` | 收益聚合器主合约 | ✅ 完成 |
-| `Mocks.sol` | 测试用的Mock合约 | ✅ 完成 |
+| `IJustLend.sol` | JustLend鍗忚鎺ュ彛瀹氫箟 | 鉁?瀹屾垚 |
+| `TronYieldAggregator.sol` | 鏀剁泭鑱氬悎鍣ㄤ富鍚堢害 | 鉁?瀹屾垚 |
+| `Mocks.sol` | 娴嬭瘯鐢ㄧ殑Mock鍚堢害 | 鉁?瀹屾垚 |
 
 ---
 
-## 1. JustLend协议简介
+## 1. JustLend鍗忚绠€浠?
 
-JustLend是TRON区块链上最大的去中心化借贷协议，类似于以太坊上的Aave：
+JustLend鏄疶RON鍖哄潡閾句笂鏈€澶х殑鍘讳腑蹇冨寲鍊熻捶鍗忚锛岀被浼间簬浠ュお鍧婁笂鐨凙ave锛?
 
-### 核心概念
+### 鏍稿績姒傚康
 
-#### jToken（生息代币）
-JustLend使用**jToken**作为生息代币，类似于Aave的aToken：
+#### jToken锛堢敓鎭唬甯侊級
+JustLend浣跨敤**jToken**浣滀负鐢熸伅浠ｅ竵锛岀被浼间簬Aave鐨刟Token锛?
 
 ```
-存款流程:
-用户存款 1000 USDT → 成为 998 jUSDT（exchangeRate = 1.002）
+瀛樻娴佺▼:
+鐢ㄦ埛瀛樻 1000 USDT 鈫?鎴愪负 998 jUSDT锛坋xchangeRate = 1.002锛?
 
-利息累积:
-1年后，exchangeRate 从 1.002 涨到 1.01
+鍒╂伅绱Н:
+1骞村悗锛宔xchangeRate 浠?1.002 娑ㄥ埌 1.01
 
-提现流程:
-赎回 998 jUSDT → 获得 1008 USDT
-├── 本金: 1000 USDT
-└── 利息: 8 USDT (0.8% APY)
+鎻愮幇娴佺▼:
+璧庡洖 998 jUSDT 鈫?鑾峰緱 1008 USDT
+鈹溾攢鈹€ 鏈噾: 1000 USDT
+鈹斺攢鈹€ 鍒╂伅: 8 USDT (0.8% APY)
 ```
 
-#### 支持的代币
+#### 鏀寔鐨勪唬甯?
 
-| 代币 | 符号 | jToken | 小数位 | 主网地址 |
+| 浠ｅ竵 | 绗﹀彿 | jToken | 灏忔暟浣?| 涓荤綉鍦板潃 |
 |------|------|--------|--------|---------|
 | Tether USD | USDT | jUSDT | 6 | TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t |
 | USD Coin | USDC | jUSDC | 6 | TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8 |
-| TRON | TRX | jTRX | 6 | 原生代币 |
+| TRON | TRX | jTRX | 6 | 鍘熺敓浠ｅ竵 |
 | Wrapped BTC | WBTC | jWBTC | 18 | TJxKK8Ht9m... |
 | Wrapped ETH | WETH | jWETH | 18 | TXp8H8pZ... |
 
-#### JustLend收益来源
+#### JustLend鏀剁泭鏉ユ簮
 
-| 收益来源 | 说明 | APY示例 |
+| 鏀剁泭鏉ユ簮 | 璇存槑 | APY绀轰緥 |
 |---------|------|---------|
-| 借贷利差 | 借款人支付的利息 | 2-5% |
-| TRX奖励 | 质押挖矿奖励 | 1-3% |
-| JUST奖励 | 治理代币奖励 | 0.5-2% |
+| 鍊熻捶鍒╁樊 | 鍊熸浜烘敮浠樼殑鍒╂伅 | 2-5% |
+| TRX濂栧姳 | 璐ㄦ娂鎸栫熆濂栧姳 | 1-3% |
+| JUST濂栧姳 | 娌荤悊浠ｅ竵濂栧姳 | 0.5-2% |
 
 ---
 
-## 2. TronYieldAggregator架构
+## 2. TronYieldAggregator鏋舵瀯
 
-### 工作流程
+### 宸ヤ綔娴佺▼
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    收益聚合流程                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. 商户存款                                               │
-│     用户 → 1000 USDT → TronYieldAggregator                  │
-│                                                             │
-│  2. 自动质押JustLend                                        │
-│     TronYieldAggregator → JustLend.deposit(jUSDT)          │
-│     获得利息 → exchangeRate 上涨                            │
-│                                                             │
-│  3. 收益计算                                               │
-│     账户余额 = jUSDT数量 × exchangeRate                      │
-│     利息 = 当前余额 - 本金                                  │
-│                                                             │
-│  4. 提现                                                   │
-│     TronYieldAggregator → JustLend.redeem(jUSDT)           │
-│     jUSDT → USDT → 用户                                    │
-│                                                             │
-│  5. 收益分配（可选）                                        │
-│     TronYieldAggregator → 按比例分配给多个受益人             │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+鈹屸攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹?
+鈹?                   鏀剁泭鑱氬悎娴佺▼                              鈹?
+鈹溾攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹?
+鈹?                                                            鈹?
+鈹? 1. 鍟嗘埛瀛樻                                               鈹?
+鈹?    鐢ㄦ埛 鈫?1000 USDT 鈫?TronYieldAggregator                  鈹?
+鈹?                                                            鈹?
+鈹? 2. 鑷姩璐ㄦ娂JustLend                                        鈹?
+鈹?    TronYieldAggregator 鈫?JustLend.deposit(jUSDT)          鈹?
+鈹?    鑾峰緱鍒╂伅 鈫?exchangeRate 涓婃定                            鈹?
+鈹?                                                            鈹?
+鈹? 3. 鏀剁泭璁＄畻                                               鈹?
+鈹?    璐︽埛浣欓 = jUSDT鏁伴噺 脳 exchangeRate                      鈹?
+鈹?    鍒╂伅 = 褰撳墠浣欓 - 鏈噾                                  鈹?
+鈹?                                                            鈹?
+鈹? 4. 鎻愮幇                                                   鈹?
+鈹?    TronYieldAggregator 鈫?JustLend.redeem(jUSDT)           鈹?
+鈹?    jUSDT 鈫?USDT 鈫?鐢ㄦ埛                                    鈹?
+鈹?                                                            鈹?
+鈹? 5. 鏀剁泭鍒嗛厤锛堝彲閫夛級                                        鈹?
+鈹?    TronYieldAggregator 鈫?鎸夋瘮渚嬪垎閰嶇粰澶氫釜鍙楃泭浜?            鈹?
+鈹?                                                            鈹?
+鈹斺攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹?
 ```
 
-### 核心功能
+### 鏍稿績鍔熻兘
 
-#### 自动存款与质押
+#### 鑷姩瀛樻涓庤川鎶?
 ```solidity
 function deposit(address token, uint256 amount)
     external
@@ -94,11 +94,11 @@ function deposit(address token, uint256 amount)
     whenNotPaused
     validToken(token)
 ```
-- 用户存入TRC20代币
-- 合约自动质押到JustLend
-- 获得jToken生息资产
+- 鐢ㄦ埛瀛樺叆TRC20浠ｅ竵
+- 鍚堢害鑷姩璐ㄦ娂鍒癑ustLend
+- 鑾峰緱jToken鐢熸伅璧勪骇
 
-#### 灵活提现
+#### 鐏垫椿鎻愮幇
 ```solidity
 function withdraw(address token, uint256 amount)
     external
@@ -107,59 +107,59 @@ function withdraw(address token, uint256 amount)
     validToken(token)
     returns (uint256 withdrawnAmount, uint256 principalAmount, uint256 interestAmount)
 ```
-- 支持部分提现或全额提现
-- 自动计算本金vs利息部分
-- 实时查询账户余额
+- 鏀寔閮ㄥ垎鎻愮幇鎴栧叏棰濇彁鐜?
+- 鑷姩璁＄畻鏈噾vs鍒╂伅閮ㄥ垎
+- 瀹炴椂鏌ヨ璐︽埛浣欓
 
-#### 收益分配
+#### 鏀剁泭鍒嗛厤
 ```solidity
 function distributeYield(
     address token,
     YieldRecipient[] memory recipients
 ) external
 ```
-- 按百分比分配收益
-- 支持固定金额分配
-- 可配置多个受益人
+- 鎸夌櫨鍒嗘瘮鍒嗛厤鏀剁泭
+- 鏀寔鍥哄畾閲戦鍒嗛厤
+- 鍙厤缃涓彈鐩婁汉
 
-#### 收益追踪
+#### 鏀剁泭杩借釜
 ```solidity
 function getMerchantBalance(address merchant, address token)
     external
     view
     returns (uint256 balance, uint256 principal, uint256 interest)
 ```
-- 实时APY查询
-- 本金vs利息追踪
-- 历史累积收益统计
+- 瀹炴椂APY鏌ヨ
+- 鏈噾vs鍒╂伅杩借釜
+- 鍘嗗彶绱Н鏀剁泭缁熻
 
 ---
 
-## 3. 合约接口详解
+## 3. 鍚堢害鎺ュ彛璇﹁В
 
-### 3.1 存款功能
+### 3.1 瀛樻鍔熻兘
 
 #### deposit()
 ```solidity
 /**
- * @notice 将代币存入收益聚合器（自动质押到JustLend）
- * @param token 代币地址（USDT、USDC等）
- * @param amount 存款金额（代币小数位，如USDT为6位）
+ * @notice 灏嗕唬甯佸瓨鍏ユ敹鐩婅仛鍚堝櫒锛堣嚜鍔ㄨ川鎶煎埌JustLend锛?
+ * @param token 浠ｅ竵鍦板潃锛圲SDT銆乁SDC绛夛級
+ * @param amount 瀛樻閲戦锛堜唬甯佸皬鏁颁綅锛屽USDT涓?浣嶏級
  */
 function deposit(address token, uint256 amount) external;
 ```
 
-**使用示例：**
+**浣跨敤绀轰緥锛?*
 ```javascript
-// 存入1000 USDT
+// 瀛樺叆1000 USDT
 const usdtAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-const amount = BigInt(1000 * 1e6); // 1000 USDT (6位小数)
+const amount = BigInt(1000 * 1e6); // 1000 USDT (6浣嶅皬鏁?
 
 await aggregator.deposit(usdtAddress, amount, {
     from: merchantAddress
 });
 
-// 事件监听
+// 浜嬩欢鐩戝惉
 aggregator.events.Deposited()
     .on('data', (event) => {
         const {
@@ -173,29 +173,29 @@ aggregator.events.Deposited()
     });
 ```
 
-### 3.2 提现功能
+### 3.2 鎻愮幇鍔熻兘
 
 #### withdraw()
 ```solidity
 /**
- * @notice 从收益聚合器提现代币（从JustLend赎回）
- * @param token 代币地址
- * @param amount 提现金额，0 = 提现全部
- * @return withdrawnAmount 实际提现金额
- * @return principalAmount 本金部分
- * @return interestAmount 利息部分
+ * @notice 浠庢敹鐩婅仛鍚堝櫒鎻愮幇浠ｅ竵锛堜粠JustLend璧庡洖锛?
+ * @param token 浠ｅ竵鍦板潃
+ * @param amount 鎻愮幇閲戦锛? = 鎻愮幇鍏ㄩ儴
+ * @return withdrawnAmount 瀹為檯鎻愮幇閲戦
+ * @return principalAmount 鏈噾閮ㄥ垎
+ * @return interestAmount 鍒╂伅閮ㄥ垎
  */
 function withdraw(address token, uint256 amount)
     external
     returns (uint256 withdrawnAmount, uint256 principalAmount, uint256 interestAmount);
 ```
 
-**使用示例：**
+**浣跨敤绀轰緥锛?*
 ```javascript
-// 提现全部USDT
+// 鎻愮幇鍏ㄩ儴USDT
 const { withdrawnAmount, principalAmount, interestAmount } = await aggregator.withdraw(
     usdtAddress,
-    0, // 0 = 全部提现
+    0, // 0 = 鍏ㄩ儴鎻愮幇
     { from: merchantAddress }
 );
 
@@ -204,17 +204,17 @@ console.log(`Principal: ${Number(principalAmount)/1e6} USDT`);
 console.log(`Interest: ${Number(interestAmount)/1e6} USDT`);
 ```
 
-### 3.3 收益查询
+### 3.3 鏀剁泭鏌ヨ
 
 #### getMerchantBalance()
 ```solidity
 /**
- * @notice 获取商户余额（本金+利息）
- * @param merchant 商户地址
- * @param token 代币地址
- * @return balance 总余额
- * @return principal 本金
- * @return interest 累积利息
+ * @notice 鑾峰彇鍟嗘埛浣欓锛堟湰閲?鍒╂伅锛?
+ * @param merchant 鍟嗘埛鍦板潃
+ * @param token 浠ｅ竵鍦板潃
+ * @return balance 鎬讳綑棰?
+ * @return principal 鏈噾
+ * @return interest 绱Н鍒╂伅
  */
 function getMerchantBalance(address merchant, address token)
     external
@@ -222,7 +222,7 @@ function getMerchantBalance(address merchant, address token)
     returns (uint256 balance, uint256 principal, uint256 interest);
 ```
 
-**使用示例：**
+**浣跨敤绀轰緥锛?*
 ```javascript
 const [balance, principal, interest] = await aggregator.getMerchantBalance(
     merchantAddress,
@@ -233,7 +233,7 @@ console.log(`Total Balance: ${Number(balance)/1e6} USDT`);
 console.log(`Principal: ${Number(principal)/1e6} USDT`);
 console.log(`Earned Interest: ${Number(interest)/1e6} USDT`);
 
-// 计算收益率
+// 璁＄畻鏀剁泭鐜?
 const yieldPercentage = (Number(interest) / Number(principal)) * 100;
 console.log(`Yield: ${yieldPercentage.toFixed(2)}%`);
 ```
@@ -241,10 +241,10 @@ console.log(`Yield: ${yieldPercentage.toFixed(2)}%`);
 #### getTokenAPY()
 ```solidity
 /**
- * @notice 获取代币当前的APY
- * @param token 代币地址
- * @return apy 当前APY（×1e18，如1e17 = 10%）
- * @return exchangeRate 当前jToken汇率
+ * @notice 鑾峰彇浠ｅ竵褰撳墠鐨凙PY
+ * @param token 浠ｅ竵鍦板潃
+ * @return apy 褰撳墠APY锛埫?e18锛屽1e17 = 10%锛?
+ * @return exchangeRate 褰撳墠jToken姹囩巼
  */
 function getTokenAPY(address token)
     external
@@ -252,30 +252,30 @@ function getTokenAPY(address token)
     returns (uint256 apy, uint256 exchangeRate);
 ```
 
-**使用示例：**
+**浣跨敤绀轰緥锛?*
 ```javascript
 const [apy, exchangeRate] = await aggregator.getTokenAPY(usdtAddress);
 
-const apyPercentage = (Number(apy) / 1e16) / 100; // 转换为百分比
+const apyPercentage = (Number(apy) / 1e16) / 100; // 杞崲涓虹櫨鍒嗘瘮
 console.log(`Current APY: ${apyPercentage.toFixed(2)}%`);
 console.log(`Exchange Rate: ${Number(exchangeRate)/1e18}`);
 ```
 
-### 3.4 收益分配
+### 3.4 鏀剁泭鍒嗛厤
 
 #### distributeYield()
 ```solidity
 /**
- * @notice 将累积收益分配给多个受益人
- * @param token 代币地址
- * @param recipients 受益人数组（可按百分比或固定金额）
+ * @notice 灏嗙疮绉敹鐩婂垎閰嶇粰澶氫釜鍙楃泭浜?
+ * @param token 浠ｅ竵鍦板潃
+ * @param recipients 鍙楃泭浜烘暟缁勶紙鍙寜鐧惧垎姣旀垨鍥哄畾閲戦锛?
  */
 function distributeYield(address token, YieldRecipient[] memory recipients) external;
 ```
 
-**使用示例：**
+**浣跨敤绀轰緥锛?*
 ```javascript
-// 按百分比分配收益（总100%）
+// 鎸夌櫨鍒嗘瘮鍒嗛厤鏀剁泭锛堟€?00%锛?
 const recipients = [
     {
         account: '0xBeneficiary1...',
@@ -293,7 +293,7 @@ await aggregator.distributeYield(usdtAddress, recipients, {
     from: merchantAddress
 });
 
-// 按固定金额分配收益
+// 鎸夊浐瀹氶噾棰濆垎閰嶆敹鐩?
 const fixedRecipients = [
     {
         account: '0xBeneficiary1...',
@@ -314,26 +314,26 @@ await aggregator.distributeYield(usdtAddress, fixedRecipients, {
 
 ---
 
-## 4. 部署流程
+## 4. 閮ㄧ讲娴佺▼
 
-### 前置要求
+### 鍓嶇疆瑕佹眰
 
 ```
-1. TRON账户余额充足（用于部署和测试）
-   - 主网：至少100 TRX
-   - Nile测试网：至少1000 TRX
+1. TRON璐︽埛浣欓鍏呰冻锛堢敤浜庨儴缃插拰娴嬭瘯锛?
+   - 涓荤綉锛氳嚦灏?00 TRX
+   - Nile娴嬭瘯缃戯細鑷冲皯1000 TRX
 
-2. JustLend协议地址
-   - 主网JustLend: TDyvndW...
-   - 主网Unitroller: THjzj3qy...
-   - 主网Oracle: T9yDxG...
+2. JustLend鍗忚鍦板潃
+   - 涓荤綉JustLend: TDyvndW...
+   - 涓荤綉Unitroller: THjzj3qy...
+   - 涓荤綉Oracle: T9yDxG...
 
-3. TRC20代币
+3. TRC20浠ｅ竵
    - USDT: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
    - USDC: TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8
 ```
 
-### 部署脚本
+### 閮ㄧ讲鑴氭湰
 
 ```typescript
 // scripts/deploy-yield-aggregator.ts
@@ -428,65 +428,65 @@ main().catch((error) => {
 });
 ```
 
-### 运行部署
+### 杩愯閮ㄧ讲
 
 ```bash
-# 编译合约
+# 缂栬瘧鍚堢害
 npx hardhat compile
 
-# 部署到Nile测试网
+# 閮ㄧ讲鍒癗ile娴嬭瘯缃?
 npx hardhat run scripts/deploy-yield-aggregator.ts --network tron_nile
 
-# 部署到主网
+# 閮ㄧ讲鍒颁富缃?
 npx hardhat run scripts/deploy-yield-aggregator.ts --network tron_mainnet
 ```
 
 ---
 
-## 5. 使用场景
+## 5. 浣跨敤鍦烘櫙
 
-### 5.1 商户闲置资金收益
+### 5.1 鍟嗘埛闂茬疆璧勯噾鏀剁泭
 
 ```javascript
-// 商户A有100,000 USDT闲置
+// 鍟嗘埛A鏈?00,000 USDT闂茬疆
 const aggregator = new ethers.Contract(aggregatorAddress, aggregatorABI, wallet);
 
-// 1. 存款到收益聚合器
+// 1. 瀛樻鍒版敹鐩婅仛鍚堝櫒
 await aggregator.deposit(
     usdtAddress,
     ethers.parseUnits("100000", 6),  // 100,000 USDT
     { gasLimit: 500000 }
 );
 
-// 2. 1年后查询收益
+// 2. 1骞村悗鏌ヨ鏀剁泭
 const [balance, principal, interest] = await aggregator.getMerchantBalance(
     merchantAddress,
     usdtAddress
 );
 
-// 预期结果：
-// balance ≈ 100800 USDT
+// 棰勬湡缁撴灉锛?
+// balance 鈮?100800 USDT
 // principal = 100000 USDT
-// interest ≈ 800 USDT (0.8% APY)
+// interest 鈮?800 USDT (0.8% APY)
 ```
 
-### 5.2 跨链资金池统一管理
+### 5.2 璺ㄩ摼璧勯噾姹犵粺涓€绠＄悊
 
 ```javascript
-// 在不同链上存款（TRON、Ethereum、Base）
+// 鍦ㄤ笉鍚岄摼涓婂瓨娆撅紙TRON銆丒thereum銆丅ase锛?
 const tronAggregator = new ethers.Contract(tronAggregatorAddress, tronABI, tronWallet);
 const ethAggregator = new ethers.Contract(ethAggregatorAddress, ethABI, ethWallet);
 
-// TRON: 存入USDT
+// TRON: 瀛樺叆USDT
 await tronAggregator.deposit(usdtAddress, ethers.parseUnits("50000", 6));
 
-// Ethereum: 存入USDC
+// Ethereum: 瀛樺叆USDC
 await ethAggregator.deposit(usdcAddress, ethers.parseUnits("50000", 6));
 
-// Base: 存入USDC
+// Base: 瀛樺叆USDC
 await baseAggregator.deposit(usdcAddress, ethers.parseUnits("50000", 6));
 
-// 统一查询余额
+// 缁熶竴鏌ヨ浣欓
 const tronBalance = await tronAggregator.getMerchantBalance(merchantAddress, usdtAddress);
 const ethBalance = await ethAggregator.getMerchantBalance(merchantAddress, usdcAddress);
 const baseBalance = await baseAggregator.getMerchantBalance(merchantAddress, usdcAddress);
@@ -496,10 +496,10 @@ console.log(`ETH Balance:   ${ethBalance.balance/1e18} USDC`);
 console.log(`Base Balance:  ${baseBalance.balance/1e6} USDC`);
 ```
 
-### 5.3 自动化收益分配
+### 5.3 鑷姩鍖栨敹鐩婂垎閰?
 
 ```javascript
-// 商户B将40%收益分配给子账户，60%保留
+// 鍟嗘埛B灏?0%鏀剁泭鍒嗛厤缁欏瓙璐︽埛锛?0%淇濈暀
 const recipients = [
     {
         account: subAccount1,
@@ -518,10 +518,10 @@ const recipients = [
     }
 ];
 
-// 定期执行收益分配（例如每月1号）
+// 瀹氭湡鎵ц鏀剁泭鍒嗛厤锛堜緥濡傛瘡鏈?鍙凤級
 await aggregator.distributeYield(usdtAddress, recipients);
 
-// 验证分配结果
+// 楠岃瘉鍒嗛厤缁撴灉
 for (const recipient of recipients) {
     const [balance] = await aggregatorWithSigner.getMerchantBalance(
         recipient.account,
@@ -531,13 +531,13 @@ for (const recipient of recipients) {
 }
 ```
 
-### 5.4 紧急资金提取
+### 5.4 绱ф€ヨ祫閲戞彁鍙?
 
 ```javascript
-// 在市场波动时紧急提取所有资金
+// 鍦ㄥ競鍦烘尝鍔ㄦ椂绱ф€ユ彁鍙栨墍鏈夎祫閲?
 const [withdrawnAmount, principalAmount, interestAmount] = await aggregator.withdraw(
     usdtAddress,
-    0, // 0 = 全部提取
+    0, // 0 = 鍏ㄩ儴鎻愬彇
     { gasLimit: 800000 }
 );
 
@@ -548,93 +548,93 @@ console.log(`Interest: ${interestAmount/1e6} USDT`);
 
 ---
 
-## 6. 收益机制详解
+## 6. 鏀剁泭鏈哄埗璇﹁В
 
-### 6.1 JustLend收益来源
+### 6.1 JustLend鏀剁泭鏉ユ簮
 
-| 来源 | 机制 | APY范围 |
+| 鏉ユ簮 | 鏈哄埗 | APY鑼冨洿 |
 |------|------|---------|
-| **借贷利差** | 借款人支付利息 → 存款人获得收益 | 1-3% |
-| **TRX质押** | 质押TRX验证区块 → 分享区块奖励 | 0.5-2% |
-| **JUST挖矿** | 治理代币JUST -> 质押者共享 | 0.2-1% |
-| **Compliance奖励** | 符合合规要求 → 额外奖励 | 0.1-0.5% |
+| **鍊熻捶鍒╁樊** | 鍊熸浜烘敮浠樺埄鎭?鈫?瀛樻浜鸿幏寰楁敹鐩?| 1-3% |
+| **TRX璐ㄦ娂** | 璐ㄦ娂TRX楠岃瘉鍖哄潡 鈫?鍒嗕韩鍖哄潡濂栧姳 | 0.5-2% |
+| **JUST鎸栫熆** | 娌荤悊浠ｅ竵JUST -> 璐ㄦ娂鑰呭叡浜?| 0.2-1% |
+| **Compliance濂栧姳** | 绗﹀悎鍚堣瑕佹眰 鈫?棰濆濂栧姳 | 0.1-0.5% |
 
-### 6.2 收益计算示例
+### 6.2 鏀剁泭璁＄畻绀轰緥
 
-#### 单利计算（简化）
+#### 鍗曞埄璁＄畻锛堢畝鍖栵級
 ```
-本金 = 10,000 USDT
-每日收益率 = 0.003%（年化 1.1%）
+鏈噾 = 10,000 USDT
+姣忔棩鏀剁泭鐜?= 0.003%锛堝勾鍖?1.1%锛?
 
-30天后：
-总收益 = 10,000 * 0.003% * 30 = 9 USDT
-总余额 = 10,000 + 9 = 10,009 USDT
+30澶╁悗锛?
+鎬绘敹鐩?= 10,000 * 0.003% * 30 = 9 USDT
+鎬讳綑棰?= 10,000 + 9 = 10,009 USDT
 ```
 
-#### 复利计算（实际）
+#### 澶嶅埄璁＄畻锛堝疄闄咃級
 ```
-本金 = 10,000 USDT
+鏈噾 = 10,000 USDT
 APY = 1.1%
 
-1年后（复利）：
-总余额 = 10,000 * (1 + 0.011)^1 ≈ 10,110 USDT
-综合收益 ≈ 1.1%
+1骞村悗锛堝鍒╋級锛?
+鎬讳綑棰?= 10,000 * (1 + 0.011)^1 鈮?10,110 USDT
+缁煎悎鏀剁泭 鈮?1.1%
 ```
 
-### 6.3 APY查询与监控
+### 6.3 APY鏌ヨ涓庣洃鎺?
 
 ```javascript
-// 定期监控APY变化
+// 瀹氭湡鐩戞帶APY鍙樺寲
 setInterval(async () => {
     const [apy] = await aggregator.getTokenAPY(usdtAddress);
     const apyPercentage = (Number(apy) / 1e16) / 100;
 
     console.log(`[${new Date().toISOString()}] USDT APY: ${apyPercentage.toFixed(4)}%`);
 
-    // 如果APY显著下降，发送通知
+    // 濡傛灉APY鏄捐憲涓嬮檷锛屽彂閫侀€氱煡
     if (apyPercentage < 0.5) {
         console.warn("USDT APY below 0.5% - consider alternative strategies");
-        // 发送Webhook/通知
+        // 鍙戦€乄ebhook/閫氱煡
     }
-}, 3600000); // 每小时
+}, 3600000); // 姣忓皬鏃?
 ```
 
 ---
 
-## 7. 安全机制
+## 7. 瀹夊叏鏈哄埗
 
-### 7.1 合约安全特性
+### 7.1 鍚堢害瀹夊叏鐗规€?
 
-| 特性 | 实现 | 目的 |
+| 鐗规€?| 瀹炵幇 | 鐩殑 |
 |------|------|------|
-| 重入保护 | `nonReentrant` 修饰符 | 防止重入攻击 |
-| 暂停机制 | `depositPaused` `withdrawalPaused` | 紧急情况下可暂停操作 |
-| 仅所有者配置 | `onlyOwner` 修饰符 | 防止未授权修改 |
-| 代币白名单 | `tokenConfigs` 映射 | 仅支持经过验证的代币 |
-| 余额验证 | 多处余额检查 | 防止超额提现 |
+| 閲嶅叆淇濇姢 | `nonReentrant` 淇グ绗?| 闃叉閲嶅叆鏀诲嚮 |
+| 鏆傚仠鏈哄埗 | `depositPaused` `withdrawalPaused` | 绱ф€ユ儏鍐典笅鍙殏鍋滄搷浣?|
+| 浠呮墍鏈夎€呴厤缃?| `onlyOwner` 淇グ绗?| 闃叉鏈巿鏉冧慨鏀?|
+| 浠ｅ竵鐧藉悕鍗?| `tokenConfigs` 鏄犲皠 | 浠呮敮鎸佺粡杩囬獙璇佺殑浠ｅ竵 |
+| 浣欓楠岃瘉 | 澶氬浣欓妫€鏌?| 闃叉瓒呴鎻愮幇 |
 
-### 7.2 最佳实践
+### 7.2 鏈€浣冲疄璺?
 
-#### 密钥管理
+#### 瀵嗛挜绠＄悊
 ```javascript
-// 使用多重签名控制YieldAggregator
-// 2/3签名模式：
-// - 管理员A：日常维护
-// - 管理员B：应急响应
-// - 管理员C：监督审计
+// 浣跨敤澶氶噸绛惧悕鎺у埗YieldAggregator
+// 2/3绛惧悕妯″紡锛?
+// - 绠＄悊鍛楢锛氭棩甯哥淮鎶?
+// - 绠＄悊鍛楤锛氬簲鎬ュ搷搴?
+// - 绠＄悊鍛楥锛氱洃鐫ｅ璁?
 
-// 配置多签钱包
+// 閰嶇疆澶氱閽卞寘
 const multisigAddress = 'TMultisig...';
 const aggregator = new ethers.Contract(
     aggregatorAddress,
     aggregatorABI,
-    multisigWallet // 使用多签钱包签名
+    multisigWallet // 浣跨敤澶氱閽卞寘绛惧悕
 );
 ```
 
-#### 风险管理
+#### 椋庨櫓绠＄悊
 ```javascript
-// 1. 分散存款代币
+// 1. 鍒嗘暎瀛樻浠ｅ竵
 const tokens = [usdtAddress, usdcAddress, wbtcAddress];
 const amountPerToken = ethers.parseUnits("100000", 6); // 100,000 USDT
 
@@ -642,34 +642,34 @@ for (const token of tokens) {
     await aggregator.deposit(token, amountPerToken);
 }
 
-// 2. 设置收益分发阈值
-// 累积利息 > 10,000 USDT才分发
+// 2. 璁剧疆鏀剁泭鍒嗗彂闃堝€?
+// 绱Н鍒╂伅 > 10,000 USDT鎵嶅垎鍙?
 if (interestAmount > ethers.parseUnits("10000", 6)) {
     await aggregator.distributeYield(usdtAddress, recipients);
 }
 
-// 3. 定期审计余额
+// 3. 瀹氭湡瀹¤浣欓
 setInterval(async () => {
     const stats = await aggregator.getStats();
     console.log(`Active Merchants: ${stats[0]}`);
     console.log(`TVL: $${Number(stats[3]) / 1e18} USD`);
 
-    // 如果TVL异常，发送警报
+    // 濡傛灉TVL寮傚父锛屽彂閫佽鎶?
     if (Number(stats[3]) < expectedMinTVL) {
         console.error("TVL dropped below expected minimum!");
-        // 发送紧急通知
+        // 鍙戦€佺揣鎬ラ€氱煡
     }
-}, 86400000); // 每天检查
+}, 86400000); // 姣忓ぉ妫€鏌?
 ```
 
 ---
 
-## 8. 事件监听与监控
+## 8. 浜嬩欢鐩戝惉涓庣洃鎺?
 
-### 8.1 Web3事件监听
+### 8.1 Web3浜嬩欢鐩戝惉
 
 ```javascript
-// 监听存款事件
+// 鐩戝惉瀛樻浜嬩欢
 aggregator.events.Deposited({
     filter: { merchant: merchantAddress }
 })
@@ -677,7 +677,7 @@ aggregator.events.Deposited({
     const { token, amount, principal, timestamp } = event.returnValues;
     console.log(`[Deposit] ${amount/1e6} ${token}, Principal: ${principal/1e6}`);
 
-    // 更新数据库/仪表板
+    // 鏇存柊鏁版嵁搴?浠〃鏉?
     updateDashboard({
         action: 'deposit',
         amount: amount,
@@ -687,7 +687,7 @@ aggregator.events.Deposited({
 })
 .on('error', console.error);
 
-// 监听提现事件
+// 鐩戝惉鎻愮幇浜嬩欢
 aggregator.events.Withdrawn({
     filter: { merchant: merchantAddress }
 })
@@ -699,7 +699,7 @@ aggregator.events.Withdrawn({
     console.log(`  New Principal: ${newPrincipal/1e6} USDT`);
 });
 
-// 监听收益分配事件
+// 鐩戝惉鏀剁泭鍒嗛厤浜嬩欢
 aggregator.events.YieldDistributed({
     filter: { merchant: merchantAddress }
 })
@@ -709,7 +709,7 @@ aggregator.events.YieldDistributed({
 });
 ```
 
-### 8.2 实时收益追踪
+### 8.2 瀹炴椂鏀剁泭杩借釜
 
 ```javascript
 class YieldTracker {
@@ -765,16 +765,16 @@ class YieldTracker {
     }
 }
 
-// 使用
+// 浣跨敤
 const tracker = new YieldTracker(aggregator, merchantAddress, usdtAddress);
-await tracker.trackGrowth(3600000); // 每小时追踪
+await tracker.trackGrowth(3600000); // 姣忓皬鏃惰拷韪?
 ```
 
 ---
 
-## 9. 测试指南
+## 9. 娴嬭瘯鎸囧崡
 
-### 9.1 单元测试
+### 9.1 鍗曞厓娴嬭瘯
 
 ```typescript
 // test/TronYieldAggregator.test.ts
@@ -918,36 +918,36 @@ describe("TronYieldAggregator", function () {
 });
 ```
 
-### 9.2 运行测试
+### 9.2 杩愯娴嬭瘯
 
 ```bash
-# 运行所有测试
+# 杩愯鎵€鏈夋祴璇?
 npx hardhat test test/TronYieldAggregator.test.ts
 
-# 运行测试覆盖率
+# 杩愯娴嬭瘯瑕嗙洊鐜?
 npx hardhat coverage --testfiles "test/TronYieldAggregator.test.ts"
 
-# 详细输出
+# 璇︾粏杈撳嚭
 npx hardhat test test/TronYieldAggregator.test.ts --verbose
 ```
 
 ---
 
-## 10. 性能优化
+## 10. 鎬ц兘浼樺寲
 
-### 10.1 Gas优化
+### 10.1 Gas浼樺寲
 
-| 操作 | Gas消耗 | 优化建议 |
+| 鎿嶄綔 | Gas娑堣€?| 浼樺寲寤鸿 |
 |------|---------|---------|
-| deposit() | ~250,000 | 批量存款可节省 |
-| withdraw() | ~300,000 | 部分提现比全额提现更省gas |
-| distributeYield() | ~500,000 | 减少受益人数量 |
-| getMerchantBalance() | ~10,000（view） | 使用事件缓存查询 |
+| deposit() | ~250,000 | 鎵归噺瀛樻鍙妭鐪?|
+| withdraw() | ~300,000 | 閮ㄥ垎鎻愮幇姣斿叏棰濇彁鐜版洿鐪乬as |
+| distributeYield() | ~500,000 | 鍑忓皯鍙楃泭浜烘暟閲?|
+| getMerchantBalance() | ~10,000锛坴iew锛?| 浣跨敤浜嬩欢缂撳瓨鏌ヨ |
 
-### 10.2 批量操作
+### 10.2 鎵归噺鎿嶄綔
 
 ```javascript
-// 批量存款（多个代币）
+// 鎵归噺瀛樻锛堝涓唬甯侊級
 const tokens = [usdtAddress, usdcAddress, wbtcAddress];
 const amounts = [
     ethers.parseUnits("50000", 6),   // 50,000 USDT
@@ -955,13 +955,13 @@ const amounts = [
     ethers.parseUnits("1", 18)        // 1 WBTC
 ];
 
-// 并行授权
+// 骞惰鎺堟潈
 const approvePromises = tokens.map((token, i) =>
     ITRC20(token).approve(aggregatorAddress, amounts[i])
 );
 await Promise.all(approvePromises);
 
-// 顺序存款（避免nonce冲突）
+// 椤哄簭瀛樻锛堥伩鍏峮once鍐茬獊锛?
 for (let i = 0; i < tokens.length; i++) {
     await aggregator.deposit(tokens[i], amounts[i]);
 }
@@ -969,15 +969,15 @@ for (let i = 0; i < tokens.length; i++) {
 
 ---
 
-## 11. 监控与告警
+## 11. 鐩戞帶涓庡憡璀?
 
-### 11.1 Prometheus指标
+### 11.1 Prometheus鎸囨爣
 
 ```javascript
-// 集成Prometheus监控
+// 闆嗘垚Prometheus鐩戞帶
 const promClient = require('prom-client');
 
-// 定义指标
+// 瀹氫箟鎸囨爣
 const depositCounter = new promClient.Counter({
     name: 'tron_yield_deposit_total',
     help: 'Total deposits in Tron Yield Aggregator',
@@ -1002,7 +1002,7 @@ const tvlGauge = new promClient.Gauge({
     labelNames: ['token']
 });
 
-// 更新指标
+// 鏇存柊鎸囨爣
 async function updateMetrics() {
     const stats = await aggregator.getStats();
     const tvl = stats[3];
@@ -1010,7 +1010,7 @@ async function updateMetrics() {
     // TVL
     tvlGauge.set({ token: 'USDT' }, Number(tvl) / 1e18);
 
-    // 每个商户的利息
+    // 姣忎釜鍟嗘埛鐨勫埄鎭?
     const merchants = ['0x...', '0x...'];
     for (const merchant of merchants) {
         const [balance, principal, interest] = await aggregator.getMerchantBalance(
@@ -1021,8 +1021,8 @@ async function updateMetrics() {
     }
 }
 
-// 暴露metrics端点
-// Express.js示例
+// 鏆撮湶metrics绔偣
+// Express.js绀轰緥
 app.get('/metrics', async (req, res) => {
     await updateMetrics();
     res.set('Content-Type', promClient.register.contentType);
@@ -1030,7 +1030,7 @@ app.get('/metrics', async (req, res) => {
 });
 ```
 
-### 11.2 告警规则
+### 11.2 鍛婅瑙勫垯
 
 ```yaml
 # prometheus-alerts.yml
@@ -1059,67 +1059,67 @@ groups:
 
 ---
 
-## 12. 常见问题（FAQ）
+## 12. 甯歌闂锛團AQ锛?
 
-### Q1: JustLend APY如何计算？
-JustLend APY = supplyRatePerBlock × blocksPerYear × 100
+### Q1: JustLend APY濡備綍璁＄畻锛?
+JustLend APY = supplyRatePerBlock 脳 blocksPerYear 脳 100
 
-TRON区块时间 = 3秒/块
-每年区块数 = 365 × 24 × 3600 / 3 = 10,512,000块
+TRON鍖哄潡鏃堕棿 = 3绉?鍧?
+姣忓勾鍖哄潡鏁?= 365 脳 24 脳 3600 / 3 = 10,512,000鍧?
 
-示例：
+绀轰緥锛?
 - supplyRatePerBlock = 0.0000000001 (1e-10)
-- APY = 1e-10 × 10,512,000 × 100 = 0.1051% ≈ 0.11%
+- APY = 1e-10 脳 10,512,000 脳 100 = 0.1051% 鈮?0.11%
 
-### Q2: 利息多久复利一次？
-JustLend的jToken汇率持续增长（每个区块更新），实质上是**每3秒复利一次**。
+### Q2: 鍒╂伅澶氫箙澶嶅埄涓€娆★紵
+JustLend鐨刯Token姹囩巼鎸佺画澧為暱锛堟瘡涓尯鍧楁洿鏂帮級锛屽疄璐ㄤ笂鏄?*姣?绉掑鍒╀竴娆?*銆?
 
-### Q3: 提现需要多长时间？
-- 普通提现：~5-10秒（1-2个区块）
-- 大额提现：可能需要更多时间（Gas限制）
+### Q3: 鎻愮幇闇€瑕佸闀挎椂闂达紵
+- 鏅€氭彁鐜帮細~5-10绉掞紙1-2涓尯鍧楋級
+- 澶ч鎻愮幇锛氬彲鑳介渶瑕佹洿澶氭椂闂达紙Gas闄愬埗锛?
 
-### Q4: 如果JustLend协议出现问题怎么办？
-收益聚合器有暂停机制，管理员可暂停提现：
+### Q4: 濡傛灉JustLend鍗忚鍑虹幇闂鎬庝箞鍔烇紵
+鏀剁泭鑱氬悎鍣ㄦ湁鏆傚仠鏈哄埗锛岀鐞嗗憳鍙殏鍋滄彁鐜帮細
 ```javascript
-// 暂停提现
+// 鏆傚仠鎻愮幇
 await aggregator.pauseWithdrawals();
 
-// 紧急取款（仅所有者）
+// 绱ф€ュ彇娆撅紙浠呮墍鏈夎€咃級
 await aggregator.emergencyWithdraw(usdtAddress, safeWallet, amount);
 ```
 
-### Q5: 支持哪些链？
-Yield Aggregator当前仅支持TRON主网和Nile测试网。跨链版本开发中。
+### Q5: 鏀寔鍝簺閾撅紵
+Yield Aggregator褰撳墠浠呮敮鎸乀RON涓荤綉鍜孨ile娴嬭瘯缃戙€傝法閾剧増鏈紑鍙戜腑銆?
 
-### Q6: 收益是否可以再质押？
-支持！启用autoCompound功能后，收益会自动再质押到JustLend，实现复利增长。
-
----
-
-## 13. 相关资源
-
-- [JustLend官方文档](https://justlend.org)
-- [TRON开发者文档](https://developers.tron.network)
-- [JustLend主网](https://justlend.org/)
-- [JustLend Nile测试网](https://testnet.justlend.org/)
-- [TRONScan浏览器](https://tronscan.org)
-- [Nile测试网浏览器](https://nile.tronscan.org)
+### Q6: 鏀剁泭鏄惁鍙互鍐嶈川鎶硷紵
+鏀寔锛佸惎鐢╝utoCompound鍔熻兘鍚庯紝鏀剁泭浼氳嚜鍔ㄥ啀璐ㄦ娂鍒癑ustLend锛屽疄鐜板鍒╁闀裤€?
 
 ---
 
-## 14. 更新日志
+## 13. 鐩稿叧璧勬簮
+
+- [JustLend瀹樻柟鏂囨。](https://justlend.org)
+- [TRON寮€鍙戣€呮枃妗(https://developers.tron.network)
+- [JustLend涓荤綉](https://justlend.org/)
+- [JustLend Nile娴嬭瘯缃慮(https://testnet.justlend.org/)
+- [TRONScan娴忚鍣╙(https://tronscan.org)
+- [Nile娴嬭瘯缃戞祻瑙堝櫒](https://nile.tronscan.org)
+
+---
+
+## 14. 鏇存柊鏃ュ織
 
 ### v1.0.0 (2026-02-08)
-- ✅ 实现`IJustLend.sol` - JustLend协议接口
-- ✅ 实现`TronYieldAggregator.sol` - 收益聚合器主合约
-- ✅ 实现`Mocks.sol` - 测试Mock合约
-- ✅ 完整文档和使用示例
-- ✅ 支持USDT、USDC、TRX等代币
-- ✅ 收益分配功能
-- ✅ 收益追踪和APY查询
+- 鉁?瀹炵幇`IJustLend.sol` - JustLend鍗忚鎺ュ彛
+- 鉁?瀹炵幇`TronYieldAggregator.sol` - 鏀剁泭鑱氬悎鍣ㄤ富鍚堢害
+- 鉁?瀹炵幇`Mocks.sol` - 娴嬭瘯Mock鍚堢害
+- 鉁?瀹屾暣鏂囨。鍜屼娇鐢ㄧず渚?
+- 鉁?鏀寔USDT銆乁SDC銆乀RX绛変唬甯?
+- 鉁?鏀剁泭鍒嗛厤鍔熻兘
+- 鉁?鏀剁泭杩借釜鍜孉PY鏌ヨ
 
 ---
 
-## 15. 许可证
+## 15. 璁稿彲璇?
 
-MIT License
+GPL-3.0-only License

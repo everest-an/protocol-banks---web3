@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+﻿// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.20;
 
 /**
@@ -6,21 +6,21 @@ pragma solidity ^0.8.20;
  * @dev Interface for JustLend protocol on TRON blockchain
  * @notice JustLend is TRON's largest lending protocol (similar to Aave on Ethereum)
  *
- * ┌───────────────────────────────────────────────────────────────┐
- * │            JustLend Protocol Architecture                    │
- * ├───────────────────────────────────────────────────────────────┤
- * │  Type:     Decentralized Lending & Borrowing Protocol         │
- * │  Chain:    TRON Mainnet                                      │
- * │  Tokens:   TRX, USDT, USDC, WBTC, WETH, etc.                │
- * │  Features: Collateralized loans, Interest bearing tokens      │
- * │  Docs:     https://justlend.org                             │
- * └───────────────────────────────────────────────────────────────┘
+ * 鈹屸攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹?
+ * 鈹?           JustLend Protocol Architecture                    鈹?
+ * 鈹溾攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹?
+ * 鈹? Type:     Decentralized Lending & Borrowing Protocol         鈹?
+ * 鈹? Chain:    TRON Mainnet                                      鈹?
+ * 鈹? Tokens:   TRX, USDT, USDC, WBTC, WETH, etc.                鈹?
+ * 鈹? Features: Collateralized loans, Interest bearing tokens      鈹?
+ * 鈹? Docs:     https://justlend.org                             鈹?
+ * 鈹斺攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹?
  *
  * @dev JustLend uses jToken (Interest bearing tokens) similar to aTokens on Aave
- *  - Deposit: TRX/USDT → exchangeRate jTRX/jUSDT
- *  - Borrow: Collateral → Borrow TRX/USDT (with interest)
- *  - Withdraw: jTRX/jUSDT → TRX/USDT + accrued interest
- *  - Repay: TRX/USDT → Reduce debt
+ *  - Deposit: TRX/USDT 鈫?exchangeRate jTRX/jUSDT
+ *  - Borrow: Collateral 鈫?Borrow TRX/USDT (with interest)
+ *  - Withdraw: jTRX/jUSDT 鈫?TRX/USDT + accrued interest
+ *  - Repay: TRX/USDT 鈫?Reduce debt
  */
 interface IJustLend {
     /**
@@ -113,7 +113,7 @@ interface IJustToken {
     function balanceOf(address account) external view returns (uint256);
 
     /**
-     * @notice Get exchange rate (jToken ↔ underlying)
+     * @notice Get exchange rate (jToken 鈫?underlying)
      * @return Exchange rate (scaled by 1e18)
      */
     function exchangeRateCurrent() external view returns (uint256);

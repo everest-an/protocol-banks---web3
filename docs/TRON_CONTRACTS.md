@@ -1,80 +1,80 @@
-# TRON 智能合约完整文档
+﻿# TRON 鏅鸿兘鍚堢害瀹屾暣鏂囨。
 
-> 最后更新: 2026-02-08
-> 网络: TRON Nile Testnet
-
----
-
-## 目录
-
-1. [文件结构总结](#文件结构总结)
-2. [合约部署总览](#合约部署总览)
-3. [ITRC20.sol - TRC20代币接口](#itrc20sol---trc20代币接口)
-4. [IJustLend.sol - JustLend协议接口](#ijustlendsol---justlend协议接口)
-5. [TronPaymentVault.sol - 多签支付金库](#tronpaymentvaultsol---多签支付金库)
-6. [TronPaymentSplitter.sol - 自动分账合约](#tronpaymentsplittersol---自动分账合约)
-7. [TronYieldAggregator.sol - 收益聚合器](#tronyieldaggregatorsol---收益聚合器)
-8. [使用指南](#使用指南)
+> 鏈€鍚庢洿鏂? 2026-02-08
+> 缃戠粶: TRON Nile Testnet
 
 ---
 
-## 文件结构总结
+## 鐩綍
 
-### 今天添加/修改的文件
+1. [鏂囦欢缁撴瀯鎬荤粨](#鏂囦欢缁撴瀯鎬荤粨)
+2. [鍚堢害閮ㄧ讲鎬昏](#鍚堢害閮ㄧ讲鎬昏)
+3. [ITRC20.sol - TRC20浠ｅ竵鎺ュ彛](#itrc20sol---trc20浠ｅ竵鎺ュ彛)
+4. [IJustLend.sol - JustLend鍗忚鎺ュ彛](#ijustlendsol---justlend鍗忚鎺ュ彛)
+5. [TronPaymentVault.sol - 澶氱鏀粯閲戝簱](#tronpaymentvaultsol---澶氱鏀粯閲戝簱)
+6. [TronPaymentSplitter.sol - 鑷姩鍒嗚处鍚堢害](#tronpaymentsplittersol---鑷姩鍒嗚处鍚堢害)
+7. [TronYieldAggregator.sol - 鏀剁泭鑱氬悎鍣╙(#tronyieldaggregatorsol---鏀剁泭鑱氬悎鍣?
+8. [浣跨敤鎸囧崡](#浣跨敤鎸囧崡)
 
-| 文件路径 | 类型 | 说明 |
+---
+
+## 鏂囦欢缁撴瀯鎬荤粨
+
+### 浠婂ぉ娣诲姞/淇敼鐨勬枃浠?
+
+| 鏂囦欢璺緞 | 绫诲瀷 | 璇存槑 |
 |---------|------|------|
-| `contracts/contracts/tron/ITRC20.sol` | 接口 | TRC20代币标准接口 |
-| `contracts/contracts/tron/IJustLend.sol` | 接口 | JustLend借贷协议接口 |
-| `contracts/contracts/tron/TronPaymentVault.sol` | 合约 | 多签支付金库 |
-| `contracts/contracts/tron/TronPaymentSplitter.sol` | 合约 | 自动分账合约 |
-| `contracts/contracts/tron/TronYieldAggregator.sol` | 合约 | 收益聚合器 |
-| `contracts/contracts/tron/Mocks.sol` | 合约 | 测试Mock合约 |
-| `contracts/contracts/tron/README.md` | 文档 | 合约功能说明 |
+| `contracts/contracts/tron/ITRC20.sol` | 鎺ュ彛 | TRC20浠ｅ竵鏍囧噯鎺ュ彛 |
+| `contracts/contracts/tron/IJustLend.sol` | 鎺ュ彛 | JustLend鍊熻捶鍗忚鎺ュ彛 |
+| `contracts/contracts/tron/TronPaymentVault.sol` | 鍚堢害 | 澶氱鏀粯閲戝簱 |
+| `contracts/contracts/tron/TronPaymentSplitter.sol` | 鍚堢害 | 鑷姩鍒嗚处鍚堢害 |
+| `contracts/contracts/tron/TronYieldAggregator.sol` | 鍚堢害 | 鏀剁泭鑱氬悎鍣?|
+| `contracts/contracts/tron/Mocks.sol` | 鍚堢害 | 娴嬭瘯Mock鍚堢害 |
+| `contracts/contracts/tron/README.md` | 鏂囨。 | 鍚堢害鍔熻兘璇存槑 |
 
-### 编译和部署脚本
+### 缂栬瘧鍜岄儴缃茶剼鏈?
 
-| 文件路径 | 说明 |
+| 鏂囦欢璺緞 | 璇存槑 |
 |---------|------|
-| `scripts/compile-tron-v2.js` | 编译所有TRON合约 |
-| `scripts/compile-splitter.js` | 编译分账合约 |
-| `scripts/compile-yield-aggregator.js` | 编译收益聚合器 |
-| `scripts/deploy-tron-simple.js` | 部署多签金库 |
-| `scripts/deploy-splitter.js` | 部署分账合约 |
-| `scripts/deploy-yield-aggregator.js` | 部署收益聚合器 |
-| `scripts/test-vault-final.js` | 测试多签金库 |
-| `scripts/test-splitter-simple.js` | 测试分账合约 |
-| `scripts/test-yield-basic.js` | 测试收益聚合器 |
+| `scripts/compile-tron-v2.js` | 缂栬瘧鎵€鏈塗RON鍚堢害 |
+| `scripts/compile-splitter.js` | 缂栬瘧鍒嗚处鍚堢害 |
+| `scripts/compile-yield-aggregator.js` | 缂栬瘧鏀剁泭鑱氬悎鍣?|
+| `scripts/deploy-tron-simple.js` | 閮ㄧ讲澶氱閲戝簱 |
+| `scripts/deploy-splitter.js` | 閮ㄧ讲鍒嗚处鍚堢害 |
+| `scripts/deploy-yield-aggregator.js` | 閮ㄧ讲鏀剁泭鑱氬悎鍣?|
+| `scripts/test-vault-final.js` | 娴嬭瘯澶氱閲戝簱 |
+| `scripts/test-splitter-simple.js` | 娴嬭瘯鍒嗚处鍚堢害 |
+| `scripts/test-yield-basic.js` | 娴嬭瘯鏀剁泭鑱氬悎鍣?|
 
 ---
 
-## 合约部署总览
+## 鍚堢害閮ㄧ讲鎬昏
 
-| 合约名称 | 合约地址 | TRONScan | 状态 |
+| 鍚堢害鍚嶇О | 鍚堢害鍦板潃 | TRONScan | 鐘舵€?|
 |---------|---------|----------|------|
-| TronPaymentVault | `TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM` | [链接](https://nile.tronscan.org/#/contract/TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM) | ✅ 已部署 |
-| TronPaymentSplitter | `TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z` | [链接](https://nile.tronscan.org/#/contract/TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z) | ✅ 已部署 |
-| TronYieldAggregator | `TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy` | [链接](https://nile.tronscan.org/#/contract/TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy) | ✅ 已部署 |
+| TronPaymentVault | `TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM` | [閾炬帴](https://nile.tronscan.org/#/contract/TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM) | 鉁?宸查儴缃?|
+| TronPaymentSplitter | `TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z` | [閾炬帴](https://nile.tronscan.org/#/contract/TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z) | 鉁?宸查儴缃?|
+| TronYieldAggregator | `TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy` | [閾炬帴](https://nile.tronscan.org/#/contract/TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy) | 鉁?宸查儴缃?|
 
 ---
 
-## ITRC20.sol - TRC20代币接口
+## ITRC20.sol - TRC20浠ｅ竵鎺ュ彛
 
-### 文件位置
+### 鏂囦欢浣嶇疆
 `contracts/contracts/tron/ITRC20.sol`
 
-### 合约描述
-TRON区块链兼容的ERC20代币接口标准。
+### 鍚堢害鎻忚堪
+TRON鍖哄潡閾惧吋瀹圭殑ERC20浠ｅ竵鎺ュ彛鏍囧噯銆?
 
-### 接口说明
+### 鎺ュ彛璇存槑
 
 #### totalSupply()
 ```solidity
 function totalSupply() external view returns (uint256);
 ```
-- **功能**: 查询代币总供应量
-- **返回值**: 代币总数量
-- **示例**:
+- **鍔熻兘**: 鏌ヨ浠ｅ竵鎬讳緵搴旈噺
+- **杩斿洖鍊?*: 浠ｅ竵鎬绘暟閲?
+- **绀轰緥**:
 ```javascript
 const totalSupply = await usdt.totalSupply().call();
 console.log('Total Supply:', totalSupply.toString());
@@ -84,10 +84,10 @@ console.log('Total Supply:', totalSupply.toString());
 ```solidity
 function balanceOf(address account) external view returns (uint256);
 ```
-- **功能**: 查询指定账户的余额
-- **参数**: `account` - 账户地址(hex格式)
-- **返回值**: 账户余额
-- **测试代码**:
+- **鍔熻兘**: 鏌ヨ鎸囧畾璐︽埛鐨勪綑棰?
+- **鍙傛暟**: `account` - 璐︽埛鍦板潃(hex鏍煎紡)
+- **杩斿洖鍊?*: 璐︽埛浣欓
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const [owner, user1] = await ethers.getSigners();
 const balance = await usdt.balanceOf(user1.address);
@@ -98,12 +98,12 @@ console.log('User1 USDT Balance:', formatUnits(balance, 6));
 ```solidity
 function transfer(address recipient, uint256 amount) external returns (bool);
 ```
-- **功能**: 转账给指定地址
-- **参数**:
-  - `recipient` - 接收地址(hex格式)
-  - `amount` - 转账数量
-- **返回值**: 转账是否成功
-- **测试代码**:
+- **鍔熻兘**: 杞处缁欐寚瀹氬湴鍧€
+- **鍙傛暟**:
+  - `recipient` - 鎺ユ敹鍦板潃(hex鏍煎紡)
+  - `amount` - 杞处鏁伴噺
+- **杩斿洖鍊?*: 杞处鏄惁鎴愬姛
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const recipient = await ethers.Wallet.createRandom().address;
 const amount = parseUnits('100', 6); // 100 USDT
@@ -119,21 +119,21 @@ expect(recipientBalance).to.equal(amount);
 ```solidity
 function approve(address spender, uint256 amount) external returns (bool);
 ```
-- **功能**: 授权第三方合约使用代币
-- **参数**:
-  - `spender` - 被授权地址(hex格式)
-  - `amount` - 授权数量
-- **返回值**: 授权是否成功
-- **测试代码**:
+- **鍔熻兘**: 鎺堟潈绗笁鏂瑰悎绾︿娇鐢ㄤ唬甯?
+- **鍙傛暟**:
+  - `spender` - 琚巿鏉冨湴鍧€(hex鏍煎紡)
+  - `amount` - 鎺堟潈鏁伴噺
+- **杩斿洖鍊?*: 鎺堟潈鏄惁鎴愬姛
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const vaultContract = await deployer.deploy(vaultABI);
 const amount = parseUnits('10000', 6);
 
-// 授权金库使用我们的USDT
+// 鎺堟潈閲戝簱浣跨敤鎴戜滑鐨刄SDT
 const approveTx = await usdt.approve(vaultContract.target, amount);
 await approveTx.wait();
 
-// 验证授权额度
+// 楠岃瘉鎺堟潈棰濆害
 const allowance = await usdt.allowance(deployer.address, vaultContract.target);
 expect(allowance).to.equal(amount);
 ```
@@ -142,12 +142,12 @@ expect(allowance).to.equal(amount);
 ```solidity
 function allowance(address owner, address spender) external view returns (uint256);
 ```
-- **功能**: 查询授权额度
-- **参数**:
-  - `owner` - 代币所有者地址
-  - `spender` - 被授权地址
-- **返回值: 授权额度
-- **测试代码**:
+- **鍔熻兘**: 鏌ヨ鎺堟潈棰濆害
+- **鍙傛暟**:
+  - `owner` - 浠ｅ竵鎵€鏈夎€呭湴鍧€
+  - `spender` - 琚巿鏉冨湴鍧€
+- **杩斿洖鍊? 鎺堟潈棰濆害
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const allowance = await usdt.allowance(user1.address, vaultAddress);
 console.log('Vault allowance:', allowance.toString());
@@ -157,18 +157,18 @@ console.log('Vault allowance:', allowance.toString());
 ```solidity
 function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 ```
-- **功能**: 代理转账
-- **参数**:
-  - `sender` - 发送者地址
-  - `recipient` - 接收者地址
-  - `amount` - 转账数量
-- **返回值**: 转账是否成功
-- **测试代码**:
+- **鍔熻兘**: 浠ｇ悊杞处
+- **鍙傛暟**:
+  - `sender` - 鍙戦€佽€呭湴鍧€
+  - `recipient` - 鎺ユ敹鑰呭湴鍧€
+  - `amount` - 杞处鏁伴噺
+- **杩斿洖鍊?*: 杞处鏄惁鎴愬姛
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
-// 用户1授权金库使用其USDT
+// 鐢ㄦ埛1鎺堟潈閲戝簱浣跨敤鍏禪SDT
 await usdt.connect(user1).approve(vaultAddress, approveAmount);
 
-// 金库转账给接收者
+// 閲戝簱杞处缁欐帴鏀惰€?
 const vault = await ethers.getContractAt(vaultABI, vaultAddress);
 const transferTx = await vault.connect(user1).transferFrom(
     user1.address,
@@ -182,8 +182,8 @@ await transferTx.wait();
 ```solidity
 function name() external view returns (string memory);
 ```
-- **返回值**: 代币名称
-- **测试代码**:
+- **杩斿洖鍊?*: 浠ｅ竵鍚嶇О
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const tokenName = await usdt.name();
 console.log('Token Name:', tokenName);
@@ -193,25 +193,25 @@ console.log('Token Name:', tokenName);
 ```solidity
 function symbol() external view returns (string memory);
 ```
-- **返回值**: 代币符号
-- **测试代码**:
+- **杩斿洖鍊?*: 浠ｅ竵绗﹀彿
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const symbol = await usdt.symbol();
-console.log('Token Symbol:', symbol); // 应该是 "USDT"
+console.log('Token Symbol:', symbol); // 搴旇鏄?"USDT"
 ```
 
 #### decimals()
 ```solidity
 function decimals() external view returns (uint8);
 ```
-- **返回值**: 代币小数位数
-- **测试代码**:
+- **杩斿洖鍊?*: 浠ｅ竵灏忔暟浣嶆暟
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const decimals = await usdt.decimals();
-console.log('Token Decimals:', decimals); // USDT通常是6位
+console.log('Token Decimals:', decimals); // USDT閫氬父鏄?浣?
 ```
 
-### 完整测试代码
+### 瀹屾暣娴嬭瘯浠ｇ爜
 
 ```javascript
 const { ethers } = require('ethers');
@@ -219,40 +219,40 @@ const { ethers } = require('ethers');
 async function testITRC20() {
     const [owner, user1, user2] = await ethers.getSigners();
 
-    // 创建或获取USDT实例
+    // 鍒涘缓鎴栬幏鍙朥SDT瀹炰緥
     const usdt = await ethers.getContractAt(TRC20_ABI, USDT_ADDRESS);
 
-    console.log('=== ITRC20测试 ===\n');
+    console.log('=== ITRC20娴嬭瘯 ===\n');
 
-    // 1. 测试totalSupply
+    // 1. 娴嬭瘯totalSupply
     const totalSupply = await usdt.totalSupply();
     console.log('1. Total Supply:', ethers.formatUnits(totalSupply, 6));
 
-    // 2. 测试balanceOf
+    // 2. 娴嬭瘯balanceOf
     const user1Balance = await usdt.balanceOf(user1.address);
     console.log('2. User1 Balance:', ethers.formatUnits(user1Balance, 6));
 
-    // 3. 测试transfer
+    // 3. 娴嬭瘯transfer
     const transferAmount = ethers.parseUnits('100', 6); // 100 USDT
     const transferTx = await usdt.transfer(user2.address, transferAmount);
     await transferTx.wait();
     console.log('3. Transfer Tx:', transferTx.hash);
 
-    // 验证转账
+    // 楠岃瘉杞处
     const user2Balance = await usdt.balanceOf(user2.address);
     console.log('   User2 Balance after transfer:', ethers.formatUnits(user2Balance, 6));
 
-    // 4. 测试approve
+    // 4. 娴嬭瘯approve
     const approveAmount = ethers.parseUnits('1000', 6);
     const approveTx = await usdt.approve(user1.address, approveAmount);
     await approveTx.wait();
     console.log('4. Approve Tx:', approveTx.hash);
 
-    // 5. 测试allowance
+    // 5. 娴嬭瘯allowance
     const allowance = await usdt.allowance(user2.address, user1.address);
     console.log('5. Allowance (user2 -> user1):', ethers.formatUnits(allowance, 6));
 
-    // 6. 测试transferFrom
+    // 6. 娴嬭瘯transferFrom
     const transferFromAmount = ethers.parseUnits('50', 6); // 50 USDT
     const transferFromTx = await usdt.connect(user1).transferFrom(
         user2.address,
@@ -262,11 +262,11 @@ async function testITRC20() {
     await transferFromTx.wait();
     console.log('6. TransferFrom Tx:', transferFromTx.hash);
 
-    // 验证代理转账
+    // 楠岃瘉浠ｇ悊杞处
     const newAllowance = await usdt.allowance(user2.address, user1.address);
     console.log('   New Allowance:', ethers.formatUnits(newAllowance, 6));
 
-    // 7. 测试元数据
+    // 7. 娴嬭瘯鍏冩暟鎹?
     const name = await usdt.name();
     const symbol = await usdt.symbol();
     const decimals = await usdt.decimals();
@@ -276,43 +276,43 @@ async function testITRC20() {
     console.log('   Symbol:', symbol);
     console.log('   Decimals:', decimals);
 
-    console.log('\n✅ ITRC20接口测试完成!');
+    console.log('\n鉁?ITRC20鎺ュ彛娴嬭瘯瀹屾垚!');
 }
 ```
 
 ---
 
-## IJustLend.sol - JustLend协议接口
+## IJustLend.sol - JustLend鍗忚鎺ュ彛
 
-### 文件位置
+### 鏂囦欢浣嶇疆
 `contracts/contracts/tron/IJustLend.sol`
 
-### 合约描述
-TRON最大的去中心化借贷协议JustLend的接口定义。
+### 鍚堢害鎻忚堪
+TRON鏈€澶х殑鍘讳腑蹇冨寲鍊熻捶鍗忚JustLend鐨勬帴鍙ｅ畾涔夈€?
 
-### 接口说明
+### 鎺ュ彛璇存槑
 
-#### IJustLend - 借贷主协议
+#### IJustLend - 鍊熻捶涓诲崗璁?
 
 ##### deposit(address jToken, uint256 underlyingAmount)
 ```solidity
 function deposit(address jToken, uint256 underlyingAmount) external returns (uint256);
 ```
-- **功能**: 将代币存入JustLend获得jToken
-- **参数**:
-  - `jToken` - jToken合约地址
-  - `underlyingAmount` - 存入的底层代币数量
-- **返回值**: 获得的jToken数量
-- **测试代码**:
+- **鍔熻兘**: 灏嗕唬甯佸瓨鍏ustLend鑾峰緱jToken
+- **鍙傛暟**:
+  - `jToken` - jToken鍚堢害鍦板潃
+  - `underlyingAmount` - 瀛樺叆鐨勫簳灞備唬甯佹暟閲?
+- **杩斿洖鍊?*: 鑾峰緱鐨刯Token鏁伴噺
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const justLend = await ethers.getContractAt(JUSTLEND_ABI, JUSTLEND_ADDRESS);
 const jUSDT = await ethers.getContractAt(JUSTTOKEN_ABI, JUSDT_ADDRESS);
 
-// 授权jToken转移
+// 鎺堟潈jToken杞Щ
 const depositAmount = parseUnits('10000', 6); // 10000 USDT
 await usdt.approve(JUSTLEND_ADDRESS, depositAmount);
 
-// 存入获得jToken
+// 瀛樺叆鑾峰緱jToken
 const tx = await justLend.deposit(jUSDT_ADDRESS, depositAmount);
 await tx.wait();
 
@@ -324,14 +324,14 @@ console.log('jTokens received:', formatUnits(jTokenReceived, 18));
 ```solidity
 function redeem(address jToken, uint256 jTokenAmount) external returns (uint256);
 ```
-- **功能**: 赎回jToken换取底层代币
-- **参数**:
-  - `jToken` - jToken合约地址
-  - `jTokenAmount` - 赎回的jToken数量
-- **返回值**: 获得的底层代币数量
-- **测试代码**:
+- **鍔熻兘**: 璧庡洖jToken鎹㈠彇搴曞眰浠ｅ竵
+- **鍙傛暟**:
+  - `jToken` - jToken鍚堢害鍦板潃
+  - `jTokenAmount` - 璧庡洖鐨刯Token鏁伴噺
+- **杩斿洖鍊?*: 鑾峰緱鐨勫簳灞備唬甯佹暟閲?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
-// 赎回部分jToken
+// 璧庡洖閮ㄥ垎jToken
 const redeemTx = await justLend.redeem(jUSDT_ADDRESS, redeemAmount);
 await redeemTx.wait();
 
@@ -343,10 +343,10 @@ console.log('USDT received:', formatUnits(underlyingReceived, 6));
 ```solidity
 function redeemAll(address jToken) external returns (uint256);
 ```
-- **功能**: 赎回全部jToken
-- **参数** `jToken` - jToken合约地址
-- **返回值**: 获得的全部底层代币数量
-- **测试代码**:
+- **鍔熻兘**: 璧庡洖鍏ㄩ儴jToken
+- **鍙傛暟** `jToken` - jToken鍚堢害鍦板潃
+- **杩斿洖鍊?*: 鑾峰緱鐨勫叏閮ㄥ簳灞備唬甯佹暟閲?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const jTokenBalance = await jUSDT.balanceOf(user.address);
 const tx = await justLend.redeemAll(jUSDT_ADDRESS);
@@ -359,17 +359,17 @@ console.log('All USDT returned:', formatUnits(tx.value, 6));
 ```solidity
 function borrow(address jToken, uint256 borrowAmount) external;
 ```
-- **功能**: 借出代币
-- **参数**:
-  - `jToken` - 借出的jToken类型
-  - `borrowAmount` - 借款数量
-- **测试代码**:
+- **鍔熻兘**: 鍊熷嚭浠ｅ竵
+- **鍙傛暟**:
+  - `jToken` - 鍊熷嚭鐨刯Token绫诲瀷
+  - `borrowAmount` - 鍊熸鏁伴噺
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
-// 必须先进入市场
+// 蹇呴』鍏堣繘鍏ュ競鍦?
 const tx = await justLend.enterMarkets([jUSDT_ADDRESS]);
 await tx.wait();
 
-// 借款
+// 鍊熸
 const borrowAmount = parseUnits('5000', 6); // 5000 USDT
 const borrowTx = await justLend.borrow(jUSDT_ADDRESS, borrowAmount);
 await borrowTx.wait();
@@ -381,11 +381,11 @@ console.log('Borrowed USDT:', formatUnits(borrowAmount, 6));
 ```solidity
 function repayBorrow(address jToken, uint256 repayAmount) external;
 ```
-- **功能**: 偿还借款
-- **参数**:
-  - `jToken` - 偿还的jToken类型
-  - `repayAmount` - 偿还数量
-- **测试代码**:
+- **鍔熻兘**: 鍋胯繕鍊熸
+- **鍙傛暟**:
+  - `jToken` - 鍋胯繕鐨刯Token绫诲瀷
+  - `repayAmount` - 鍋胯繕鏁伴噺
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const usdtBalance = await usdt.balanceOf(user.address);
 const repayTx = await justLend.repayBorrow(jUSDT_ADDRESS, repayAmount);
@@ -398,9 +398,9 @@ console.log('Repaid USDT:', formatUnits(repayAmount, 6));
 ```solidity
 function enterMarkets(address[] memory jTokens) external;
 ```
-- **功能**: 进入借贷市场
-- **参数**: `jTokens` - jToken地址数组
-- **测试代码**:
+- **鍔熻兘**: 杩涘叆鍊熻捶甯傚満
+- **鍙傛暟**: `jTokens` - jToken鍦板潃鏁扮粍
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const jTokens = [jUSDT_ADDRESS, jUSDC_ADDRESS];
 const tx = await justLend.enterMarkets(jTokens);
@@ -413,9 +413,9 @@ console.log('Entered markets:', jTokens.length);
 ```solidity
 function exitMarket(address jToken) external;
 ```
-- **功能**: 退出借贷市场
-- **参数**: `jToken` - 要退出的jToken
-- **测试代码**:
+- **鍔熻兘**: 閫€鍑哄€熻捶甯傚満
+- **鍙傛暟**: `jToken` - 瑕侀€€鍑虹殑jToken
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const tx = await justLend.exitMarket(jUSDT_ADDRESS);
 await tx.wait();
@@ -427,12 +427,12 @@ console.log('Exited market');
 ```solidity
 function getAccountLiquidity(address account) external view returns (uint256, uint256);
 ```
-- **功能**: 获取账户流动性
-- **参数**: `account` - 账户地址
-- `返回值**:
-  - `liquidity` - 总流动性
-  `shortfall` - 流动性缺口
-- **测试代码**:
+- **鍔熻兘**: 鑾峰彇璐︽埛娴佸姩鎬?
+- **鍙傛暟**: `account` - 璐︽埛鍦板潃
+- `杩斿洖鍊?*:
+  - `liquidity` - 鎬绘祦鍔ㄦ€?
+  `shortfall` - 娴佸姩鎬х己鍙?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const [liquidity, shortfall] = await justLend.getAccountLiquidity(user.address);
 console.log('Liquidity:', formatUnits(liquidity, 18));
@@ -441,29 +441,29 @@ console.log('Shortfall:', formatUnits(shortfall, 18));
 
 ---
 
-#### IJustToken - 生息代币接口
+#### IJustToken - 鐢熸伅浠ｅ竵鎺ュ彛
 
 ##### exchangeRateCurrent()
 ```solidity
 function exchangeRateCurrent() external view returns (uint256);
 ```
-- **功能**: 获取当前汇率（1个jToken对应多少底层代币）
-- **返回值**: 汇率 * 1e18
-- **测试代码**:
+- **鍔熻兘**: 鑾峰彇褰撳墠姹囩巼锛?涓猨Token瀵瑰簲澶氬皯搴曞眰浠ｅ竵锛?
+- **杩斿洖鍊?*: 姹囩巼 * 1e18
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const jUSDT = await ethers.getContractAt(JUSTTOKEN_ABI, JUSDT_ADDRESS);
 const exchangeRate = jUSDT.exchangeRateCurrent();
 console.log('Exchange Rate:', formatUnits(exchangeRate, 18));
-// 示例: 1.002e18 表示 1 jUSDT = 1.002 USDT
+// 绀轰緥: 1.002e18 琛ㄧず 1 jUSDT = 1.002 USDT
 ```
 
 ##### supplyRatePerBlock()
 ```solidity
 function supplyRatePerBlock() external view returns (uint256);
 ```
-- **功能**: 获取每区块存款利率
-- **返回值**: 每区块利率
-- **测试代码**:
+- **鍔熻兘**: 鑾峰彇姣忓尯鍧楀瓨娆惧埄鐜?
+- **杩斿洖鍊?*: 姣忓尯鍧楀埄鐜?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const supplyRate = jUSDT.supplyRatePerBlock();
 const annualAPY = (Number(supplyRate) * 365 * 24 * 3600 / 1e18 * 100).toFixed(2);
@@ -475,9 +475,9 @@ console.log('Estimated APY:', annualAPY + '%');
 ```solidity
 function borrowRatePerBlock() external view returns (uint256);
 ```
-- **功能**: 获取每区块借款利率
-- **返回值**: 每区块利率
-- **测试代码**:
+- **鍔熻兘**: 鑾峰彇姣忓尯鍧楀€熸鍒╃巼
+- **杩斿洖鍊?*: 姣忓尯鍧楀埄鐜?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const borrowRate = jUSDT.borrowRatePerBlock();
 const annualBorrowAPY = (Number(borrowRate) * 365 * 24 * 3600 / 1e18 * 100).toFixed(2);
@@ -489,9 +489,9 @@ console.log('Estimated Borrow APY:', annualBorrowAPY + '%');
 ```solidity
 function getCash() external view returns (uint256);
 ```
-- **功能**: 获取合约中的底层代币余额
-- **返回值**: 底层代币余额
-- **测试代码**:
+- **鍔熻兘**: 鑾峰彇鍚堢害涓殑搴曞眰浠ｅ竵浣欓
+- **杩斿洖鍊?*: 搴曞眰浠ｅ竵浣欓
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const cash = jUSDT.getCash();
 console.log('Cash in Protocol:', formatUnits(cash, 6), 'USDT');
@@ -501,10 +501,10 @@ console.log('Cash in Protocol:', formatUnits(cash, 6), 'USDT');
 ```solidity
 function balanceOf(address account) external view returns (uint256);
 ```
-- **功能**: 获取账户持有的jToken余额
-- **参数**: `account` - 账户地址
-- **返回值**: jToken余额
-- **测试代码**:
+- **鍔熻兘**: 鑾峰彇璐︽埛鎸佹湁鐨刯Token浣欓
+- **鍙傛暟**: `account` - 璐︽埛鍦板潃
+- **杩斿洖鍊?*: jToken浣欓
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const jTokenBalance = jUSDT.balanceOf(user.address);
 console.log('jToken Balance:', formatUnits(jTokenBalance, 18));
@@ -512,32 +512,32 @@ console.log('jToken Balance:', formatUnits(jTokenBalance, 18));
 
 ---
 
-#### IJustLendPriceOracle - 价格预言机
+#### IJustLendPriceOracle - 浠锋牸棰勮█鏈?
 
 ##### getUnderlyingPrice(address jToken)
 ```solidityfunction getUnderlyingPrice(address jToken) external view returns (uint256);
 ```
-- **功能**: 获取jToken的底层代币价格
-- **参数**: `jToken` - jToken地址
-- **返回值**: 价格 * 1e18
-- **测试代码**:
+- **鍔熻兘**: 鑾峰彇jToken鐨勫簳灞備唬甯佷环鏍?
+- **鍙傛暟**: `jToken` - jToken鍦板潃
+- **杩斿洖鍊?*: 浠锋牸 * 1e18
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const oracle = await ethers.getContractAt(ORACLE_ABI, ORACLE_ADDRESS);
 const price = oracle.getUnderlyingPrice(jUSDT_ADDRESS);
 console.log('USDT Price:', formatUnits(price, 18));
-// 示例: 1000000000000000000 = 1.0000 USD
+// 绀轰緥: 1000000000000000000 = 1.0000 USD
 ```
 
 ---
 
-### 完整测试代码
+### 瀹屾暣娴嬭瘯浠ｇ爜
 
 ```javascript
 const { ethers } = require('ethers');
 
-// 合约地址配置
-const JUSDT_ADDRESS = '0x...'; // jUSDT地址
-const JUSTLEND_ADDRESS = '0x...'; // JustLend地址
+// 鍚堢害鍦板潃閰嶇疆
+const JUSDT_ADDRESS = '0x...'; // jUSDT鍦板潃
+const JUSTLEND_ADDRESS = '0x...'; // JustLend鍦板潃
 const USDT_ADDRESS = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
 async function testJustLend() {
@@ -547,74 +547,74 @@ async function testJustLend() {
     const jUSDT = await ethers.getContractAt(JUSTTOKEN_ABI, JUSDT_ADDRESS);
     const usdt = await ethers.getContractAt(TRC20_ABI, USDT_ADDRESS);
 
-    console.log('=== JustLend测试 ===\n');
+    console.log('=== JustLend娴嬭瘯 ===\n');
 
-    // 1. 测试enterMarkets
+    // 1. 娴嬭瘯enterMarkets
     console.log('1. Entering market...');
     const enterTx = await justLend.enterMarkets([JUSDT_ADDRESS]);
     await enterTx.wait();
     console.log('   Tx:', enterTx.hash);
 
-    // 2. 获取汇率
+    // 2. 鑾峰彇姹囩巼
     console.log('\n2. Checking exchange rate...');
     const exchangeRate = await jUSDT.exchangeRateCurrent();
     console.log('   Exchange Rate:', ethers.formatUnits(exchangeRate, 18));
 
-    // 3. 获取利率
+    // 3. 鑾峰彇鍒╃巼
     const supplyRate = await jUSDT.supplyRatePerBlock();
     const supplyAPY = (Number(supplyRate) * 365 * 24 * 3600 / 1e18 * 100).toFixed(2);
     console.log('   Supply Rate:', supplyRate.toString());
     console.log('   Estimated Supply APY:', supplyAPY + '%');
 
-    // 4. 存款
+    // 4. 瀛樻
     console.log('\n3. Depositing...');
     const depositAmount = ethers.parseUnits('10000', 6);
 
-    // 授权
+    // 鎺堟潈
     const approveTx = await usdt.approve(JUSTLEND_ADDRESS, depositAmount);
     await approveTx.wait();
 
-    // 存款
+    // 瀛樻
     const depositTx = await justLend.deposit(JUSDT_ADDRESS, depositAmount);
     await depositTx.wait();
     console.log('   Tx:', depositTx.hash);
     console.log('   Received jTokens:', formatUnits(depositTx.value, 18));
 
-    // 5. 检查余额
+    // 5. 妫€鏌ヤ綑棰?
     console.log('\n4. Checking balances...');
     const jTokenBalance = await jUSDT.balanceOf(borrower.address);
     const userBalance = await usdt.balanceOf(borrower.address);
     console.log('   jToken Balance:', formatUnits(jTokenBalance, 18));
     console.log('   USDT Balance:', formatUnits(userBalance, 6));
 
-    // 6. 查询流动性
+    // 6. 鏌ヨ娴佸姩鎬?
     console.log('\n5. Checking account liquidity...');
     const [liquidity, shortfall] = await justLend.getAccountLiquidity(borrower.address);
     console.log('   Liquidity:', formatUnits(liquidity, 18));
     console.log('   Shortfall:', formatUnits(shortfall, 18));
 
-    console.log('\n✅ JustLend接口测试完成!');
-    console.log('⚠️  注意: 借款功能需要足够的抵押品支持');
+    console.log('\n鉁?JustLend鎺ュ彛娴嬭瘯瀹屾垚!');
+    console.log('鈿狅笍  娉ㄦ剰: 鍊熸鍔熻兘闇€瑕佽冻澶熺殑鎶垫娂鍝佹敮鎸?);
 }
 ```
 
 ---
 
-## TronPaymentVault.sol - 多签支付金库
+## TronPaymentVault.sol - 澶氱鏀粯閲戝簱
 
-### 文件位置
+### 鏂囦欢浣嶇疆
 `contracts/contracts/tron/TronPaymentVault.sol`
 
-### 合约地址
+### 鍚堢害鍦板潃
 - **Nile Testnet**: `TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM`
 - **TRONScan**: https://nile.tronscan.org/#/contract/TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM
 
-### 合约功能
-企业级多签名支付金库，支持时间锁、每日限额和紧急恢复机制。
+### 鍚堢害鍔熻兘
+浼佷笟绾у绛惧悕鏀粯閲戝簱锛屾敮鎸佹椂闂撮攣銆佹瘡鏃ラ檺棰濆拰绱ф€ユ仮澶嶆満鍒躲€?
 
-### 接口说明
+### 鎺ュ彛璇存槑
 
-#### 构造函数
+#### 鏋勯€犲嚱鏁?
 ```solidity
 constructor(
     address[] memory _initialSigners,
@@ -625,20 +625,20 @@ constructor(
     uint256 _dailyLimit
 )
 ```
-- **参数**:
-  - `_initialSigners` - 初始签名者地址数组
-  - `_threshold` - 所需签名数量（不能超过签名者总数）
-  - `_guardian` - 监护人地址（可暂停、触发紧急恢复）
-  - `_supportedTokens` - 支持的TRC20代币地址数组
-  - `_timelock` - 时间锁（秒，最大7天）
-  - `_dailyLimit` - 每日支付限额
-- **限制**:
-  - 签名者数量不能为0
-  - 门槛值必须在1到签名者数量之间
-  - 时间锁最大7天
-  - 不能添加重复的签名者
+- **鍙傛暟**:
+  - `_initialSigners` - 鍒濆绛惧悕鑰呭湴鍧€鏁扮粍
+  - `_threshold` - 鎵€闇€绛惧悕鏁伴噺锛堜笉鑳借秴杩囩鍚嶈€呮€绘暟锛?
+  - `_guardian` - 鐩戞姢浜哄湴鍧€锛堝彲鏆傚仠銆佽Е鍙戠揣鎬ユ仮澶嶏級
+  - `_supportedTokens` - 鏀寔鐨凾RC20浠ｅ竵鍦板潃鏁扮粍
+  - `_timelock` - 鏃堕棿閿侊紙绉掞紝鏈€澶?澶╋級
+  - `_dailyLimit` - 姣忔棩鏀粯闄愰
+- **闄愬埗**:
+  - 绛惧悕鑰呮暟閲忎笉鑳戒负0
+  - 闂ㄦ鍊煎繀椤诲湪1鍒扮鍚嶈€呮暟閲忎箣闂?
+  - 鏃堕棿閿佹渶澶?澶?
+  - 涓嶈兘娣诲姞閲嶅鐨勭鍚嶈€?
 
-##### 部署代码
+##### 閮ㄧ讲浠ｇ爜
 ```javascript
 const TronWeb = require('tronweb');
 
@@ -650,19 +650,19 @@ const tronWeb = new TronWeb({
 
 tronWeb.setPrivateKey(DEPLOYER_PRIVATE_KEY);
 
-// 部署参数
+// 閮ㄧ讲鍙傛暟
 const initialSigners = [
-    deployerAddress,  // 签名者1
-    'TSigner2...',     // 签名者2
-    'TSigner3...'      // 签者3
+    deployerAddress,  // 绛惧悕鑰?
+    'TSigner2...',     // 绛惧悕鑰?
+    'TSigner3...'      // 绛捐€?
 ];
-const threshold = 2;  // 2/3签名
+const threshold = 2;  // 2/3绛惧悕
 const guardian = deployerAddress;
 const supportedTokens = ['TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t']; // USDT
-const timelock = 86400;  // 24小时
-const dailyLimit = '1000000000000'; // 100万USDT
+const timelock = 86400;  // 24灏忔椂
+const dailyLimit = '1000000000000'; // 100涓嘦SDT
 
-// 部署
+// 閮ㄧ讲
 const vaultContract = await tronWeb.contract(VAULT_ABI, bytecode);
 const tx = await vaultContract.deploy(
     initialSigners,
@@ -676,7 +676,7 @@ const tx = await vaultContract.deploy(
 
 ---
 
-#### 支付管理
+#### 鏀粯绠＄悊
 
 ##### proposePayment(address token, address to, uint256 amount, bytes calldata data)
 ```solidity
@@ -687,28 +687,28 @@ function proposePayment(
     bytes calldata data
 ) external onlySigner whenNotPaused returns (uint256 paymentId)
 ```
-- **功能**: 提议支付
-- **参数**:
-  - `token` - TRC20代币地址
-  - `to` - 接收地址(hex格式)
-  - `amount` - 支付金额
-  - `data` - 可选的调用数据
-- **返回值**: 支付ID
-- **事件**: `PaymentProposed`
-- **错误**:
-  - `InvalidAddress` - 接收地址无效
-  - `InvalidAmount` - 金额为0
-  - `TokenNotSupported` - 代币不支持
-  - `VaultIsPaused` - 金库已暂停
-- **测试代码**:
+- **鍔熻兘**: 鎻愯鏀粯
+- **鍙傛暟**:
+  - `token` - TRC20浠ｅ竵鍦板潃
+  - `to` - 鎺ユ敹鍦板潃(hex鏍煎紡)
+  - `amount` - 鏀粯閲戦
+  - `data` - 鍙€夌殑璋冪敤鏁版嵁
+- **杩斿洖鍊?*: 鏀粯ID
+- **浜嬩欢**: `PaymentProposed`
+- **閿欒**:
+  - `InvalidAddress` - 鎺ユ敹鍦板潃鏃犳晥
+  - `InvalidAmount` - 閲戦涓?
+  - `TokenNotSupported` - 浠ｅ竵涓嶆敮鎸?
+  - `VaultIsPaused` - 閲戝簱宸叉殏鍋?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const vault = await tronWeb.contract(VAULT_ABI, vaultAddress);
 
 const paymentId = await vault.proposePayment(
     'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',  // USDT
-    'TRecipientAddress...',  // 接收者地址(hex)
-    '1000000',             // 1 USDT (6位小数)
-    '0x'                   // 空数据
+    'TRecipientAddress...',  // 鎺ユ敹鑰呭湴鍧€(hex)
+    '1000000',             // 1 USDT (6浣嶅皬鏁?
+    '0x'                   // 绌烘暟鎹?
 ).send({ from: signerAddress });
 
 console.log('Payment ID:', paymentId);
@@ -718,13 +718,13 @@ console.log('Payment ID:', paymentId);
 ```solidity
 function approvePayment(uint256 paymentId) external onlySigner;
 ```
-- **功能**: 批准支付
-- **参数**: `paymentId` - 支付ID
-- **事件**: `PaymentApproved`
-- **错误**: `PaymentAlreadyApproved` - 已批准过
-- **测试代码**:
+- **鍔熻兘**: 鎵瑰噯鏀粯
+- **鍙傛暟**: `paymentId` - 鏀粯ID
+- **浜嬩欢**: `PaymentApproved`
+- **閿欒**: `PaymentAlreadyApproved` - 宸叉壒鍑嗚繃
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
-// 签名者2批准
+// 绛惧悕鑰?鎵瑰噯
 await vault.approvePayment(paymentId)
     .send({ from: signer2Address });
 ```
@@ -733,25 +733,25 @@ await vault.approvePayment(paymentId)
 ```solidity
 function executePayment(uint256 paymentId) external whenNotPaused;
 ```
-- **功能**: 执行支付
-- **参数**: `paymentId` - 支付ID
-- **事件**: `PaymentExecuted`
-- **前置条件**:
-  - 批准数量 >= 阈值
-  - 时间锁已过期
-  - 当日限额未超出
-- **错误**:
-  - `InvalidPaymentId` - 无效的支付ID
-  - `PaymentAlreadyExecuted` - 已执行
-  - `InsufficientApprovals` - 批准不足
-  - `DailyLimitExceeded` - 每日限额超出
-  - `NotTimelocked` - 时间锁未过期
-- **测试代码**:
+- **鍔熻兘**: 鎵ц鏀粯
+- **鍙傛暟**: `paymentId` - 鏀粯ID
+- **浜嬩欢**: `PaymentExecuted`
+- **鍓嶇疆鏉′欢**:
+  - 鎵瑰噯鏁伴噺 >= 闃堝€?
+  - 鏃堕棿閿佸凡杩囨湡
+  - 褰撴棩闄愰鏈秴鍑?
+- **閿欒**:
+  - `InvalidPaymentId` - 鏃犳晥鐨勬敮浠業D
+  - `PaymentAlreadyExecuted` - 宸叉墽琛?
+  - `InsufficientApprovals` - 鎵瑰噯涓嶈冻
+  - `DailyLimitExceeded` - 姣忔棩闄愰瓒呭嚭
+  - `NotTimelocked` - 鏃堕棿閿佹湭杩囨湡
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
-// 等待时间锁过期
-await new Promise(resolve => setTimeout(resolve, 86401)); // 24小时+
+// 绛夊緟鏃堕棿閿佽繃鏈?
+await new Promise(resolve => setTimeout(resolve, 86401)); // 24灏忔椂+
 
-// 执行支付
+// 鎵ц鏀粯
 await vault.executePayment(paymentId)
     .send({ from: signerAddress });
 ```
@@ -760,11 +760,11 @@ await vault.executePayment(paymentId)
 ```solidity
 function cancelPayment(uint256 paymentId) external onlySigner;
 ```
-- **功能**: 取消支付
-- **参数**: `paymentId` - 支付ID
-- **事件**: `PaymentCancelled`
-- **错误**: `PaymentAlreadyCancelled` - 已取消
-- **测试代码**:
+- **鍔熻兘**: 鍙栨秷鏀粯
+- **鍙傛暟**: `paymentId` - 鏀粯ID
+- **浜嬩欢**: `PaymentCancelled`
+- **閿欒**: `PaymentAlreadyCancelled` - 宸插彇娑?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 await vault.cancelPayment(paymentId)
     .send({ from: signerAddress });
@@ -772,17 +772,17 @@ await vault.cancelPayment(paymentId)
 
 ---
 
-#### 签名者管理
+#### 绛惧悕鑰呯鐞?
 
 ##### addSigner(address newSigner)
 ```solidity
 function addSigner(address newSigner) external onlySigner;
 ```
-- **功能**: 添加签名者
-- **参数**: `newSigner` - 新签名者地址(hex格式)
-- **事件**: `SignerAdded`
-- **错误**: `SignerAlreadyExists` - 签名者已存在
-- **测试代码**:
+- **鍔熻兘**: 娣诲姞绛惧悕鑰?
+- **鍙傛暟**: `newSigner` - 鏂扮鍚嶈€呭湴鍧€(hex鏍煎紡)
+- **浜嬩欢**: `SignerAdded`
+- **閿欒**: `SignerAlreadyExists` - 绛惧悕鑰呭凡瀛樺湪
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 await vault.addSigner('TNewSignerAddress...')
     .send({ from: signerAddress });
@@ -792,12 +792,12 @@ await vault.addSigner('TNewSignerAddress...')
 ```solidity
 function removeSigner(address signer) external onlySigner;
 ```
-- **功能**: 移除签名者
-- **参数**: `signer` - 签名者地址
-- **事件**: `SignerRemoved`
-- **错误**: `SignerNotFound` - 签名者不存在
-- **注意事项**: 移除签名者后需要更新阈值
-- **测试代码**:
+- **鍔熻兘**: 绉婚櫎绛惧悕鑰?
+- **鍙傛暟**: `signer` - 绛惧悕鑰呭湴鍧€
+- **浜嬩欢**: `SignerRemoved`
+- **閿欒**: `SignerNotFound` - 绛惧悕鑰呬笉瀛樺湪
+- **娉ㄦ剰浜嬮」**: 绉婚櫎绛惧悕鑰呭悗闇€瑕佹洿鏂伴槇鍊?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 await vault.removeSigner('TOldSignerAddress...')
     .send({ from: signerAddress });
@@ -807,54 +807,54 @@ await vault.removeSigner('TOldSignerAddress...')
 ```solidity
 function updateThreshold(uint256 newThreshold) external onlySigner;
 ```
-- **功能**: 更新签名阈值
-- **参数**: `newThreshold` - 新阈值（需1<=newThreshold<=signers.length）
-- **事件**: `ThresholdUpdated`
-- **错误**:
-  - `InvalidThreshold` - 阈值无效
-- **测试代码**:
+- **鍔熻兘**: 鏇存柊绛惧悕闃堝€?
+- **鍙傛暟**: `newThreshold` - 鏂伴槇鍊硷紙闇€1<=newThreshold<=signers.length锛?
+- **浜嬩欢**: `ThresholdUpdated`
+- **閿欒**:
+  - `InvalidThreshold` - 闃堝€兼棤鏁?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
-const newThreshold = 3; // 从2改为3
+const newThreshold = 3; // 浠?鏀逛负3
 await vault.updateThreshold(newThreshold)
     .send({ from: signerAddress });
 ```
 
 ---
 
-#### 查询函数
+#### 鏌ヨ鍑芥暟
 
-##### getSigners() - 获取签名者列表
+##### getSigners() - 鑾峰彇绛惧悕鑰呭垪琛?
 ```solidity
 function getSigners() external view returns (address[] memory)
 ```
-- **返回**: 所有签名者地址数组
+- **杩斿洖**: 鎵€鏈夌鍚嶈€呭湴鍧€鏁扮粍
 
-##### getPayment(uint256 paymentId) - 获取支付详情
+##### getPayment(uint256 paymentId) - 鑾峰彇鏀粯璇︽儏
 ```solidity
 function getPayment(uint256 paymentId) external view returns (...);
 ```
-- **返回**: 支付完整信息
+- **杩斿洖**: 鏀粯瀹屾暣淇℃伅
 
-##### hasApproved(address signer, uint256 paymentId) - 检查批准状态
+##### hasApproved(address signer, uint256 paymentId) - 妫€鏌ユ壒鍑嗙姸鎬?
 ```solidity
 function hasApproved(
     address signer,
     uint256 paymentId
 ) external view returns (bool);
 ```
-- **返回**: 是否已批准
+- **杩斿洖**: 鏄惁宸叉壒鍑?
 
 ---
 
-#### 安全控制
+#### 瀹夊叏鎺у埗
 
-##### pause() / unpause() - 暂停/恢复合约
+##### pause() / unpause() - 鏆傚仠/鎭㈠鍚堢害
 ```solidity
 function pause() external onlyGuardian;
 function unpause() external onlyGuardian;
 ```
-- **功能**: 暂停所有支付执行
-- **事件**: `VaultPaused`, `VaultUnpaused`
+- **鍔熻兘**: 鏆傚仠鎵€鏈夋敮浠樻墽琛?
+- **浜嬩欢**: `VaultPaused`, `VaultUnpaused`
 
 ##### requestEmergencyWithdrawal(address to, address token, uint256 amount)
 ```solidity
@@ -864,8 +864,8 @@ function requestEmergencyWithdrawal(
     uint256 amount
 ) external onlyGuardian;
 ```
-- **功能**: 请求紧急取款
-- **时间锁保护**: 24小时后才能执行
+- **鍔熻兘**: 璇锋眰绱ф€ュ彇娆?
+- **鏃堕棿閿佷繚鎶?*: 24灏忔椂鍚庢墠鑳芥墽琛?
 
 ##### executeEmergencyWithdrawal(...)
 ```solidity
@@ -879,32 +879,32 @@ function executeEmergencyWithdrawal(
 
 ---
 
-#### 配置管理
+#### 閰嶇疆绠＄悊
 
-##### addSupportedToken(address token) - 添加支持代币
+##### addSupportedToken(address token) - 娣诲姞鏀寔浠ｅ竵
 ```solidity
 function addSupportedToken(address token) external onlyOwner;
 ```
 
-##### removeSupportedToken(address token) - 移除支持代币
+##### removeSupportedToken(address token) - 绉婚櫎鏀寔浠ｅ竵
 ```solidity
 function removeSupportedToken(address token) external onlyOwner;
 ```
 
-##### updateTimelock(uint256 newTimelock) - 更新时间锁
+##### updateTimelock(uint256 newTimelock) - 鏇存柊鏃堕棿閿?
 ```solidity
 function updateTimelock(uint256 newTimelock) external onlyOwner;
 ```
-- **限制**: 最大7天 (604800秒)
+- **闄愬埗**: 鏈€澶?澶?(604800绉?
 
-##### updateDailyLimit(uint256 newLimit) - 更新每日限额
+##### updateDailyLimit(uint256 newLimit) - 鏇存柊姣忔棩闄愰
 ```solidity
 function updateDailyLimit(uint256 newLimit) external onlyOwner;
 ```
 
 ---
 
-### 完整测试代码
+### 瀹屾暣娴嬭瘯浠ｇ爜
 
 ```javascript
 const { TronWeb } = require('tronweb');
@@ -930,10 +930,10 @@ async function testVault() {
 
     const vault = await tronWeb.contract(vaultABI, VAULT_ADDRESS);
 
-    console.log('=== TronPaymentVault 测试 ===\n');
+    console.log('=== TronPaymentVault 娴嬭瘯 ===\n');
 
-    // 1. 查询基础信息
-    console.log('1. 基础信息:');
+    // 1. 鏌ヨ鍩虹淇℃伅
+    console.log('1. 鍩虹淇℃伅:');
     const threshold = await vault.threshold().call();
     console.log('   Threshold:', threshold.toString());
 
@@ -946,8 +946,8 @@ async function testVault() {
     const signers = await vault.getSigners().call();
     console.log('   Signers:', signers);
 
-    // 2. 提议支付
-    console.log('\n2. 提议支付:');
+    // 2. 鎻愯鏀粯
+    console.log('\n2. 鎻愯鏀粯:');
     const recipient = 'TRecipientAddress...';
     const amount = '1000000'; // 1 USDT
 
@@ -962,8 +962,8 @@ async function testVault() {
     const [paymentId, , , , ] = Object.values(proposeTx);
     console.log('   Payment ID:', paymentId);
 
-    // 3. 获取支付详情
-    console.log('\n3. 支付详情:');
+    // 3. 鑾峰彇鏀粯璇︽儏
+    console.log('\n3. 鏀粯璇︽儏:');
     const payment = await vault.payment(paymentId);
     console.log('   Token:', payment.token);
     console.log('   To:', payment.to);
@@ -971,17 +971,17 @@ async function testVault() {
     console.log('   Approvals:', Number(BigInt(payment.approvalCount)), '/', threshold);
     console.log('   Executed:', payment.executed);
 
-    // 4. 第二个签名者批准
-    console.log('\n4. 批准支付 (签名者2):');
+    // 4. 绗簩涓鍚嶈€呮壒鍑?
+    console.log('\n4. 鎵瑰噯鏀粯 (绛惧悕鑰?):');
     await vault.approvePayment(paymentId)
         .send({ from: 'TSigner2...', shouldPollResponse: true });
 
-    // 5. 等待时间锁（测试时使用时间跳过）
-    console.log('\n5. 等待时间锁...');
-    // 实际生产环境需要等待24小时
+    // 5. 绛夊緟鏃堕棿閿侊紙娴嬭瘯鏃朵娇鐢ㄦ椂闂磋烦杩囷級
+    console.log('\n5. 绛夊緟鏃堕棿閿?..');
+    // 瀹為檯鐢熶骇鐜闇€瑕佺瓑寰?4灏忔椂
 
-    // 6. 执行支付
-    console.log('\n6. 执行支付:');
+    // 6. 鎵ц鏀粯
+    console.log('\n6. 鎵ц鏀粯:');
     try {
         const execTx = await vault.executePayment(paymentId)
             .send({ from: signer1, shouldPollResponse: true });
@@ -990,42 +990,42 @@ async function testVault() {
         console.log('   Note: Cannot execute - timelock not expired yet');
     }
 
-    // 7. 测试查询函数
-    console.log('\n7. 查询函数:');
+    // 7. 娴嬭瘯鏌ヨ鍑芥暟
+    console.log('\n7. 鏌ヨ鍑芥暟:');
     const approved = await vault.hasApproved(signer1, paymentId);
     console.log('   Signer1 approved:', approved);
 
     const nextId = await vault.nextPaymentId().call();
     console.log('   Next Payment ID:', nextId.toString());
 
-    console.log('\n✅ TronPaymentVault测试完成!');
+    console.log('\n鉁?TronPaymentVault娴嬭瘯瀹屾垚!');
 }
 ```
 
 ---
 
-## TronPaymentSplitter.sol - 自动分账合约
+## TronPaymentSplitter.sol - 鑷姩鍒嗚处鍚堢害
 
-### 文件位置
+### 鏂囦欢浣嶇疆
 `contracts/contracts/tron/TronPaymentSplitter.sol`
 
-### 合约地址
+### 鍚堢害鍦板潃
 - **Nile Testnet**: `TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z`
 - **TRONScan**: https://nile.tronscan.org/#/contract/TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z
 
-### 合约功能
-自动将接收的TRC20代币分发给多个受益人，支持三种分账模式。
+### 鍚堢害鍔熻兘
+鑷姩灏嗘帴鏀剁殑TRC20浠ｅ竵鍒嗗彂缁欏涓彈鐩婁汉锛屾敮鎸佷笁绉嶅垎璐︽ā寮忋€?
 
-### 接口说明
+### 鎺ュ彛璇存槑
 
-#### 构造函数
+#### 鏋勯€犲嚱鏁?
 ```solidity
 constructor(address _owner, address[] memory _supportedTokens)
 ```
-- **参数**:
-  - `_owner` - 所有者地址
-  - `_supportedTokens` - 支持的代币地址数组
-- **部署代码**:
+- **鍙傛暟**:
+  - `_owner` - 鎵€鏈夎€呭湴鍧€
+  - `_supportedTokens` - 鏀寔鐨勪唬甯佸湴鍧€鏁扮粍
+- **閮ㄧ讲浠ｇ爜**:
 ```javascript
 const splitter = await tronWeb.contract(SPLITTER_ABI, bytecode);
 const tx = await splitter.deploy(
@@ -1036,7 +1036,7 @@ const tx = await splitter.deploy(
 
 ---
 
-#### 分账管理
+#### 鍒嗚处绠＄悊
 
 ##### createSplit(address token, SplitMode mode, uint256 minAmount, Beneficiary[] memory beneficiaries)
 ```solidity
@@ -1047,20 +1047,20 @@ function createSplit(
     Beneficiary[] memory beneficiaries
 ) external onlyOwner returns (uint256 splitId)
 ```
-- **功能**: 创建分账配置
-- **参数**:
-  - `token` - TRC20代币地址
-  - `mode` - 分账模式 (0=百分比, 1=固定金额, 2=分层)
-  - `minAmount` - 最小分账金额
-  - `beneficiaries` - 受益人数组
-- **返回值**: 分账ID
-- **分账模式说明**:
-  - `Percentage`: 按百分比分配，总和为10000
-  - `Fixed`: 每个受益人固定金额
-  - `Tiered`: 按层级分配比例
-- **测试代码**:
+- **鍔熻兘**: 鍒涘缓鍒嗚处閰嶇疆
+- **鍙傛暟**:
+  - `token` - TRC20浠ｅ竵鍦板潃
+  - `mode` - 鍒嗚处妯″紡 (0=鐧惧垎姣? 1=鍥哄畾閲戦, 2=鍒嗗眰)
+  - `minAmount` - 鏈€灏忓垎璐﹂噾棰?
+  - `beneficiaries` - 鍙楃泭浜烘暟缁?
+- **杩斿洖鍊?*: 鍒嗚处ID
+- **鍒嗚处妯″紡璇存槑**:
+  - `Percentage`: 鎸夌櫨鍒嗘瘮鍒嗛厤锛屾€诲拰涓?0000
+  - `Fixed`: 姣忎釜鍙楃泭浜哄浐瀹氶噾棰?
+  - `Tiered`: 鎸夊眰绾у垎閰嶆瘮渚?
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
-// 百分比分账示例
+// 鐧惧垎姣斿垎璐︾ず渚?
 const beneficiaries = [
     ['TAddress1...', 6000, 0, 0],  // 60%
     ['TAddress2...', 4000, 0, 0]   // 40%
@@ -1068,8 +1068,8 @@ const beneficiaries = [
 
 const splitId = await splitter.createSplit(
     'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
-    0,  // Percentage模式
-    '1000000',  // 最小1 USDT
+    0,  // Percentage妯″紡
+    '1000000',  // 鏈€灏? USDT
     beneficiaries
 ).send({ from: ownerAddress });
 
@@ -1083,17 +1083,17 @@ function executeSplit(
     uint256 amount
 ) external validSplit(splitId);
 ```
-- **功能**: 执行分账
-- **参数**:
-  - `splitId` - 分账ID
-  - `amount` - 分账金额
-- **前置条件**:
-  - 分账存在且未暂停
-  - 金额 >= minAmount
-- **错误**:
-  - `InvalidSplitId` - 分账ID无效
-  - `AmountBelowMinimum` - 金额低于最小值
-  - `AlreadyPaused` - 分账已暂停
+- **鍔熻兘**: 鎵ц鍒嗚处
+- **鍙傛暟**:
+  - `splitId` - 鍒嗚处ID
+  - `amount` - 鍒嗚处閲戦
+- **鍓嶇疆鏉′欢**:
+  - 鍒嗚处瀛樺湪涓旀湭鏆傚仠
+  - 閲戦 >= minAmount
+- **閿欒**:
+  - `InvalidSplitId` - 鍒嗚处ID鏃犳晥
+  - `AmountBelowMinimum` - 閲戦浣庝簬鏈€灏忓€?
+  - `AlreadyPaused` - 鍒嗚处宸叉殏鍋?
 
 ##### pauseSplit(uint256 splitId) / unpauseSplit(uint256 splitId)
 ```solidity
@@ -1103,7 +1103,7 @@ function unpauseSplit(uint256 splitId) external onlyOwner;
 
 ---
 
-#### 受益人管理
+#### 鍙楃泭浜虹鐞?
 
 ##### addBeneficiary(uint256 splitId, Beneficiary memory beneficiary)
 ```solidity
@@ -1114,36 +1114,36 @@ function addBeneficiary(
 ```
 
 ##### updateBeneficiary(...)
-- 修改单个受益人配置
+- 淇敼鍗曚釜鍙楃泭浜洪厤缃?
 
 ##### removeBeneficiary(uint256 splitId, address beneficiaryAddress)
-- 移除受益人
+- 绉婚櫎鍙楃泭浜?
 
 ---
 
-#### 查询函数
+#### 鏌ヨ鍑芥暟
 
-##### getSplit(uint256 splitId) - 获取分账详情
+##### getSplit(uint256 splitId) - 鑾峰彇鍒嗚处璇︽儏
 ```solidity
 function getSplit(uint256 splitId) external view returns (...);
 ```
 
-##### getBeneficiaries(uint256 splitId) - 获取受益人列表
+##### getBeneficiaries(uint256 splitId) - 鑾峰彇鍙楃泭浜哄垪琛?
 ```solidity
 function getBeneficiaries(uint256 splitId) external view returns (...);
 ```
 
-##### calculateDistribution(uint256 splitId, uint256 amount) - 计算分配
+##### calculateDistribution(uint256 splitId, uint256 amount) - 璁＄畻鍒嗛厤
 ```solidity
 function calculateDistribution(uint256 splitId, uint256 amount)
     external view returns (uint256[] memory shares);
 ```
 
-##### getAllSplits() - 获取所有分账
+##### getAllSplits() - 鑾峰彇鎵€鏈夊垎璐?
 
 ---
 
-### 完整测试代码
+### 瀹屾暣娴嬭瘯浠ｇ爜
 
 ```javascript
 const { TronWeb } = require('tronweb');
@@ -1169,10 +1169,10 @@ async function testSplitter() {
 
     const splitter = await tronWeb.contract(splitterABI, SPLITTER_ADDRESS);
 
-    console.log('=== TronPaymentSplitter 测试 ===\n');
+    console.log('=== TronPaymentSplitter 娴嬭瘯 ===\n');
 
-    // 1. 创建百分比分账
-    console.log('1. 创建百分比分账:');
+    // 1. 鍒涘缓鐧惧垎姣斿垎璐?
+    console.log('1. 鍒涘缓鐧惧垎姣斿垎璐?');
     const beneficiaries = [
         [owner, 6000, 0, 0],       // 60%
         ['TAddress2...', 4000, 0, 0]     // 40%
@@ -1188,15 +1188,15 @@ async function testSplitter() {
     console.log('   Tx:', splitId);
     console.log('   Split ID:', Object.values(splitId)[0]);
 
-    // 2. 获取分账详情
-    console.log('\n2. 分账详情:');
+    // 2. 鑾峰彇鍒嗚处璇︽儏
+    console.log('\n2. 鍒嗚处璇︽儏:');
     const split = await splitter.splits(1);
     console.log('   Token:', split.token);
     console.log('   Mode:', split.mode); // 0=Percentage
     console.log('   Min Amount:', (Number(BigInt(split.minAmount)) / 1e6).toLocaleString(), 'USDT');
 
-    // 3. 获取受益人列表
-    console.log('\n3. 受益人列表:');
+    // 3. 鑾峰彇鍙楃泭浜哄垪琛?
+    console.log('\n3. 鍙楃泭浜哄垪琛?');
     const beneficiariesList = await splitter.getBeneficiaries(1).call();
     beneficiariesList.forEach((b, i) => {
         console.log(`   ${i + 1}. Account: ${b[0]}`);
@@ -1204,16 +1204,16 @@ async function testSplitter() {
         console.log(`      Active: ${b[3]}`);
     });
 
-    // 4. 计算分配
-    console.log('\n4. 计算分配:');
+    // 4. 璁＄畻鍒嗛厤
+    console.log('\n4. 璁＄畻鍒嗛厤:');
     const distribution = await splitter.calculateDistribution(1, '10000000').call();
-    console.log('   Total: 10 USDT 分配如下:');
+    console.log('   Total: 10 USDT 鍒嗛厤濡備笅:');
     distribution.forEach((share, i) => {
         console.log(`      Beneficiary ${i + 1}: ${(Number(BigInt(share)) / 1e6).toLocaleString()} USDT`);
     });
 
-    // 5. 测试暂停/恢复
-    console.log('\n5. 暂停/恢复分账:');
+    // 5. 娴嬭瘯鏆傚仠/鎭㈠
+    console.log('\n5. 鏆傚仠/鎭㈠鍒嗚处:');
     await splitter.pauseSplit(1)
         .send({ from: owner, shouldPollResponse: true });
 
@@ -1225,10 +1225,10 @@ async function testSplitter() {
 
     console.log('   Unpaused');
 
-    // 6. 添加新受益人
-    console.log('\n6. 添加受益人:');
+    // 6. 娣诲姞鏂板彈鐩婁汉
+    console.log('\n6. 娣诲姞鍙楃泭浜?');
     const newBeneficiary = [
-        'TAddress3...',  // 新的受益人
+        'TAddress3...',  // 鏂扮殑鍙楃泭浜?
         2000,            // 20%
         0,               // 0 USDT
         0                // Tier 0
@@ -1239,27 +1239,27 @@ async function testSplitter() {
 
     console.log('   Added new beneficiary (20%)');
 
-    console.log('\n✅ TronPaymentSplitter测试完成!');
+    console.log('\n鉁?TronPaymentSplitter娴嬭瘯瀹屾垚!');
 }
 ```
 
 ---
 
-## TronYieldAggregator.sol - 收益聚合器
+## TronYieldAggregator.sol - 鏀剁泭鑱氬悎鍣?
 
-### 文件位置
+### 鏂囦欢浣嶇疆
 `contracts/contracts/tron/TronYieldAggregator.sol`
 
-### 合约地址
+### 鍚堢害鍦板潃
 - **Nile Testnet**: `TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy`
 - **TRONScan**: https://nile.tronscan.org/#/contract/TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy
 
-### 合约功能
-自动将闲置资金存入JustLend赚取利息，支持实时APY查询、收益分配和灵活提现。
+### 鍚堢害鍔熻兘
+鑷姩灏嗛棽缃祫閲戝瓨鍏ustLend璧氬彇鍒╂伅锛屾敮鎸佸疄鏃禔PY鏌ヨ銆佹敹鐩婂垎閰嶅拰鐏垫椿鎻愮幇銆?
 
-### 接口说明
+### 鎺ュ彛璇存槑
 
-#### 构造函数
+#### 鏋勯€犲嚱鏁?
 ```solidity
 constructor(
     address _justLend,
@@ -1269,16 +1269,16 @@ constructor(
     address[] memory _initialJTokens
 )
 ```
-- **参数**:
-  - `_justLend` - JustLend协议地址
-  - `_unitroller` - Unitroller地址
-  - `_oracle` - 价格预言机地址
-  - `_initialTokens` - 初始支持的代币
-  - `_initialJTokens` - 初始jToken地址
+- **鍙傛暟**:
+  - `_justLend` - JustLend鍗忚鍦板潃
+  - `_unitroller` - Unitroller鍦板潃
+  - `_oracle` - 浠锋牸棰勮█鏈哄湴鍧€
+  - `_initialTokens` - 鍒濆鏀寔鐨勪唬甯?
+  - `_initialJTokens` - 鍒濆jToken鍦板潃
 
 ---
 
-#### 存取款操作
+#### 瀛樺彇娆炬搷浣?
 
 ##### deposit(address token, uint256 amount)
 ```solidity
@@ -1288,16 +1288,16 @@ function deposit(address token, uint256 amount)
     whenDepositsNotPaused
     returns (uint256 principal)
 ```
-- **功能**: 存入代币，自动质押到JustLend
-- **参数**:
-  - `token` - TRC20代币地址
-  - `amount` - 存入数量
-- **返回值**: 获得的jToken数量（即本金）
-- **事件**: `Deposited`
-- **错误**:
-  - `InvalidAddress` - 地址无效
-  - `InvalidAmount` - 金额为0
-  - `TokenNotSupported` - 代币不支持
+- **鍔熻兘**: 瀛樺叆浠ｅ竵锛岃嚜鍔ㄨ川鎶煎埌JustLend
+- **鍙傛暟**:
+  - `token` - TRC20浠ｅ竵鍦板潃
+  - `amount` - 瀛樺叆鏁伴噺
+- **杩斿洖鍊?*: 鑾峰緱鐨刯Token鏁伴噺锛堝嵆鏈噾锛?
+- **浜嬩欢**: `Deposited`
+- **閿欒**:
+  - `InvalidAddress` - 鍦板潃鏃犳晥
+  - `InvalidAmount` - 閲戦涓?
+  - `TokenNotSupported` - 浠ｅ竵涓嶆敮鎸?
 
 ##### withdraw(address token, uint256 amount)
 ```solidity
@@ -1311,19 +1311,19 @@ function withdraw(address token, uint256 amount)
         uint256 interestAmount
     )
 ```
-- **功能**: 提现代币，自动计算本金vs利息
-- **参数**:
-  - `token` - TRC20代币地址
-  - `amount` - 提取数量（0=全部）
-- **返回值**:
-  - `withdrawnAmount` - 实际提取数量
-  - `principalAmount` - 本金数量
-  - `interestAmount` - 利息数量
-- **事件**: `Withdrawn`
+- **鍔熻兘**: 鎻愮幇浠ｅ竵锛岃嚜鍔ㄨ绠楁湰閲憊s鍒╂伅
+- **鍙傛暟**:
+  - `token` - TRC20浠ｅ竵鍦板潃
+  - `amount` - 鎻愬彇鏁伴噺锛?=鍏ㄩ儴锛?
+- **杩斿洖鍊?*:
+  - `withdrawnAmount` - 瀹為檯鎻愬彇鏁伴噺
+  - `principalAmount` - 鏈噾鏁伴噺
+  - `interestAmount` - 鍒╂伅鏁伴噺
+- **浜嬩欢**: `Withdrawn`
 
 ---
 
-#### 余额查询
+#### 浣欓鏌ヨ
 
 ##### getMerchantBalance(address merchant, address token)
 ```solidity
@@ -1331,12 +1331,12 @@ function getMerchantBalance(address merchant, address token)
     external
     view
     returns (
-        uint256 balance,      // 总余额（本金+利息）
-        uint256 principal,       // 本金
-        uint256 interest        // 累积利息
+        uint256 balance,      // 鎬讳綑棰濓紙鏈噾+鍒╂伅锛?
+        uint256 principal,       // 鏈噾
+        uint256 interest        // 绱Н鍒╂伅
     )
 ```
-- **测试代码**:
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const vault = await tronWeb.contract(AGGREGATOR_ABI, AGGREGATOR_ADDRESS);
 const [balance, principal, interest] = vault.getMerchantBalance(
@@ -1350,21 +1350,21 @@ console.log('Interest:', (Number(interest) / 1e6).toLocaleString(), 'USDT');
 ```
 
 ##### getMerchantBalanceIncludingAccrued(address merchant, address token) -
-包括应计利息
+鍖呮嫭搴旇鍒╂伅
 
-##### getTokenAPY(address token) - 获取代币APY
+##### getTokenAPY(address token) - 鑾峰彇浠ｅ竵APY
 ```solidity
 function getTokenAPY(address token)
     external view
     returns (
-        uint256 apy,            // APY (scaled by 1e16, 如 5,000,000,000 = 5.00%)
-        uint256 exchangeRate // jToken汇率
+        uint256 apy,            // APY (scaled by 1e16, 濡?5,000,000,000 = 5.00%)
+        uint256 exchangeRate // jToken姹囩巼
     )
 ```
 
 ---
 
-#### 收益分配
+#### 鏀剁泭鍒嗛厤
 
 ##### setYieldRecipients(...)
 ```solidity
@@ -1373,7 +1373,7 @@ function setYieldRecipients(
     YieldRecipient[] memory recipients
 ) external onlyOwner
 ```
-- **测试代码**:
+- **娴嬭瘯浠ｇ爜**:
 ```javascript
 const recipients = [
     ['TAddress1', 6000, 0],
@@ -1394,32 +1394,32 @@ function distributeYield(
 
 ---
 
-#### 管理功能
+#### 绠＄悊鍔熻兘
 
-##### addToken(...) / removeToken(...) - 代币管理
-##### toggleAutoCompound(bool enabled) - 切换自动复利
-##### pauseDeposits() / unpauseDeposits() - 暂停/恢复存款
-##### pauseWithdrawals() / unpauseWithdrawals() - 暂停/恢复提现
-##### updateAPY(address token, uint256 apy) - 更新APY
+##### addToken(...) / removeToken(...) - 浠ｅ竵绠＄悊
+##### toggleAutoCompound(bool enabled) - 鍒囨崲鑷姩澶嶅埄
+##### pauseDeposits() / unpauseDeposits() - 鏆傚仠/鎭㈠瀛樻
+##### pauseWithdrawals() / unpauseWithdrawals() - 鏆傚仠/鎭㈠鎻愮幇
+##### updateAPY(address token, uint256 apy) - 鏇存柊APY
 
 ---
 
-#### 查询函数
+#### 鏌ヨ鍑芥暟
 
-##### getSupportedTokens() - 获取支持的代币列表
+##### getSupportedTokens() - 鑾峰彇鏀寔鐨勪唬甯佸垪琛?
 ```solidity
 function getSupportedTokens() external view returns (address[] memory);
 ```
 
-##### getTokenBalance(address token) - 获取合约代币余额
+##### getTokenBalance(address token) - 鑾峰彇鍚堢害浠ｅ竵浣欓
 
-##### getTotalDeposits(address token) - 获取总存款
+##### getTotalDeposits(address token) - 鑾峰彇鎬诲瓨娆?
 
-##### getTotalInterest(address token) - 获取总利息
+##### getTotalInterest(address token) - 鑾峰彇鎬诲埄鎭?
 
-##### getTVL() - 获取总锁仓量(TVL)
+##### getTVL() - 鑾峰彇鎬婚攣浠撻噺(TVL)
 
-##### getStats() - 获取合约统计
+##### getStats() - 鑾峰彇鍚堢害缁熻
 ```solidity
 function getStats()
     external
@@ -1436,7 +1436,7 @@ function getStats()
 
 ---
 
-### 完整测试代码
+### 瀹屾暣娴嬭瘯浠ｇ爜
 
 ```javascript
 const { TronWeb } = require('tronweb');
@@ -1461,18 +1461,18 @@ async function testYieldAggregator() {
 
     const aggregator = await tronWeb.contract(aggregatorABI, AGGREGATOR_ADDRESS);
 
-    console.log('=== TronYieldAggregator 测试 ===\n');
+    console.log('=== TronYieldAggregator 娴嬭瘯 ===\n');
 
-    // 1. 基础配置
-    console.log('1. 合约配置:');
+    // 1. 鍩虹閰嶇疆
+    console.log('1. 鍚堢害閰嶇疆:');
     const owner = await aggregator.owner().call();
     console.log('   Owner:', owner);
 
     const autoCompound = await aggregator.autoCompoundEnabled().call();
     console.log('   Auto Compound:', autoCompound);
 
-    // 2. 支持的代币
-    console.log('\n2. 支持的代币:');
+    // 2. 鏀寔鐨勪唬甯?
+    console.log('\n2. 鏀寔鐨勪唬甯?');
     const tokens = await aggregator.getSupportedTokens().call();
     tokens.forEach((token, i) => {
         console.log(`  ${i + 1}. ${token}`);
@@ -1481,8 +1481,8 @@ async function testYieldAggregator() {
     if (tokens.length > 0) {
         const usdtAddress = tokens[0];
 
-        // 3. 商户余额
-        console.log('\n3. 商户余额:');
+        // 3. 鍟嗘埛浣欓
+        console.log('\n3. 鍟嗘埛浣欓:');
         const [total, principal, interest] = await aggregator.getMerchantBalance(
             merchant,
             usdtAddress
@@ -1493,21 +1493,21 @@ async function testYieldAggregator() {
         console.log(`   Interest: ${(Number(interest) / 1e6).toLocaleString()} USDT`);
         console.log(`   Active: ${(Number(total) > 0)}`);
 
-        // 4. APY查询
-        console.log('\n4. APY信息:');
+        // 4. APY鏌ヨ
+        console.log('\n4. APY淇℃伅:');
         const [apy, exchangeRate] = await aggregator.getTokenAPY(usdtAddress).call();
         console.log(`   APY: ${(Number(apy) / 1e14).toFixed(2)}%`); // 1e16 = 10000 * 1e14 = 100%
         console.log(`   Exchange Rate: ${(Number(exchangeRate) / 1e18).toFixed(6)}`);
 
-        // 5. 合约统计
-        console.log('\n5. 合约统计:');
+        // 5. 鍚堢害缁熻
+        console.log('\n5. 鍚堢害缁熻:');
         const stats = await aggregator.getStats().call();
         console.log('   Active Merchants:', Number(BigInt(stats[0])));
         console.log('   Supported Tokens:', Number(BigInt(stats[1])));
         console.log('   TVL:', (Number(BigInt(stats[2])) / 1e18).toLocaleString(), 'USD');
 
-        // 6. 测试自动复利开关
-        console.log('\n6. 自动复利开关:');
+        // 6. 娴嬭瘯鑷姩澶嶅埄寮€鍏?
+        console.log('\n6. 鑷姩澶嶅埄寮€鍏?');
         console.log('   Current:', autoCompound);
         await aggregator.toggleAutoCompound(false).send({
             from: merchant,
@@ -1517,8 +1517,8 @@ async function testYieldAggregator() {
         const off = await aggregator.autoCompoundEnabled().call();
         console.log('   After toggle:', off);
 
-        // 暂停/恢复
-        console.log('\n7. 暂停/恢复:');
+        // 鏆傚仠/鎭㈠
+        console.log('\n7. 鏆傚仠/鎭㈠:');
         await aggregator.pauseDeposits().send({ from: merchant });
         console.log('   Deposits Paused');
 
@@ -1526,48 +1526,48 @@ async function testYieldAggregator() {
         console.log('   Verification:', depositPaused === true);
     }
 
-    console.log('\n✅ TronYieldAggregator测试完成!');
+    console.log('\n鉁?TronYieldAggregator娴嬭瘯瀹屾垚!');
 }
 ```
 
 ---
 
-## 使用指南
+## 浣跨敤鎸囧崡
 
-### 快速开始
+### 蹇€熷紑濮?
 
 ```bash
-# 1. 编译所有TRON合约
+# 1. 缂栬瘧鎵€鏈塗RON鍚堢害
 npm run tron:compile
 
-# 2. 部署到Nile测试网
-node scripts/deploy-tron-simple.js        # 多签金库
-node scripts/deploy-splitter.js         # 自动分账
-node scripts/deploy-yield-aggregator.js   # 收益聚合器
+# 2. 閮ㄧ讲鍒癗ile娴嬭瘯缃?
+node scripts/deploy-tron-simple.js        # 澶氱閲戝簱
+node scripts/deploy-splitter.js         # 鑷姩鍒嗚处
+node scripts/deploy-yield-aggregator.js   # 鏀剁泭鑱氬悎鍣?
 
-# 3. 测试已部署的合约
-node scripts/test-vault-final.js      # 测试多签金库
-node scripts/test-splitter-simple.js    # 测试自动分账
-node scripts/test-yield-basic.js       # 测试收益聚合器
+# 3. 娴嬭瘯宸查儴缃茬殑鍚堢害
+node scripts/test-vault-final.js      # 娴嬭瘯澶氱閲戝簱
+node scripts/test-splitter-simple.js    # 娴嬭瘯鑷姩鍒嗚处
+node scripts/test-yield-basic.js       # 娴嬭瘯鏀剁泭鑱氬悎鍣?
 ```
 
-### 常用命令
+### 甯哥敤鍛戒护
 
-#### 查看合约状态
+#### 鏌ョ湅鍚堢害鐘舵€?
 ```javascript
 const tronWeb = new TronWeb({
     fullNode: 'https://nile.trongrid.io'
 });
 
-// 连接合约
+// 杩炴帴鍚堢害
 const vault = await tronWeb.contract(VAULT_ABI, VAULT_ADDRESS);
 
-// 查询状态
+// 鏌ヨ鐘舵€?
 const threshold = await vault.threshold().call();
 const balance = await vault.nextPaymentId().call();
 ```
 
-#### 监听事件
+#### 鐩戝惉浜嬩欢
 ```javascript
 vault.events.PaymentProposed()
     .on('data', (event) => {
@@ -1575,36 +1575,36 @@ vault.events.PaymentProposed()
     });
 ```
 
-### 安全最佳实践
+### 瀹夊叏鏈€浣冲疄璺?
 
-1. **多签配置**
-   - 至少3个签名者
-   - 阈值: 2/3 或 3/5
-   - 签名者分散存储
+1. **澶氱閰嶇疆**
+   - 鑷冲皯3涓鍚嶈€?
+   - 闃堝€? 2/3 鎴?3/5
+   - 绛惧悕鑰呭垎鏁ｅ瓨鍌?
 
-2. **时间锁设置**
-   - 小额: 1-4小时
-   - 中额: 24小时
-   - 额: 3-7天
+2. **鏃堕棿閿佽缃?*
+   - 灏忛: 1-4灏忔椂
+   - 涓: 24灏忔椂
+   - 棰? 3-7澶?
 
-3. **每日限额**
-   - 小型团队: 1,000 - 5,000 USDT
-   - 中型团队: 10,000 - 50,000 USDT
-   - 大型企业: 100,000 - 500,000 USDT
+3. **姣忔棩闄愰**
+   - 灏忓瀷鍥㈤槦: 1,000 - 5,000 USDT
+   - 涓瀷鍥㈤槦: 10,000 - 50,000 USDT
+   - 澶у瀷浼佷笟: 100,000 - 500,000 USDT
 
-4. **测试环境**
-   - 使用Nile测试网进行测试
-   - 小额测试，逐步增加金额
-   - 验证所有功能后再部署到主网
+4. **娴嬭瘯鐜**
+   - 浣跨敤Nile娴嬭瘯缃戣繘琛屾祴璇?
+   - 灏忛娴嬭瘯锛岄€愭澧炲姞閲戦
+   - 楠岃瘉鎵€鏈夊姛鑳藉悗鍐嶉儴缃插埌涓荤綉
 
-### TRON资源管理
+### TRON璧勬簮绠＄悊
 
-#### Energy获取
+#### Energy鑾峰彇
 ```javascript
-// 冻结TRX获取Energy（1000 TRX冻结3天 = 30000 Energy）
+// 鍐荤粨TRX鑾峰彇Energy锛?000 TRX鍐荤粨3澶?= 30000 Energy锛?
 const freezeTx = await tronWeb.transactionBuilder.freezeBalance(
-    1000,     // 金额
-    3,         // 天数
+    1000,     // 閲戦
+    3,         // 澶╂暟
     "ENERGY",
     tronWeb.defaultAddress.base58
 );
@@ -1613,9 +1613,9 @@ const signedTx = await tronWeb.trx.sign(freezeTx);
 const result = await tronWeb.trx.sendRawTransaction(signedTx);
 ```
 
-#### Bandwidth获取
+#### Bandwidth鑾峰彇
 ```javascript
-// 冻结TRX获取Bandwidth
+// 鍐荤粨TRX鑾峰彇Bandwidth
 const freezeTx = await tronWeb.transactionBuilder.freezeBalance(
     1000,
     3,
@@ -1626,36 +1626,36 @@ const freezeTx = await tronWeb.transactionBuilder.freezeBalance(
 
 ---
 
-## 附录
+## 闄勫綍
 
-### A. 合约地址汇总
+### A. 鍚堢害鍦板潃姹囨€?
 
-| 合约 | Nile测试网地址 | TRONScan链接 |
+| 鍚堢害 | Nile娴嬭瘯缃戝湴鍧€ | TRONScan閾炬帴 |
 |------|-----------|--------------|
-| TronPaymentVault | `TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM` | [链接](https://nile.tronscan.org/#/contract/TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM) |
-| TronPaymentSplitter | `TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z` | [链接](https://nile.tronscan.org/#/contract/TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z) |
-| TronYieldAggregator | `TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy` | [链接](https://nile.tronscan.org/#/contract/TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy) |
+| TronPaymentVault | `TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM` | [閾炬帴](https://nile.tronscan.org/#/contract/TSrRLNoyJmVNZMg6jA8hUzABxHA1ZBFGM) |
+| TronPaymentSplitter | `TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z` | [閾炬帴](https://nile.tronscan.org/#/contract/TDJwns4C2Frp4wVnrqyz4Ud6SYoxc9nk7Z) |
+| TronYieldAggregator | `TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy` | [閾炬帴](https://nile.tronscan.org/#/contract/TC6bpE1t1EderDzXZq1nuRDf8QRhQHgkgy) |
 
-### B. 常用地址
+### B. 甯哥敤鍦板潃
 
-| 网络 | RPC URL | 水龙头 |
+| 缃戠粶 | RPC URL | 姘撮緳澶?|
 |------|---------|--------|
 | Nile Testnet | https://nile.trongrid.io | https://nileex.io/join/getJoinPage |
 | Mainnet | https://api.trongrid.io | https://tronscan.org |
 
-### C. 技术参考
+### C. 鎶€鏈弬鑰?
 
-- [TRON开发文档](https://developers.tron.network)
+- [TRON寮€鍙戞枃妗(https://developers.tron.network)
 - [TronGrid API](https://www.trongrid.io/dashboard)
 - [TronWeb SDK](https://tronweb.network)
-- [Solidity文档](https://docs.soliditylang.org)
+- [Solidity鏂囨。](https://docs.soliditylang.org)
 - [OpenZeppelin](https://docs.openzeppelin.com)
 
-### D. 许可证
+### D. 璁稿彲璇?
 
-MIT License
+GPL-3.0-only License
 
 ---
 
-**文档版本**: v1.0.0
-**最后更新**: 2026-02-08
+**鏂囨。鐗堟湰**: v1.0.0
+**鏈€鍚庢洿鏂?*: 2026-02-08

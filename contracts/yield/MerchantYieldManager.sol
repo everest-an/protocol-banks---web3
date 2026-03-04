@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+﻿// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -8,15 +8,15 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 
 /**
  * @title MerchantYieldManager
- * @notice Aave V3 集成合约 - 商户闲置资金自动生息
+ * @notice Aave V3 闆嗘垚鍚堢害 - 鍟嗘埛闂茬疆璧勯噾鑷姩鐢熸伅
  *
- * 功能:
- * - 商户充值 USDT，自动存入 Aave V3 赚取利息
- * - 商户提现时连本带息一并提取
- * - 实时查询收益余额
- * - 支持多商户独立账户管理
+ * 鍔熻兘:
+ * - 鍟嗘埛鍏呭€?USDT锛岃嚜鍔ㄥ瓨鍏?Aave V3 璧氬彇鍒╂伅
+ * - 鍟嗘埛鎻愮幇鏃惰繛鏈甫鎭竴骞舵彁鍙?
+ * - 瀹炴椂鏌ヨ鏀剁泭浣欓
+ * - 鏀寔澶氬晢鎴风嫭绔嬭处鎴风鐞?
  *
- * 网络支持:
+ * 缃戠粶鏀寔:
  * - Ethereum Mainnet (Aave V3)
  * - Base (Aave V3)
  * - Arbitrum (Aave V3)
@@ -61,40 +61,40 @@ interface IAToken is IERC20 {
 }
 
 contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
-    // Aave V3 Pool 地址（不同网络需要不同地址）
+    // Aave V3 Pool 鍦板潃锛堜笉鍚岀綉缁滈渶瑕佷笉鍚屽湴鍧€锛?
     IPool public immutable aavePool;
 
-    // USDT 代币地址
+    // USDT 浠ｅ竵鍦板潃
     IERC20 public immutable usdt;
 
-    // aUSDT 代币地址 (Aave 利息代币)
+    // aUSDT 浠ｅ竵鍦板潃 (Aave 鍒╂伅浠ｅ竵)
     IAToken public immutable aUsdt;
 
-    // 商户本金记录 (merchant => principal amount)
+    // 鍟嗘埛鏈噾璁板綍 (merchant => principal amount)
     mapping(address => uint256) public merchantPrincipal;
 
-    // 商户最后一次操作时间
+    // 鍟嗘埛鏈€鍚庝竴娆℃搷浣滄椂闂?
     mapping(address => uint256) public lastOperationTime;
 
-    // 总存款统计
+    // 鎬诲瓨娆剧粺璁?
     uint256 public totalDeposits;
 
-    // 总提现统计
+    // 鎬绘彁鐜扮粺璁?
     uint256 public totalWithdrawals;
 
-    // 平台手续费率 (基点, 10000 = 100%)
+    // 骞冲彴鎵嬬画璐圭巼 (鍩虹偣, 10000 = 100%)
     uint256 public platformFeeRate = 500; // 5%
 
-    // 平台手续费接收地址
+    // 骞冲彴鎵嬬画璐规帴鏀跺湴鍧€
     address public feeCollector;
 
-    // 最小存款金额 (避免粉尘攻击)
+    // 鏈€灏忓瓨娆鹃噾棰?(閬垮厤绮夊皹鏀诲嚮)
     uint256 public constant MIN_DEPOSIT = 1e6; // 1 USDT (6 decimals)
 
-    // 最小提现金额
+    // 鏈€灏忔彁鐜伴噾棰?
     uint256 public constant MIN_WITHDRAWAL = 1e6; // 1 USDT
 
-    // 事件
+    // 浜嬩欢
     event Deposited(
         address indexed merchant,
         uint256 amount,
@@ -129,11 +129,11 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
     );
 
     /**
-     * @notice 构造函数
-     * @param _aavePool Aave V3 Pool 合约地址
-     * @param _usdt USDT 代币地址
-     * @param _aUsdt aUSDT 代币地址
-     * @param _feeCollector 手续费接收地址
+     * @notice 鏋勯€犲嚱鏁?
+     * @param _aavePool Aave V3 Pool 鍚堢害鍦板潃
+     * @param _usdt USDT 浠ｅ竵鍦板潃
+     * @param _aUsdt aUSDT 浠ｅ竵鍦板潃
+     * @param _feeCollector 鎵嬬画璐规帴鏀跺湴鍧€
      */
     constructor(
         address _aavePool,
@@ -153,62 +153,62 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice 商户存款 (自动存入 Aave 赚取利息)
-     * @param amount 存款金额 (USDT, 6 decimals)
+     * @notice 鍟嗘埛瀛樻 (鑷姩瀛樺叆 Aave 璧氬彇鍒╂伅)
+     * @param amount 瀛樻閲戦 (USDT, 6 decimals)
      */
     function deposit(uint256 amount) external nonReentrant whenNotPaused {
         require(amount >= MIN_DEPOSIT, "Amount too small");
         require(usdt.balanceOf(msg.sender) >= amount, "Insufficient balance");
 
-        // 转入 USDT
+        // 杞叆 USDT
         require(
             usdt.transferFrom(msg.sender, address(this), amount),
             "Transfer failed"
         );
 
-        // 记录商户本金
+        // 璁板綍鍟嗘埛鏈噾
         merchantPrincipal[msg.sender] += amount;
         lastOperationTime[msg.sender] = block.timestamp;
         totalDeposits += amount;
 
-        // 授权 Aave Pool
+        // 鎺堟潈 Aave Pool
         usdt.approve(address(aavePool), amount);
 
-        // 存入 Aave V3 (aUSDT 会自动铸造到本合约)
+        // 瀛樺叆 Aave V3 (aUSDT 浼氳嚜鍔ㄩ摳閫犲埌鏈悎绾?
         aavePool.supply(address(usdt), amount, address(this), 0);
 
         emit Deposited(msg.sender, amount, block.timestamp);
     }
 
     /**
-     * @notice 商户提现 (连本带息)
-     * @param amount 提现金额 (0 = 全部提现)
+     * @notice 鍟嗘埛鎻愮幇 (杩炴湰甯︽伅)
+     * @param amount 鎻愮幇閲戦 (0 = 鍏ㄩ儴鎻愮幇)
      */
     function withdraw(uint256 amount) external nonReentrant whenNotPaused {
         uint256 principal = merchantPrincipal[msg.sender];
         require(principal > 0, "No deposits found");
 
-        // 计算商户当前总余额 (本金 + 利息)
+        // 璁＄畻鍟嗘埛褰撳墠鎬讳綑棰?(鏈噾 + 鍒╂伅)
         uint256 currentBalance = getMerchantBalance(msg.sender);
         require(currentBalance > 0, "No balance to withdraw");
 
-        // 如果 amount = 0，提取全部
+        // 濡傛灉 amount = 0锛屾彁鍙栧叏閮?
         uint256 withdrawAmount = amount == 0 ? currentBalance : amount;
         require(withdrawAmount >= MIN_WITHDRAWAL, "Amount too small");
         require(withdrawAmount <= currentBalance, "Insufficient balance");
 
-        // 计算利息
+        // 璁＄畻鍒╂伅
         uint256 interest = currentBalance > principal
             ? currentBalance - principal
             : 0;
 
-        // 计算平台手续费 (只从利息中扣除)
+        // 璁＄畻骞冲彴鎵嬬画璐?(鍙粠鍒╂伅涓墸闄?
         uint256 platformFee = (interest * platformFeeRate) / 10000;
 
-        // 净提现金额
+        // 鍑€鎻愮幇閲戦
         uint256 netAmount = withdrawAmount - platformFee;
 
-        // 从 Aave 提取资金
+        // 浠?Aave 鎻愬彇璧勯噾
         uint256 actualWithdrawn = aavePool.withdraw(
             address(usdt),
             withdrawAmount,
@@ -216,7 +216,7 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
         );
         require(actualWithdrawn >= withdrawAmount, "Aave withdrawal failed");
 
-        // 更新商户本金 (按比例减少)
+        // 鏇存柊鍟嗘埛鏈噾 (鎸夋瘮渚嬪噺灏?
         uint256 principalToDeduct = withdrawAmount > principal
             ? principal
             : (principal * withdrawAmount) / currentBalance;
@@ -225,7 +225,7 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
         lastOperationTime[msg.sender] = block.timestamp;
         totalWithdrawals += withdrawAmount;
 
-        // 转账手续费给平台
+        // 杞处鎵嬬画璐圭粰骞冲彴
         if (platformFee > 0) {
             require(
                 usdt.transfer(feeCollector, platformFee),
@@ -233,7 +233,7 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
             );
         }
 
-        // 转账净额给商户
+        // 杞处鍑€棰濈粰鍟嗘埛
         require(
             usdt.transfer(msg.sender, netAmount),
             "Merchant transfer failed"
@@ -250,9 +250,9 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice 查询商户余额 (本金 + 利息)
-     * @param merchant 商户地址
-     * @return 商户总余额 (USDT)
+     * @notice 鏌ヨ鍟嗘埛浣欓 (鏈噾 + 鍒╂伅)
+     * @param merchant 鍟嗘埛鍦板潃
+     * @return 鍟嗘埛鎬讳綑棰?(USDT)
      */
     function getMerchantBalance(address merchant) public view returns (uint256) {
         uint256 principal = merchantPrincipal[merchant];
@@ -260,23 +260,23 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
             return 0;
         }
 
-        // 计算商户份额占比
+        // 璁＄畻鍟嗘埛浠介鍗犳瘮
         uint256 totalPrincipal = getTotalPrincipal();
         if (totalPrincipal == 0) {
             return 0;
         }
 
-        // aUSDT 余额 (包含所有商户的本金 + 利息)
+        // aUSDT 浣欓 (鍖呭惈鎵€鏈夊晢鎴风殑鏈噾 + 鍒╂伅)
         uint256 totalATokenBalance = aUsdt.balanceOf(address(this));
 
-        // 商户余额 = (商户本金 / 总本金) * aUSDT 总余额
+        // 鍟嗘埛浣欓 = (鍟嗘埛鏈噾 / 鎬绘湰閲? * aUSDT 鎬讳綑棰?
         return (principal * totalATokenBalance) / totalPrincipal;
     }
 
     /**
-     * @notice 查询商户利息收益
-     * @param merchant 商户地址
-     * @return 利息收益 (USDT)
+     * @notice 鏌ヨ鍟嗘埛鍒╂伅鏀剁泭
+     * @param merchant 鍟嗘埛鍦板潃
+     * @return 鍒╂伅鏀剁泭 (USDT)
      */
     function getMerchantInterest(address merchant) public view returns (uint256) {
         uint256 balance = getMerchantBalance(merchant);
@@ -286,9 +286,9 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice 查询商户年化收益率 (APY)
-     * @param merchant 商户地址
-     * @return APY (基点, 10000 = 100%)
+     * @notice 鏌ヨ鍟嗘埛骞村寲鏀剁泭鐜?(APY)
+     * @param merchant 鍟嗘埛鍦板潃
+     * @return APY (鍩虹偣, 10000 = 100%)
      */
     function getMerchantAPY(address merchant) public view returns (uint256) {
         uint256 principal = merchantPrincipal[merchant];
@@ -304,32 +304,32 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
         uint256 interest = getMerchantInterest(merchant);
         uint256 elapsedTime = block.timestamp - lastOpTime;
 
-        // APY = (利息 / 本金) * (365 天 / 经过时间) * 10000
-        // 注意: 为避免溢出，先计算 (interest * 365 days * 10000) / (principal * elapsedTime)
+        // APY = (鍒╂伅 / 鏈噾) * (365 澶?/ 缁忚繃鏃堕棿) * 10000
+        // 娉ㄦ剰: 涓洪伩鍏嶆孩鍑猴紝鍏堣绠?(interest * 365 days * 10000) / (principal * elapsedTime)
         uint256 secondsPerYear = 365 days;
         return (interest * secondsPerYear * 10000) / (principal * elapsedTime);
     }
 
     /**
-     * @notice 查询所有商户的总本金
-     * @return 总本金
+     * @notice 鏌ヨ鎵€鏈夊晢鎴风殑鎬绘湰閲?
+     * @return 鎬绘湰閲?
      */
     function getTotalPrincipal() public view returns (uint256) {
-        // 简化计算: 总存款 - 总提现
+        // 绠€鍖栬绠? 鎬诲瓨娆?- 鎬绘彁鐜?
         return totalDeposits - totalWithdrawals;
     }
 
     /**
-     * @notice 查询合约在 Aave 的总余额 (所有商户的本金 + 利息)
-     * @return 总余额 (USDT)
+     * @notice 鏌ヨ鍚堢害鍦?Aave 鐨勬€讳綑棰?(鎵€鏈夊晢鎴风殑鏈噾 + 鍒╂伅)
+     * @return 鎬讳綑棰?(USDT)
      */
     function getTotalBalance() public view returns (uint256) {
         return aUsdt.balanceOf(address(this));
     }
 
     /**
-     * @notice 查询合约赚取的总利息
-     * @return 总利息 (USDT)
+     * @notice 鏌ヨ鍚堢害璧氬彇鐨勬€诲埄鎭?
+     * @return 鎬诲埄鎭?(USDT)
      */
     function getTotalInterest() public view returns (uint256) {
         uint256 totalBalance = getTotalBalance();
@@ -341,11 +341,11 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice 更新平台手续费率 (仅 Owner)
-     * @param newRate 新费率 (基点, 10000 = 100%, 最大 10%)
+     * @notice 鏇存柊骞冲彴鎵嬬画璐圭巼 (浠?Owner)
+     * @param newRate 鏂拌垂鐜?(鍩虹偣, 10000 = 100%, 鏈€澶?10%)
      */
     function setPlatformFeeRate(uint256 newRate) external onlyOwner {
-        require(newRate <= 1000, "Fee rate too high"); // 最大 10%
+        require(newRate <= 1000, "Fee rate too high"); // 鏈€澶?10%
 
         uint256 oldRate = platformFeeRate;
         platformFeeRate = newRate;
@@ -354,8 +354,8 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice 更新手续费接收地址 (仅 Owner)
-     * @param newCollector 新接收地址
+     * @notice 鏇存柊鎵嬬画璐规帴鏀跺湴鍧€ (浠?Owner)
+     * @param newCollector 鏂版帴鏀跺湴鍧€
      */
     function setFeeCollector(address newCollector) external onlyOwner {
         require(newCollector != address(0), "Invalid address");
@@ -367,23 +367,23 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice 暂停合约 (紧急情况, 仅 Owner)
+     * @notice 鏆傚仠鍚堢害 (绱ф€ユ儏鍐? 浠?Owner)
      */
     function pause() external onlyOwner {
         _pause();
     }
 
     /**
-     * @notice 恢复合约 (仅 Owner)
+     * @notice 鎭㈠鍚堢害 (浠?Owner)
      */
     function unpause() external onlyOwner {
         _unpause();
     }
 
     /**
-     * @notice 紧急提现 (仅 Owner, 用于合约升级或安全事件)
-     * @param merchant 商户地址
-     * @param to 接收地址
+     * @notice 绱ф€ユ彁鐜?(浠?Owner, 鐢ㄤ簬鍚堢害鍗囩骇鎴栧畨鍏ㄤ簨浠?
+     * @param merchant 鍟嗘埛鍦板潃
+     * @param to 鎺ユ敹鍦板潃
      */
     function emergencyWithdraw(
         address merchant,
@@ -392,7 +392,7 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
         uint256 balance = getMerchantBalance(merchant);
         require(balance > 0, "No balance to withdraw");
 
-        // 从 Aave 提取
+        // 浠?Aave 鎻愬彇
         uint256 actualWithdrawn = aavePool.withdraw(
             address(usdt),
             balance,
@@ -400,18 +400,18 @@ contract MerchantYieldManager is Ownable, ReentrancyGuard, Pausable {
         );
         require(actualWithdrawn >= balance, "Withdrawal failed");
 
-        // 清零本金
+        // 娓呴浂鏈噾
         merchantPrincipal[merchant] = 0;
 
-        // 转账给指定地址
+        // 杞处缁欐寚瀹氬湴鍧€
         require(usdt.transfer(to, balance), "Transfer failed");
 
         emit EmergencyWithdrawal(merchant, balance, block.timestamp);
     }
 
     /**
-     * @notice 获取合约版本
-     * @return 版本号
+     * @notice 鑾峰彇鍚堢害鐗堟湰
+     * @return 鐗堟湰鍙?
      */
     function version() external pure returns (string memory) {
         return "1.0.0";
