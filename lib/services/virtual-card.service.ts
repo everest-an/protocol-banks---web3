@@ -170,6 +170,7 @@ export const virtualCardService = {
     await prisma.agentActivity.create({
       data: {
         agent_id: dbCard.agent_id,
+        owner_address: ownerAddress,
         action: 'virtual_card_details_accessed',
         details: {
           card_id: cardId,
