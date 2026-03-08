@@ -1,5 +1,7 @@
 generator client {
   provider = "prisma-client-js"
+  // Prisma 7: use client engine type for Vercel serverless
+  engineType = "client"
 }
 
 datasource db {

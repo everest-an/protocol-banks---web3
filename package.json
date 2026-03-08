@@ -100,7 +100,8 @@
     "viem": "^2.21.58",
     "wagmi": "^2.12.34",
     "xlsx": "0.18.5",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "@prisma/extension-accelerate": "^1.2.1"
   },
   "pnpm": {
     "overrides": {
