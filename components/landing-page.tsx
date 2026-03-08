@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { BatchPaymentDemo } from "@/components/batch-payment-demo"
 import { NetworkGraphDemo } from "@/components/network-graph-demo"
 import { UnicornHero } from "@/components/unicorn-hero"
+import { PUSDSection } from "@/components/pusd-section"
 import {
   ArrowRight,
   Shield,
@@ -585,6 +586,9 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
           </table>
         </div>
       </section>
+
+      {/* $PUSD Stablecoin Section */}
+      <PUSDSection />
 
       {/* Supported Chains */}
       <section className="border-y border-border bg-muted/20 overflow-hidden">

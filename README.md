@@ -27,6 +27,18 @@ Protocol Banks is the first AI-native, non-custodial, multi-chain payment infras
 
 Beyond standard batch payments, multi-sig approvals, and subscription management, Protocol Banks provides a complete AI agent financial stack: SIWE authentication, JWT session management, autonomous budget execution, and the x402 machine-to-machine micropayment protocol.
 
+## Introducing $PUSD: The Enterprise-Grade Stablecoin
+
+Protocol Banks is proud to introduce **$PUSD**, the first native stablecoin on the **Hashkey Chain**, designed for enterprises that demand privacy, compliance, and stability.
+
+-   **Secure & Stable**: Minted 1:1 with USDC on Circle and secured by open-source smart contracts. Cross-chain redemption is guaranteed via Circle's CCIP.
+-   **Privacy-Focused**: Future upgrades will integrate **Fully Homomorphic Encryption (FHE)**, enabling confidential transactions for sensitive enterprise use cases.
+-   **Sustainable Yield**: An upcoming institutional-grade staking model will provide stable DeFi yields, allowing capital to work for you.
+
+$PUSD embodies our mission: **Let capital flow back into the hands of the User.**
+
+---
+
 ## System Architecture
 
 ```
