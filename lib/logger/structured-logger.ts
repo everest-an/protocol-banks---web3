@@ -146,7 +146,7 @@ export class StructuredLogger {
         })
       ),
       transports: [
-        // Console transport (开发环境)
+        // Console transport (all environments — Vercel captures stdout/stderr)
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
@@ -159,27 +159,38 @@ export class StructuredLogger {
           )
         }),
 
-        // File transport (生产环境)
-        new winston.transports.File({
-          filename: 'logs/error.log',
-          level: 'error',
-          maxsize: 10485760,  // 10MB
-          maxFiles: 5
-        }),
-        new winston.transports.File({
-          filename: 'logs/combined.log',
-          maxsize: 10485760,
-          maxFiles: 10
-        })
+        // File transports — only in non-serverless environments
+        // Vercel serverless has a read-only filesystem; use Vercel Logs instead
+        ...(process.env.VERCEL
+          ? []
+          : [
+              new winston.transports.File({
+                filename: 'logs/error.log',
+                level: 'error',
+                maxsize: 10485760,  // 10MB
+                maxFiles: 5
+              }),
+              new winston.transports.File({
+                filename: 'logs/combined.log',
+                maxsize: 10485760,
+                maxFiles: 10
+              })
+            ]
+        )
       ],
 
-      // 异常处理
-      exceptionHandlers: [
-        new winston.transports.File({ filename: 'logs/exceptions.log' })
-      ],
-      rejectionHandlers: [
-        new winston.transports.File({ filename: 'logs/rejections.log' })
-      ]
+      // Exception/rejection handlers — only file-based in non-serverless
+      ...(process.env.VERCEL
+        ? {}
+        : {
+            exceptionHandlers: [
+              new winston.transports.File({ filename: 'logs/exceptions.log' })
+            ],
+            rejectionHandlers: [
+              new winston.transports.File({ filename: 'logs/rejections.log' })
+            ]
+          }
+      )
     })
 
     console.log(`[StructuredLogger] Initialized for service: ${serviceName}`)

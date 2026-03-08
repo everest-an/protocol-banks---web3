@@ -4,7 +4,7 @@ import { createAppKit } from "@reown/appkit/react"
 import { useAppKitTheme } from "@reown/appkit/react"
 import { EthersAdapter } from "@reown/appkit-adapter-ethers"
 import { mainnet, sepolia, base } from "@reown/appkit/networks"
-import { type ReactNode, useEffect } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 
 // Reown Project ID - Get from https://cloud.reown.com
@@ -24,8 +24,7 @@ const metadata = {
   icons: [typeof window !== "undefined" ? `${window.location.origin}/favicon.ico` : ""],
 }
 
-// Initialize AppKit only if project ID is configured
-// Features (email, socials, onramp) are managed via cloud.reown.com dashboard
+// Initialize AppKit only if project ID is configured AND we're in the browser
 if (projectId && typeof window !== "undefined") {
   createAppKit({
     adapters: [ethersAdapter],
@@ -40,9 +39,23 @@ if (projectId && typeof window !== "undefined") {
   })
 }
 
-/** Syncs Reown AppKit theme with next-themes */
+/** Syncs Reown AppKit theme with next-themes — only runs on client */
 function ThemeSync() {
   const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Only call useAppKitTheme after mount to avoid SSR crash
+  if (!mounted) return null
+
+  return <ThemeSyncInner resolvedTheme={resolvedTheme} />
+}
+
+/** Inner component that safely uses useAppKitTheme after client mount */
+function ThemeSyncInner({ resolvedTheme }: { resolvedTheme: string | undefined }) {
   const { setThemeMode } = useAppKitTheme()
 
   useEffect(() => {
