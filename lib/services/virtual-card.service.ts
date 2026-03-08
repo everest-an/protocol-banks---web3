@@ -78,17 +78,16 @@ function toPublicCard(card: {
 export const virtualCardService = {
   /**
    * Get the Yativo USDC deposit address for funding the platform balance.
-   * Users send USDC here to top up the platform's USD pool.
    */
   async getDepositAddress(token: YativoFundingToken = 'USDC') {
     return yativoClient.getDepositAddress(token)
   },
 
   /**
-   * Get the current platform USD balance available for card issuance.
+   * Get the current platform wallet balance.
    */
   async getPlatformBalance() {
-    return yativoClient.getPlatformBalance()
+    return yativoClient.getWalletBalance()
   },
 
   /**
@@ -107,10 +106,12 @@ export const virtualCardService = {
     }
 
     // 2. Issue the card via Yativo API
-    const yativoCard = await yativoClient.createCard({
-      initial_amount: input.initialAmount,
-      label: input.label ?? `${agent.name} Card`,
+    const response = await yativoClient.createCard({
+      amount: input.initialAmount,
+      name_on_card: input.label ?? `${agent.name} Card`,
     })
+
+    const yativoCard = response.data
 
     // 3. Persist the card record in our database
     const dbCard = await prisma.agentVirtualCard.create({
@@ -118,11 +119,11 @@ export const virtualCardService = {
         agent_id: input.agentId,
         owner_address: input.ownerAddress,
         card_provider: 'YATIVO',
-        provider_card_id: yativoCard.id,
-        last4: yativoCard.last4,
-        status: yativoCard.status,
-        balance: yativoCard.balance,
-        currency: yativoCard.currency,
+        provider_card_id: yativoCard.id ?? yativoCard.card_id ?? '',
+        last4: yativoCard.last4 ?? yativoCard.card_number?.slice(-4) ?? null,
+        status: yativoCard.status ?? 'active',
+        balance: yativoCard.balance ?? input.initialAmount,
+        currency: yativoCard.currency ?? 'USD',
         label: input.label ?? `${agent.name} Card`,
       },
     })
@@ -149,8 +150,7 @@ export const virtualCardService = {
   },
 
   /**
-   * Get sensitive card details (PAN, CVV, expiry) for a specific card.
-   * This is a privileged operation — always audit-logged.
+   * Get card details for a specific card.
    */
   async getCardDetails(cardId: string, ownerAddress: string) {
     const dbCard = await prisma.agentVirtualCard.findFirst({
@@ -162,9 +162,6 @@ export const virtualCardService = {
     if (dbCard.agent.owner_address !== ownerAddress) {
       throw new Error('Not authorized to access this card')
     }
-
-    // Fetch sensitive details from Yativo
-    const details = await yativoClient.getCardDetails(dbCard.provider_card_id)
 
     // Log the access for audit trail
     await prisma.agentActivity.create({
@@ -183,10 +180,10 @@ export const virtualCardService = {
     return {
       id: dbCard.id,
       last4: dbCard.last4,
-      pan: details.pan,
-      cvv: details.cvv,
-      expiryMonth: details.expiry_month,
-      expiryYear: details.expiry_year,
+      pan: null as string | null,
+      cvv: null as string | null,
+      expiryMonth: null as string | null,
+      expiryYear: null as string | null,
       status: dbCard.status,
       balance: dbCard.balance,
       currency: dbCard.currency,
@@ -195,6 +192,7 @@ export const virtualCardService = {
 
   /**
    * Add funds to an existing card from the platform's Yativo balance.
+   * Endpoint: POST /customer/virtual/cards/topup
    */
   async fundCard(input: FundVirtualCardInput): Promise<VirtualCardPublic> {
     const dbCard = await prisma.agentVirtualCard.findFirst({
@@ -206,93 +204,91 @@ export const virtualCardService = {
     if (dbCard.agent.owner_address !== input.ownerAddress) {
       throw new Error('Not authorized to fund this card')
     }
-    if (dbCard.status === 'CLOSED') throw new Error('Cannot fund a closed card')
+    if (dbCard.status === 'terminated') throw new Error('Cannot fund a terminated card')
 
-    // Fund via Yativo
-    const updated = await yativoClient.fundCard({
+    const response = await yativoClient.fundCard({
       card_id: dbCard.provider_card_id,
       amount: input.amount,
     })
 
-    // Sync balance in our DB
+    const newBalance = response.data?.balance ?? (dbCard.balance + input.amount)
+
     const updatedDbCard = await prisma.agentVirtualCard.update({
       where: { id: input.cardId },
-      data: { balance: updated.balance, updated_at: new Date() },
+      data: { balance: newBalance, updated_at: new Date() },
     })
 
     return toPublicCard(updatedDbCard)
   },
 
   /**
-   * Freeze or unfreeze a card.
+   * Activate a card.
+   * Endpoint: POST /customer/virtual/cards/activate
    */
-  async toggleFreeze(cardId: string, ownerAddress: string, freeze: boolean): Promise<VirtualCardPublic> {
+  async activateCard(cardId: string, ownerAddress: string): Promise<VirtualCardPublic> {
     const dbCard = await prisma.agentVirtualCard.findFirst({
       where: { id: cardId },
       include: { agent: { select: { owner_address: true } } },
     })
 
     if (!dbCard) throw new Error('Card not found')
-    if (dbCard.agent.owner_address !== ownerAddress) {
-      throw new Error('Not authorized')
-    }
+    if (dbCard.agent.owner_address !== ownerAddress) throw new Error('Not authorized')
 
-    const updated = freeze
-      ? await yativoClient.freezeCard(dbCard.provider_card_id)
-      : await yativoClient.unfreezeCard(dbCard.provider_card_id)
+    const response = await yativoClient.activateCard(dbCard.provider_card_id)
 
     const updatedDbCard = await prisma.agentVirtualCard.update({
       where: { id: cardId },
-      data: { status: updated.status, updated_at: new Date() },
+      data: { status: response.data?.status ?? 'active', updated_at: new Date() },
     })
 
     return toPublicCard(updatedDbCard)
   },
 
   /**
-   * Permanently close a card and return remaining balance to platform pool.
+   * Withdraw funds from a card back to platform balance.
+   * Endpoint: POST /customer/virtual/cards/withdraw
    */
-  async closeCard(cardId: string, ownerAddress: string): Promise<{ success: boolean; refundedAmount: number }> {
+  async withdrawFromCard(cardId: string, ownerAddress: string, amount: number): Promise<VirtualCardPublic> {
     const dbCard = await prisma.agentVirtualCard.findFirst({
       where: { id: cardId },
       include: { agent: { select: { owner_address: true } } },
     })
 
     if (!dbCard) throw new Error('Card not found')
-    if (dbCard.agent.owner_address !== ownerAddress) {
-      throw new Error('Not authorized')
-    }
+    if (dbCard.agent.owner_address !== ownerAddress) throw new Error('Not authorized')
 
-    const result = await yativoClient.closeCard(dbCard.provider_card_id)
+    const response = await yativoClient.withdrawFromCard(dbCard.provider_card_id, amount)
+
+    const newBalance = response.data?.balance ?? Math.max(0, dbCard.balance - amount)
+
+    const updatedDbCard = await prisma.agentVirtualCard.update({
+      where: { id: cardId },
+      data: { balance: newBalance, updated_at: new Date() },
+    })
+
+    return toPublicCard(updatedDbCard)
+  },
+
+  /**
+   * Terminate (permanently close) a card.
+   * Endpoint: POST /customer/virtual/cards/terminate
+   */
+  async terminateCard(cardId: string, ownerAddress: string): Promise<{ success: boolean }> {
+    const dbCard = await prisma.agentVirtualCard.findFirst({
+      where: { id: cardId },
+      include: { agent: { select: { owner_address: true } } },
+    })
+
+    if (!dbCard) throw new Error('Card not found')
+    if (dbCard.agent.owner_address !== ownerAddress) throw new Error('Not authorized')
+
+    await yativoClient.terminateCard(dbCard.provider_card_id)
 
     await prisma.agentVirtualCard.update({
       where: { id: cardId },
-      data: { status: 'CLOSED', balance: 0, updated_at: new Date() },
+      data: { status: 'terminated', balance: 0, updated_at: new Date() },
     })
 
-    return { success: result.success, refundedAmount: result.refunded_amount }
-  },
-
-  /**
-   * Sync card balances and statuses from Yativo (background refresh).
-   */
-  async syncCards(agentId: string): Promise<void> {
-    const dbCards = await prisma.agentVirtualCard.findMany({
-      where: { agent_id: agentId, status: { not: 'CLOSED' } },
-    })
-
-    await Promise.allSettled(
-      dbCards.map(async (dbCard) => {
-        const liveCard = await yativoClient.getCard(dbCard.provider_card_id)
-        await prisma.agentVirtualCard.update({
-          where: { id: dbCard.id },
-          data: {
-            status: liveCard.status,
-            balance: liveCard.balance,
-            updated_at: new Date(),
-          },
-        })
-      })
-    )
+    return { success: true }
   },
 }

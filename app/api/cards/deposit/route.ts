@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     try {
       const [depositInfo, balance] = await Promise.all([
         yativoClient.getDepositAddress(token),
-        yativoClient.getPlatformBalance(),
+        yativoClient.getWalletBalance(),
       ])
 
       return NextResponse.json({

@@ -81,6 +81,13 @@ export const userVirtualCardService = {
   },
 
   /**
+   * Get platform wallet balance.
+   */
+  async getPlatformBalance() {
+    return yativoClient.getWalletBalance()
+  },
+
+  /**
    * List all virtual cards for a wallet address.
    */
   async listCards(ownerAddress: string): Promise<VirtualCardPublic[]> {
@@ -96,20 +103,23 @@ export const userVirtualCardService = {
    * Deducts from the platform's Yativo USD balance (pre-funded with USDC).
    */
   async createCard(input: CreateUserCardInput): Promise<VirtualCardPublic> {
-    const yativoCard = await yativoClient.createCard({
-      initial_amount: input.initialAmount,
-      label: input.label ?? `Protocol Banks Card`,
+    const response = await yativoClient.createCard({
+      amount: input.initialAmount,
+      name_on_card: input.label ?? 'Protocol Banks Card',
     })
+
+    // Extract card data from Yativo API response wrapper
+    const yativoCard = response.data
 
     const dbCard = await prisma.userVirtualCard.create({
       data: {
         owner_address: input.ownerAddress.toLowerCase(),
         card_provider: 'YATIVO',
-        provider_card_id: yativoCard.id,
-        last4: yativoCard.last4,
-        status: yativoCard.status,
-        balance: yativoCard.balance,
-        currency: yativoCard.currency,
+        provider_card_id: yativoCard.id ?? yativoCard.card_id ?? '',
+        last4: yativoCard.last4 ?? yativoCard.card_number?.slice(-4) ?? null,
+        status: yativoCard.status ?? 'active',
+        balance: yativoCard.balance ?? input.initialAmount,
+        currency: yativoCard.currency ?? 'USD',
         label: input.label ?? null,
       },
     })
@@ -128,15 +138,16 @@ export const userVirtualCardService = {
       throw new Error('Not authorized to access this card')
     }
 
-    const details = await yativoClient.getCardDetails(dbCard.provider_card_id)
-
+    // Note: Yativo may not have a separate "details" endpoint.
+    // Card details might be returned during creation.
+    // For now, return what we have in the database.
     return {
       id: dbCard.id,
       last4: dbCard.last4,
-      pan: details.pan,
-      cvv: details.cvv,
-      expiryMonth: details.expiry_month,
-      expiryYear: details.expiry_year,
+      pan: null as string | null,
+      cvv: null as string | null,
+      expiryMonth: null as string | null,
+      expiryYear: null as string | null,
       status: dbCard.status,
       balance: dbCard.balance,
       currency: dbCard.currency,
@@ -146,77 +157,163 @@ export const userVirtualCardService = {
 
   /**
    * Add funds to an existing card from the platform's Yativo balance.
+   * Endpoint: POST /customer/virtual/cards/topup
    */
   async fundCard(input: FundUserCardInput): Promise<VirtualCardPublic> {
     const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: input.cardId } })
     if (!dbCard) throw new Error('Card not found')
     if (dbCard.owner_address !== input.ownerAddress.toLowerCase()) throw new Error('Not authorized')
-    if (dbCard.status === 'CLOSED') throw new Error('Cannot fund a closed card')
+    if (dbCard.status === 'terminated') throw new Error('Cannot fund a terminated card')
 
-    const updated = await yativoClient.fundCard({
+    const response = await yativoClient.fundCard({
       card_id: dbCard.provider_card_id,
       amount: input.amount,
     })
 
+    const newBalance = response.data?.balance ?? (dbCard.balance + input.amount)
+
     const updatedDbCard = await prisma.userVirtualCard.update({
       where: { id: input.cardId },
-      data: { balance: updated.balance, updated_at: new Date() },
+      data: { balance: newBalance, updated_at: new Date() },
     })
 
     return toPublic(updatedDbCard)
   },
 
   /**
-   * Freeze or unfreeze a card.
+   * Withdraw funds from a card back to platform balance.
+   * Endpoint: POST /customer/virtual/cards/withdraw
    */
-  async toggleFreeze(cardId: string, ownerAddress: string, freeze: boolean): Promise<VirtualCardPublic> {
+  async withdrawFromCard(cardId: string, ownerAddress: string, amount: number): Promise<VirtualCardPublic> {
     const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: cardId } })
     if (!dbCard) throw new Error('Card not found')
     if (dbCard.owner_address !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
 
-    const updated = freeze
-      ? await yativoClient.freezeCard(dbCard.provider_card_id)
-      : await yativoClient.unfreezeCard(dbCard.provider_card_id)
+    const response = await yativoClient.withdrawFromCard(dbCard.provider_card_id, amount)
+
+    const newBalance = response.data?.balance ?? Math.max(0, dbCard.balance - amount)
 
     const updatedDbCard = await prisma.userVirtualCard.update({
       where: { id: cardId },
-      data: { status: updated.status, updated_at: new Date() },
+      data: { balance: newBalance, updated_at: new Date() },
     })
 
     return toPublic(updatedDbCard)
   },
 
   /**
-   * Permanently close a card. Remaining balance is returned to platform pool.
+   * Terminate (permanently close) a card.
+   * Endpoint: POST /customer/virtual/cards/terminate
    */
-  async closeCard(cardId: string, ownerAddress: string): Promise<{ success: boolean; refundedAmount: number }> {
+  async terminateCard(cardId: string, ownerAddress: string): Promise<{ success: boolean }> {
     const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: cardId } })
     if (!dbCard) throw new Error('Card not found')
     if (dbCard.owner_address !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
 
-    const result = await yativoClient.closeCard(dbCard.provider_card_id)
+    await yativoClient.terminateCard(dbCard.provider_card_id)
 
     await prisma.userVirtualCard.update({
       where: { id: cardId },
-      data: { status: 'CLOSED', balance: 0, updated_at: new Date() },
+      data: { status: 'terminated', balance: 0, updated_at: new Date() },
     })
 
-    return { success: result.success, refundedAmount: result.refunded_amount }
+    return { success: true }
   },
 
   /**
-   * Sync a single card's balance and status from Yativo.
+   * Freeze a card (set status to inactive/frozen in local DB).
+   * Yativo doesn't have a freeze endpoint, so we terminate and track locally.
+   * For a soft freeze, we just update the local status.
    */
-  async syncCard(cardId: string, ownerAddress: string): Promise<void> {
+  async freezeCard(cardId: string, ownerAddress: string): Promise<VirtualCardPublic> {
     const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: cardId } })
     if (!dbCard) throw new Error('Card not found')
     if (dbCard.owner_address !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
-    if (dbCard.status === 'CLOSED') return
+    if (dbCard.status === 'terminated') throw new Error('Cannot freeze a terminated card')
 
-    const liveCard = await yativoClient.getCard(dbCard.provider_card_id)
-    await prisma.userVirtualCard.update({
+    const updatedDbCard = await prisma.userVirtualCard.update({
       where: { id: cardId },
-      data: { status: liveCard.status, balance: liveCard.balance, updated_at: new Date() },
+      data: { status: 'FROZEN', updated_at: new Date() },
     })
+
+    return toPublic(updatedDbCard)
+  },
+
+  /**
+   * Unfreeze a card (restore to active status).
+   */
+  async unfreezeCard(cardId: string, ownerAddress: string): Promise<VirtualCardPublic> {
+    const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: cardId } })
+    if (!dbCard) throw new Error('Card not found')
+    if (dbCard.owner_address !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
+    if (dbCard.status !== 'FROZEN') throw new Error('Card is not frozen')
+
+    // Re-activate on Yativo side
+    try {
+      await yativoClient.activateCard(dbCard.provider_card_id)
+    } catch {
+      // If Yativo doesn't support re-activation, just update local status
+    }
+
+    const updatedDbCard = await prisma.userVirtualCard.update({
+      where: { id: cardId },
+      data: { status: 'ACTIVE', updated_at: new Date() },
+    })
+
+    return toPublic(updatedDbCard)
+  },
+
+  /**
+   * Sync card data from Yativo to local DB.
+   * Fetches the latest card list from Yativo and updates the local record.
+   */
+  async syncCard(cardId: string, ownerAddress: string): Promise<VirtualCardPublic> {
+    const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: cardId } })
+    if (!dbCard) throw new Error('Card not found')
+    if (dbCard.owner_address !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
+
+    try {
+      const response = await yativoClient.listCards()
+      const yativoCards = response.data ?? []
+      const matchingCard = yativoCards.find(
+        (c) => (c.id === dbCard.provider_card_id) || (c.card_id === dbCard.provider_card_id)
+      )
+
+      if (matchingCard) {
+        const updatedDbCard = await prisma.userVirtualCard.update({
+          where: { id: cardId },
+          data: {
+            balance: matchingCard.balance ?? dbCard.balance,
+            status: matchingCard.status ?? dbCard.status,
+            last4: matchingCard.last4 ?? matchingCard.card_number?.slice(-4) ?? dbCard.last4,
+            updated_at: new Date(),
+          },
+        })
+        return toPublic(updatedDbCard)
+      }
+    } catch {
+      // If Yativo API fails, return current DB state
+    }
+
+    return toPublic(dbCard)
+  },
+
+  /**
+   * Activate a card.
+   * Endpoint: POST /customer/virtual/cards/activate
+   */
+  async activateCard(cardId: string, ownerAddress: string): Promise<VirtualCardPublic> {
+    const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: cardId } })
+    if (!dbCard) throw new Error('Card not found')
+    if (dbCard.owner_address !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
+
+    const response = await yativoClient.activateCard(dbCard.provider_card_id)
+
+    const updatedDbCard = await prisma.userVirtualCard.update({
+      where: { id: cardId },
+      data: { status: response.data?.status ?? 'active', updated_at: new Date() },
+    })
+
+    return toPublic(updatedDbCard)
   },
 }

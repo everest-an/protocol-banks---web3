@@ -2,8 +2,8 @@
  * /api/cards/[cardId]
  *
  * GET    - Get card details (sensitive: PAN, CVV, expiry)
- * PATCH  - Update card: fund, freeze, unfreeze
- * DELETE - Close card permanently
+ * PATCH  - Update card: fund, freeze/activate, withdraw
+ * DELETE - Terminate card permanently
  *
  * @module app/api/cards/[cardId]
  */
@@ -15,6 +15,9 @@ import { z } from 'zod'
 
 const patchSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('fund'), amount: z.number().positive().max(10000) }),
+  z.object({ action: z.literal('withdraw'), amount: z.number().positive() }),
+  z.object({ action: z.literal('activate') }),
+  z.object({ action: z.literal('terminate') }),
   z.object({ action: z.literal('freeze') }),
   z.object({ action: z.literal('unfreeze') }),
   z.object({ action: z.literal('sync') }),
@@ -39,7 +42,7 @@ export async function GET(
   }, { component: 'cards-details' })(request)
 }
 
-// ─── PATCH /api/cards/[cardId] — fund / freeze / unfreeze ────────────────────
+// ─── PATCH /api/cards/[cardId] — fund / withdraw / activate / terminate ─────
 
 export async function PATCH(
   request: NextRequest,
@@ -64,17 +67,30 @@ export async function PATCH(
           return NextResponse.json(
             await userVirtualCardService.fundCard({ cardId, ownerAddress: address, amount: data.amount })
           )
+        case 'withdraw':
+          return NextResponse.json(
+            await userVirtualCardService.withdrawFromCard(cardId, address, data.amount)
+          )
+        case 'activate':
+          return NextResponse.json(
+            await userVirtualCardService.activateCard(cardId, address)
+          )
+        case 'terminate':
+          return NextResponse.json(
+            await userVirtualCardService.terminateCard(cardId, address)
+          )
         case 'freeze':
           return NextResponse.json(
-            await userVirtualCardService.toggleFreeze(cardId, address, true)
+            await userVirtualCardService.freezeCard(cardId, address)
           )
         case 'unfreeze':
           return NextResponse.json(
-            await userVirtualCardService.toggleFreeze(cardId, address, false)
+            await userVirtualCardService.unfreezeCard(cardId, address)
           )
         case 'sync':
-          await userVirtualCardService.syncCard(cardId, address)
-          return NextResponse.json({ success: true })
+          return NextResponse.json(
+            await userVirtualCardService.syncCard(cardId, address)
+          )
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Operation failed'
@@ -83,7 +99,7 @@ export async function PATCH(
   }, { component: 'cards-patch' })(request)
 }
 
-// ─── DELETE /api/cards/[cardId] — close card ─────────────────────────────────
+// ─── DELETE /api/cards/[cardId] — terminate card ────────────────────────────
 
 export async function DELETE(
   request: NextRequest,
@@ -92,11 +108,11 @@ export async function DELETE(
   return withAuth(async (_req, address) => {
     const { cardId } = await params
     try {
-      const result = await userVirtualCardService.closeCard(cardId, address)
+      const result = await userVirtualCardService.terminateCard(cardId, address)
       return NextResponse.json(result)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to close card'
+      const message = err instanceof Error ? err.message : 'Failed to terminate card'
       return NextResponse.json({ error: message }, { status: 500 })
     }
-  }, { component: 'cards-close' })(request)
+  }, { component: 'cards-terminate' })(request)
 }
