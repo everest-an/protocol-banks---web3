@@ -116,6 +116,7 @@ export const virtualCardService = {
     const dbCard = await prisma.agentVirtualCard.create({
       data: {
         agent_id: input.agentId,
+        owner_address: input.ownerAddress,
         card_provider: 'YATIVO',
         provider_card_id: yativoCard.id,
         last4: yativoCard.last4,
