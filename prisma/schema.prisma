@@ -712,7 +712,7 @@ model Agent {
   activities         AgentActivity[]
   webhook_deliveries AgentWebhookDelivery[]
   card               AgentCard?
-
+  virtualCard        AgentVirtualCard?
   @@map("agents")
 }
 
@@ -1852,4 +1852,69 @@ model ComplianceCheck {
   @@index([check_type])
   @@index([expires_at])
   @@map("compliance_checks")
+}
+
+// ============================================================================
+// Virtual Card Issuance (虚拟卡发行 — Powered by Yativo)
+// ============================================================================
+/// Virtual Visa cards issued via Yativo, funded by USDC/USDT deposits.
+/// Flow: User deposits USDC → Yativo USD balance → Issue virtual card → Spend globally
+model UserVirtualCard {
+  id               String   @id @default(uuid())
+  /// Wallet address of the card owner
+  owner_address    String
+  /// Card issuing provider (currently YATIVO)
+  card_provider    String   @default("YATIVO")
+  /// Yativo's internal card ID
+  provider_card_id String   @unique
+  /// Last 4 digits of the card number (safe to display)
+  last4            String?
+  /// Card lifecycle status: ACTIVE | FROZEN | CLOSED | PENDING
+  status           String   @default("PENDING")
+  /// Available balance in USD
+  balance          Float    @default(0)
+  /// Card currency (always USD for Yativo)
+  currency         String   @default("USD")
+  /// Optional human-readable label (e.g. "AI Agent Card")
+  label            String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @default(now())
+
+  @@index([owner_address])
+  @@index([status])
+  @@index([provider_card_id])
+  @@map("user_virtual_cards")
+}
+
+/// Virtual Visa cards assigned to individual AI agents (linked to AgentCard identity).
+/// Enables AI agents to autonomously make payments within their budget constraints.
+model AgentVirtualCard {
+  id               String   @id @default(uuid())
+  /// The AI agent this card belongs to
+  agent_id         String   @unique
+  /// Wallet address of the agent's owner
+  owner_address    String
+  /// Card issuing provider (currently YATIVO)
+  card_provider    String   @default("YATIVO")
+  /// Yativo's internal card ID
+  provider_card_id String   @unique
+  /// Last 4 digits of the card number (safe to display)
+  last4            String?
+  /// Card lifecycle status: ACTIVE | FROZEN | CLOSED | PENDING
+  status           String   @default("PENDING")
+  /// Available balance in USD
+  balance          Float    @default(0)
+  /// Card currency (always USD for Yativo)
+  currency         String   @default("USD")
+  /// Optional human-readable label
+  label            String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @default(now())
+
+  agent Agent @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
+  @@index([owner_address])
+  @@index([status])
+  @@index([provider_card_id])
+  @@map("agent_virtual_cards")
 }
