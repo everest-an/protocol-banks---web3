@@ -29,5 +29,10 @@
       "path": "/api/cron/retry-batch-items",
       "schedule": "*/5 * * * *"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/cron/**/*.ts": {
+      "includeFiles": "services/proto/**"
+    }
+  }
 }
