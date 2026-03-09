@@ -14,7 +14,7 @@ const nextConfig = {
   serverExternalPackages: ['pg', '@prisma/adapter-pg'],
   experimental: {
     outputFileTracingIncludes: {
-      './**/*': ['./services/proto/**/*'],
+      '/api/cron/**': ['./services/proto/**/*'],
     },
   },
   webpack: (config, { isServer }) => {
