@@ -12,11 +12,6 @@ const nextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ['pg', '@prisma/adapter-pg'],
-  experimental: {
-    outputFileTracingIncludes: {
-      '/api/cron/**': ['./services/proto/**/*'],
-    },
-  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
