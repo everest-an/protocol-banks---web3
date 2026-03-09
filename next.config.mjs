@@ -12,6 +12,13 @@ const nextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ['pg', '@prisma/adapter-pg'],
+
+  // Include proto files in all serverless function bundles
+  // This ensures gRPC proto definitions are available at runtime on Vercel
+  outputFileTracingIncludes: {
+    '/api/**': ['./services/proto/**'],
+  },
+
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

@@ -4,8 +4,7 @@
   "license": "GPL-3.0-only",
   "private": true,
   "scripts": {
-    "build": "prisma generate && next build && npm run postbuild",
-    "postbuild": "find ./.vercel/output/functions -type d -name '*.func' | xargs -I{} cp -r ./services/proto {}/services/ 2>/dev/null || true",
+    "build": "prisma generate && next build",
 
     "postinstall": "prisma generate",
     "dev": "next dev --turbopack",
