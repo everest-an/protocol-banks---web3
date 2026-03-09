@@ -4,8 +4,7 @@
   "license": "GPL-3.0-only",
   "private": true,
   "scripts": {
-    "build": "prisma generate && next build && npm run postbuild",
-    "postbuild": "cp -r ./services/proto ./.vercel/output/functions/api/cron.func/services/",
+    "build": "prisma generate && next build",
 
     "postinstall": "prisma generate",
     "dev": "next dev --turbopack",
