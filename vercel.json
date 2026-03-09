@@ -32,7 +32,7 @@
   ],
   "functions": {
     "app/api/cron/**/*.ts": {
-      "includeFiles": "services/proto/**"
+      "includeFiles": "proto/**"
     }
   }
 }
