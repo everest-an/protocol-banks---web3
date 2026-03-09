@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "prisma generate && next build && npm run postbuild",
-    "postbuild": "cp -r ./services/proto ./.vercel/output/functions/api/cron.func/services/",
+    "postbuild": "find ./.vercel/output/functions -type d -name '*.func' | xargs -I{} cp -r ./services/proto {}/services/ 2>/dev/null || true",
 
     "postinstall": "prisma generate",
     "dev": "next dev --turbopack",
