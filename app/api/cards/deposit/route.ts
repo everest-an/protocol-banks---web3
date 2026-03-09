@@ -23,11 +23,12 @@ export async function GET(request: NextRequest) {
         yativoClient.getWalletBalance(),
       ])
 
+      const info = depositInfo.data
       return NextResponse.json({
-        depositAddress: depositInfo.address,
-        network: depositInfo.network,
-        token: depositInfo.token,
-        memo: depositInfo.memo,
+        depositAddress: info.address,
+        network: info.network,
+        token: info.token,
+        memo: info.memo,
         platformBalance: balance,
         note: 'Send USDC/USDT to this address to fund your card balance. Funds are available within 1-3 minutes.',
       })
