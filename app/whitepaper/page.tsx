@@ -1,4 +1,4 @@
-import { Download, FileText, ExternalLink, Bot, Shield, Zap, Globe } from "lucide-react"
+import { Download, FileText, ExternalLink, Bot, Shield, Zap, Globe, Lock, TrendingUp, RefreshCw, Coins } from "lucide-react"
 import Link from "next/link"
 
 export default function WhitepaperPage() {
@@ -8,9 +8,9 @@ export default function WhitepaperPage() {
         <div className="mb-8 sm:mb-12 border-b border-border pb-8 sm:pb-12">
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-500/20">
-              Version 2.0
+              Version 2.1
             </span>
-            <span className="text-muted-foreground text-xs uppercase tracking-wider">Updated Feb 2026</span>
+            <span className="text-muted-foreground text-xs uppercase tracking-wider">Updated Mar 2026</span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6 tracking-tight text-foreground">
             Protocol Banks Whitepaper
@@ -320,6 +320,159 @@ export default function WhitepaperPage() {
             (<code className="text-xs">pnpm mcp:stdio</code>) for Claude Desktop and CLI integrations.
             Public tools (token list, quotes) require no authentication; all payment operations require a valid JWT.
           </p>
+
+          {/* ─────────────────────────────────────────────
+              Section 9: $PUSD — Native Stablecoin
+          ───────────────────────────────────────────── */}
+          <h2
+            id="pusd"
+            className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6 scroll-mt-24"
+          >
+            9. $PUSD — The First Stablecoin on Hashkey Chain
+          </h2>
+
+          <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
+            <strong className="text-foreground">$PUSD</strong> is Protocol Banks&apos; native stablecoin, launched on{" "}
+            <strong className="text-foreground">Hashkey Chain</strong>. It is designed for enterprises that require
+            privacy-preserving transactions, verifiable collateral, and stable DeFi yields — without sacrificing
+            compliance or transparency. Its guiding principle:{" "}
+            <em className="text-foreground">&ldquo;Let capital flow back into the hands of the User.&rdquo;</em>
+          </p>
+
+          {/* Three-pillar overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8 not-prose">
+            <div className="p-4 bg-violet-500/10 border border-violet-500/20 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-4 h-4 text-violet-400" />
+                <h4 className="text-sm font-semibold text-foreground">Stability</h4>
+              </div>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Minted 1:1 with USDC on Circle. Open-source smart contracts ensure transparent, auditable collateral at all times.
+              </p>
+            </div>
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Lock className="w-4 h-4 text-indigo-400" />
+                <h4 className="text-sm font-semibold text-foreground">Privacy</h4>
+              </div>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Planned FHE (Fully Homomorphic Encryption) integration enables computation on encrypted data — keeping enterprise financials confidential on-chain.
+              </p>
+            </div>
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                <h4 className="text-sm font-semibold text-foreground">Yield</h4>
+              </div>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Institutional-grade staking will provide stable, risk-adjusted DeFi yields — turning idle treasury into a productive asset.
+              </p>
+            </div>
+          </div>
+
+          {/* CCIP + Minting mechanism */}
+          <div className="p-4 sm:p-6 bg-violet-500/10 border border-violet-500/30 rounded-lg mb-6 sm:mb-8">
+            <h3 className="text-lg sm:text-xl font-bold text-violet-700 dark:text-violet-100 mb-3">
+              Minting &amp; Cross-Chain Redemption
+            </h3>
+            <div className="space-y-3">
+              <div className="flex gap-3 items-start">
+                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                <p className="text-xs sm:text-sm text-violet-600/80 dark:text-violet-200/70">
+                  <strong>1:1 Minting:</strong> Users deposit USDC on Circle and receive an equivalent amount of $PUSD on Hashkey Chain. The collateral is held in a fully auditable, open-source smart contract.
+                </p>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                <p className="text-xs sm:text-sm text-violet-600/80 dark:text-violet-200/70">
+                  <strong>CCIP Redemption:</strong> Circle&apos;s Cross-Chain Interoperability Protocol (CCIP) is used as the secure swap token bridge, guaranteeing stable and trustless redemption back to USDC on any supported network.
+                </p>
+              </div>
+              <div className="flex gap-3 items-start">
+                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                <p className="text-xs sm:text-sm text-violet-600/80 dark:text-violet-200/70">
+                  <strong>Open-Source Contracts:</strong> All smart contracts governing minting, redemption, and staking are publicly available and subject to continuous community and third-party audits.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* FHE Roadmap */}
+          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 sm:mb-4">9.1 Privacy Roadmap: FHE Integration</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
+            The upcoming mainnet upgrade will introduce{" "}
+            <strong className="text-foreground">Fully Homomorphic Encryption (FHE)</strong> at the protocol layer.
+            FHE allows computations to be performed directly on encrypted data without ever decrypting it,
+            meaning transaction amounts, counterparties, and balances can remain private on-chain — a critical
+            requirement for enterprises operating in regulated industries.
+          </p>
+          <div className="overflow-x-auto mb-6 sm:mb-8 not-prose">
+            <table className="w-full text-xs sm:text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-3 text-foreground font-semibold">Capability</th>
+                  <th className="text-left py-2 px-3 text-foreground font-semibold">Standard Chain</th>
+                  <th className="text-left py-2 px-3 text-foreground font-semibold">$PUSD + FHE</th>
+                </tr>
+              </thead>
+              <tbody className="text-muted-foreground">
+                <tr className="border-b border-border/50">
+                  <td className="py-2 px-3">Transaction Amounts</td>
+                  <td className="py-2 px-3 text-red-400">Public</td>
+                  <td className="py-2 px-3 text-emerald-400">Encrypted</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 px-3">Counterparty Addresses</td>
+                  <td className="py-2 px-3 text-red-400">Public</td>
+                  <td className="py-2 px-3 text-emerald-400">Encrypted</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 px-3">Balance Queries</td>
+                  <td className="py-2 px-3 text-red-400">Public</td>
+                  <td className="py-2 px-3 text-emerald-400">Encrypted</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 px-3">Smart Contract Logic</td>
+                  <td className="py-2 px-3 text-yellow-400">Transparent</td>
+                  <td className="py-2 px-3 text-emerald-400">Confidential</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 px-3">Auditability</td>
+                  <td className="py-2 px-3 text-emerald-400">Full</td>
+                  <td className="py-2 px-3 text-emerald-400">Selective Disclosure</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Institutional Staking */}
+          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 sm:mb-4">9.2 Institutional-Grade Staking</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
+            To stabilize DeFi yields and attract institutional liquidity, $PUSD will introduce a{" "}
+            <strong className="text-foreground">curated staking model</strong> designed for risk-conscious enterprises.
+            Unlike retail DeFi pools, this mechanism applies institutional-grade risk controls — including
+            collateral caps, liquidation buffers, and insurance backstops — to ensure predictable, sustainable returns.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8 sm:mb-10 not-prose">
+            <div className="p-4 bg-muted border border-border rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <RefreshCw className="w-4 h-4 text-blue-400" />
+                <h4 className="text-sm font-semibold text-foreground">Stable Yield</h4>
+              </div>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Yield is sourced from curated, audited DeFi protocols and is smoothed over time to reduce volatility — suitable for enterprise treasury management.
+              </p>
+            </div>
+            <div className="p-4 bg-muted border border-border rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Coins className="w-4 h-4 text-yellow-400" />
+                <h4 className="text-sm font-semibold text-foreground">Capital Efficiency</h4>
+              </div>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Staked $PUSD remains liquid and can be used as collateral within the Protocol Banks ecosystem, maximizing capital efficiency without lock-up risk.
+              </p>
+            </div>
+          </div>
 
           <div className="mt-8 sm:mt-12 pt-8 sm:pt-12 border-t border-border">
             <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 sm:mb-4">Ready to build AI-native payments?</h3>
