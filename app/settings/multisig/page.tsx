@@ -30,7 +30,35 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { multisigService, type MultisigWallet, type MultisigTransaction } from "@/lib/multisig"
+import { authHeaders } from "@/lib/authenticated-fetch"
+
+interface MultisigWallet {
+  id: string
+  name: string
+  address: string
+  chain_id: number
+  threshold: number
+  signers: string[]
+  owner_address: string
+  created_at: string
+  updated_at: string
+  transactions?: MultisigTransaction[]
+}
+
+interface MultisigTransaction {
+  id: string
+  multisig_id: string
+  to_address: string
+  value: string
+  data?: string | null
+  nonce: number
+  status: string
+  threshold: number
+  created_by: string
+  created_at: string
+  updated_at: string
+  confirmations?: Array<{ id: string; signer_address: string; signature: string }>
+}
 import { Shield, Plus, Users, ArrowRight, Trash2, Fingerprint, CheckCircle2, Clock } from "lucide-react"
 
 const SUPPORTED_CHAINS = [
@@ -83,7 +111,11 @@ export default function MultisigPage() {
     if (!address) return
     setLoading(true)
     try {
-      const data = await multisigService.getWallets(address)
+      const res = await fetch("/api/multisig/wallets", {
+        headers: authHeaders(address),
+      })
+      if (!res.ok) throw new Error("Failed to fetch wallets")
+      const { wallets: data } = await res.json()
       setWallets(data)
       if (data.length > 0 && !selectedWallet) {
         setSelectedWallet(data[0])
@@ -97,7 +129,11 @@ export default function MultisigPage() {
 
   const loadPendingTransactions = async (walletId: string) => {
     try {
-      const txs = await multisigService.getPendingTransactions(walletId)
+      const res = await fetch(`/api/multisig/transactions?walletId=${walletId}`, {
+        headers: authHeaders(address),
+      })
+      if (!res.ok) throw new Error("Failed to fetch transactions")
+      const { transactions: txs } = await res.json()
       setPendingTxs(txs)
     } catch (error) {
       console.error("Failed to load transactions:", error)
@@ -141,13 +177,21 @@ export default function MultisigPage() {
     }
 
     try {
-      const wallet = await multisigService.createWallet({
-        name: walletName,
-        signers: validSigners,
-        threshold,
-        chainId,
-        createdBy: address,
+      const res = await fetch("/api/multisig/wallets", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...authHeaders(address),
+        },
+        body: JSON.stringify({
+          name: walletName,
+          signers: validSigners,
+          threshold,
+          chainId,
+        }),
       })
+      if (!res.ok) throw new Error("Failed to create wallet")
+      const { wallet } = await res.json()
 
       setWallets((prev) => [wallet, ...prev])
       setSelectedWallet(wallet)
@@ -208,16 +252,24 @@ export default function MultisigPage() {
         to: tx.to_address,
         value: tx.value,
         data: tx.data,
-        nonce: tx.safe_nonce,
+        nonce: tx.nonce,
       })
 
       const signature = await signMessage(message)
 
-      await multisigService.confirmTransaction({
-        transactionId: tx.id,
-        signerAddress: address,
-        signature,
+      const res = await fetch(`/api/multisig/confirmations`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...authHeaders(address),
+        },
+        body: JSON.stringify({
+          transactionId: tx.id,
+          signerAddress: address,
+          signature,
+        }),
       })
+      if (!res.ok) throw new Error("Failed to confirm transaction")
 
       toast({ title: "Transaction Signed" })
       loadPendingTransactions(tx.multisig_id)
@@ -457,7 +509,7 @@ export default function MultisigPage() {
                         </Badge>
                       </div>
                       <div className="text-xs font-mono text-muted-foreground mt-2 truncate">
-                        {wallet.wallet_address}
+                        {wallet.address}
                       </div>
                     </CardContent>
                   </Card>
@@ -486,7 +538,7 @@ export default function MultisigPage() {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <div className="font-medium">{tx.description || "Transfer"}</div>
+                            <div className="font-medium">Transfer</div>
                             <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                               <ArrowRight className="h-3 w-3" />
                               <span className="truncate max-w-[150px]">{tx.to_address}</span>
@@ -501,12 +553,9 @@ export default function MultisigPage() {
                           </Badge>
                         </div>
 
-                        {tx.amount_usd && (
-                          <div className="text-xl font-bold mb-3">
-                            ${tx.amount_usd.toLocaleString()}{" "}
-                            <span className="text-sm font-normal text-muted-foreground">{tx.token_symbol}</span>
-                          </div>
-                        )}
+                        <div className="text-xl font-bold mb-3">
+                          {tx.value} wei
+                        </div>
 
                         <div className="mb-4">
                           <div className="flex items-center justify-between text-sm mb-1">
@@ -541,16 +590,14 @@ export default function MultisigPage() {
 
           {activeTab === "signers" && selectedWallet && (
             <div className="space-y-3">
-              {selectedWallet.signers?.map((signer) => (
-                <Card key={signer.id}>
+              {selectedWallet.signers?.map((signer, idx) => (
+                <Card key={idx}>
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium">{signer.signer_name || "Signer"}</div>
-                      <div className="text-sm font-mono text-muted-foreground truncate">{signer.signer_address}</div>
+                      <div className="font-medium">Signer {idx + 1}</div>
+                      <div className="text-sm font-mono text-muted-foreground truncate">{signer}</div>
                     </div>
-                    <Badge variant={signer.is_active ? "default" : "secondary"}>
-                      {signer.is_active ? "Active" : "Inactive"}
-                    </Badge>
+                    <Badge variant="default">Active</Badge>
                   </CardContent>
                 </Card>
               ))}
@@ -589,7 +636,7 @@ export default function MultisigPage() {
                         {wallet.threshold} of {wallet.signers?.length || 0}
                       </div>
                       <div className="text-xs font-mono text-muted-foreground mt-1">
-                        {wallet.wallet_address.slice(0, 10)}...{wallet.wallet_address.slice(-8)}
+                        {wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}
                       </div>
                     </button>
                   ))}
@@ -603,7 +650,7 @@ export default function MultisigPage() {
             <CardHeader>
               <CardTitle>{selectedWallet ? selectedWallet.name : "Select a Wallet"}</CardTitle>
               {selectedWallet && (
-                <CardDescription className="font-mono">{selectedWallet.wallet_address}</CardDescription>
+                <CardDescription className="font-mono">{selectedWallet.address}</CardDescription>
               )}
             </CardHeader>
             <CardContent>
@@ -638,16 +685,14 @@ export default function MultisigPage() {
                             <div key={tx.id} className="border rounded-lg p-4">
                               <div className="flex items-start justify-between">
                                 <div>
-                                  <div className="font-medium">{tx.description || "Transfer"}</div>
+                                  <div className="font-medium">Transfer</div>
                                   <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                                     <ArrowRight className="h-3 w-3" />
                                     {tx.to_address.slice(0, 10)}...{tx.to_address.slice(-8)}
                                   </div>
-                                  {tx.amount_usd && (
-                                    <div className="text-lg font-semibold mt-2">
-                                      ${tx.amount_usd.toLocaleString()} {tx.token_symbol}
-                                    </div>
-                                  )}
+                                  <div className="text-lg font-semibold mt-2">
+                                    {tx.value} wei
+                                  </div>
                                 </div>
                                 <Badge
                                   variant={
@@ -693,15 +738,13 @@ export default function MultisigPage() {
 
                   <TabsContent value="signers">
                     <div className="space-y-2">
-                      {selectedWallet.signers?.map((signer) => (
-                        <div key={signer.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      {selectedWallet.signers?.map((signer, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
-                            <div className="font-medium">{signer.signer_name || "Signer"}</div>
-                            <div className="text-sm font-mono text-muted-foreground">{signer.signer_address}</div>
+                            <div className="font-medium">Signer {idx + 1}</div>
+                            <div className="text-sm font-mono text-muted-foreground">{signer}</div>
                           </div>
-                          <Badge variant={signer.is_active ? "default" : "secondary"}>
-                            {signer.is_active ? "Active" : "Inactive"}
-                          </Badge>
+                          <Badge variant="default">Active</Badge>
                         </div>
                       ))}
                     </div>

@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
-import { useBatchPayment } from "@/hooks/use-batch-payment"
 import { useAsyncBatchPayment } from "@/hooks/use-async-batch-payment"
 import { BatchStatusTracker } from "@/components/batch-status-tracker"
 import { BatchTransferProgress, type BatchTransferStep } from "@/components/batch-transfer-progress"
@@ -55,18 +54,59 @@ import { authHeaders } from "@/lib/authenticated-fetch"
 import { PurposeTagSelector } from "@/components/purpose-tag-selector"
 import { PaymentGroupSelector } from "@/components/payment-group-selector"
 import type { Vendor, PaymentRecipient, AutoPayment, VendorCategory } from "@/types"
-import { validatePaymentData, processBatchPayment as executeBatchPayment } from "@/lib/services/payment-service"
 import { validateVendorData } from "@/lib/services/vendor-service"
 import { parsePaymentFile, generateSampleCSV, generateSampleExcel, type ParseResult } from "@/lib/excel-parser"
 import { getInjectedEthereum } from "@/lib/web3"
-import { multisigService, type MultisigWallet } from "@/lib/multisig"
-import { publicBatchTransferService } from "@/lib/services/public-batch-transfer-service"
+interface MultisigWallet {
+  id: string
+  name: string
+  address: string
+  chain_id: number
+  threshold: number
+  signers: string[]
+  owner_address: string
+  created_at: string
+  updated_at: string
+}
+import { publicBatchTransferService, TOKEN_ADDRESSES } from "@/lib/services/public-batch-transfer-service"
 import { createWalletClient, createPublicClient, http, custom } from "viem"
-import { arbitrum } from "viem/chains"
+import { arbitrum, base, mainnet, polygon, bsc, type Chain } from "viem/chains"
 import { getVendorDisplayName, getVendorInitials } from "@/lib/utils"
 import { CHAIN_IDS } from "@/lib/web3"
 import { detectAddressType } from "@/lib/address-utils"
 import { useRouter } from "next/navigation"
+
+// Chains where the Disperse batch contract is deployed (see PUBLIC_BATCH_CONTRACTS)
+const BATCH_CHAINS: Record<number, Chain> = {
+  1: mainnet,
+  56: bsc,
+  137: polygon,
+  8453: base,
+  42161: arbitrum,
+}
+
+const deriveEvmChainSlug = (id: number): string => {
+  switch (id) {
+    case CHAIN_IDS.BASE:
+      return "base"
+    case CHAIN_IDS.ARBITRUM:
+      return "arbitrum"
+    case CHAIN_IDS.POLYGON:
+      return "polygon"
+    case CHAIN_IDS.OPTIMISM:
+      return "optimism"
+    case CHAIN_IDS.SEPOLIA:
+      return "sepolia"
+    case CHAIN_IDS.MAINNET:
+      return "ethereum"
+    case CHAIN_IDS.HASHKEY:
+      return "hashkey"
+    case CHAIN_IDS.BSC:
+      return "bsc"
+    default:
+      return "evm"
+  }
+}
 
 export default function BatchPaymentPage() {
   const {
@@ -85,16 +125,6 @@ export default function BatchPaymentPage() {
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
   const router = useRouter()
-
-  // Use the batch payment hook for API integration
-  const {
-    uploadFile,
-    validateBatch,
-    submitBatch,
-    batchStatus,
-    loading: batchLoading,
-    error: batchError,
-  } = useBatchPayment()
 
   // New Async Batch Payment Hook
   const {
@@ -504,7 +534,11 @@ export default function BatchPaymentPage() {
     }
 
     try {
-      const wallets = await multisigService.getWallets(currentWallet)
+      const res = await fetch("/api/multisig/wallets", {
+        headers: authHeaders(currentWallet),
+      })
+      if (!res.ok) throw new Error("Failed to fetch multisig wallets")
+      const { wallets } = await res.json()
       setMultisigWallets(wallets)
     } catch (err) {
       console.error("[v0] Error loading multisig wallets:", err)
@@ -569,11 +603,6 @@ export default function BatchPaymentPage() {
       const file = e.target.files?.[0]
       if (!file) return
 
-      // V2 Async Architecture: Upload to server directly
-      await uploadAsyncFile(file)
-      
-      // Legacy Client-side logic commented out in favor of Async Pipeline
-      /*
       setIsProcessing(true)
       try {
         const result = await parsePaymentFile(file)
@@ -600,7 +629,6 @@ export default function BatchPaymentPage() {
       } finally {
         setIsProcessing(false)
       }
-      */
     }
     input.click()
   }, [uploadAsyncFile, toast])
@@ -921,29 +949,6 @@ export default function BatchPaymentPage() {
       return
     }
 
-    const deriveEvmChainSlug = (id: number): string => {
-      switch (id) {
-        case CHAIN_IDS.BASE:
-          return "base"
-        case CHAIN_IDS.ARBITRUM:
-          return "arbitrum"
-        case CHAIN_IDS.POLYGON:
-          return "polygon"
-        case CHAIN_IDS.OPTIMISM:
-          return "optimism"
-        case CHAIN_IDS.SEPOLIA:
-          return "sepolia"
-        case CHAIN_IDS.MAINNET:
-          return "ethereum"
-        case CHAIN_IDS.HASHKEY:
-          return "hashkey"
-        case CHAIN_IDS.BSC:
-          return "bsc"
-        default:
-          return "evm"
-      }
-    }
-
     setIsProcessing(true)
 
     const initialChain = selectedPaymentChain
@@ -955,21 +960,31 @@ export default function BatchPaymentPage() {
 
     try {
       if (supportsMultisig && useMultisig && selectedMultisig) {
-        const totalAmount = validRecipients.reduce((sum, r) => sum + Number.parseFloat(r.amount), 0)
-
-        await multisigService.createTransaction({
-          multisigId: selectedMultisig,
-          toAddress: validRecipients[0].address,
-          value: totalAmount.toString(),
-          description: `Batch payment to ${validRecipients.length} recipients`,
-          tokenSymbol: validRecipients[0].token,
-          amountUsd: totalAmount,
-          createdBy: currentWallet || wallets.EVM || wallets.TRON || "",
-        })
+        // One proposal per recipient — a single lumped proposal would send the
+        // entire batch total to whichever address happened to be first.
+        for (const recipient of validRecipients) {
+          const res = await fetch("/api/multisig/transactions", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              ...authHeaders(currentWallet),
+            },
+            body: JSON.stringify({
+              walletId: selectedMultisig,
+              to: recipient.address,
+              value: recipient.amount,
+            }),
+          })
+          if (!res.ok) {
+            throw new Error(
+              `Failed to create multisig proposal for ${recipient.vendorName || recipient.address}`
+            )
+          }
+        }
 
         toast({
-          title: "Transaction Proposed",
-          description: `Batch payment submitted for multi-sig approval (${multisigWallets.find((w) => w.id === selectedMultisig)?.threshold} signatures required)`,
+          title: "Transactions Proposed",
+          description: `${validRecipients.length} payment${validRecipients.length === 1 ? "" : "s"} submitted for multi-sig approval (${multisigWallets.find((w) => w.id === selectedMultisig)?.threshold} signatures required)`,
         })
         return
       }
@@ -1174,14 +1189,29 @@ export default function BatchPaymentPage() {
         throw new Error('Please install MetaMask or another Web3 wallet.')
       }
 
-      // Create viem clients
+      const batchChain = BATCH_CHAINS[chainId]
+      if (!batchChain || !publicBatchTransferService.isChainSupported(chainId)) {
+        throw new Error(
+          `Batch transfer is not available on this network. Switch networks or use individual payments instead.`
+        )
+      }
+      if (!TOKEN_ADDRESSES[chainId]?.[tokenSymbol]) {
+        const supported = Object.keys(TOKEN_ADDRESSES[chainId] || {})
+        throw new Error(
+          supported.length
+            ? `${tokenSymbol} is not supported for batch transfer on ${batchChain.name}. Supported here: ${supported.join(", ")}.`
+            : `Batch transfer is not configured for ${batchChain.name}. Use individual payments instead.`
+        )
+      }
+
+      // Create viem clients bound to the wallet's current chain
       const publicClient = createPublicClient({
-        chain: arbitrum,
+        chain: batchChain,
         transport: http()
       })
 
       const walletClient = createWalletClient({
-        chain: arbitrum,
+        chain: batchChain,
         transport: custom(ethereum)
       })
 
@@ -1201,7 +1231,7 @@ export default function BatchPaymentPage() {
         publicClient,
         batchRecipients,
         tokenSymbol,
-        42161 // Arbitrum chain ID
+        chainId
       )
 
       setIsApproving(false)
@@ -1214,19 +1244,24 @@ export default function BatchPaymentPage() {
         if (result.txHash) {
           try {
             const paymentRecords = validRecipients.map((recipient, index) => ({
-              tx_hash: `${result.txHash}-${index}`,
+              tx_hash: result.txHash,
               from_address: currentWallet.toLowerCase(),
               to_address: recipient.address.toLowerCase(),
               vendor_id: recipient.vendorId || null,
+              token: tokenSymbol,
               token_symbol: tokenSymbol,
               token_address: '0x0000000000000000000000000000000000000000',
               amount: recipient.amount,
               amount_usd: parseFloat(recipient.amount),
               status: 'completed',
+              type: 'sent' as const,
+              network_type: 'EVM',
+              chain: deriveEvmChainSlug(chainId),
+              chain_id: chainId,
               timestamp: new Date().toISOString(),
               notes: recipient.vendorName
-                ? `Batch payment to ${recipient.vendorName} (tx: ${result.txHash})`
-                : `Batch payment ${index + 1}/${recipientCount} (tx: ${result.txHash})`,
+                ? `Batch payment to ${recipient.vendorName} (item ${index + 1}/${recipientCount})`
+                : `Batch payment ${index + 1}/${recipientCount}`,
             }))
 
             let successCount = 0

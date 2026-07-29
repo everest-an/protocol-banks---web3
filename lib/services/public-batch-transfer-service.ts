@@ -186,7 +186,7 @@ export class PublicBatchTransferService {
         functionName: 'disperseTokenSimple',
         args: [tokenAddress, addresses, amounts],
         account,
-        chain: null,
+        chain: walletClient.chain,
       });
 
       console.log('[PublicBatch] Transaction sent:', hash);
@@ -246,7 +246,7 @@ export class PublicBatchTransferService {
           functionName: 'approve',
           args: [spender, requiredAmount], // ✅ 只授权实际需要的数量
           account: owner,
-          chain: null,
+          chain: walletClient.chain,
         });
 
         console.log('[PublicBatch] Approval tx:', hash);

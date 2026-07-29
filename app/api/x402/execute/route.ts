@@ -121,13 +121,30 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
       }
 
       txHash = result.transactionHash || result.taskId
-    } else {
-      // Development mode: simulate execution
-      console.warn("[x402] No relayer configured, simulating execution")
+    } else if (
+      process.env.ALLOW_MOCK_EXECUTION === "true" &&
+      process.env.NODE_ENV !== "production"
+    ) {
+      // Explicit local-development opt-in ONLY. Produces a FAKE tx hash that
+      // does not exist on-chain — never enable outside local testing.
+      console.warn("[x402] ALLOW_MOCK_EXECUTION enabled — simulating execution with a FAKE tx hash")
       txHash = generateMockTxHash()
-
-      // Simulate some delay
       await new Promise(resolve => setTimeout(resolve, 500))
+    } else {
+      // No relayer configured: fail loudly instead of fabricating success.
+      await prisma.x402Authorization.update({
+        where: { id: auth.id },
+        data: { status: "authorized" }, // revert from "executing"
+      })
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "No relayer configured (set RELAYER_API_KEY / RELAYER_URL or a relayer provider). " +
+            "Refusing to simulate execution — for local testing set ALLOW_MOCK_EXECUTION=true.",
+        },
+        { status: 503 }
+      )
     }
 
     // Update authorization with transaction hash

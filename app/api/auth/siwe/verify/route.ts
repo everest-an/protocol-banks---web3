@@ -46,23 +46,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Consume the nonce (single-use, prevents replay)
-    const nonceValid = await consumeNonce(parsed.nonce)
-    if (!nonceValid) {
+    // 2. Verify the cryptographic signature FIRST — a failed signature must
+    //    not burn the nonce (otherwise attackers could exhaust nonces).
+    //    Bind the message to our own domain to prevent cross-site replay.
+    const expectedDomain = request.headers.get("host") || undefined
+    const recoveredAddress = await verifySiweSignature(
+      message,
+      signature as `0x${string}`,
+      expectedDomain
+    )
+    if (!recoveredAddress) {
       return NextResponse.json(
-        { error: "Invalid, expired, or already-used nonce" },
+        { error: "Invalid signature or domain mismatch" },
         { status: 401 }
       )
     }
 
-    // 3. Verify the cryptographic signature
-    const recoveredAddress = await verifySiweSignature(
-      message,
-      signature as `0x${string}`
-    )
-    if (!recoveredAddress) {
+    // 3. Consume the nonce (single-use, prevents replay)
+    const nonceValid = await consumeNonce(parsed.nonce)
+    if (!nonceValid) {
       return NextResponse.json(
-        { error: "Invalid signature" },
+        { error: "Invalid, expired, or already-used nonce" },
         { status: 401 }
       )
     }

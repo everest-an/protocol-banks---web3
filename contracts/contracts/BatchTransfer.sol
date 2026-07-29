@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -39,11 +39,13 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
     // State Variables
     // ============================================
 
-    // 骞冲彴鎵嬬画璐癸紙鍩虹偣锛? = 0.01%锛屼緥濡?10 = 0.1%锛?    uint16 public platformFeeBps = 0; // 榛樿0鎵嬬画璐?
+    // 骞冲彴鎵嬬画璐癸紙鍩虹偣锛? = 0.01%锛屼緥濡?10 = 0.1%锛?
+    uint16 public platformFeeBps = 0; // 榛樿0鎵嬬画璐?
     // 鎵嬬画璐规敹鍙栧湴鍧€
     address public feeCollector;
 
-    // 鏈€澶у崟娆℃壒閲忚浆璐︽暟閲忥紙闃叉Gas鑰楀敖锛?    uint256 public maxBatchSize = 200;
+    // 鏈€澶у崟娆℃壒閲忚浆璐︽暟閲忥紙闃叉Gas鑰楀敖锛?
+    uint256 public maxBatchSize = 200;
 
     // 缁熻鏁版嵁
     uint256 public totalBatchesProcessed;
@@ -81,13 +83,15 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
         IERC20 tokenContract = IERC20(token);
         uint256 totalAmount = 0;
 
-        // 璁＄畻鎬婚噾棰?        for (uint256 i = 0; i < amounts.length; i++) {
+        // 璁＄畻鎬婚噾棰?
+        for (uint256 i = 0; i < amounts.length; i++) {
             require(recipients[i] != address(0), "Invalid recipient");
             require(amounts[i] > 0, "Invalid amount");
             totalAmount += amounts[i];
         }
 
-        // 璁＄畻鎵嬬画璐?        uint256 feeAmount = 0;
+        // 璁＄畻鎵嬬画璐?
+        uint256 feeAmount = 0;
         if (platformFeeBps > 0) {
             feeAmount = (totalAmount * platformFeeBps) / 10000;
             require(feeAmount < totalAmount, "Fee too high");
@@ -95,12 +99,14 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
 
         uint256 totalRequired = totalAmount + feeAmount;
 
-        // 妫€鏌ュ苟杞叆浠ｅ竵鍒板悎绾?        require(
+        // 妫€鏌ュ苟杞叆浠ｅ竵鍒板悎绾?
+        require(
             tokenContract.transferFrom(msg.sender, address(this), totalRequired),
             "Transfer to contract failed"
         );
 
-        // 鏀跺彇鎵嬬画璐?        if (feeAmount > 0) {
+        // 鏀跺彇鎵嬬画璐?
+        if (feeAmount > 0) {
             require(
                 tokenContract.transfer(feeCollector, feeAmount),
                 "Fee transfer failed"
@@ -153,7 +159,8 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
         IERC20 tokenContract = IERC20(token);
         uint256 totalAmount = amount * recipients.length;
 
-        // 璁＄畻鎵嬬画璐?        uint256 feeAmount = 0;
+        // 璁＄畻鎵嬬画璐?
+        uint256 feeAmount = 0;
         if (platformFeeBps > 0) {
             feeAmount = (totalAmount * platformFeeBps) / 10000;
         }
@@ -166,7 +173,8 @@ contract BatchTransfer is Ownable, ReentrancyGuard {
             "Transfer to contract failed"
         );
 
-        // 鏀跺彇鎵嬬画璐?        if (feeAmount > 0) {
+        // 鏀跺彇鎵嬬画璐?
+        if (feeAmount > 0) {
             require(
                 tokenContract.transfer(feeCollector, feeAmount),
                 "Fee transfer failed"

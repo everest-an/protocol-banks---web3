@@ -6,11 +6,27 @@ dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.20",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
+    // 0.8.20 is kept for the originally deployed contracts; 0.8.28 is required
+    // by OpenZeppelin 5.4's ERC20Permit (pragma ^0.8.24). Hardhat picks the
+    // highest version each file's pragma allows.
+    compilers: [
+      {
+        version: "0.8.20",
+        settings: { optimizer: { enabled: true, runs: 200 } },
+      },
+      {
+        // OZ 5.4's Strings/Bytes use `mcopy`, which needs a Cancun target.
+        version: "0.8.28",
+        settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" },
+      },
+    ],
+    overrides: {
+      // Pin the deployable contract to the conservative paris target so its
+      // bytecode runs on chains that have not enabled Cancun opcodes. Only the
+      // permit test mock needs the newer target.
+      "contracts/SubscriptionManager.sol": {
+        version: "0.8.20",
+        settings: { optimizer: { enabled: true, runs: 200 } },
       },
     },
   },
@@ -21,6 +37,12 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       url: "http://127.0.0.1:8545",
+    },
+    // Ethereum Sepolia 测试网
+    sepolia: {
+      url: process.env.SEPOLIA_RPC || "https://ethereum-sepolia-rpc.publicnode.com",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 11155111,
     },
     // Arbitrum Sepolia 测试网
     arbitrumSepolia: {

@@ -43,6 +43,14 @@ export interface Subscription {
   timezone: string;
   description?: string;
   recipients?: Array<{ address: string; amount: string; name?: string }>;
+  /// bytes32 id in the SubscriptionManager contract; null = ERC-3009 fallback.
+  onchain_subscription_id?: string | null;
+  /// Address of the SubscriptionManager instance holding that record.
+  manager_address?: string | null;
+  /// Consecutive failed charge attempts; drives the dunning schedule.
+  failed_attempts?: number;
+  last_failure_reason?: string | null;
+  last_failure_at?: string | null;
   // Computed fields
   remaining_quota?: string;
   authorization_valid?: boolean;

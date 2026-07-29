@@ -148,6 +148,44 @@ RELAYER_ADDRESS=0x...your_relayer_wallet_address
 X402_RELAYER_URL=https://your-x402-relayer.com
 ```
 
+**Important**: when no relayer is configured, payment execution endpoints
+(x402 execute, subscription charges, channel settlements) now **fail with an
+explicit error** instead of fabricating a fake transaction hash. For local
+demos only, you can opt back into simulation:
+
+```env
+# LOCAL DEVELOPMENT ONLY — produces FAKE tx hashes. Ignored when NODE_ENV=production.
+ALLOW_MOCK_EXECUTION=true
+```
+
+### 6b. Core Authentication & Database (REQUIRED — the app will not run without these)
+
+```env
+# PostgreSQL connection (Prisma). The entire app depends on this.
+DATABASE_URL=postgresql://user:pass@host:5432/protocolbanks
+DIRECT_DATABASE_URL=postgresql://user:pass@host:5432/protocolbanks
+
+# HMAC secret for SIWE-issued JWTs (wallet users + AI agents + MCP auth).
+# getJwtSecret() throws if unset. Generate: openssl rand -hex 32
+AI_JWT_SECRET=your_random_32_byte_hex
+
+# Server-side executor key for agent/MCP payment execution (optional feature)
+AGENT_EXECUTOR_PRIVATE_KEY=0x...
+```
+
+**Authentication model**: API routes accept only verifiable credentials —
+an `Authorization: Bearer <jwt>` obtained via SIWE
+(`GET /api/auth/siwe/nonce` → sign → `POST /api/auth/siwe/verify`) or the
+httpOnly session cookie (email/OAuth login). The `x-wallet-address` header
+alone is an identity hint and **no longer authenticates**. For local
+development without wallets you can temporarily restore the legacy behaviour:
+
+```env
+# LOCAL DEVELOPMENT ONLY — trusts the x-wallet-address header without proof.
+# Every use is logged as a high-severity security event.
+ALLOW_INSECURE_HEADER_AUTH=true
+```
+
 ### 7. Webhook Configuration
 
 For production webhook delivery:

@@ -26,9 +26,22 @@ jest.mock("@/lib/logger/structured-logger", () => ({
 
 const WALLET = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2"
 
+// requireAuth no longer trusts the x-wallet-address header alone —
+// authenticated requests must carry a real SIWE-issued Bearer JWT.
+let bearerToken = ""
+beforeAll(async () => {
+  process.env.AI_JWT_SECRET = "test-jwt-secret"
+  const { signJwt } = await import("@/lib/auth/jwt")
+  const { token } = await signJwt(WALLET)
+  bearerToken = token
+})
+
 function makeRequest(method: string, url: string, body?: Record<string, unknown>, authenticated = true) {
   const headers: Record<string, string> = { "content-type": "application/json" }
-  if (authenticated) headers["x-wallet-address"] = WALLET
+  if (authenticated) {
+    headers["x-wallet-address"] = WALLET
+    headers["authorization"] = `Bearer ${bearerToken}`
+  }
   return new Request(url, {
     method,
     headers,

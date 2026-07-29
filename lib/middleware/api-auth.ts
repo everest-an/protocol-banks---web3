@@ -1,8 +1,19 @@
 /**
  * API Authentication Middleware
  *
- * Provides reusable authentication for API routes.
- * Validates wallet auth headers and optionally checks API keys.
+ * Identity is established ONLY from verifiable credentials:
+ *   1. `Authorization: Bearer <jwt>` — SIWE-issued JWT (wallet users + AI agents)
+ *   2. httpOnly session cookie — email / OAuth users (embedded wallet)
+ *
+ * SECURITY: the legacy `x-wallet-address` / `x-user-address` header NO LONGER
+ * authenticates by itself (it allowed trivial impersonation of any address).
+ * When present it is only cross-checked against the verified identity; a
+ * mismatch is rejected with 403.
+ *
+ * Local-development escape hatch:
+ *   ALLOW_INSECURE_HEADER_AUTH=true restores the old header-trust behaviour.
+ *   Every use is logged as a high-severity security event. NEVER enable in
+ *   production.
  *
  * Usage:
  *   const auth = await requireAuth(request)
@@ -14,6 +25,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { userAddressHeaderSchema } from '@/lib/validations/yield'
 import { logger } from '@/lib/logger/structured-logger'
 import { verifyJwt } from '@/lib/auth/jwt'
+import { verifySession } from '@/lib/auth/session'
 
 export interface AuthResult {
   address: string
@@ -26,8 +38,40 @@ export interface AuthError {
 }
 
 /**
- * Require authenticated user via x-wallet-address (or legacy x-user-address) header.
- * Returns the validated address or an error response.
+ * Resolve the caller's wallet address from a verifiable credential.
+ * Returns null when no valid credential is present.
+ */
+async function verifiedAddressFromRequest(request: NextRequest): Promise<string | null> {
+  // 1. Bearer JWT (SIWE-issued)
+  const authHeader = request.headers.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const payload = await verifyJwt(authHeader.slice(7))
+      if (payload?.sub) {
+        const parsed = userAddressHeaderSchema.safeParse(payload.sub)
+        if (parsed.success) return parsed.data
+      }
+    } catch {
+      // Invalid/expired JWT — fall through to session cookie
+    }
+  }
+
+  // 2. httpOnly session cookie (email / OAuth users with embedded wallet)
+  try {
+    const session = await verifySession()
+    if (session?.walletAddress) {
+      const parsed = userAddressHeaderSchema.safeParse(session.walletAddress)
+      if (parsed.success) return parsed.data
+    }
+  } catch {
+    // cookies() unavailable outside a request scope (e.g. unit tests) — treat as no session
+  }
+
+  return null
+}
+
+/**
+ * Require an authenticated user. Returns the verified address or an error response.
  */
 export async function requireAuth(
   request: NextRequest,
@@ -36,63 +80,66 @@ export async function requireAuth(
   const component = options?.component || 'api-auth'
   const rawAddress = request.headers.get('x-wallet-address') || request.headers.get('x-user-address')
 
-  if (!rawAddress) {
-    // Fallback: check Bearer JWT token (AI agent authentication via SIWE)
-    const authHeader = request.headers.get('authorization')
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const payload = await verifyJwt(authHeader.slice(7))
-        if (payload?.sub) {
-          const parsed = userAddressHeaderSchema.safeParse(payload.sub)
-          if (parsed.success) {
-            return { address: parsed.data, error: null }
-          }
+  const verified = await verifiedAddressFromRequest(request)
+
+  if (verified) {
+    // Cross-check: a client-supplied address header must match the verified identity.
+    if (rawAddress) {
+      const parsedHeader = userAddressHeaderSchema.safeParse(rawAddress)
+      if (parsedHeader.success && parsedHeader.data.toLowerCase() !== verified.toLowerCase()) {
+        logger.logSecurityEvent('auth_identity_mismatch', 'high', {
+          path: request.nextUrl?.pathname ?? request.url,
+          method: request.method,
+          verified: verified.substring(0, 10) + '...',
+          claimed: parsedHeader.data.substring(0, 10) + '...',
+        }, { component })
+
+        return {
+          address: null,
+          error: NextResponse.json(
+            { error: 'x-wallet-address header does not match the authenticated identity' },
+            { status: 403 }
+          ),
         }
-      } catch {
-        // JWT invalid — fall through to error
       }
     }
+    return { address: verified, error: null }
+  }
 
-    logger.logSecurityEvent('missing_auth_header', 'medium', {
-      path: request.nextUrl?.pathname ?? request.url,
-      method: request.method,
-      ip: request.headers.get('x-forwarded-for') || 'unknown',
-    }, { component })
-
-    return {
-      address: null,
-      error: NextResponse.json(
-        { error: 'Authentication required: x-wallet-address header or Bearer token is missing' },
-        { status: 401 }
-      ),
+  // Legacy insecure mode — local development only. Trusts the raw header.
+  if (process.env.ALLOW_INSECURE_HEADER_AUTH === 'true' && rawAddress) {
+    const parsed = userAddressHeaderSchema.safeParse(rawAddress)
+    if (parsed.success) {
+      logger.logSecurityEvent('insecure_header_auth_used', 'high', {
+        path: request.nextUrl?.pathname ?? request.url,
+        method: request.method,
+        address: parsed.data.substring(0, 10) + '...',
+      }, { component })
+      return { address: parsed.data, error: null }
     }
   }
 
-  const parsed = userAddressHeaderSchema.safeParse(rawAddress)
-  if (!parsed.success) {
-    logger.logSecurityEvent('invalid_auth_header', 'high', {
-      path: request.nextUrl?.pathname ?? request.url,
-      method: request.method,
-      rawAddress: rawAddress.substring(0, 10) + '...', // Don't log full invalid input
-    }, { component })
-
-    return {
-      address: null,
-      error: NextResponse.json(
-        { error: 'Invalid wallet address header: must be a valid wallet address' },
-        { status: 401 }
-      ),
-    }
-  }
+  logger.logSecurityEvent('missing_auth_credentials', 'medium', {
+    path: request.nextUrl?.pathname ?? request.url,
+    method: request.method,
+    hadAddressHeader: Boolean(rawAddress),
+    ip: request.headers.get('x-forwarded-for') || 'unknown',
+  }, { component })
 
   return {
-    address: parsed.data,
-    error: null,
+    address: null,
+    error: NextResponse.json(
+      {
+        error:
+          'Authentication required: provide an Authorization: Bearer token (via SIWE — GET /api/auth/siwe/nonce then POST /api/auth/siwe/verify) or a session cookie. The x-wallet-address header alone is not accepted.',
+      },
+      { status: 401 }
+    ),
   }
 }
 
 /**
- * Wrapper to protect a GET handler with authentication.
+ * Wrapper to protect a route handler with authentication.
  */
 export function withAuth(
   handler: (request: NextRequest, address: string) => Promise<NextResponse>,

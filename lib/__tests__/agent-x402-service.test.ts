@@ -56,13 +56,27 @@ const validTokens = ['USDC', 'USDT', 'DAI'];
 describe('Agent x402 Service', () => {
   const testOwnerAddress = '0x1234567890123456789012345678901234567890';
 
+  const originalAllowMock = process.env.ALLOW_MOCK_EXECUTION;
+
   beforeEach(() => {
+    // No relayer is configured under test. Opt in explicitly to the simulated
+    // execution path — without this the service correctly refuses to report a
+    // payment it never submitted on-chain.
+    process.env.ALLOW_MOCK_EXECUTION = 'true';
     setX402Db(false);
     setProposalDb(false);
     setAgentDb(false);
     agentX402Service._clearAll();
     proposalService._clearAll();
     agentService._clearAll();
+  });
+
+  afterEach(() => {
+    if (originalAllowMock === undefined) {
+      delete process.env.ALLOW_MOCK_EXECUTION;
+    } else {
+      process.env.ALLOW_MOCK_EXECUTION = originalAllowMock;
+    }
   });
 
   async function createApprovedProposal(options: {
@@ -178,12 +192,28 @@ describe('Agent x402 Service', () => {
   });
 
   describe('processProposalPayment', () => {
+    const testSignature = '0x' + 'ab'.repeat(65);
+
     it('should complete full payment flow', async () => {
       const proposal = await createApprovedProposal();
-      const result = await agentX402Service.processProposalPayment(proposal, testOwnerAddress);
+      const result = await agentX402Service.processProposalPayment(
+        proposal,
+        testOwnerAddress,
+        testSignature
+      );
 
       expect(result.success).toBe(true);
       expect(result.tx_hash).toBeDefined();
+    });
+
+    it('should refuse to execute without an owner signature', async () => {
+      const proposal = await createApprovedProposal();
+      const result = await agentX402Service.processProposalPayment(proposal, testOwnerAddress);
+
+      // Funds move under the owner's signature; the server has no valid
+      // substitute, so it must not invent one.
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/signature/i);
     });
   });
 
@@ -276,7 +306,11 @@ describe('Agent x402 Service', () => {
             agentService._clearAll();
 
             const proposal = await createApprovedProposal({ amount, token, chainId });
-            const result = await agentX402Service.processProposalPayment(proposal, testOwnerAddress);
+            const result = await agentX402Service.processProposalPayment(
+              proposal,
+              testOwnerAddress,
+              '0x' + 'ab'.repeat(65)
+            );
 
             expect(result.success).toBe(true);
             expect(result.tx_hash).toMatch(/^0x[a-f0-9]+$/);

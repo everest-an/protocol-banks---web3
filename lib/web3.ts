@@ -614,13 +614,30 @@ export async function connectTron(): Promise<string> {
     return address;
 }
 
+/**
+ * Sign an ERC-3009 TransferWithAuthorization.
+ *
+ * `options` lets the caller pin the exact tuple to sign. Recurring charges need
+ * this: each billing period gets its own nonce and a validity window covering
+ * that period, and the server must be handed the same values it will later
+ * submit. Omitting it keeps the one-off default (valid immediately, 1 hour).
+ */
 export async function signERC3009Authorization(
   tokenAddress: string,
   from: string,
   to: string,
   amount: string,
   chainId: number,
-): Promise<{ v: number; r: string; s: string; nonce: string; validAfter: number; validBefore: number }> {
+  options?: { nonce?: string; validAfter?: number; validBefore?: number },
+): Promise<{
+  v: number
+  r: string
+  s: string
+  signature: string
+  nonce: string
+  validAfter: number
+  validBefore: number
+}> {
   const ethereum = getInjectedEthereum()
   if (!ethereum) {
     throw new Error("MetaMask is not available")
@@ -633,9 +650,9 @@ export async function signERC3009Authorization(
   const name = await contract.symbol()
 
   // Random nonce (32 bytes hex)
-  const nonce = ethers.hexlify(ethers.randomBytes(32))
-  const validAfter = 0
-  const validBefore = Math.floor(Date.now() / 1000) + 3600 // 1 hour
+  const nonce = options?.nonce ?? ethers.hexlify(ethers.randomBytes(32))
+  const validAfter = options?.validAfter ?? 0
+  const validBefore = options?.validBefore ?? Math.floor(Date.now() / 1000) + 3600 // 1 hour
 
   const domain = {
     name: name === "USDC" ? "USD Coin" : name,
@@ -672,7 +689,7 @@ export async function signERC3009Authorization(
   const signature = await signer.signTypedData(domain, types, message)
   const { v, r, s } = ethers.Signature.from(signature)
 
-  return { v, r, s, nonce, validAfter, validBefore }
+  return { v, r, s, signature, nonce, validAfter, validBefore }
 }
 
 export async function executeERC3009Transfer(

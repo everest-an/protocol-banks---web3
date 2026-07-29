@@ -28,6 +28,10 @@
     {
       "path": "/api/cron/retry-batch-items",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/subscriptions",
+      "schedule": "0 * * * *"
     }
   ]
 }

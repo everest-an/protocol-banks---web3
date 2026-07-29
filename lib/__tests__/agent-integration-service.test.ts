@@ -35,8 +35,14 @@ jest.mock('@/lib/prisma', () => ({
 
 describe('Agent Integration Service', () => {
   const testOwnerAddress = '0x1234567890123456789012345678901234567890';
+  // Stands in for the owner's ERC-3009 authorization, which approveAndExecute
+  // now requires — the server cannot sign on the owner's behalf.
+  const testSignature = '0x' + 'ab'.repeat(65);
+  const originalAllowMock = process.env.ALLOW_MOCK_EXECUTION;
 
   beforeEach(() => {
+    // No relayer under test: opt in explicitly to simulated execution.
+    process.env.ALLOW_MOCK_EXECUTION = 'true';
     // Disable database storage for all services
     setProposalDb(false);
     setAgentDb(false);
@@ -52,6 +58,14 @@ describe('Agent Integration Service', () => {
     agentWebhookService._clearAll();
     agentActivityService._clearAll();
     agentIntegrationService._clearAll();
+  });
+
+  afterEach(() => {
+    if (originalAllowMock === undefined) {
+      delete process.env.ALLOW_MOCK_EXECUTION;
+    } else {
+      process.env.ALLOW_MOCK_EXECUTION = originalAllowMock;
+    }
   });
 
   async function createTestAgent(options: {
@@ -156,7 +170,8 @@ describe('Agent Integration Service', () => {
 
       const result = await agentIntegrationService.approveAndExecute(
         proposal.id,
-        testOwnerAddress
+        testOwnerAddress,
+        testSignature
       );
 
       // Proposal should be approved (execution may depend on x402 mock)
@@ -187,7 +202,7 @@ describe('Agent Integration Service', () => {
         budget_id: budget.id,
       });
 
-      await agentIntegrationService.approveAndExecute(proposal.id, testOwnerAddress);
+      await agentIntegrationService.approveAndExecute(proposal.id, testOwnerAddress, testSignature);
 
       // Check budget was deducted
       const updatedBudget = await budgetService.get(budget.id, testOwnerAddress);
@@ -302,7 +317,8 @@ describe('Agent Integration Service', () => {
             // Approve and execute
             const executeResult = await agentIntegrationService.approveAndExecute(
               createResult.proposal.id,
-              testOwnerAddress
+              testOwnerAddress,
+              testSignature
             );
 
             // Proposal should be approved or executed

@@ -27,6 +27,7 @@ import {
   verifySessionBinding,
   signEvent,
 } from "@/lib/security/cross-function-security"
+import { ensureSiweToken, clearSiweSession, getAccessToken } from "@/lib/auth/siwe-client"
 
 interface Web3ContextType {
   wallets: {
@@ -296,6 +297,29 @@ export function Web3Provider({ children }: { children: ReactNode }) {
               console.warn("[v0] Failed to create signer:", e)
             }
           }
+
+          // SIWE sign-in: exchange a wallet signature for the JWT that
+          // authenticates all /api/* calls. Without it, protected routes
+          // return 401 (the x-wallet-address header alone is not trusted).
+          try {
+            const currentChainId = await getChainId()
+            await ensureSiweToken(
+              address,
+              async (message: string) => {
+                const eth = getInjectedEthereum() as any
+                if (!eth?.request) throw new Error("No wallet provider for SIWE signing")
+                return (await eth.request({
+                  method: "personal_sign",
+                  params: [message, address],
+                })) as string
+              },
+              currentChainId,
+            )
+          } catch (e: any) {
+            // User rejected the signature or verification failed — wallet stays
+            // connected for on-chain actions, but API calls will be unauthorized.
+            console.warn("[Web3] SIWE sign-in failed:", e?.message || e)
+          }
         }
 
         const bindResult = bindSessionToWallet(sessionId, address)
@@ -327,7 +351,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const disconnectWallet = (type?: ChainType) => {
     if (type) {
       setWallets((prev) => ({ ...prev, [type]: null }))
-      if (type === "EVM") setEvmSigner(null)
+      if (type === "EVM") {
+        setEvmSigner(null)
+        clearSiweSession()
+      }
 
       try {
         const savedWallets = JSON.parse(localStorage.getItem("connected_wallets") || "{}")
@@ -344,6 +371,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     } else {
       setWallets({ EVM: null, SOLANA: null, BITCOIN: null, TRON: null })
       setEvmSigner(null)
+      clearSiweSession()
       setUsdtBalance("0")
       setUsdcBalance("0")
       setDaiBalance("0")
@@ -429,6 +457,11 @@ export function Web3Provider({ children }: { children: ReactNode }) {
             }
             return newWallets
           })
+          // Stored SIWE token belongs to the previous account — drop it so the
+          // next API call (or reconnect) triggers a fresh sign-in.
+          if (!getAccessToken(accounts[0])) {
+            clearSiweSession()
+          }
           bindSessionToWallet(sessionId, accounts[0])
           refreshBalances()
         }
@@ -572,7 +605,19 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     to: string
     amount: string
     chainId?: number
-  }): Promise<{ v: number; r: string; s: string; nonce: string; validAfter: number; validBefore: number }> => {
+    /** Pin the exact tuple to sign — required for per-period recurring authorizations. */
+    nonce?: string
+    validAfter?: number
+    validBefore?: number
+  }): Promise<{
+    v: number
+    r: string
+    s: string
+    signature: string
+    nonce: string
+    validAfter: number
+    validBefore: number
+  }> => {
     console.log('[Web3] signERC3009Authorization called:', params)
 
     if (!wallets.EVM) {
@@ -587,7 +632,12 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       params.from,
       params.to,
       params.amount,
-      targetChainId
+      targetChainId,
+      {
+        nonce: params.nonce,
+        validAfter: params.validAfter,
+        validBefore: params.validBefore,
+      }
     )
 
     console.log('[Web3] ERC-3009 authorization signed:', {

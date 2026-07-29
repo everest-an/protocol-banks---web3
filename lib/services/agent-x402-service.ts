@@ -325,11 +325,26 @@ export class AgentX402Service {
         }
 
         txHash = result.transactionHash || result.taskId;
-      } else {
-        // Development mode: simulate execution
-        console.warn('[x402 Service] No relayer configured, simulating execution');
+      } else if (
+        process.env.ALLOW_MOCK_EXECUTION === 'true' &&
+        process.env.NODE_ENV !== 'production'
+      ) {
+        // Explicit local-development opt-in ONLY. Produces a FAKE tx hash that
+        // does not exist on-chain — never enable outside local testing.
+        console.warn('[x402 Service] ALLOW_MOCK_EXECUTION enabled — simulating execution with a FAKE tx hash');
         txHash = '0x' + randomBytes(32).toString('hex');
         await new Promise((resolve) => setTimeout(resolve, 300));
+      } else {
+        // No relayer configured: fail loudly instead of recording a payment
+        // that never happened on-chain.
+        await this.updateAuthStatus(authorizationId, 'failed');
+        return {
+          success: false,
+          error:
+            'No relayer configured (set RELAYER_API_KEY / RELAYER_URL or a relayer provider). ' +
+            'Refusing to simulate execution — for local testing set ALLOW_MOCK_EXECUTION=true.',
+          authorization_id: authorizationId,
+        };
       }
 
       // Update authorization with tx hash
@@ -363,14 +378,17 @@ export class AgentX402Service {
       // Generate authorization
       const authorization = await this.generateAuthorization(proposal, ownerAddress);
 
-      if (signature) {
-        // Store the provided signature
-        await this.storeSignature(authorization.id, signature);
-      } else {
-        // In development, use a mock signature
-        const mockSig = '0x' + randomBytes(65).toString('hex');
-        await this.storeSignature(authorization.id, mockSig);
+      if (!signature) {
+        // A payment authorization can only come from the owner's wallet. There is
+        // no server-side substitute: fabricating one produces a signature that
+        // fails ecrecover on-chain, so the transfer reverts while the payment is
+        // recorded as successful.
+        throw new Error(
+          'Payment requires a wallet signature from the owner. Have the user sign the authorization, then pass it to processProposalPayment().'
+        );
       }
+
+      await this.storeSignature(authorization.id, signature);
 
       // Execute payment
       return await this.executePayment(authorization.id);

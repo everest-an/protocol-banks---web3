@@ -56,14 +56,6 @@ const settingGroups = [
         color: "text-purple-500",
         bg: "bg-purple-500/10",
       },
-      {
-        title: "Session Keys",
-        description: "Manage session-based access controls",
-        href: "/settings/session-keys",
-        icon: FileSignature,
-        color: "text-pink-500",
-        bg: "bg-pink-500/10",
-      },
     ],
   },
   {

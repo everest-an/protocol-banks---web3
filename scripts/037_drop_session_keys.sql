@@ -1,0 +1,31 @@
+-- Migration: 037_drop_session_keys.sql
+-- Description: Remove server-side custody of user private keys.
+-- Date: 2026-07-28
+--
+-- Context:
+--   session_keys stored users' private keys encrypted at rest so the server
+--   could sign recurring charges on their behalf (added 2026-02-03 in
+--   "Implement real payment processing"). That made the product custodial: an
+--   attacker with database access and the encryption key could move user funds.
+--
+--   Recurring charges now run on authorizations the payer signs themselves —
+--   an on-chain SubscriptionManager mandate, or pre-signed ERC-3009
+--   authorizations (scripts/034). Nothing reads this table any more.
+--
+-- WARNING — destructive and irreversible.
+--   Dropping this table destroys the stored keys. That is the point: they should
+--   not exist. But any address whose ONLY copy of a key lives here would lose
+--   access to it.
+--
+--   Before running this in production:
+--     1. Confirm the table is empty, or that every key in it is a throwaway
+--        session key rather than a user's main wallet key:
+--          SELECT count(*), count(DISTINCT owner_address) FROM session_keys;
+--     2. If rows exist, notify those owners before dropping.
+--     3. Take a backup you can restore from.
+--
+--   The table is left in place if you would rather archive it first — rename
+--   instead of dropping:
+--     ALTER TABLE session_keys RENAME TO session_keys_archived_20260728;
+
+DROP TABLE IF EXISTS session_keys;

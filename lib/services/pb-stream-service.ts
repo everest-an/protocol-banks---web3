@@ -416,7 +416,13 @@ export async function settleChannel(channelId: string): Promise<SettlementResult
 }
 
 /**
- * Execute on-chain settlement (placeholder - integrate with payout engine)
+ * Execute on-chain settlement.
+ *
+ * NOT YET IMPLEMENTED: the real path should call the Go payout-engine via
+ * gRPC and return the actual transaction hash. Until then this throws instead
+ * of fabricating a hash — a settlement marked "completed" with a fake tx_hash
+ * is worse than a failed one. Local testing may opt in to simulation via
+ * ALLOW_MOCK_EXECUTION=true.
  */
 async function executeOnChainSettlement(params: {
   from: string
@@ -424,15 +430,18 @@ async function executeOnChainSettlement(params: {
   amount: string
   channelId: string
 }): Promise<string> {
-  // In production, this would:
-  // 1. Call the Go payout-engine via gRPC
-  // 2. Execute actual on-chain transaction
-  // 3. Return real transaction hash
+  if (
+    process.env.ALLOW_MOCK_EXECUTION === "true" &&
+    process.env.NODE_ENV !== "production"
+  ) {
+    console.warn("[PB-Stream] ALLOW_MOCK_EXECUTION enabled — simulating settlement with a FAKE tx hash:", params)
+    return `0x${generateRandomHex(32)}`
+  }
 
-  console.log("[PB-Stream] Executing on-chain settlement:", params)
-
-  // Simulate transaction hash
-  return `0x${generateRandomHex(32)}`
+  throw new Error(
+    "PB-Stream on-chain settlement is not implemented (payout-engine integration pending). " +
+    "Refusing to fabricate a settlement tx hash — for local testing set ALLOW_MOCK_EXECUTION=true."
+  )
 }
 
 /**

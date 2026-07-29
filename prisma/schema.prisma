@@ -452,13 +452,28 @@ model Subscription {
   description              String?
   recipients               Json?
 
+  /// bytes32 id assigned by the SubscriptionManager contract. When set, charges
+  /// are pulled by that contract; when null the subscription falls back to
+  /// pre-signed ERC-3009 authorizations.
+  onchain_subscription_id  String?
+  /// Address of the SubscriptionManager instance holding the record above.
+  manager_address          String?
+
+  /// Consecutive failed charge attempts. Drives the dunning schedule and is
+  /// reset to 0 by a successful charge.
+  failed_attempts          Int       @default(0)
+  last_failure_reason      String?
+  last_failure_at          DateTime?
+
   payments       SubscriptionPayment[]
   authorizations SubscriptionAuthorization[]
 
+  @@unique([manager_address, onchain_subscription_id])
   @@index([owner_address])
   @@index([status])
   @@index([use_case])
   @@index([next_payment_date])
+  @@index([onchain_subscription_id])
   @@map("subscriptions")
 }
 
@@ -477,18 +492,44 @@ model SubscriptionPayment {
   @@map("subscription_payments")
 }
 
+/// A single pre-signed ERC-3009 authorization covering one billing period.
+///
+/// An ERC-3009 signature commits to (from, to, value, validAfter, validBefore,
+/// nonce) and the nonce is single-use, so one signature cannot cover a recurring
+/// charge. The user signs one row per period up front; the scheduler submits the
+/// row whose validity window covers the charge date and then marks it used.
+///
+/// Every column below exists in the database (scripts/030, scripts/034). Do not
+/// remove fields to "simplify" the model — `prisma db push` would drop the real
+/// columns, taking the stored signatures with them.
 model SubscriptionAuthorization {
-  id              String    @id @default(uuid())
-  subscription_id String
-  status          String    @default("active")
-  signature       String
-  max_amount      String?
-  expires_at      DateTime?
-  created_at      DateTime  @default(now())
+  id                String    @id @default(uuid())
+  subscription_id   String
+  user_address      String
+  recipient_address String
+  amount            String
+  token_address     String
+  chain_id          Int
+  nonce             String
+  valid_after       DateTime
+  valid_before      DateTime
+  signature         String
+  /// active | used | expired | revoked
+  status            String    @default("active")
+  /// 0-based billing period this authorization covers.
+  period_index      Int?
+  used_at           DateTime?
+  tx_hash           String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @default(now()) @updatedAt
 
   subscription Subscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
 
+  @@unique([subscription_id, period_index])
   @@index([subscription_id])
+  @@index([user_address])
+  @@index([status])
+  @@index([valid_before])
   @@map("subscription_authorizations")
 }
 
@@ -959,26 +1000,6 @@ model MagicLink {
   @@index([email])
   @@index([token_hash])
   @@map("magic_links")
-}
-
-model SessionKey {
-  id              String    @id @default(uuid())
-  owner_address   String
-  session_address String
-  encrypted_key   String
-  chain_id        Int
-  spending_limit  String
-  amount_spent    String    @default("0")
-  allowed_tokens  Json      @default("[]")
-  expires_at      DateTime
-  is_active       Boolean   @default(true)
-  created_at      DateTime  @default(now())
-  last_used_at    DateTime?
-
-  @@index([owner_address])
-  @@index([session_address])
-  @@index([is_active])
-  @@map("session_keys")
 }
 
 // ============================================================================

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { useSubscriptions } from "@/hooks/use-subscriptions"
+import { AuthorizeDialog } from "@/components/subscriptions/authorize-dialog"
 import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import {
@@ -11,7 +12,6 @@ import {
   calculateNextPaymentDate,
   formatSubscriptionForDisplay,
 } from "@/lib/subscription-helpers"
-// processSinglePayment is dynamically imported in handlePayNow to avoid bundling server-only modules (prisma, ioredis)
 import type { SubscriptionInput, AutoPayUseCase } from "@/types"
 import { Button } from "@/components/ui/button"
 import { GlassCard } from "@/components/ui/glass-card"
@@ -35,8 +35,16 @@ export default function SubscriptionsPage() {
   const { isDemoMode } = useDemo()
   const { toast } = useToast()
 
-  const { subscriptions, loading, stats, addSubscription, updateSubscription, updateStatus, deleteSubscription } =
-    useSubscriptions({
+  const {
+    subscriptions,
+    loading,
+    stats,
+    refresh: refreshSubscriptions,
+    addSubscription,
+    updateSubscription,
+    updateStatus,
+    deleteSubscription,
+  } = useSubscriptions({
       isDemoMode,
       walletAddress: currentWallet ?? undefined,
     })
@@ -47,6 +55,8 @@ export default function SubscriptionsPage() {
   })
 
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showAuthorizeDialog, setShowAuthorizeDialog] = useState(false)
+  const [authorizeTarget, setAuthorizeTarget] = useState<Subscription | null>(null)
   const [activeTab, setActiveTab] = useState<TabFilter>("all")
   const [newUseCase, setNewUseCase] = useState<AutoPayUseCase>("individual")
   const [showAuthSettings, setShowAuthSettings] = useState(false)
@@ -160,15 +170,9 @@ export default function SubscriptionsPage() {
     }
 
     try {
-      const res = await fetch("/api/subscriptions/execute", {
+      const res = await fetch(`/api/subscriptions/${subscription.id}/pay`, {
         method: "POST",
         headers: authHeaders(currentWallet, { "Content-Type": "application/json" }, { isDemoMode }),
-        body: JSON.stringify({
-          recipient: subscription.recipient_address,
-          amount: Number(subscription.amount),
-          token: subscription.token,
-          chain: subscription.chain,
-        }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "Payment failed")
@@ -660,6 +664,19 @@ export default function SubscriptionsPage() {
                     {/* Actions */}
                     <div className="flex items-center gap-2">
                       {subscription.status === "active" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setAuthorizeTarget(subscription)
+                            setShowAuthorizeDialog(true)
+                          }}
+                        >
+                          Authorize
+                        </Button>
+                      )}
+
+                      {subscription.status === "active" && (
                         <Button size="sm" variant="outline" onClick={() => handlePayNow(subscription)}>
                           Pay Now
                         </Button>
@@ -688,6 +705,13 @@ export default function SubscriptionsPage() {
           )}
         </div>
       </div>
+
+      <AuthorizeDialog
+        open={showAuthorizeDialog}
+        onOpenChange={setShowAuthorizeDialog}
+        subscription={authorizeTarget}
+        onAuthorized={refreshSubscriptions}
+      />
     </div>
   )
 }

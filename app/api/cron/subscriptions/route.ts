@@ -3,12 +3,12 @@ import { processSubscriptionsCron } from '@/lib/services/subscription-payment-ex
 import { verifyCronAuth } from '@/lib/cron-auth'
 
 /**
- * POST /api/cron/subscriptions
+ * Process every subscription whose next charge is due.
  *
- * Cron endpoint to process due subscription payments.
- * Should be called periodically (e.g., every hour) by Vercel Cron or similar.
+ * Exposed on both GET and POST: Vercel Cron only issues GET requests, while
+ * manual/external triggers conventionally POST. Both are behind verifyCronAuth.
  */
-export async function POST(request: NextRequest) {
+async function runSubscriptionCron(request: NextRequest) {
   const authError = verifyCronAuth(request)
   if (authError) return authError
 
@@ -39,17 +39,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/cron/subscriptions
- * 
- * Health check endpoint for the subscription cron job.
- */
-export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    endpoint: '/api/cron/subscriptions',
-    method: 'POST',
-    description: 'Processes due subscription payments',
-    schedule: 'Recommended: Every hour (0 * * * *)',
-  })
+export async function GET(request: NextRequest) {
+  return runSubscriptionCron(request)
+}
+
+export async function POST(request: NextRequest) {
+  return runSubscriptionCron(request)
 }

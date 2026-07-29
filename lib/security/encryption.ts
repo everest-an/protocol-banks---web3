@@ -76,48 +76,13 @@ function getSessionKeyEncryptionKey(): Buffer {
   return createHash("sha256").update(secret).digest()
 }
 
-/**
- * Encrypt a session key private key for storage at rest.
- * Format: base64(iv[12] + authTag[16] + ciphertext)
- */
-export function encryptSessionKey(privateKey: string): string {
-  const key = getSessionKeyEncryptionKey()
-  const iv = randomBytes(12)
-  const cipher = createCipheriv("aes-256-gcm", key, iv)
-
-  let encrypted = cipher.update(privateKey, "utf8", "hex")
-  encrypted += cipher.final("hex")
-  const authTag = cipher.getAuthTag()
-
-  // iv (12) + authTag (16) + ciphertext
-  const combined = Buffer.concat([iv, authTag, Buffer.from(encrypted, "hex")])
-  return combined.toString("base64")
-}
-
-/**
- * Decrypt a session key private key from storage.
- * Returns null if decryption fails (key rotated, corrupted, etc.)
- */
-export function decryptSessionKey(encryptedData: string): string | null {
-  try {
-    const key = getSessionKeyEncryptionKey()
-    const combined = Buffer.from(encryptedData, "base64")
-
-    const iv = combined.subarray(0, 12)
-    const authTag = combined.subarray(12, 28)
-    const ciphertext = combined.subarray(28)
-
-    const decipher = createDecipheriv("aes-256-gcm", key, iv)
-    decipher.setAuthTag(authTag)
-
-    let decrypted = decipher.update(ciphertext.toString("hex"), "hex", "utf8")
-    decrypted += decipher.final("utf8")
-    return decrypted
-  } catch (error) {
-    console.error("[SessionKey] Decryption failed:", error)
-    return null
-  }
-}
+// Server-side session-key storage was removed on 2026-07-28.
+//
+// Recurring charges once worked by storing the payer's private key encrypted at
+// rest and decrypting it to sign — which made the product custodial. They now
+// run on authorizations the payer signs themselves: an on-chain
+// SubscriptionManager mandate, or pre-signed ERC-3009 authorizations. The server
+// holds no key that can move user funds, so there is nothing here to encrypt.
 
 // Client-side encryption using Web Crypto API (for browser)
 export async function clientEncrypt(data: string, password: string): Promise<string> {

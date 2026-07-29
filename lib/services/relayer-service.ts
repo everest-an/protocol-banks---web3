@@ -331,9 +331,19 @@ export class RelayerService {
 
   private async relayViaCustom(request: RelayRequest): Promise<RelayResponse> {
     if (!this.config.apiUrl) {
-      // Development mode - simulate relay
-      console.warn('[Relayer] No custom relayer URL configured, simulating...')
-      return this.simulateRelay(request)
+      if (
+        process.env.ALLOW_MOCK_EXECUTION === 'true' &&
+        process.env.NODE_ENV !== 'production'
+      ) {
+        // Explicit local-development opt-in ONLY — returns a FAKE tx hash.
+        console.warn('[Relayer] ALLOW_MOCK_EXECUTION enabled — simulating relay with a FAKE tx hash')
+        return this.simulateRelay(request)
+      }
+      // Fail loudly instead of fabricating a confirmed tx.
+      throw new Error(
+        'Relayer misconfigured: RELAYER_API_KEY is set but RELAYER_URL is missing. ' +
+        'Refusing to simulate relay — for local testing set ALLOW_MOCK_EXECUTION=true.'
+      )
     }
 
     const response = await fetch(`${this.config.apiUrl}/execute`, {

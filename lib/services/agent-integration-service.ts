@@ -203,9 +203,17 @@ export class AgentIntegrationService {
   /**
    * Manually approve a proposal and execute payment
    */
+  /**
+   * Approve a proposal and execute it.
+   *
+   * `signature` is the owner's ERC-3009 authorization for this payment. It is
+   * required to execute: funds move directly from the owner's wallet, and the
+   * server holds no key that could stand in for them.
+   */
   async approveAndExecute(
     proposalId: string,
-    ownerAddress: string
+    ownerAddress: string,
+    signature: string
   ): Promise<ProposalLifecycleResult> {
     let proposal: PaymentProposal | null = null;
 
@@ -247,7 +255,11 @@ export class AgentIntegrationService {
       // 2. Execute via x402
       proposal = await proposalService.startExecution(proposalId);
       
-      const x402Result = await agentX402Service.processProposalPayment(proposal, ownerAddress);
+      const x402Result = await agentX402Service.processProposalPayment(
+        proposal,
+        ownerAddress,
+        signature
+      );
 
       if (x402Result.success) {
         proposal = await proposalService.markExecuted(
