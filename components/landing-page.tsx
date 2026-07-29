@@ -6,27 +6,20 @@ import { Button } from "@/components/ui/button"
 import { BatchPaymentDemo } from "@/components/batch-payment-demo"
 import { NetworkGraphDemo } from "@/components/network-graph-demo"
 import { UnicornHero } from "@/components/unicorn-hero"
-import { PUSDSection } from "@/components/pusd-section"
 import {
   ArrowRight,
   Shield,
-  Zap,
   Globe,
   Users,
   RefreshCw,
   Lock,
-  BarChart3,
   Bot,
   CreditCard,
   ChevronRight,
   Play,
   Bitcoin,
-  ArrowLeftRight,
   Wallet,
-  Receipt,
-  PieChart,
   Check,
-  TrendingUp,
 } from "lucide-react"
 
 interface LandingPageProps {
@@ -111,12 +104,12 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             Complete crypto treasury infrastructure
           </h2>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            Everything your business needs to send, receive, and manage funds onchain.
-            Start with one product and add more as you grow.
+            From a single transfer to payroll at scale, recurring billing, and payments
+            your AI agents make on their own — all non-custodial.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Send & Pay */}
           <Link href="/pay" className="group">
             <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
@@ -132,21 +125,6 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </div>
           </Link>
 
-          {/* Receive */}
-          <Link href="/receive" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-green-500/10 w-fit mb-3">
-                <Wallet className="h-5 w-5 text-green-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Receive
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Generate payment links and QR codes. Accept payments on any chain with instant notifications.
-              </p>
-            </div>
-          </Link>
-
           {/* Batch Payments */}
           <Link href="/batch-payment" className="group">
             <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
@@ -158,36 +136,6 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Send to hundreds of recipients at once. Upload CSV, auto-validate, and execute payroll at scale.
-              </p>
-            </div>
-          </Link>
-
-          {/* Swap */}
-          <Link href="/swap" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-purple-500/10 w-fit mb-3">
-                <ArrowLeftRight className="h-5 w-5 text-purple-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Swap
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Exchange tokens across 70+ chains. Rango aggregates 100+ DEXs for best prices.
-              </p>
-            </div>
-          </Link>
-
-          {/* Card */}
-          <Link href="/card" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-yellow-500/10 w-fit mb-3">
-                <CreditCard className="h-5 w-5 text-yellow-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Card
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Spend crypto balances anywhere. Virtual and physical cards backed by your onchain treasury.
               </p>
             </div>
           </Link>
@@ -222,95 +170,6 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </div>
           </Link>
 
-          {/* Yield */}
-          <Link href="/yield" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 w-fit mb-3">
-                <TrendingUp className="h-5 w-5 text-emerald-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Yield
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Put idle treasury to work. Earn yield on stablecoins via curated DeFi protocols.
-              </p>
-            </div>
-          </Link>
-
-          {/* Split Payments */}
-          <Link href="/split-payments" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-indigo-500/10 w-fit mb-3">
-                <PieChart className="h-5 w-5 text-indigo-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Split Payments
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Distribute funds by percentage. Perfect for royalties, revenue sharing, and teams.
-              </p>
-            </div>
-          </Link>
-
-          {/* Invoicing */}
-          <Link href="/acquiring/invoices" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-slate-500/10 w-fit mb-3">
-                <Receipt className="h-5 w-5 text-slate-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Invoicing
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Create and send professional crypto invoices. Track payment status in real-time.
-              </p>
-            </div>
-          </Link>
-
-          {/* Acquiring */}
-          <Link href="/acquiring" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-gray-500/10 w-fit mb-3">
-                <CreditCard className="h-5 w-5 text-gray-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Acquiring
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Hosted checkout pages, invoicing, and payment links for merchants.
-              </p>
-            </div>
-          </Link>
-
-          {/* Analytics */}
-          <Link href="/analytics" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-rose-500/10 w-fit mb-3">
-                <BarChart3 className="h-5 w-5 text-rose-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Analytics
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Track transactions, volumes, and trends. Export reports for accounting.
-              </p>
-            </div>
-          </Link>
-
-          {/* Reconciliation */}
-          <Link href="/reconciliation" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-indigo-500/10 w-fit mb-3">
-                <RefreshCw className="h-5 w-5 text-indigo-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Reconciliation
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Match on-chain transactions with records. Audit-ready reports.
-              </p>
-            </div>
-          </Link>
         </div>
       </section>
 
@@ -587,8 +446,6 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         </div>
       </section>
 
-      {/* $PUSD Stablecoin Section */}
-      <PUSDSection />
 
       {/* Supported Chains */}
       <section className="border-y border-border bg-muted/20 overflow-hidden">
