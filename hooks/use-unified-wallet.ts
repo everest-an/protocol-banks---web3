@@ -1,7 +1,7 @@
 "use client"
 
 import { useWeb3 } from "@/contexts/web3-context"
-import { useAppKitAccount } from "@reown/appkit/react"
+import { useSafeAppKitAccount as useAppKitAccount } from "@/lib/reown-safe"
 import { useAuth } from "@/contexts/auth-provider"
 
 /**

@@ -51,6 +51,11 @@ function ThemeSync() {
   // Only call useAppKitTheme after mount to avoid SSR crash
   if (!mounted) return null
 
+  // AppKit is only created when a project ID is configured (see above), and its
+  // hooks throw if it was never created. Skip the sync entirely rather than take
+  // down every page because one environment variable is missing.
+  if (!projectId) return null
+
   return <ThemeSyncInner resolvedTheme={resolvedTheme} />
 }
 

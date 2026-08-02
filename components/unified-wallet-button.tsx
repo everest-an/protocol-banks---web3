@@ -2,7 +2,7 @@
 
 import { useWeb3 } from "@/contexts/web3-context"
 import { useUserType } from "@/contexts/user-type-context"
-import { useAppKit, useAppKitAccount, useDisconnect } from "@reown/appkit/react"
+import { useSafeAppKit as useAppKit, useSafeAppKitAccount as useAppKitAccount, useSafeDisconnect as useDisconnect } from "@/lib/reown-safe"
 import { useAuth } from "@/contexts/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
