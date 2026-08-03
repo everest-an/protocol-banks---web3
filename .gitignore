@@ -61,3 +61,6 @@ contracts/typechain-types/
 
 # Runtime logs
 logs/
+
+.vercel
+.env*.local
