@@ -505,14 +505,17 @@ model SubscriptionPayment {
 model SubscriptionAuthorization {
   id                String    @id @default(uuid())
   subscription_id   String
-  user_address      String
-  recipient_address String
-  amount            String
-  token_address     String
-  chain_id          Int
-  nonce             String
-  valid_after       DateTime
-  valid_before      DateTime
+  /// The ERC-3009 tuple below is optional because rows created before migration
+  /// 034 predate these columns. A row without the full tuple cannot be charged —
+  /// the executor skips it rather than submitting a signature that would revert.
+  user_address      String?
+  recipient_address String?
+  amount            String?
+  token_address     String?
+  chain_id          Int?
+  nonce             String?
+  valid_after       DateTime?
+  valid_before      DateTime?
   signature         String
   /// active | used | expired | revoked
   status            String    @default("active")
@@ -522,6 +525,11 @@ model SubscriptionAuthorization {
   tx_hash           String?
   created_at        DateTime  @default(now())
   updated_at        DateTime  @default(now()) @updatedAt
+
+  /// Legacy columns from the pre-034 shape. Unused, but declared so they are not
+  /// silently dropped the next time the schema is pushed.
+  max_amount        String?
+  expires_at        DateTime?
 
   subscription Subscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
 

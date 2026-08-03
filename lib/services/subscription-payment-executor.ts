@@ -608,7 +608,42 @@ export class SubscriptionPaymentExecutor {
       )
     }
 
-    return auth
+    // Rows created before migration 034 have no ERC-3009 tuple. Submitting a
+    // partial one would build a signature payload the payer never signed, so it
+    // would revert on-chain — refuse it here where the reason is still legible.
+    const missing = (
+      [
+        ['user_address', auth.user_address],
+        ['recipient_address', auth.recipient_address],
+        ['amount', auth.amount],
+        ['token_address', auth.token_address],
+        ['chain_id', auth.chain_id],
+        ['nonce', auth.nonce],
+        ['valid_after', auth.valid_after],
+        ['valid_before', auth.valid_before],
+      ] as const
+    )
+      .filter(([, value]) => value === null || value === undefined)
+      .map(([field]) => field)
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Authorization ${auth.id} for subscription ${subscription.id} is missing ` +
+        `${missing.join(', ')} — it predates the full ERC-3009 tuple and cannot be ` +
+        'submitted. The payer must re-authorize.'
+      )
+    }
+
+    return auth as typeof auth & {
+      user_address: string
+      recipient_address: string
+      amount: string
+      token_address: string
+      chain_id: number
+      nonce: string
+      valid_after: Date
+      valid_before: Date
+    }
   }
 
   /**
