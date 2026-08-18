@@ -83,7 +83,7 @@ export class TradingAgent {
     })
 
     // 2. Market data (offline-safe, cached by the client)
-    let ctxByCoin = new Map<string, AssetCtx>()
+    const ctxByCoin = new Map<string, AssetCtx>()
     try {
       const { universe: meta, ctxs } = await this.client.metaAndAssetCtxs()
       meta.forEach((u, i) => {

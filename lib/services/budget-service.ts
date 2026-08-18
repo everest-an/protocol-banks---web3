@@ -219,7 +219,7 @@ export class BudgetService {
         // Convert dates and check for expired periods
         const budgets: AgentBudget[] = [];
         for (const b of data || []) {
-          let budget: AgentBudget = {
+          const budget: AgentBudget = {
             ...b,
             period: b.period as BudgetPeriod,
             period_start: b.period_start,
@@ -290,7 +290,7 @@ export class BudgetService {
 
         if (!data) return null;
 
-        let budget: AgentBudget = {
+        const budget: AgentBudget = {
           ...data,
           period: data.period as BudgetPeriod,
           period_start: data.period_start,

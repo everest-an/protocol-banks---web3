@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user exists by google_id or email
-    let existingUser = await prisma.authUser.findFirst({
+    const existingUser = await prisma.authUser.findFirst({
       where: {
         OR: [
           { google_id: userInfo.id },

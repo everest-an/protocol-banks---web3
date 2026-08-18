@@ -72,7 +72,7 @@ function createPrismaClient(): PrismaClient {
   // ─── Mode 2 & 3: Direct PostgreSQL connection ───
   // Use @prisma/adapter-pg for direct connections
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const { PrismaPg } = require('@prisma/adapter-pg')
 
     let connectionString: string

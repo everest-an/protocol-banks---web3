@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Create a per-request MCP server
-    let currentAuth: McpAuthContext = authCtx
+    const currentAuth: McpAuthContext = authCtx
     const server = createMcpServer(() => currentAuth)
 
     // Handle the JSON-RPC message directly

@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Signature required to view invoice" }, { status: 403 })
     }
 
-    let invoice = await prisma.invoice.findUnique({
+    const invoice = await prisma.invoice.findUnique({
         where: { invoice_id: invoiceId }
     });
 

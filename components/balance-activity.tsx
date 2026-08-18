@@ -80,7 +80,7 @@ export function BalanceActivity({ initialTransactions, isDemoMode = false }: Bal
 
   const filteredTransactions = useMemo(() => {
     const now = new Date()
-    let cutoff = new Date()
+    const cutoff = new Date()
     
     if (timeRange === "1D") cutoff.setDate(now.getDate() - 1)
     if (timeRange === "1W") cutoff.setDate(now.getDate() - 7)

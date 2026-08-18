@@ -28,7 +28,7 @@ export function generateNonce(): string {
     globalThis.crypto.getRandomValues(randomBytes)
   } else {
     // Node.js fallback - use crypto module (always available)
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const nodeCrypto = require('crypto')
     const buf = nodeCrypto.randomBytes(32)
     randomBytes.set(new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength))

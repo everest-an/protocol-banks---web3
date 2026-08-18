@@ -45,7 +45,7 @@ export const GET = withAuth(async (request: NextRequest, authAddress: string) =>
     const walletAddress = authAddress;
 
     // Build filter conditions
-    let where: Record<string, any> = {}
+    const where: Record<string, any> = {}
 
     // Address filtering
     if (type === 'sent') {
@@ -286,7 +286,7 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
     // Auto-detect network if not provided
     let finalChain = chain
     let finalNetworkType = network_type
-    let finalChainId = chain_id
+    const finalChainId = chain_id
 
     if (!finalChain || !finalNetworkType) {
       try {

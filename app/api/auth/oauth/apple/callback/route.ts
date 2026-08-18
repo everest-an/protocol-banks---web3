@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user exists by apple_id
-    let existingUser = await prisma.authUser.findUnique({
+    const existingUser = await prisma.authUser.findUnique({
       where: { apple_id: appleUserId },
     })
 
