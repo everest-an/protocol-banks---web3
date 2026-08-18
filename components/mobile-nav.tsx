@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Home,
+  Bot,
   Wallet,
   ArrowLeftRight,
   Send,
@@ -13,17 +14,15 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
+  tradingItems,
   overviewItems,
-  paymentProducts,
-  receivingProducts,
-  defiProducts,
-  advancedProducts,
+  businessItems,
   type ProductItem,
 } from "@/lib/products-config"
 
 // 底部导航 - 4个核心入口 + 1个抽屉触发按钮
 const coreNav = [
-  { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/trading", label: "AI Trading", icon: Bot },
   { href: "/balances", label: "Balances", icon: Wallet },
   { href: "/pay", label: "Pay", icon: Send },
   { href: "/history", label: "Activity", icon: ArrowLeftRight },
@@ -31,11 +30,9 @@ const coreNav = [
 
 // 产品分组（用于抽屉）
 const productSections = [
+  { title: "Trading", items: tradingItems },
   { title: "Overview", items: overviewItems },
-  { title: "Payments", items: paymentProducts },
-  { title: "Receiving", items: receivingProducts },
-  { title: "DeFi", items: defiProducts },
-  { title: "Advanced", items: advancedProducts },
+  { title: "Business", items: businessItems },
 ]
 
 function ProductSection({

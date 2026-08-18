@@ -4,6 +4,7 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import {
   Wallet,
+  Bot,
   Menu,
   Play,
   StopCircle,
@@ -49,6 +50,7 @@ export function Header() {
   const logoTextSrc = mounted && resolvedTheme === 'light' ? '/logo-text-black.png' : '/logo-text-white.png'
 
   const navItems = [
+    { href: "/trading", label: "AI Trading", icon: Bot },
     { href: "/dashboard", label: "Dashboard", icon: Wallet },
     { href: "/balances", label: "Balances", icon: CreditCard },
     { href: "/history", label: "Transactions", icon: ArrowLeftRight },
@@ -67,7 +69,7 @@ export function Header() {
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground shrink-0">
+              <Button variant="ghost" size="icon" className="lg:hidden text-muted-foreground shrink-0">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
@@ -159,7 +161,7 @@ export function Header() {
         </div>
 
         {/* Desktop Navigation — Apple glassmorphism */}
-        <nav className="hidden md:flex items-center gap-1.5">
+        <nav className="hidden lg:flex items-center gap-1.5">
           {navItems
             .filter((item) => item.href !== "/products")
             .map((item) => {

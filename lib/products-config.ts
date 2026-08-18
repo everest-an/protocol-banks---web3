@@ -28,7 +28,17 @@ export interface ProductItem {
   disabled?: boolean
 }
 
-// Overview
+// Trading (hero product, pinned to top)
+export const tradingItems: ProductItem[] = [
+  {
+    href: "/trading",
+    title: "AI Trading",
+    description: "AI automated trading cockpit",
+    icon: Bot,
+  },
+]
+
+// Overview (account-level)
 export const overviewItems: ProductItem[] = [
   {
     href: "/dashboard",
@@ -49,12 +59,6 @@ export const overviewItems: ProductItem[] = [
     icon: BarChart3,
   },
   {
-    href: "/vendors",
-    title: "Contacts",
-    description: "Manage suppliers and partners",
-    icon: ShoppingBag,
-  },
-  {
     href: "/settings",
     title: "Settings",
     description: "API keys, webhooks, and preferences",
@@ -62,8 +66,8 @@ export const overviewItems: ProductItem[] = [
   },
 ]
 
-// Payments
-export const paymentProducts: ProductItem[] = [
+// Business (enterprise payments — consolidated, not hero)
+export const businessItems: ProductItem[] = [
   {
     href: "/pay",
     title: "Pay",
@@ -89,6 +93,12 @@ export const paymentProducts: ProductItem[] = [
     icon: Clock,
   },
   {
+    href: "/vendors",
+    title: "Contacts",
+    description: "Manage suppliers and partners",
+    icon: ShoppingBag,
+  },
+  {
     href: "/card",
     title: "Card",
     description: "Virtual crypto debit card",
@@ -106,10 +116,6 @@ export const paymentProducts: ProductItem[] = [
     description: "Match and verify payment records",
     icon: FileCheck,
   },
-]
-
-// Receiving
-export const receivingProducts: ProductItem[] = [
   {
     href: "/acquiring",
     title: "Acquiring",
@@ -122,10 +128,6 @@ export const receivingProducts: ProductItem[] = [
     description: "Generate QR codes and shareable links",
     icon: LinkIcon,
   },
-]
-
-// DeFi
-export const defiProducts: ProductItem[] = [
   {
     href: "/swap",
     title: "Swap",
@@ -138,13 +140,9 @@ export const defiProducts: ProductItem[] = [
     description: "Earn interest via Aave & JustLend",
     icon: PiggyBank,
   },
-]
-
-// Advanced
-export const advancedProducts: ProductItem[] = [
   {
     href: "/agents",
-    title: "AI Agents",
+    title: "Payment Agents",
     description: "Autonomous payments with session keys",
     icon: Bot,
   },
@@ -161,3 +159,9 @@ export const advancedProducts: ProductItem[] = [
     icon: Code,
   },
 ]
+
+// Kept for backward compatibility with any existing imports
+export const paymentProducts: ProductItem[] = businessItems.slice(0, 8)
+export const receivingProducts: ProductItem[] = businessItems.slice(8, 10)
+export const defiProducts: ProductItem[] = businessItems.slice(10, 12)
+export const advancedProducts: ProductItem[] = businessItems.slice(12)

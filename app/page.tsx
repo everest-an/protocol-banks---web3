@@ -12,11 +12,11 @@ export default function HomePage() {
   const { toggleDemoMode } = useDemo()
   const connectingRef = useRef(false)
 
-  // Redirect to dashboard after wallet connects from the landing page
+  // Redirect to AI trading cockpit after wallet connects from the landing page
   useEffect(() => {
     if (isConnected && connectingRef.current) {
       connectingRef.current = false
-      router.push("/dashboard")
+      router.push("/trading")
     }
   }, [isConnected, router])
 
@@ -28,7 +28,7 @@ export default function HomePage() {
       }}
       onTryDemo={() => {
         toggleDemoMode()
-        router.push("/dashboard")
+        router.push("/trading")
       }}
     />
   )

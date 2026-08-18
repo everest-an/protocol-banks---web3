@@ -4,11 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
+  tradingItems,
   overviewItems,
-  paymentProducts,
-  receivingProducts,
-  defiProducts,
-  advancedProducts,
+  businessItems,
   ProductItem
 } from "@/lib/products-config"
 import { Button } from "@/components/ui/button"
@@ -63,13 +61,11 @@ export function ProductsSidebar() {
     <aside className="w-64 hidden md:block shrink-0 border-r border-white/10 dark:border-white/5 bg-white/40 dark:bg-slate-900/40 backdrop-blur-[12px] backdrop-saturate-[1.2]">
       <div className="sticky top-16 h-[calc(100vh-4rem)]">
         <ScrollArea className="h-full py-4">
+          <SidebarSection title="Trading" items={tradingItems} />
+          <Separator className="mx-4 mb-4 w-auto" />
           <SidebarSection title="Overview" items={overviewItems} />
           <Separator className="mx-4 mb-4 w-auto" />
-          <SidebarSection title="Payments" items={paymentProducts} />
-          <SidebarSection title="Receiving" items={receivingProducts} />
-          <Separator className="mx-4 mb-4 w-auto" />
-          <SidebarSection title="DeFi" items={defiProducts} />
-          <SidebarSection title="Advanced" items={advancedProducts} />
+          <SidebarSection title="Business" items={businessItems} />
         </ScrollArea>
       </div>
     </aside>
