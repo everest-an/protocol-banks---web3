@@ -6,7 +6,6 @@ import {
   Clock,
   Bot,
   ArrowRightLeft,
-  Home,
   CreditCard,
   ShoppingBag,
   Store,
@@ -38,25 +37,13 @@ export const tradingItems: ProductItem[] = [
   },
 ]
 
-// Overview (account-level)
+// Wallet (account-level — merged from dashboard + balances)
 export const overviewItems: ProductItem[] = [
   {
-    href: "/dashboard",
-    title: "Dashboard",
-    description: "Dashboard overview and analytics",
-    icon: Home,
-  },
-  {
     href: "/balances",
-    title: "Balances",
-    description: "View wallet balances across chains",
+    title: "Wallet",
+    description: "Balances, activity, and quick actions across chains",
     icon: CreditCard,
-  },
-  {
-    href: "/analytics",
-    title: "Analytics",
-    description: "Financial reports and insights",
-    icon: BarChart3,
   },
   {
     href: "/settings",
@@ -66,8 +53,14 @@ export const overviewItems: ProductItem[] = [
   },
 ]
 
-// Business (enterprise payments — consolidated, not hero)
+// Business (enterprise payments + analytics — consolidated, not hero)
 export const businessItems: ProductItem[] = [
+  {
+    href: "/analytics",
+    title: "Analytics",
+    description: "Enterprise treasury reports and insights",
+    icon: BarChart3,
+  },
   {
     href: "/pay",
     title: "Pay",
@@ -159,9 +152,3 @@ export const businessItems: ProductItem[] = [
     icon: Code,
   },
 ]
-
-// Kept for backward compatibility with any existing imports
-export const paymentProducts: ProductItem[] = businessItems.slice(0, 8)
-export const receivingProducts: ProductItem[] = businessItems.slice(8, 10)
-export const defiProducts: ProductItem[] = businessItems.slice(10, 12)
-export const advancedProducts: ProductItem[] = businessItems.slice(12)

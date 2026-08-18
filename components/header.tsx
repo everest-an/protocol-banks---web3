@@ -10,7 +10,6 @@ import {
   StopCircle,
   Loader2,
   ArrowLeftRight,
-  CreditCard,
   ShoppingBag,
   Grid3X3,
 } from "lucide-react"
@@ -51,8 +50,7 @@ export function Header() {
 
   const navItems = [
     { href: "/trading", label: "AI Trading", icon: Bot },
-    { href: "/dashboard", label: "Dashboard", icon: Wallet },
-    { href: "/balances", label: "Balances", icon: CreditCard },
+    { href: "/balances", label: "Wallet", icon: Wallet },
     { href: "/history", label: "Transactions", icon: ArrowLeftRight },
     { href: "/vendors", label: "Contacts", icon: ShoppingBag },
     { href: "/products", label: "Products", icon: Grid3X3 },
@@ -160,38 +158,25 @@ export function Header() {
           )}
         </div>
 
-        {/* Desktop Navigation — Apple glassmorphism */}
-        <nav className="hidden lg:flex items-center gap-1.5">
+        {/* Desktop Navigation — clean links */}
+        <nav className="hidden lg:flex items-center gap-1">
           {navItems
             .filter((item) => item.href !== "/products")
             .map((item) => {
               const Icon = item.icon
               const isActive = isActivePath(item.href)
               return (
-                <Link key={item.href} href={item.href}>
-                  <button
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                      isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    style={{
-                      background: isActive
-                        ? "rgba(255,255,255,0.12)"
-                        : "rgba(255,255,255,0.04)",
-                      backdropFilter: "blur(20px) saturate(1.4)",
-                      WebkitBackdropFilter: "blur(20px) saturate(1.4)",
-                      border: isActive
-                        ? "0.5px solid rgba(255,255,255,0.18)"
-                        : "0.5px solid rgba(255,255,255,0.06)",
-                      boxShadow: isActive
-                        ? "0 2px 12px rgba(0,0,0,0.08)"
-                        : "none",
-                    }}
-                  >
-                    <Icon className="h-4.5 w-4.5" style={{ width: 18, height: 18 }} />
-                    {item.label}
-                  </button>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    isActive
+                      ? "text-foreground font-medium bg-white/10 dark:bg-white/5"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
                 </Link>
               )
             })}
