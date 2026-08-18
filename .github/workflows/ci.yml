@@ -36,7 +36,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Unit tests
-        run: pnpm test -- --ci --runInBand
+        run: pnpm test --ci --runInBand
         env:
           NODE_ENV: test
 
