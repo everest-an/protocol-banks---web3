@@ -16,7 +16,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-              Enterprise-grade crypto payment infrastructure for modern businesses.
+              AI automated trading for everyone — your agent works the markets, you keep control.
             </p>
           </div>
 
