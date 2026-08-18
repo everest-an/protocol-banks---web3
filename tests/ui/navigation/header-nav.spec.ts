@@ -3,7 +3,7 @@ import { waitForPageReady } from "../helpers"
 
 test.describe("Header Navigation", () => {
   test.beforeEach(async ({ demoPage }) => {
-    await demoPage.goto("/dashboard")
+    await demoPage.goto("/balances")
     await waitForPageReady(demoPage)
   })
 
@@ -16,12 +16,12 @@ test.describe("Header Navigation", () => {
     await expect(demoPage.locator("header").getByText("TEST", { exact: true })).toBeVisible()
   })
 
-  test("header has Dashboard nav item", async ({ demoPage }) => {
-    await expect(demoPage.locator("header").getByText("Dashboard").first()).toBeVisible()
+  test("header has AI Trading nav item", async ({ demoPage }) => {
+    await expect(demoPage.locator("header").getByText("AI Trading").first()).toBeVisible()
   })
 
-  test("header has Balances nav item", async ({ demoPage }) => {
-    await expect(demoPage.locator("header").getByText("Balances").first()).toBeVisible()
+  test("header has Wallet nav item", async ({ demoPage }) => {
+    await expect(demoPage.locator("header").getByText("Wallet").first()).toBeVisible()
   })
 
   test("Transactions nav item navigates to /history", async ({ demoPage }) => {

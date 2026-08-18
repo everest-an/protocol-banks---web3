@@ -38,7 +38,7 @@ export async function navigateAndVerify(
 
 /** All product pages with expected visible text */
 export const PRODUCT_PAGES = [
-  { path: "/dashboard", text: "Total Balance" },
+  { path: "/trading", text: /AI Trading/i },
   { path: "/balances", text: /Balance/i },
   { path: "/analytics", text: /Analytics/i },
   { path: "/vendors", text: "Contacts" },
@@ -52,14 +52,11 @@ export const PRODUCT_PAGES = [
   { path: "/card", text: /Card/i },
   { path: "/receive", text: /Payment Link|Receive/i },
   { path: "/checkout", text: /Checkout|Payment/i },
-  { path: "/terminal", text: /Terminal|POS/i },
   { path: "/acquiring", text: /Acquiring|Merchant/i },
   { path: "/swap", text: "Cross-Chain Swap" },
-  { path: "/omnichain", text: "Cross-Chain Hub" },
   { path: "/yield", text: /Yield/i },
   { path: "/agents", text: /Agent/i },
   { path: "/embed", text: /Embed|SDK/i },
-  { path: "/tron-demo", text: /TRON|Tron/i },
   { path: "/send", text: "Send Payment" },
 ] as const
 

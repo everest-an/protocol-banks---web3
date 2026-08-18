@@ -5,17 +5,23 @@ test.describe("Landing Page", () => {
   test("shows hero with call-to-action buttons", async ({ demoPage }) => {
     await demoPage.goto("/")
     await waitForPageReady(demoPage)
-    // Actual buttons: "Start Now" and "Try Live Test"
-    await expect(demoPage.getByRole("button", { name: /Start Now/i }).or(demoPage.getByRole("link", { name: /Start Now/i }))).toBeVisible()
-    await expect(demoPage.getByText(/Try Live Test/i)).toBeVisible()
+    // Two identical CTAs exist (hero + bottom) — assert the first
+    await expect(demoPage.getByRole("button", { name: /Connect Wallet/i }).first()).toBeVisible()
+    await expect(demoPage.getByRole("button", { name: /Try Paper Trading/i }).first()).toBeVisible()
   })
 
-  test("Try Live Test navigates to dashboard", async ({ demoPage }) => {
+  test("shows the AI trading hero headline", async ({ demoPage }) => {
     await demoPage.goto("/")
     await waitForPageReady(demoPage)
-    await demoPage.getByText(/Try Live Test/i).click()
-    await demoPage.waitForURL("**/dashboard")
-    await expect(demoPage).toHaveURL(/\/dashboard/)
+    await expect(demoPage.getByRole("heading", { name: /Your AI trades/i })).toBeVisible()
+  })
+
+  test("Try Paper Trading navigates to the AI trading cockpit", async ({ demoPage }) => {
+    await demoPage.goto("/")
+    await waitForPageReady(demoPage)
+    await demoPage.getByRole("button", { name: /Try Paper Trading/i }).first().click()
+    await demoPage.waitForURL("**/trading")
+    await expect(demoPage).toHaveURL(/\/trading/)
   })
 
   test("page has Protocol Bank branding", async ({ demoPage }) => {
