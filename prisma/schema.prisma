@@ -1949,3 +1949,60 @@ model AgentVirtualCard {
   @@index([provider_card_id])
   @@map("agent_virtual_cards")
 }
+
+// ============================================================================
+// AI Trading (live mode) — per-user isolation
+// ============================================================================
+
+/// One row per user wallet that has onboarded to live AI trading.
+/// All agent key material is encrypted at rest (AES-256-GCM).
+model TradingAccount {
+  id                  String    @id @default(uuid())
+  wallet_address      String    @unique
+  hyperliquid_address String? // user's Hyperliquid main account (defaults to wallet_address)
+  agent_address       String? // the approved agent wallet (trading-only, no withdrawal)
+  agent_key_encrypted String? // AES-256-GCM ciphertext (hex)
+  agent_key_iv        String?
+  agent_key_tag       String?
+  agent_name          String?
+  agent_approved      Boolean   @default(false)
+  agent_approved_at   DateTime?
+  sub_account_address String? // future: hard separation for users with $100k+ volume
+  status              String    @default("paper") // paper | live
+  budget_usd          Float     @default(500)
+  risk_config         Json?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  trades TradeRecord[]
+
+  @@index([wallet_address])
+  @@index([agent_address])
+  @@index([status])
+  @@map("trading_accounts")
+}
+
+/// Every trade the agent executes for a user (paper fills and live fills).
+model TradeRecord {
+  id               String   @id @default(uuid())
+  wallet_address   String
+  mode             String   @default("paper") // paper | live
+  hyperliquid_oid  BigInt? // live order id from Hyperliquid
+  symbol           String
+  side             String // long | short
+  size             Float
+  entry_price      Float
+  exit_price       Float?
+  pnl              Float?
+  fees             Float    @default(0)
+  reason           String? // the signal/reason that triggered the trade
+  status           String   @default("open") // open | closed
+  opened_at        DateTime @default(now())
+  closed_at        DateTime?
+
+  account TradingAccount @relation(fields: [wallet_address], references: [wallet_address], onDelete: Cascade)
+
+  @@index([wallet_address, opened_at])
+  @@index([hyperliquid_oid])
+  @@map("trade_records")
+}
