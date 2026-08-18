@@ -38,9 +38,9 @@ const aeonik = localFont({
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" })
 
 export const metadata: Metadata = {
-  title: "Protocol Bank - Crypto Batch Payment Platform",
+  title: "Protocol Bank - AI Trading Agent",
   description:
-    "Efficiently manage and execute batch cryptocurrency payments with vendor tracking and financial analytics",
+    "Connect your wallet and let an AI agent trade for you on Hyperliquid. Non-custodial, transparent, with one-click control and profit sweep.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -63,8 +63,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    title: "Protocol Bank",
-    description: "Enterprise Crypto Batch Payment Platform",
+    title: "Protocol Bank - AI Trading Agent",
+    description: "Your AI trades. You keep control.",
     siteName: "Protocol Bank",
   },
 }

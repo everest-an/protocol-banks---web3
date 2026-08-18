@@ -3,29 +3,72 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { BatchPaymentDemo } from "@/components/batch-payment-demo"
-import { NetworkGraphDemo } from "@/components/network-graph-demo"
 import { UnicornHero } from "@/components/unicorn-hero"
 import {
   ArrowRight,
   Shield,
-  Globe,
-  Users,
-  RefreshCw,
   Lock,
   Bot,
-  CreditCard,
   ChevronRight,
   Play,
-  Bitcoin,
   Wallet,
   Check,
+  Zap,
+  TrendingUp,
+  OctagonX,
+  PiggyBank,
+  Activity,
+  Clock,
 } from "lucide-react"
 
 interface LandingPageProps {
   onConnectWallet: () => void
   onTryDemo: () => void
 }
+
+const HOW_IT_WORKS = [
+  {
+    icon: Wallet,
+    step: "1",
+    title: "Connect your wallet",
+    text: "Sign in with MetaMask or any EVM wallet. Your keys never leave your device.",
+  },
+  {
+    icon: PiggyBank,
+    step: "2",
+    title: "Fund your trading wallet",
+    text: "Move the amount you're comfortable risking into the AI trading wallet. That's your maximum loss — never more.",
+  },
+  {
+    icon: Bot,
+    step: "3",
+    title: "The AI trades. You watch.",
+    text: "The agent scans markets 24/7, opens and closes positions, and reports every move in plain language.",
+  },
+]
+
+const FEATURES = [
+  {
+    icon: TrendingUp,
+    title: "Proven strategies",
+    text: "Momentum and funding-carry signals over real Hyperliquid market data — no hype, just math with guardrails.",
+  },
+  {
+    icon: Shield,
+    title: "Risk guardrails built in",
+    text: "Position caps, take-profit and stop-loss on every trade, and a daily loss circuit breaker that stops new entries.",
+  },
+  {
+    icon: Activity,
+    title: "Full transparency",
+    text: "A live feed shows every decision and its reasoning: what the AI did, why, and what it made or lost.",
+  },
+  {
+    icon: OctagonX,
+    title: "You can always stop it",
+    text: "Pause the agent or hit Emergency Stop anytime. Revoke its access completely — the AI can never withdraw your funds.",
+  },
+]
 
 export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
   return (
@@ -38,33 +81,36 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
           <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 lg:gap-16 items-center">
             {/* Left: Text content */}
             <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+                <Bot className="h-4 w-4" />
+                <span>AI Trading Agent · live on Hyperliquid</span>
+              </div>
               <h1 className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.15]">
-                Payment infrastructure for the{" "}
-                <span className="text-primary">onchain economy</span>
+                Your AI trades.
+                <br />
+                <span className="text-primary">You keep control.</span>
               </h1>
               <p className="mt-6 sm:mt-8 text-lg sm:text-xl text-muted-foreground leading-relaxed">
-                Accept payments, manage treasury, and automate payroll across 10+ blockchains.
-                Non-custodial, gasless, enterprise-grade.
+                Connect your wallet, fund a trading wallet, and let the agent work real
+                markets around the clock. Watch every trade in plain language, sweep
+                profits anytime, and stop it with one click.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-8 sm:mt-10">
                 <Button size="lg" onClick={onConnectWallet} className="text-base px-8 py-6">
-                  Start Now
+                  Connect Wallet
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
                 <Button size="lg" variant="outline" onClick={onTryDemo} className="text-base px-8 py-6">
                   <Play className="mr-2 h-4 w-4" />
-                  Try Live Test
+                  Try Paper Trading
                 </Button>
-                <Link href="/contact">
-                  <Button size="lg" variant="ghost" className="text-base px-8 py-6 text-muted-foreground w-full sm:w-auto">
-                    Contact Sales
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
               </div>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Paper mode uses real market data with simulated money. Zero risk, full experience.
+              </p>
             </div>
 
-            {/* Right: Unicorn Studio WebGL visual — shifted right with more space */}
+            {/* Right: visual */}
             <div className="hidden lg:block relative aspect-square max-h-[560px] lg:translate-x-4 xl:translate-x-8">
               <UnicornHero />
             </div>
@@ -77,232 +123,206 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         <div className="container mx-auto px-4 py-10 sm:py-14">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
             <div>
-              <p className="text-3xl sm:text-4xl font-bold text-foreground">10+</p>
-              <p className="text-sm text-muted-foreground mt-1">Blockchains supported</p>
+              <p className="text-3xl sm:text-4xl font-bold text-foreground">24/7</p>
+              <p className="text-sm text-muted-foreground mt-1">Agent watches the markets</p>
             </div>
             <div>
-              <p className="text-3xl sm:text-4xl font-bold text-foreground">$0</p>
-              <p className="text-sm text-muted-foreground mt-1">Gas fees with x402 Protocol</p>
+              <p className="text-3xl sm:text-4xl font-bold text-foreground">0</p>
+              <p className="text-sm text-muted-foreground mt-1">Withdrawal rights for the AI</p>
             </div>
             <div>
-              <p className="text-3xl sm:text-4xl font-bold text-foreground">500+</p>
-              <p className="text-sm text-muted-foreground mt-1">Transactions per second</p>
+              <p className="text-3xl sm:text-4xl font-bold text-foreground">1-click</p>
+              <p className="text-sm text-muted-foreground mt-1">Pause, stop, or sweep profits</p>
             </div>
             <div>
               <p className="text-3xl sm:text-4xl font-bold text-foreground">100%</p>
-              <p className="text-sm text-muted-foreground mt-1">Non-custodial architecture</p>
+              <p className="text-sm text-muted-foreground mt-1">Non-custodial by design</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Core Products */}
+      {/* How it works */}
       <section className="container mx-auto px-4 py-20 sm:py-28">
         <div className="max-w-2xl mb-12 sm:mb-16">
-          <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Products</p>
+          <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">How it works</p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Complete crypto treasury infrastructure
+            From wallet to working agent in 3 minutes
           </h2>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            From a single transfer to payroll at scale, recurring billing, and payments
-            your AI agents make on their own — all non-custodial.
+            No strategy configuration, no trading knowledge required. Set a budget,
+            and the agent handles the rest.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Send & Pay */}
-          <Link href="/pay" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-blue-500/10 w-fit mb-3">
-                <ArrowRight className="h-5 w-5 text-blue-500" />
+        <div className="grid md:grid-cols-3 gap-5">
+          {HOW_IT_WORKS.map((item) => (
+            <div
+              key={item.step}
+              className="p-6 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl transition-all h-full"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-lg bg-primary/10 w-fit">
+                  <item.icon className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-4xl font-bold text-foreground/10">{item.step}</span>
               </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Send & Pay
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Send crypto payments to any address. Support multi-chain transfers with real-time confirmation.
-              </p>
+              <h3 className="text-base font-semibold mb-1.5">{item.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{item.text}</p>
             </div>
-          </Link>
-
-          {/* Batch Payments */}
-          <Link href="/batch-payment" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-orange-500/10 w-fit mb-3">
-                <Users className="h-5 w-5 text-orange-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Batch Payments
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Send to hundreds of recipients at once. Upload CSV, auto-validate, and execute payroll at scale.
-              </p>
-            </div>
-          </Link>
-
-          {/* Subscriptions */}
-          <Link href="/subscriptions" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-pink-500/10 w-fit mb-3">
-                <RefreshCw className="h-5 w-5 text-pink-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                Subscriptions
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Recurring onchain payments. Set billing cycles and automate collection.
-              </p>
-            </div>
-          </Link>
-
-          {/* AI Agents */}
-          <Link href="/agents" className="group">
-            <div className="p-5 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all h-full">
-              <div className="p-2.5 rounded-lg bg-cyan-500/10 w-fit mb-3">
-                <Bot className="h-5 w-5 text-cyan-500" />
-              </div>
-              <h3 className="text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                AI Agents
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Autonomous spending with session keys. Budget controls and instant revocation.
-              </p>
-            </div>
-          </Link>
-
+          ))}
         </div>
       </section>
 
-      {/* Feature Showcase 1: Global Payment Mesh */}
-      <section className="container mx-auto px-4 py-20 sm:py-28">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <div className="order-2 lg:order-1">
-            <Link href="/analytics" className="block group">
-              <div className="rounded-2xl border border-border overflow-hidden shadow-2xl hover:shadow-primary/20 hover:border-primary/30 transition-all cursor-pointer">
-                <NetworkGraphDemo />
-              </div>
-              <p className="text-center text-xs text-muted-foreground mt-3 group-hover:text-primary transition-colors">
-                Click to explore Analytics Dashboard →
-              </p>
-            </Link>
-          </div>
-          <div className="order-1 lg:order-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-              <Globe className="h-4 w-4" />
-              <span>Network Visualization</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              Global Payment Mesh
-            </h2>
-            <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              Visualize your entire payment network in real-time. See how funds flow across chains, 
-              wallets, and vendors in an interactive 3D graph. Identify patterns, track settlements, 
-              and understand your treasury's global footprint at a glance.
-            </p>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
-                  <Check className="h-4 w-4 text-green-500" />
-                </div>
-                <span className="text-muted-foreground">Real-time transaction flow visualization</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
-                  <Check className="h-4 w-4 text-green-500" />
-                </div>
-                <span className="text-muted-foreground">Multi-chain network topology mapping</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
-                  <Check className="h-4 w-4 text-green-500" />
-                </div>
-                <span className="text-muted-foreground">Interactive zoom, filter, and time-travel controls</span>
-              </li>
-            </ul>
-            <div className="mt-8">
-              <Link href="/analytics">
-                <Button size="lg" className="group">
-                  Explore Network Graph
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Showcase 2: Batch Payment */}
+      {/* Features */}
       <section className="border-y border-border bg-muted/20">
         <div className="container mx-auto px-4 py-20 sm:py-28">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 text-orange-500 text-sm font-medium mb-4">
-                <Users className="h-4 w-4" />
-                <span>Payroll & Operations</span>
+          <div className="max-w-2xl mb-12 sm:mb-16">
+            <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Why it's safe</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              Built so the worst case is written on the screen
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+              Every dollar the AI can trade is a dollar you chose to allocate.
+              Every limit is enforced before an order goes out.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="p-6 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl transition-all"
+              >
+                <div className="p-2.5 rounded-lg bg-primary/10 w-fit mb-3">
+                  <f.icon className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-base font-semibold mb-1.5">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.text}</p>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-                Batch Payment Dashboard
-              </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                Manage hundreds of vendors, contractors, and suppliers from a single interface. 
-                Upload spreadsheets, validate addresses automatically, and execute mass payouts 
-                with just one click. Perfect for payroll, grants, and vendor settlements.
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
-                    <Check className="h-4 w-4 text-green-500" />
-                  </div>
-                  <span className="text-muted-foreground">CSV/Excel upload with auto-validation</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
-                    <Check className="h-4 w-4 text-green-500" />
-                  </div>
-                  <span className="text-muted-foreground">ENS & address book resolution</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
-                    <Check className="h-4 w-4 text-green-500" />
-                  </div>
-                  <span className="text-muted-foreground">Concurrent execution with real-time progress tracking</span>
-                </li>
-              </ul>
-              <div className="mt-8">
-                <Link href="/batch-payment">
-                  <Button size="lg" className="group">
-                    Start Batch Payment
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-            <Link href="/batch-payment" className="block group">
-              <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-white/80 to-white/40 dark:from-black/40 dark:to-black/20 backdrop-blur-xl overflow-hidden shadow-2xl hover:border-orange-500/30 transition-all">
-                <BatchPaymentDemo />
-              </div>
-              <p className="text-center text-xs text-muted-foreground mt-3 group-hover:text-orange-500 transition-colors">
-                Click to open full Batch Payment →
-              </p>
-            </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Why Protocol Bank - Security & Trust */}
+      {/* Cockpit showcase */}
+      <section className="container mx-auto px-4 py-20 sm:py-28">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <Activity className="h-4 w-4" />
+              <span>Live Cockpit</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+              Every move, explained
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+              The cockpit shows your balance, a real-time equity curve, open positions,
+              and a natural-language feed of what the AI is doing — not raw logs.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "Real-time PnL curve with daily breakdown",
+                "Plain-language feed: \"Closed BTC long +$8.40 (take-profit hit)\"",
+                "Main wallet vs trading wallet, always visible",
+                "One-click profit sweep back to your wallet",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <div className="p-1 rounded-full bg-green-500/10 mt-0.5">
+                    <Check className="h-4 w-4 text-green-500" />
+                  </div>
+                  <span className="text-muted-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8">
+              <Button size="lg" onClick={onTryDemo} className="group">
+                See it live
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Mini cockpit mock */}
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl p-5 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Assets</p>
+                  <p className="text-2xl font-bold font-mono tabular-nums">$520.40</p>
+                </div>
+                <span className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Agent running
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="rounded-lg border border-white/10 p-3">
+                  <p className="text-[11px] text-muted-foreground">Main Wallet</p>
+                  <p className="text-sm font-mono tabular-nums">$120.00</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">AI can never touch</p>
+                </div>
+                <div className="rounded-lg border border-white/10 p-3">
+                  <p className="text-[11px] text-muted-foreground">Trading Wallet</p>
+                  <p className="text-sm font-mono tabular-nums">$400.40</p>
+                  <p className="text-[10px] text-amber-500/90 mt-0.5">Max loss: $400.40</p>
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/10 p-3 mb-4">
+                <div className="h-16 bg-gradient-to-br from-primary/20 to-primary/5 rounded flex items-end px-2 gap-1">
+                  {[35, 42, 38, 50, 46, 58, 55, 66, 62, 74, 70, 82].map((h, i) => (
+                    <div key={i} className="flex-1 bg-primary/60 rounded-t" style={{ height: `${h}%` }} />
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { time: "10:32", text: "Added to BTC long (momentum 0.87)", color: "bg-blue-500/10 text-blue-500" },
+                  { time: "10:15", text: "Closed ETH short +$8.40 (trailing stop)", color: "bg-emerald-500/10 text-emerald-500" },
+                ].map((a, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <div className={`p-1 rounded-full mt-0.5 ${a.color}`}>
+                      <Clock className="h-3 w-3" />
+                    </div>
+                    <div>
+                      <p className="text-sm">{a.text}</p>
+                      <p className="text-[11px] text-muted-foreground">{a.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-4 text-center">
+                <p className="text-xl font-bold">3</p>
+                <p className="text-xs text-muted-foreground mt-1">Positions max</p>
+              </div>
+              <div className="rounded-lg border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-4 text-center">
+                <p className="text-xl font-bold">±2.5%</p>
+                <p className="text-xs text-muted-foreground mt-1">TP / SL</p>
+              </div>
+              <div className="rounded-lg border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-4 text-center">
+                <p className="text-xl font-bold">5%</p>
+                <p className="text-xs text-muted-foreground mt-1">Daily loss stop</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Security */}
       <section className="border-y border-border bg-muted/20">
         <div className="container mx-auto px-4 py-20 sm:py-28">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
-            {/* Left: messaging */}
             <div>
-              <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Enterprise Grade</p>
+              <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Security model</p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-                Built for security at every layer
+                The AI can trade. It can never withdraw.
               </h2>
               <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-                Protocol Bank is non-custodial by design. Your keys stay in your wallet.
-                We cannot access or move your funds -- ever. Every transaction goes through
-                automated security analysis before touching the blockchain.
+                The agent holds a revocable trading permission scoped to your trading
+                wallet. Your main wallet is untouchable, and the permission can be
+                revoked from Hyperliquid at any moment.
               </p>
               <div className="mt-8 space-y-5">
                 <div className="flex gap-4">
@@ -310,10 +330,10 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                     <Shield className="h-5 w-5 text-green-500" />
                   </div>
                   <div>
-                    <h4 className="font-semibold">Pre-Transaction Security Scan</h4>
+                    <h4 className="font-semibold">No withdrawal permission — ever</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Proxy backdoor detection, flash loan analysis, signature phishing prevention,
-                      and malicious approval blocking -- all before you sign.
+                      The agent wallet is approved with trading-only rights on Hyperliquid.
+                      It cannot move funds off the exchange.
                     </p>
                   </div>
                 </div>
@@ -322,43 +342,42 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                     <Lock className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
-                    <h4 className="font-semibold">Zero-Knowledge Architecture</h4>
+                    <h4 className="font-semibold">Keys stay with you</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Shamir Secret Sharing (2-of-3 threshold) for embedded wallets.
-                      PIN-derived encryption with AES-256-GCM. Server cannot reconstruct keys.
+                      You sign the agent approval with your own wallet. The agent's signing
+                      key is encrypted at rest and scoped to one trading wallet only.
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-4">
                   <div className="p-2 rounded-lg bg-purple-500/10 h-fit">
-                    <CreditCard className="h-5 w-5 text-purple-500" />
+                    <Zap className="h-5 w-5 text-purple-500" />
                   </div>
                   <div>
-                    <h4 className="font-semibold">Exact-Amount Approvals</h4>
+                    <h4 className="font-semibold">Circuit breakers on every trade</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      No unlimited token approvals. Every transaction authorizes only the exact amount needed,
-                      with address integrity hashing and tamper detection.
+                      Per-trade stop-loss, position caps, and a daily loss limit that
+                      stops new entries automatically.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right: visual card */}
             <div className="space-y-4">
               <div className="rounded-2xl border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-6 shadow-lg">
                 <div className="flex items-center gap-2 mb-6">
                   <Shield className="h-5 w-5 text-emerald-500" />
-                  <span className="font-semibold">Transaction Security Check</span>
+                  <span className="font-semibold">Fund safety checklist</span>
                 </div>
                 <div className="space-y-3">
                   {[
-                    { label: "Contract Verification", status: "Verified" },
-                    { label: "Proxy Backdoor Scan", status: "Clean" },
-                    { label: "Flash Loan Risk", status: "None" },
-                    { label: "Signature Safety", status: "Valid" },
-                    { label: "Approval Amount", status: "Exact" },
-                    { label: "Address Integrity", status: "Matched" },
+                    { label: "Agent withdrawal rights", status: "None" },
+                    { label: "Main wallet exposure", status: "Zero" },
+                    { label: "Max loss visible on screen", status: "Always" },
+                    { label: "Revocation", status: "Instant" },
+                    { label: "Stop-loss on every position", status: "On" },
+                    { label: "Daily loss circuit breaker", status: "Armed" },
                   ].map((check) => (
                     <div key={check.label} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                       <span className="text-sm text-muted-foreground">{check.label}</span>
@@ -371,21 +390,21 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded border border-emerald-500/30">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Risk Level: SAFE — Ready to proceed
+                  Your funds stay in your account structure
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-lg border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-4 text-center">
-                  <p className="text-2xl font-bold">6</p>
-                  <p className="text-xs text-muted-foreground mt-1">Security checks</p>
-                </div>
-                <div className="rounded-lg border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-4 text-center">
                   <p className="text-2xl font-bold">0</p>
-                  <p className="text-xs text-muted-foreground mt-1">Keys exposed</p>
+                  <p className="text-xs text-muted-foreground mt-1">Withdraw rights</p>
                 </div>
                 <div className="rounded-lg border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-4 text-center">
-                  <p className="text-2xl font-bold">RLS</p>
-                  <p className="text-xs text-muted-foreground mt-1">Data isolation</p>
+                  <p className="text-2xl font-bold">24/7</p>
+                  <p className="text-xs text-muted-foreground mt-1">Risk monitoring</p>
+                </div>
+                <div className="rounded-lg border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-4 text-center">
+                  <p className="text-2xl font-bold">1-click</p>
+                  <p className="text-xs text-muted-foreground mt-1">Emergency stop</p>
                 </div>
               </div>
             </div>
@@ -393,72 +412,18 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Protocol Comparison */}
-      <section className="container mx-auto px-4 py-20 sm:py-28">
-        <div className="max-w-2xl mb-12">
-          <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Why Onchain</p>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Faster, cheaper, more transparent
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            Traditional payment rails were built for a different era. Protocol Bank leverages blockchain
-            infrastructure to deliver settlement in seconds, not days.
-          </p>
-        </div>
-
-        <div className="overflow-x-auto rounded-xl border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl shadow-lg">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-black/5 dark:bg-white/5 text-foreground uppercase tracking-wider text-xs">
-              <tr>
-                <th className="p-4 font-medium">Method</th>
-                <th className="p-4 font-medium">Cost</th>
-                <th className="p-4 font-medium">Settlement</th>
-                <th className="p-4 font-medium">Cross-Border</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border text-muted-foreground">
-              <tr className="bg-primary/5">
-                <td className="p-4 font-medium text-primary">Protocol Bank (x402)</td>
-                <td className="p-4 text-green-600 dark:text-green-400 font-semibold">$0 gas for sender</td>
-                <td className="p-4">Instant signature</td>
-                <td className="p-4">Native, 10+ chains</td>
-              </tr>
-              <tr>
-                <td className="p-4 font-medium text-foreground">Layer 2 Transfer</td>
-                <td className="p-4">$0.01 - $0.10</td>
-                <td className="p-4">~2 seconds</td>
-                <td className="p-4">Same chain only</td>
-              </tr>
-              <tr>
-                <td className="p-4 font-medium text-foreground">Wire Transfer (SWIFT)</td>
-                <td className="p-4">$25 - $50</td>
-                <td className="p-4">1-5 business days</td>
-                <td className="p-4">High fees, slow</td>
-              </tr>
-              <tr>
-                <td className="p-4 font-medium text-foreground">Traditional Payroll</td>
-                <td className="p-4">$5 - $15 per employee</td>
-                <td className="p-4">2-3 business days</td>
-                <td className="p-4">Complex, regulated</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-
-      {/* Supported Chains */}
-      <section className="border-y border-border bg-muted/20 overflow-hidden">
+      {/* Markets marquee */}
+      <section className="overflow-hidden">
         <div className="container mx-auto px-4 py-16 sm:py-20">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              One interface. Every chain.
+              Real markets. Real data.
             </h2>
             <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-              Connect your preferred wallet and operate across all major networks from a single dashboard.
+              The agent trades the most liquid perpetual markets on Hyperliquid, powered by live exchange data.
             </p>
           </div>
-          
+
           <div className="relative w-full mx-auto">
             <style jsx global>{`
               @keyframes marquee {
@@ -472,67 +437,25 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                 animation-play-state: paused;
               }
             `}</style>
-            
-            <div 
+
+            <div
               className="flex overflow-hidden relative"
-              style={{ 
-                maskImage: 'linear-gradient(to right, transparent, black 3%, black 97%, transparent)', 
-                WebkitMaskImage: 'linear-gradient(to right, transparent, black 3%, black 97%, transparent)' 
+              style={{
+                maskImage: 'linear-gradient(to right, transparent, black 3%, black 97%, transparent)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent, black 3%, black 97%, transparent)',
               }}
             >
-               <div className="flex animate-marquee gap-6 sm:gap-8 items-center py-6">
-                  {[
-                    { name: "Ethereum", logo: "/networks/eth.png" },
-                    { name: "Polygon", logo: "/networks/polygon.png" },
-                    { name: "Arbitrum", logo: "/networks/arb.png" },
-                    { name: "Optimism", logo: "/networks/optimism.png" },
-                    { name: "Base", logo: "/networks/base.png" },
-                    { name: "BSC", logo: "/networks/bnb.png" },
-                    { name: "Avalanche", logo: "/networks/avax.png" },
-                    { name: "HashKey", logo: "/networks/hsk.png" },
-                    { name: "Solana", logo: "/networks/solana.png" },
-                    { name: "Tron", logo: "/networks/tron.png" },
-                    { name: "Bitcoin", icon: "Bitcoin", color: "#F7931A" },
-                    { name: "Zeta", color: "#005741" },
-                    // Repeat list to ensure smooth seamless loop
-                    { name: "Ethereum", logo: "/networks/eth.png" },
-                    { name: "Polygon", logo: "/networks/polygon.png" },
-                    { name: "Arbitrum", logo: "/networks/arb.png" },
-                    { name: "Optimism", logo: "/networks/optimism.png" },
-                    { name: "Base", logo: "/networks/base.png" },
-                    { name: "BSC", logo: "/networks/bnb.png" },
-                    { name: "Avalanche", logo: "/networks/avax.png" },
-                    { name: "HashKey", logo: "/networks/hsk.png" },
-                    { name: "Solana", logo: "/networks/solana.png" },
-                    { name: "Tron", logo: "/networks/tron.png" },
-                    { name: "Bitcoin", icon: "Bitcoin", color: "#F7931A" },
-                    { name: "Zeta", color: "#005741" },
-                  ].map((chain, i) => (
-                    <div
-                      key={`${chain.name}-${i}`}
-                      className="flex items-center gap-4 px-8 py-4 rounded-full border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl hover:bg-white/60 hover:dark:bg-black/40 hover:border-primary/30 transition-all shrink-0 cursor-default"
-                    >
-                      {chain.logo ? (
-                        <div className="relative h-8 w-8">
-                           <Image 
-                              src={chain.logo} 
-                              alt={chain.name} 
-                              width={32} 
-                              height={32}
-                              className="object-contain" 
-                           />
-                        </div>
-                      ) : chain.icon === "Bitcoin" ? (
-                         <Bitcoin className="h-8 w-8 text-[#F7931A]" />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm" style={{ backgroundColor: chain.color || '#666' }}>
-                          {chain.name[0]}
-                        </div>
-                      )}
-                      <span className="font-medium text-base">{chain.name}</span>
-                    </div>
-                  ))}
-               </div>
+              <div className="flex animate-marquee gap-6 sm:gap-8 items-center py-6">
+                {[...["BTC", "ETH", "SOL", "ARB", "OP", "LINK", "DOGE", "AVAX", "BNB", "XRP", "SUI", "APT"], ...["BTC", "ETH", "SOL", "ARB", "OP", "LINK", "DOGE", "AVAX", "BNB", "XRP", "SUI", "APT"]].map((name, i) => (
+                  <div
+                    key={`${name}-${i}`}
+                    className="flex items-center gap-3 px-8 py-4 rounded-full border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl hover:bg-white/60 hover:dark:bg-black/40 hover:border-primary/30 transition-all shrink-0 cursor-default"
+                  >
+                    <span className="text-sm font-bold text-primary">{name}</span>
+                    <span className="text-xs text-muted-foreground">PERP</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -542,11 +465,11 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
       <section className="container mx-auto px-4 py-20 sm:py-28">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-            Ready to upgrade your treasury?
+            Put an AI to work on your funds
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Join the next generation of businesses building on programmable money.
-            Connect your wallet to get started, or explore with our live demo.
+            Start with paper trading to watch the agent work risk-free.
+            Go live whenever you're ready — you stay in control either way.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 sm:mt-10">
             <Button size="lg" onClick={onConnectWallet} className="text-base px-8 py-6">
@@ -555,18 +478,18 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </Button>
             <Button size="lg" variant="outline" onClick={onTryDemo} className="text-base px-8 py-6">
               <Play className="mr-2 h-4 w-4" />
-              Explore Test
+              Try Paper Trading
             </Button>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mt-8 text-sm text-muted-foreground">
-            <Link href="/whitepaper" className="hover:text-foreground transition-colors flex items-center gap-1">
-              Read the Whitepaper <ChevronRight className="h-4 w-4" />
+            <Link href="/products" className="hover:text-foreground transition-colors flex items-center gap-1">
+              Explore all products <ChevronRight className="h-4 w-4" />
             </Link>
             <Link href="/help" className="hover:text-foreground transition-colors flex items-center gap-1">
               Usage Guide <ChevronRight className="h-4 w-4" />
             </Link>
             <Link href="/contact" className="hover:text-foreground transition-colors flex items-center gap-1">
-              Contact Sales <ChevronRight className="h-4 w-4" />
+              Contact <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
