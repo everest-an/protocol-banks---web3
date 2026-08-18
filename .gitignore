@@ -64,3 +64,12 @@ logs/
 
 .vercel
 .env*.local
+
+# AI trading engine local state (paper mode)
+.data/
+
+# Third-party research repos & local tooling (not part of the product)
+AlphaGPT/
+.omo/
+.playwright-mcp/
+qa-*.png
