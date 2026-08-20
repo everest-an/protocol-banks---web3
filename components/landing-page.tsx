@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { UnicornHero } from "@/components/unicorn-hero"
+import { MarketTicker } from "@/components/market-ticker"
 import {
   ArrowRight,
   Shield,
@@ -178,7 +178,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
       <section className="border-y border-border bg-muted/20">
         <div className="container mx-auto px-4 py-20 sm:py-28">
           <div className="max-w-2xl mb-12 sm:mb-16">
-            <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Why it's safe</p>
+            <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Why it&apos;s safe</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
               Built so the worst case is written on the screen
             </h2>
@@ -344,7 +344,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                   <div>
                     <h4 className="font-semibold">Keys stay with you</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      You sign the agent approval with your own wallet. The agent's signing
+                      You sign the agent approval with your own wallet. The agent&apos;s signing
                       key is encrypted at rest and scoped to one trading wallet only.
                     </p>
                   </div>
@@ -412,52 +412,15 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Markets marquee */}
-      <section className="overflow-hidden">
-        <div className="container mx-auto px-4 py-16 sm:py-20">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Real markets. Real data.
-            </h2>
-            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-              The agent trades the most liquid perpetual markets on Hyperliquid, powered by live exchange data.
+      {/* Live markets ticker */}
+      <section className="border-y border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl">
+        <div className="container mx-auto px-4 py-5">
+          <div className="text-center mb-4">
+            <p className="text-xs font-medium text-primary uppercase tracking-wider">
+              Real markets. Real data. The agent scans these right now.
             </p>
           </div>
-
-          <div className="relative w-full mx-auto">
-            <style jsx global>{`
-              @keyframes marquee {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-50%); }
-              }
-              .animate-marquee {
-                animation: marquee 40s linear infinite;
-              }
-              .animate-marquee:hover {
-                animation-play-state: paused;
-              }
-            `}</style>
-
-            <div
-              className="flex overflow-hidden relative"
-              style={{
-                maskImage: 'linear-gradient(to right, transparent, black 3%, black 97%, transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent, black 3%, black 97%, transparent)',
-              }}
-            >
-              <div className="flex animate-marquee gap-6 sm:gap-8 items-center py-6">
-                {[...["BTC", "ETH", "SOL", "ARB", "OP", "LINK", "DOGE", "AVAX", "BNB", "XRP", "SUI", "APT"], ...["BTC", "ETH", "SOL", "ARB", "OP", "LINK", "DOGE", "AVAX", "BNB", "XRP", "SUI", "APT"]].map((name, i) => (
-                  <div
-                    key={`${name}-${i}`}
-                    className="flex items-center gap-3 px-8 py-4 rounded-full border border-white/20 bg-white/40 dark:bg-black/20 backdrop-blur-xl hover:bg-white/60 hover:dark:bg-black/40 hover:border-primary/30 transition-all shrink-0 cursor-default"
-                  >
-                    <span className="text-sm font-bold text-primary">{name}</span>
-                    <span className="text-xs text-muted-foreground">PERP</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <MarketTicker />
         </div>
       </section>
 
