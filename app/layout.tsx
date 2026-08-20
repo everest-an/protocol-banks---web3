@@ -91,6 +91,33 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Protocol Banks" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
         <link rel="apple-touch-startup-image" href="/apple-icon.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  name: "Protocol Bank",
+                  url: "https://protocolbanks.com",
+                  description:
+                    "AI automated trading on Hyperliquid. Non-custodial, transparent, with one-click control and profit sweep.",
+                },
+                {
+                  "@type": "SoftwareApplication",
+                  name: "Protocol Bank AI Trading",
+                  applicationCategory: "FinanceApplication",
+                  operatingSystem: "Web",
+                  url: "https://protocolbanks.com/trading",
+                  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+                  description:
+                    "Connect a wallet, fund a trading budget on Hyperliquid, and let an AI agent trade perpetual markets with strict risk controls. The agent can trade but never withdraw.",
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body
         className={`${aeonik.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
