@@ -40,6 +40,7 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
   const [approvePayload, setApprovePayload] = useState<ApprovePayload | null>(null)
   const [liveState, setLiveState] = useState<LiveState | null>(null)
   const [busy, setBusy] = useState<"generate" | "approve" | null>(null)
+  const [riskAccepted, setRiskAccepted] = useState(false)
 
   const headers = authHeaders(walletAddress, { "Content-Type": "application/json" })
 
@@ -220,7 +221,7 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
                 size="sm"
                 className="h-7 text-xs gap-1.5"
                 onClick={handleApprove}
-                disabled={!approvePayload || busy !== null}
+                disabled={!approvePayload || busy !== null || !riskAccepted}
               >
                 {busy === "approve" ? <Loader2 className="h-3 w-3 animate-spin" /> : <PenLine className="h-3 w-3" />}
                 Sign & Approve
@@ -228,6 +229,25 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
             )
           }
         />
+
+        {!status?.approved && (
+          <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-white/10 p-3 bg-white/30 dark:bg-black/20">
+            <input
+              type="checkbox"
+              checked={riskAccepted}
+              onChange={(e) => setRiskAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+            />
+            <span className="text-xs text-muted-foreground leading-relaxed">
+              I have read and accept the{" "}
+              <a href="/risk-disclosure" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                Risk Disclosure
+              </a>
+              . I understand the AI can lose my entire trading wallet, and past performance does not guarantee future
+              results.
+            </span>
+          </label>
+        )}
 
         {liveState && (
           <div className="rounded-lg border border-white/10 p-3 bg-white/30 dark:bg-black/20">
