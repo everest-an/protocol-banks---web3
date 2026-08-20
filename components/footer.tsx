@@ -106,8 +106,11 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
-          <p>© 2025 Protocol Bank. All rights reserved.</p>
+          <p>© 2026 Protocol Bank. All rights reserved.</p>
           <div className="flex gap-4 sm:gap-6">
+            <Link href="/risk-disclosure" className="hover:text-foreground active:text-foreground">
+              Risk Disclosure
+            </Link>
             <Link href="/privacy" className="hover:text-foreground active:text-foreground">
               Privacy Policy
             </Link>

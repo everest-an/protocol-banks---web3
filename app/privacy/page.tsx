@@ -34,6 +34,11 @@ export default function PrivacyPolicy() {
               <li>Browser type and IP address (for security and analytics)</li>
               <li>Usage patterns and preferences (to improve our service)</li>
             </ul>
+            <p>
+              For the AI trading feature we additionally process: your trading-budget settings, the agent wallet address
+              you approve, and the trades the agent executes on your behalf (signals, fills, and PnL). The agent&apos;s
+              signing key is generated per user, encrypted at rest, and never shared.
+            </p>
           </CardContent>
         </Card>
 
