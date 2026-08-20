@@ -4,7 +4,6 @@ import { JetBrains_Mono } from "next/font/google"
 import localFont from "next/font/local"
 import "./globals.css"
 import { Web3Provider } from "@/contexts/web3-context"
-import { ReownProvider } from "@/contexts/reown-provider"
 import { DemoProvider } from "@/contexts/demo-context"
 import { UserTypeProvider } from "@/contexts/user-type-context"
 import { AuthProvider } from "@/contexts/auth-provider"
@@ -99,25 +98,23 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <UserTypeProvider>
             <AuthProvider>
-              <ReownProvider>
-                <Web3Provider>
-                  <DemoProvider>
-                    <div className="relative min-h-screen flex flex-col pb-safe">
-                      <Header />
-                      <main className="flex-1 pb-16 md:pb-0">{children}</main>
-                      <div className="hidden md:block">
-                        <Footer />
-                      </div>
-                      <MobileNav />
+              <Web3Provider>
+                <DemoProvider>
+                  <div className="relative min-h-screen flex flex-col pb-safe">
+                    <Header />
+                    <main className="flex-1 pb-16 md:pb-0">{children}</main>
+                    <div className="hidden md:block">
+                      <Footer />
                     </div>
-                    <Toaster />
-                    <RecaptchaScript />
-                    <WelcomeGuide />
-                    <PWAInstallPrompt />
-                    <NotificationPrompt />
-                  </DemoProvider>
-                </Web3Provider>
-              </ReownProvider>
+                    <MobileNav />
+                  </div>
+                  <Toaster />
+                  <RecaptchaScript />
+                  <WelcomeGuide />
+                  <PWAInstallPrompt />
+                  <NotificationPrompt />
+                </DemoProvider>
+              </Web3Provider>
             </AuthProvider>
           </UserTypeProvider>
         </ThemeProvider>

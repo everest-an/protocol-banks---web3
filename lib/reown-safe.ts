@@ -25,8 +25,18 @@ import {
   useDisconnect,
 } from "@reown/appkit/react"
 
-/** Whether AppKit was initialised — i.e. whether a project ID is configured. */
-export const isAppKitReady = Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID)
+/**
+ * Whether AppKit was initialised.
+ *
+ * HARD-DISABLED: the product login flow now uses injected EVM wallets
+ * (MetaMask) directly. Reown AppKit is retired from the header and auth
+ * gateway; keeping it initialized produced background console noise
+ * (blocked walletconnect iframes + telemetry 403s) on every page load.
+ *
+ * Flip this back to `Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID)`
+ * and re-mount `ReownProvider` in the root layout to restore AppKit.
+ */
+export const isAppKitReady = false
 
 type AppKitOpen = ReturnType<typeof useAppKit>["open"]
 
