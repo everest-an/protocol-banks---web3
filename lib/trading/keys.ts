@@ -99,6 +99,7 @@ export function generateAgentKey(walletAddress: string, name?: string): AgentKey
   }
   fs.mkdirSync(LIVE_DIR, { recursive: true })
   fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), "utf-8")
+  void persistToDb(record)
   return record
 }
 
@@ -130,7 +131,45 @@ export function markApproved(walletAddress: string): AgentKeyRecord | null {
   record.approved = true
   record.approvedAt = new Date().toISOString()
   fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), "utf-8")
+  void persistToDb(record)
   return record
+}
+
+/**
+ * Write-through to the TradingAccount row when the database is available.
+ * Fire-and-forget: DB outages must never break the local flow — the file
+ * store remains the source of truth for key material.
+ */
+async function persistToDb(record: AgentKeyRecord): Promise<void> {
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    await prisma.tradingAccount.upsert({
+      where: { wallet_address: record.walletAddress },
+      create: {
+        wallet_address: record.walletAddress,
+        status: "live",
+        budget_usd: 500,
+        agent_address: record.agentAddress,
+        agent_key_encrypted: record.encryptedKey.data,
+        agent_key_iv: record.encryptedKey.iv,
+        agent_key_tag: record.encryptedKey.tag,
+        agent_name: record.name,
+        agent_approved: record.approved,
+        agent_approved_at: record.approvedAt ? new Date(record.approvedAt) : null,
+      },
+      update: {
+        agent_address: record.agentAddress,
+        agent_key_encrypted: record.encryptedKey.data,
+        agent_key_iv: record.encryptedKey.iv,
+        agent_key_tag: record.encryptedKey.tag,
+        agent_name: record.name,
+        agent_approved: record.approved,
+        agent_approved_at: record.approvedAt ? new Date(record.approvedAt) : null,
+      },
+    })
+  } catch (e) {
+    console.warn("[trading] key DB write-through skipped (DB unavailable):", e)
+  }
 }
 
 export function revokeAgentKey(walletAddress: string): void {

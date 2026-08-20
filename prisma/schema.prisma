@@ -1951,7 +1951,7 @@ model AgentVirtualCard {
 }
 
 // ============================================================================
-// AI Trading (live mode) — per-user isolation
+// AI Trading (live mode) ï¿½ per-user isolation
 // ============================================================================
 
 /// One row per user wallet that has onboarded to live AI trading.
@@ -1971,6 +1971,9 @@ model TradingAccount {
   status              String    @default("paper") // paper | live
   budget_usd          Float     @default(500)
   risk_config         Json?
+  /// Serialized TradingState for live-mode persistence (see lib/trading/db-store.ts).
+  /// JSON column so the state shape can evolve without migrations.
+  state_json          Json?
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
 
@@ -2006,3 +2009,4 @@ model TradeRecord {
   @@index([hyperliquid_oid])
   @@map("trade_records")
 }
+
