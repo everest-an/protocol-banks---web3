@@ -22,6 +22,7 @@ import {
   type RiskConfig,
 } from "./risk"
 import { getStore, type TradingStore } from "./store"
+import { notificationService } from "@/lib/services/notification-service"
 import type { TradingState, Position, ActivityItem, AgentStatus } from "./types"
 
 const TICK_INTERVAL_MS = 15_000
@@ -35,11 +36,15 @@ export class TradingAgent {
   private client = new HyperliquidClient()
   private store: TradingStore
   private risk: RiskConfig
+  private ownerAddress: string | null
   private ticking: Promise<void> | null = null
 
-  constructor(store: TradingStore = getStore(), risk: RiskConfig = DEFAULT_RISK) {
+  constructor(store: TradingStore = getStore(), risk: RiskConfig = DEFAULT_RISK, ownerAddress: string | null = null) {
     this.store = store
     this.risk = risk
+    // Live mode passes the account owner so trade events can trigger
+    // push notifications. Paper mode has no owner — no notifications.
+    this.ownerAddress = ownerAddress ? ownerAddress.toLowerCase() : null
   }
 
   // -------------------------------------------------------------------------
@@ -213,10 +218,33 @@ export class TradingAgent {
     })
   }
 
+  /**
+   * Fire-and-forget push notifications for trade events (live mode only).
+   * Never throws into the trading loop — notification failures are logged
+   * and ignored.
+   */
+  private notifyOwner(kind: "opened" | "closed" | "guard", detail: { symbol?: string; side?: string; price?: number; pnl?: number; reason?: string; message?: string }): void {
+    if (!this.ownerAddress) return
+    void (async () => {
+      try {
+        if (kind === "opened" && detail.symbol && detail.side) {
+          await notificationService.notifyTradeOpened(this.ownerAddress!, detail.symbol, detail.side, detail.price ?? 0, detail.reason ?? "")
+        } else if (kind === "closed" && detail.symbol && detail.side) {
+          await notificationService.notifyTradeClosed(this.ownerAddress!, detail.symbol, detail.side, detail.pnl ?? 0, detail.reason ?? "")
+        } else if (kind === "guard") {
+          await notificationService.notifyTradeGuard(this.ownerAddress!, detail.message ?? "Risk guardrail triggered")
+        }
+      } catch (e) {
+        console.error("[trading-agent] notification failed:", e)
+      }
+    })()
+  }
+
   private noteGuard(text: string): void {
     const last = this.state().activity[0]
     if (last?.type === "guard" && last.text === text) return // don't spam identical guards
     this.log("guard", text)
+    this.notifyOwner("guard", { message: text })
   }
 
   private noteDataError(): void {
@@ -282,6 +310,7 @@ export class TradingAgent {
             `Closed ${p.symbol} ${p.side} ${realized >= 0 ? "+" : "-"}$${Math.abs(realized).toFixed(2)} (${reason})`,
             Number(realized.toFixed(2)),
           )
+          this.notifyOwner("closed", { symbol: p.symbol, side: p.side, pnl: realized, reason })
         }
       }
     }
@@ -400,6 +429,7 @@ export class TradingAgent {
       })
 
       this.log("open", `Opened ${sig.coin} ${sig.side} at $${entryPrice.toFixed(2)} (${sig.reason})`)
+      this.notifyOwner("opened", { symbol: sig.coin, side: sig.side, price: entryPrice, reason: sig.reason })
       traded = true
     }
 

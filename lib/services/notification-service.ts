@@ -43,6 +43,9 @@ export interface NotificationPreferences {
   agent_payment_executed: boolean;
   agent_payment_failed: boolean;
   vendor_address_changed: boolean;
+  trade_opened: boolean;
+  trade_closed: boolean;
+  trade_guard: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -68,7 +71,10 @@ export type NotificationType =
   | 'agent_proposal_rejected'
   | 'agent_payment_executed'
   | 'agent_payment_failed'
-  | 'vendor_address_changed';
+  | 'vendor_address_changed'
+  | 'trade_opened'
+  | 'trade_closed'
+  | 'trade_guard';
 
 // ============================================
 // Constants
@@ -87,6 +93,9 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreferences, 'id' | 'user_address' |
   agent_payment_executed: true,
   agent_payment_failed: true,
   vendor_address_changed: true,
+  trade_opened: true,
+  trade_closed: true,
+  trade_guard: true,
 };
 
 // ============================================
@@ -571,6 +580,59 @@ export class NotificationService {
         error: errorMessage,
         proposalId 
       },
+    });
+  }
+
+  // ============================================
+  // AI Trading Notifications
+  // ============================================
+
+  /**
+   * Notify the owner when the AI opens a position
+   */
+  async notifyTradeOpened(
+    ownerAddress: string,
+    symbol: string,
+    side: string,
+    entryPrice: number,
+    reason: string
+  ): Promise<void> {
+    await this.send(ownerAddress, 'trade_opened', {
+      title: `AI opened ${symbol} ${side.toUpperCase()}`,
+      body: `Entry $${entryPrice.toFixed(2)} — ${reason}`,
+      tag: `trade-open-${symbol}-${Date.now()}`,
+      data: { type: 'trade_opened', symbol, side, entryPrice, reason },
+    });
+  }
+
+  /**
+   * Notify the owner when the AI closes a position
+   */
+  async notifyTradeClosed(
+    ownerAddress: string,
+    symbol: string,
+    side: string,
+    pnl: number,
+    reason: string
+  ): Promise<void> {
+    const sign = pnl >= 0 ? '+' : '-';
+    await this.send(ownerAddress, 'trade_closed', {
+      title: `AI closed ${symbol} ${side.toUpperCase()}`,
+      body: `${sign}$${Math.abs(pnl).toFixed(2)} — ${reason}`,
+      tag: `trade-close-${symbol}-${Date.now()}`,
+      data: { type: 'trade_closed', symbol, side, pnl, reason },
+    });
+  }
+
+  /**
+   * Notify the owner when a risk guardrail fires
+   */
+  async notifyTradeGuard(ownerAddress: string, message: string): Promise<void> {
+    await this.send(ownerAddress, 'trade_guard', {
+      title: 'Risk guardrail triggered',
+      body: message,
+      tag: `trade-guard-${Date.now()}`,
+      data: { type: 'trade_guard', message },
     });
   }
 
