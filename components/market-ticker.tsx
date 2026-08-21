@@ -43,12 +43,12 @@ const COIN_COLOR: Record<string, string> = {
 function CoinIcon({ coin }: { coin: string }) {
   const logo = COIN_LOGO[coin]
   if (logo) {
-    return <img src={logo} alt={coin} width={18} height={18} className="rounded-full shrink-0" loading="lazy" />
+    return <img src={logo} alt={coin} width={24} height={24} className="rounded-full shrink-0" loading="lazy" />
   }
   const color = COIN_COLOR[coin] ?? "#64748b"
   return (
     <span
-      className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-bold text-white shrink-0"
+      className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white shrink-0"
       style={{ backgroundColor: color }}
     >
       {coin[0]}
