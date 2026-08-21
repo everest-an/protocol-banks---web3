@@ -47,7 +47,7 @@ jobs:
 
           for DOMAIN in protocolbanks.com www.protocolbanks.com; do
             echo "Pointing $DOMAIN -> $DEPLOY_URL"
-            npx vercel alias set "https://$DEPLOY_URL" "$DOMAIN" --yes
+            npx vercel alias set "https://$DEPLOY_URL" "$DOMAIN"
           done
 
           echo "Done. protocolbanks.com now serves https://$DEPLOY_URL"
