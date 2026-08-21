@@ -14,6 +14,27 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("[App] Global error:", error)
+
+    // Auto-report unhandled errors to the founder's inbox — once per
+    // unique error digest per session so a crash loop can't spam.
+    try {
+      const digest = error.digest || error.message || "unknown"
+      const key = `reported-error:${digest}`
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1")
+        void fetch("/api/support/report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: "Automatic error report",
+            page: window.location.pathname,
+            error: `${error.name}: ${error.message}${error.digest ? ` (digest: ${error.digest})` : ""}`.slice(0, 2000),
+          }),
+        }).catch(() => {})
+      }
+    } catch {
+      // reporting must never break the error page
+    }
   }, [error])
 
   return (

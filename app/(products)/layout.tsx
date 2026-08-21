@@ -1,5 +1,6 @@
 import { ProductsSidebar } from "@/components/products-sidebar"
 import { WalletDemoSync } from "@/components/wallet-demo-sync"
+import { ReportIssueButton } from "@/components/report-issue-button"
 
 export default function ProductsLayout({
   children,
@@ -13,6 +14,7 @@ export default function ProductsLayout({
       <div className="flex-1 w-full">
         {children}
       </div>
+      <ReportIssueButton />
     </div>
   )
 }
