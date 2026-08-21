@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SplitPaymentForm } from "@/components/split-payment-form"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
@@ -448,14 +448,67 @@ export default function SplitPaymentsPage() {
   const { isDemoMode } = useDemo()
   const [expandedPayment, setExpandedPayment] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"active" | "history">("active")
+  const [realPayments, setRealPayments] = useState<DemoSplitPayment[] | null>(null)
 
   const showDemo = isDemoMode || !isConnected
 
-  const stats = getDemoStats(DEMO_SPLIT_PAYMENTS)
-  const activePayments = DEMO_SPLIT_PAYMENTS.filter(
+  // Fetch real split-payment history when a wallet is connected
+  useEffect(() => {
+    if (showDemo || !address) {
+      setRealPayments(null)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/split-payment?limit=20", {
+          headers: { "x-wallet-address": address },
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled) return
+        const executions = (data.executions ?? []).map((e: Record<string, unknown>): DemoSplitPayment => {
+          const recipients = Array.isArray(e.recipients)
+            ? (e.recipients as { address?: string; percentage?: number; amount?: string }[])
+            : []
+          const status = e.status === "pending" || e.status === "in_progress" ? e.status : "completed"
+          return {
+            id: String(e.id),
+            title: `Split to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`,
+            description: recipients.map((r) => (r.address ?? "").slice(0, 6) + "…").join(", "),
+            total_amount: String(e.total_amount ?? "0"),
+            token: String(e.token ?? "USDT"),
+            chain: String(e.chain_id ?? ""),
+            participants: recipients.map((r, i) => ({
+              name: `Recipient ${i + 1}`,
+              address: r.address ?? "",
+              amount: r.amount ?? "0",
+              percentage: r.percentage ?? 0,
+              status: status === "completed" ? "paid" : "pending",
+            })),
+            creator: String(e.owner_address ?? ""),
+            created_at: String(e.created_at ?? new Date().toISOString()),
+            status: status as "completed" | "in_progress" | "pending",
+            tx_hash: e.tx_hash ? String(e.tx_hash) : undefined,
+          }
+        })
+        setRealPayments(executions)
+      } catch {
+        // keep demo view on failure
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [showDemo, address])
+
+  const displayPayments = showDemo || realPayments === null ? DEMO_SPLIT_PAYMENTS : realPayments
+
+  const stats = getDemoStats(displayPayments)
+  const activePayments = displayPayments.filter(
     (p) => p.status === "pending" || p.status === "in_progress"
   )
-  const completedPayments = DEMO_SPLIT_PAYMENTS.filter((p) => p.status === "completed")
+  const completedPayments = displayPayments.filter((p) => p.status === "completed")
 
   return (
     <div className="container mx-auto py-8 space-y-8 max-w-4xl">
