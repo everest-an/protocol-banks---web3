@@ -20,6 +20,42 @@ interface TickerItem {
 
 const FALLBACK_COINS = ["BTC", "ETH", "SOL", "ARB", "OP", "LINK", "DOGE", "AVAX", "BNB", "XRP", "SUI", "APT"]
 
+/** Network logo assets where available (public/networks/*.png). */
+const COIN_LOGO: Record<string, string> = {
+  ETH: "/networks/eth.png",
+  SOL: "/networks/solana.png",
+  ARB: "/networks/arb.png",
+  OP: "/networks/optimism.png",
+  AVAX: "/networks/avax.png",
+  BNB: "/networks/bnb.png",
+}
+
+/** Brand colors for coins without a logo asset (fallback: colored initial). */
+const COIN_COLOR: Record<string, string> = {
+  BTC: "#F7931A",
+  LINK: "#2A5ADA",
+  DOGE: "#C2A633",
+  XRP: "#23292F",
+  SUI: "#4DA2FF",
+  APT: "#0EA5E9",
+}
+
+function CoinIcon({ coin }: { coin: string }) {
+  const logo = COIN_LOGO[coin]
+  if (logo) {
+    return <img src={logo} alt={coin} width={18} height={18} className="rounded-full shrink-0" loading="lazy" />
+  }
+  const color = COIN_COLOR[coin] ?? "#64748b"
+  return (
+    <span
+      className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-bold text-white shrink-0"
+      style={{ backgroundColor: color }}
+    >
+      {coin[0]}
+    </span>
+  )
+}
+
 async function fetchTopMarkets(limit = 12): Promise<TickerItem[]> {
   const res = await fetch("https://api.hyperliquid.xyz/info", {
     method: "POST",
@@ -119,6 +155,7 @@ export function MarketTicker() {
         <div className="flex animate-ticker gap-8 items-center py-2">
           {loop.map((item, i) => (
             <div key={`${item.coin}-${i}`} className="flex items-center gap-2 shrink-0 text-sm">
+              <CoinIcon coin={item.coin} />
               <span className="font-semibold text-foreground">{item.coin}</span>
               {item.price > 0 ? (
                 <>

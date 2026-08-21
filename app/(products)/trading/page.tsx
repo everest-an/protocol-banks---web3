@@ -17,6 +17,7 @@ import {
   Activity,
   Radar,
   AlertTriangle,
+  HelpCircle,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -535,6 +536,58 @@ export default function TradingPage() {
 
                 <TradingLiveSetup walletAddress={walletAddress} />
               </div>
+            </div>
+
+            {/* Docs & guides — first-time users need this */}
+            <div className="grid sm:grid-cols-3 gap-3">
+              <a
+                href="/help"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl p-4 hover:border-primary/30 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <HelpCircle className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold group-hover:text-primary transition-colors">
+                    How to use this
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Connect, fund, and go live in minutes — plus a walkthrough of every panel on this page.
+                </p>
+              </a>
+              <a
+                href="/help"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl p-4 hover:border-primary/30 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Radar className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold group-hover:text-primary transition-colors">
+                    What the AI trades
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Momentum and funding-carry signals over Hyperliquid's most liquid markets — with every guardrail explained.
+                </p>
+              </a>
+              <a
+                href="/risk-disclosure"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl p-4 hover:border-primary/30 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold group-hover:text-primary transition-colors">
+                    Risk &amp; safety
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  What can go wrong, what you can lose, and the controls that protect you. Read before going live.
+                </p>
+              </a>
             </div>
           </>
         )}
