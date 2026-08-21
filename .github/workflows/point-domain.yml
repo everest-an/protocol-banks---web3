@@ -1,0 +1,53 @@
+name: Point production domains to latest deployment
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  point-domains:
+    name: Re-point protocolbanks.com to the newest deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Wait for the new deployment and alias the domains
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROJECT_ID: prj_Da058QFCURMp71dIUxVaCVBXSjNX
+        run: |
+          set -euo pipefail
+          START_MS=$(date +%s%3N)
+          # Grace window: Vercel may create the deployment a few seconds
+          # before this action starts; accept anything newer than 5 min ago.
+          MIN_CREATED=$((START_MS - 300000))
+
+          echo "Polling Vercel for the new production deployment..."
+          DEPLOY_UID=""
+          DEPLOY_URL=""
+          for i in $(seq 1 60); do
+            sleep 15
+            RESP=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=1")
+            DEPLOY_UID=$(echo "$RESP" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const dep=j.deployments[0];console.log(dep.readyState==='READY'&&dep.createdAt>=$MIN_CREATED?dep.uid:'')}catch(e){console.log('')}})")
+            DEPLOY_URL=$(echo "$RESP" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const dep=j.deployments[0];console.log(dep.readyState==='READY'&&dep.createdAt>=$MIN_CREATED?dep.url:'')}catch(e){console.log('')}})")
+            if [ -n "$DEPLOY_UID" ]; then
+              echo "New deployment ready: https://$DEPLOY_URL"
+              break
+            fi
+            echo "  ...waiting for deploy ($i/60)"
+          done
+
+          if [ -z "$DEPLOY_UID" ]; then
+            echo "No new deployment became ready within 15 minutes — skipping domain update."
+            exit 0
+          fi
+
+          echo "Installing Vercel CLI..."
+          npm install -g vercel@latest --silent
+
+          for DOMAIN in protocolbanks.com www.protocolbanks.com; do
+            echo "Pointing $DOMAIN -> $DEPLOY_URL"
+            npx vercel alias set "https://$DEPLOY_URL" "$DOMAIN" --yes
+          done
+
+          echo "Done. protocolbanks.com now serves https://$DEPLOY_URL"
