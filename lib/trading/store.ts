@@ -10,6 +10,7 @@
 import fs from "fs"
 import path from "path"
 import os from "os"
+import { createHash } from "crypto"
 import type { TradingState } from "./types"
 
 /**
@@ -132,9 +133,23 @@ export function getStore(): TradingStore {
 /** Per-wallet paper store (user isolation for paper mode). */
 const walletStores = new Map<string, TradingStore>()
 
+const EVM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
+
+/**
+ * Convert a caller-supplied wallet string into a SAFE file key.
+ * Valid EVM addresses are used verbatim; anything else is hashed so a
+ * malicious ?wallet= value can never escape the state directory
+ * (path traversal guard).
+ */
+function safeFileKey(walletAddress: string): string {
+  const lower = walletAddress.toLowerCase()
+  if (EVM_ADDRESS_RE.test(lower)) return lower
+  return `h-${createHash("sha256").update(lower).digest("hex").slice(0, 32)}`
+}
+
 export function getStoreForWallet(walletAddress: string | null | undefined): TradingStore {
   if (!walletAddress) return getStore() // guests share the demo account
-  const key = walletAddress.toLowerCase()
+  const key = safeFileKey(walletAddress)
   let store = walletStores.get(key)
   if (!store) {
     store = new WalletTradingStore(key)

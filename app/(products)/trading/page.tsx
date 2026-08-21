@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { TradingLiveSetup } from "@/components/trading-live-setup"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { createAuthenticatedFetch } from "@/lib/authenticated-fetch"
 
 // ---------------------------------------------------------------------------
 // Types — the contract defined by /api/trading/overview
@@ -87,8 +88,6 @@ interface TradingOverview {
   activity: ActivityItem[]
 }
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
-
 const fmtUsd = (v: number, digits = 2) =>
   v.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })
 
@@ -119,10 +118,14 @@ export default function TradingPage() {
   const [range, setRange] = useState<7 | 30>(30)
   const { toast } = useToast()
 
+  const authFetch = createAuthenticatedFetch(walletAddress, { isDemoMode: !walletAddress })
   const overviewKey = walletAddress ? `/api/trading/overview?wallet=${walletAddress}` : "/api/trading/overview"
-  const { data, error, isLoading, mutate } = useSWR<TradingOverview>(overviewKey, fetcher, {
-    refreshInterval: 15_000, // live feel — refreshes every 15s
-  })
+  const { data, error, isLoading, mutate } = useSWR<TradingOverview>(overviewKey, (url: string) =>
+    authFetch(url).then((r) => {
+      if (!r.ok) throw new Error(`overview failed (${r.status})`)
+      return r.json()
+    }),
+  { refreshInterval: 15_000 })
 
   const curve = (data?.equity ?? []).slice(-range)
   const todayUp = (data?.account.todayPnl ?? 0) >= 0
@@ -133,7 +136,7 @@ export default function TradingPage() {
       const actionUrl = walletAddress
         ? `/api/trading/actions?wallet=${walletAddress}`
         : "/api/trading/actions"
-      const res = await fetch(actionUrl, {
+      const res = await authFetch(actionUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),

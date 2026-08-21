@@ -55,9 +55,12 @@ export interface AgentKeyRecord {
 function deriveSecret(): Buffer {
   const raw = process.env.TRADING_KEY_SECRET
   if (!raw) {
-    // Dev fallback: deterministic placeholder. NEVER acceptable in production —
-    // the API refuses live mode unless TRADING_KEY_SECRET is set to 64 hex chars.
-    return createHash("sha256").update("dev-insecure-key-do-not-use").digest()
+    // NO insecure fallback: live-mode key material must never be encrypted
+    // with a hardcoded key. Callers gate on hasKeySecret() before reaching
+    // here; if they don't, fail closed.
+    throw new Error(
+      "TRADING_KEY_SECRET is not configured. Live-mode agent keys cannot be encrypted — refusing to operate.",
+    )
   }
   if (/^[0-9a-fA-F]{64}$/.test(raw)) return Buffer.from(raw, "hex")
   return createHash("sha256").update(raw).digest()
