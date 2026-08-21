@@ -331,10 +331,11 @@ docs/                             # Documentation
 
 ## Documentation References
 
-- Product Specification: `docs/PRODUCT_SPECIFICATION.md`
+- Documentation hub: `docs/README.md`
+- Product PRD: `docs/PRD_V2_AI_TRADING.md`
 - Auth System Details: `docs/AUTH_SYSTEM.md`
 - Go Services Architecture: `docs/GO_SERVICES_ARCHITECTURE.md`
-- Security Audit: `docs/SECURITY_AUDIT.md`
-- Batch Payment Guide: `docs/BATCH_PAYMENT.md`
+- Security: `docs/SECURITY.md` + audits in `docs/security/`
+- Legal: `docs/legal/`
 - Environment Setup: `ENV_SETUP.md`
 - Reown Setup: `REOWN_SETUP.md`

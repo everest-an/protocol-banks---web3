@@ -123,7 +123,7 @@ Legacy payment-era docs remain in `docs/` for the Business feature set.
 
 ## License
 
-GNU General Public License v3.0 only (GPL-3.0-only) — see [LICENSE](LICENSE) and [ADDITIONAL_LEGAL_TERMS.md](ADDITIONAL_LEGAL_TERMS.md).
+GNU General Public License v3.0 only (GPL-3.0-only) — see [LICENSE](LICENSE) and [ADDITIONAL_LEGAL_TERMS.md](docs/legal/ADDITIONAL_LEGAL_TERMS.md).
 
 ---
 
