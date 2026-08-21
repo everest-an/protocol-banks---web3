@@ -21,7 +21,7 @@ import {
   DEFAULT_RISK,
   type RiskConfig,
 } from "./risk"
-import { getStore, type TradingStore } from "./store"
+import { getStore, getStoreForWallet, type TradingStore } from "./store"
 import { notificationService } from "@/lib/services/notification-service"
 import type { TradingState, Position, ActivityItem, AgentStatus } from "./types"
 
@@ -442,4 +442,18 @@ let singleton: TradingAgent | null = null
 export function getAgent(): TradingAgent {
   if (!singleton) singleton = new TradingAgent()
   return singleton
+}
+
+/** Per-wallet agent instances — paper state is isolated per connected user. */
+const walletAgents = new Map<string, TradingAgent>()
+
+export function getAgentForWallet(walletAddress: string | null | undefined): TradingAgent {
+  if (!walletAddress) return getAgent() // guests share the demo account
+  const key = walletAddress.toLowerCase()
+  let agent = walletAgents.get(key)
+  if (!agent) {
+    agent = new TradingAgent(getStoreForWallet(key))
+    walletAgents.set(key, agent)
+  }
+  return agent
 }

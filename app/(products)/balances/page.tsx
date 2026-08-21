@@ -41,7 +41,6 @@ import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { BalanceDistribution } from "@/components/balance-distribution"
 import { BalanceActivity } from "@/components/balance-activity"
 import { categorizeTransaction, CATEGORY_COLORS, calculateRunway, type Category } from "@/lib/business-logic"
-import { AuthGateway } from "@/components/auth"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import type { TokenBalance } from "@/types"
 
@@ -108,7 +107,7 @@ interface TokenGroup {
 }
 
 export default function BalancesPage() {
-  const { isConnected, address: activeAddress, connectWallet } = useUnifiedWallet()
+  const { isConnected, address: activeAddress, connectWallet, isConnecting } = useUnifiedWallet()
   const { isDemoMode } = useDemo()
   const { balance, loading, error, refresh } = useBalance({ isDemoMode, walletAddress: activeAddress })
   const { stats: paymentStats, payments, loading: paymentsLoading, getMonthlyData } = usePaymentHistory({
@@ -120,7 +119,6 @@ export default function BalancesPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [expandedTokens, setExpandedTokens] = useState<Set<string>>(new Set())
-  const [showAuthGateway, setShowAuthGateway] = useState(false)
 
   // Ledger tab state
   interface LedgerEntry {
@@ -360,19 +358,12 @@ export default function BalancesPage() {
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">
                 Connect your wallet to view your balances across all chains.
               </p>
-              <Button onClick={() => setShowAuthGateway(true)}>
-                Connect Wallet
+              <Button onClick={() => connectWallet()} disabled={isConnecting}>
+                {isConnecting ? "Connecting..." : "Connect Wallet"}
               </Button>
             </GlassCardContent>
           </GlassCard>
         </div>
-        {showAuthGateway && (
-          <AuthGateway
-            isOpen={showAuthGateway}
-            onClose={() => setShowAuthGateway(false)}
-            onSuccess={() => setShowAuthGateway(false)}
-          />
-        )}
       </div>
     )
   }

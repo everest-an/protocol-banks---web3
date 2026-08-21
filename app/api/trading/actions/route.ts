@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server"
-import { getAgent } from "@/lib/trading/agent"
+import { getAgentForWallet } from "@/lib/trading/agent"
 
 /**
- * POST /api/trading/actions
+ * POST /api/trading/actions?wallet=<address>
  *
  * Control the paper trading agent:
  *   { "action": "pause" | "resume" | "stop" | "reset" }
  *
  * Paper mode only — these actions mutate the local simulated account and
- * never touch real funds.
+ * never touch real funds. State is isolated per wallet address.
  */
 export async function POST(req: Request) {
   let body: { action?: string }
@@ -18,7 +18,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  const agent = getAgent()
+  const url = new URL(req.url)
+  const wallet = url.searchParams.get("wallet")
+  const agent = getAgentForWallet(wallet)
   switch (body.action) {
     case "pause":
       agent.pause()

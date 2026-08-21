@@ -264,6 +264,16 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
             )}
           </div>
         )}
+
+        {status?.approved && (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-primary" />
+              <span className="font-medium text-foreground">Agent approved.</span> Live trading opens with the Beta —
+              paper mode keeps running meanwhile so you can watch the agent work risk-free.
+            </p>
+          </div>
+        )}
       </GlassCardContent>
     </GlassCard>
   )

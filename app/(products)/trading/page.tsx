@@ -115,12 +115,14 @@ const ACTIVITY_STYLE: Record<ActivityType, { icon: LucideIcon; cls: string }> = 
 // ---------------------------------------------------------------------------
 
 export default function TradingPage() {
-  const { data, error, isLoading, mutate } = useSWR<TradingOverview>("/api/trading/overview", fetcher, {
-    refreshInterval: 15_000, // live feel — refreshes every 15s
-  })
   const { address: walletAddress } = useUnifiedWallet()
   const [range, setRange] = useState<7 | 30>(30)
   const { toast } = useToast()
+
+  const overviewKey = walletAddress ? `/api/trading/overview?wallet=${walletAddress}` : "/api/trading/overview"
+  const { data, error, isLoading, mutate } = useSWR<TradingOverview>(overviewKey, fetcher, {
+    refreshInterval: 15_000, // live feel — refreshes every 15s
+  })
 
   const curve = (data?.equity ?? []).slice(-range)
   const todayUp = (data?.account.todayPnl ?? 0) >= 0
@@ -128,7 +130,10 @@ export default function TradingPage() {
 
   const sendAction = async (action: "pause" | "resume" | "stop" | "reset") => {
     try {
-      const res = await fetch("/api/trading/actions", {
+      const actionUrl = walletAddress
+        ? `/api/trading/actions?wallet=${walletAddress}`
+        : "/api/trading/actions"
+      const res = await fetch(actionUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -298,10 +303,22 @@ export default function TradingPage() {
                   >
                     {data.account.allTimePnl >= 0 ? "+" : "-"}${fmtUsd(Math.abs(data.account.allTimePnl))}
                   </p>
-                  <Button size="sm" className="mt-2 w-full gap-1.5" onClick={handleWithdraw}>
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                    Withdraw Profit
-                  </Button>
+                  {data.mode === "paper" ? (
+                    <>
+                      <Button size="sm" className="mt-2 w-full gap-1.5" disabled>
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                        Withdraw Profit
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center mt-1">
+                        Paper profits are simulated — withdrawals unlock with live mode.
+                      </p>
+                    </>
+                  ) : (
+                    <Button size="sm" className="mt-2 w-full gap-1.5" onClick={handleWithdraw}>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                      Withdraw Profit
+                    </Button>
+                  )}
                 </GlassCardContent>
               </GlassCard>
             </div>

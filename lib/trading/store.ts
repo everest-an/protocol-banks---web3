@@ -81,10 +81,15 @@ export function seedState(): TradingState {
 export class TradingStore {
   private state: TradingState | null = null
 
+  /** Path of the backing file — overridable for per-wallet stores. */
+  protected stateFilePath(): string {
+    return STATE_FILE
+  }
+
   private ensureLoaded(): TradingState {
     if (this.state) return this.state
     try {
-      const raw = fs.readFileSync(STATE_FILE, "utf-8")
+      const raw = fs.readFileSync(this.stateFilePath(), "utf-8")
       this.state = JSON.parse(raw) as TradingState
     } catch {
       this.state = seedState()
@@ -107,7 +112,7 @@ export class TradingStore {
   save(): void {
     if (!this.state) return
     fs.mkdirSync(STATE_DIR, { recursive: true })
-    fs.writeFileSync(STATE_FILE, JSON.stringify(this.state, null, 2), "utf-8")
+    fs.writeFileSync(this.stateFilePath(), JSON.stringify(this.state, null, 2), "utf-8")
   }
 
   reset(): TradingState {
@@ -122,4 +127,32 @@ let singleton: TradingStore | null = null
 export function getStore(): TradingStore {
   if (!singleton) singleton = new TradingStore()
   return singleton
+}
+
+/** Per-wallet paper store (user isolation for paper mode). */
+const walletStores = new Map<string, TradingStore>()
+
+export function getStoreForWallet(walletAddress: string | null | undefined): TradingStore {
+  if (!walletAddress) return getStore() // guests share the demo account
+  const key = walletAddress.toLowerCase()
+  let store = walletStores.get(key)
+  if (!store) {
+    store = new WalletTradingStore(key)
+    walletStores.set(key, store)
+  }
+  return store
+}
+
+/** A TradingStore whose state file is keyed by wallet address. */
+class WalletTradingStore extends TradingStore {
+  private fileKey: string
+
+  constructor(walletKey: string) {
+    super()
+    this.fileKey = walletKey
+  }
+
+  protected override stateFilePath(): string {
+    return path.join(STATE_DIR, `state-${this.fileKey}.json`)
+  }
 }
