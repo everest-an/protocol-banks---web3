@@ -65,6 +65,22 @@ export const metadata: Metadata = {
     title: "Protocol Bank - AI Trading Agent",
     description: "Your AI trades. You keep control.",
     siteName: "Protocol Bank",
+    url: "https://protocolbanks.com",
+    images: [
+      {
+        url: "https://protocolbanks.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Protocol Bank - Your AI trades. You keep control.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Protocol Bank - Your AI trades. You keep control.",
+    description:
+      "An AI trades for you on Hyperliquid. It can trade but never withdraw. Paper mode is free.",
+    images: ["https://protocolbanks.com/og-image.png"],
   },
 }
 
