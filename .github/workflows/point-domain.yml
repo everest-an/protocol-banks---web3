@@ -27,9 +27,10 @@ jobs:
           for i in $(seq 1 60); do
             sleep 15
             RESP=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=1")
-            DEPLOY_UID=$(echo "$RESP" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const dep=j.deployments[0];console.log(dep.readyState==='READY'&&dep.createdAt>=$MIN_CREATED?dep.uid:'')}catch(e){console.log('')}})")
-            DEPLOY_URL=$(echo "$RESP" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const dep=j.deployments[0];console.log(dep.readyState==='READY'&&dep.createdAt>=$MIN_CREATED?dep.url:'')}catch(e){console.log('')}})")
+              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=10")
+            # The API does not sort — pick the NEWEST ready deployment ourselves
+            DEPLOY_UID=$(echo "$RESP" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const ready=j.deployments.filter(x=>x.readyState==='READY'&&x.createdAt>=$MIN_CREATED);ready.sort((a,b)=>b.createdAt-a.createdAt);console.log(ready[0]?ready[0].uid:'')}catch(e){console.log('')}})")
+            DEPLOY_URL=$(echo "$RESP" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const ready=j.deployments.filter(x=>x.readyState==='READY'&&x.createdAt>=$MIN_CREATED);ready.sort((a,b)=>b.createdAt-a.createdAt);console.log(ready[0]?ready[0].url:'')}catch(e){console.log('')}})")
             if [ -n "$DEPLOY_UID" ]; then
               echo "New deployment ready: https://$DEPLOY_URL"
               break
