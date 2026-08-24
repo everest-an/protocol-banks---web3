@@ -16,6 +16,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/guides/hyperliquid-trading-bot", priority: 0.8, changeFrequency: "monthly" as const },
     { path: "/guides/crypto-paper-trading", priority: 0.8, changeFrequency: "monthly" as const },
     { path: "/guides/best-ai-trading-bots", priority: 0.8, changeFrequency: "monthly" as const },
+    { path: "/guides/what-is-hyperliquid", priority: 0.8, changeFrequency: "monthly" as const },
+    { path: "/guides/ai-trading-strategies", priority: 0.8, changeFrequency: "monthly" as const },
     { path: "/risk-disclosure", priority: 0.7, changeFrequency: "monthly" as const },
     { path: "/terms", priority: 0.5, changeFrequency: "monthly" as const },
     { path: "/privacy", priority: 0.5, changeFrequency: "monthly" as const },

@@ -18,6 +18,7 @@ import {
   ExternalLink,
   RefreshCw,
   ShieldAlert,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
 import { authHeaders } from "@/lib/authenticated-fetch"
@@ -238,7 +239,19 @@ export default function AdminDashboard() {
       </Alert>
 
       {/* Quick Links */}
-      <div className="grid gap-4 md:grid-cols-5 mb-8">
+      <div className="grid gap-4 md:grid-cols-6 mb-8">
+        <Link href="/admin/analytics">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="flex items-center gap-4 p-6">
+              <Users className="h-8 w-8 text-primary" />
+              <div>
+                <p className="font-medium">Analytics</p>
+                <p className="text-sm text-muted-foreground">Users & feedback</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link href="/admin/fees">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-4 p-6">

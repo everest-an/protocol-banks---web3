@@ -5,7 +5,7 @@ import fs from "fs"
 import path from "path"
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const SUPPORT_EMAIL = "everest9812@gmail.com"
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "e@awareness.market"
 
 const INPUT_LIMITS = {
   message: 5000,

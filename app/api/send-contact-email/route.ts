@@ -131,7 +131,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await resend.emails.send({
       from: "Protocol Banks <contact@e.protocolbanks.com>",
-      to: ["everest9812@gmail.com"],
+      to: [process.env.SUPPORT_EMAIL || "e@awareness.market"],
       subject: `Contact Form: ${sanitizedSubject}`,
       replyTo: email,
       html: `
