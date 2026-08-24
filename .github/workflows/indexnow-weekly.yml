@@ -1,0 +1,35 @@
+name: Weekly IndexNow ping
+
+on:
+  schedule:
+    - cron: "0 2 * * 1" # every Monday 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  indexnow:
+    name: Submit sitemap URLs to IndexNow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Submit URLs to IndexNow
+        env:
+          INDEXNOW_KEY: a0044d18004c4365856a804563649758
+        run: |
+          set -euo pipefail
+          # Fetch the live sitemap and extract URLs
+          SITEMAP=$(curl -s "https://protocolbanks.com/sitemap.xml")
+          URLS=$(echo "$SITEMAP" | grep -oP '(?<=<loc>)[^<]+' | head -n 20)
+
+          # Build the JSON payload
+          PAYLOAD=$(echo "$URLS" | node -e "
+            let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const urls=d.split('\n').filter(Boolean).map(u=>u.trim());
+              console.log(JSON.stringify({host:'protocolbanks.com',key:process.env.INDEXNOW_KEY,keyLocation:'https://protocolbanks.com/'+process.env.INDEXNOW_KEY+'.txt',urlList:urls}));
+            });
+          ")
+
+          echo "Submitting $(echo "$URLS" | wc -l) URLs..."
+          curl -s -o /dev/null -w "IndexNow: %{http_code}\n" \
+            -X POST "https://api.indexnow.org/indexnow" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d "$PAYLOAD"
