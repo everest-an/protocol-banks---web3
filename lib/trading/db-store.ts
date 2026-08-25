@@ -103,3 +103,42 @@ export function getLiveStore(walletAddress: string): DbTradingStore {
   }
   return store
 }
+
+/**
+ * Standalone persistence helpers — fire-and-forget write-through used by
+ * the paper agent so per-user state survives serverless restarts when the
+ * database is reachable, with the file store as the fallback.
+ */
+
+export async function persistStateToDb(walletAddress: string, state: TradingState): Promise<void> {
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    await prisma.tradingAccount.upsert({
+      where: { wallet_address: walletAddress.toLowerCase() },
+      create: {
+        wallet_address: walletAddress.toLowerCase(),
+        status: "paper",
+        budget_usd: state.account.budget,
+        state_json: state as unknown as object,
+      },
+      update: {
+        state_json: state as unknown as object,
+      },
+    })
+  } catch (e) {
+    console.warn("[trading] state write-through skipped (DB unavailable):", e)
+  }
+}
+
+export async function loadStateFromDb(walletAddress: string): Promise<TradingState | null> {
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    const row = await prisma.tradingAccount.findUnique({
+      where: { wallet_address: walletAddress.toLowerCase() },
+      select: { state_json: true },
+    })
+    return (row?.state_json as TradingState | null) ?? null
+  } catch {
+    return null
+  }
+}

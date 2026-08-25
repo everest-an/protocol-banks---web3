@@ -40,6 +40,17 @@ export async function GET(request: NextRequest) {
   }
 
   const agent = getAgentForWallet(wallet)
+
+  // Hydrate per-user state from the database when available (best effort —
+  // serverless restarts would otherwise lose paper progress).
+  if (wallet) {
+    const { loadStateFromDb } = await import("@/lib/trading/db-store")
+    const dbState = await loadStateFromDb(wallet)
+    if (dbState && dbState.activity && dbState.activity.length > 0) {
+      agent.hydrateState(dbState)
+    }
+  }
+
   await agent.maybeTick()
   return NextResponse.json(agent.toOverview())
 }

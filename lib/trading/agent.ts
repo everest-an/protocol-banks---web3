@@ -22,6 +22,7 @@ import {
   type RiskConfig,
 } from "./risk"
 import { getStore, getStoreForWallet, type TradingStore } from "./store"
+import { persistStateToDb } from "./db-store"
 import { notificationService } from "@/lib/services/notification-service"
 import type { TradingState, Position, ActivityItem, AgentStatus } from "./types"
 
@@ -128,6 +129,11 @@ export class TradingAgent {
       s.lastTickAt = now
       this.refreshAccount(s)
     })
+
+    // 7. Write-through to the database (per-user persistence, fire-and-forget)
+    if (this.ownerAddress) {
+      void persistStateToDb(this.ownerAddress, this.state()).catch(() => {})
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -151,6 +157,14 @@ export class TradingAgent {
 
   reset(): void {
     this.store.reset()
+  }
+
+  /**
+   * Replace the in-memory/file state with a previously persisted state
+   * (e.g. loaded from the database after a serverless restart).
+   */
+  hydrateState(state: TradingState): void {
+    this.store.replace(state)
   }
 
   toOverview() {

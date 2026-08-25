@@ -121,6 +121,12 @@ export class TradingStore {
     this.save()
     return this.state
   }
+
+  /** Replace the current state wholesale (used for DB hydration). */
+  replace(state: TradingState): void {
+    this.state = state
+    this.save()
+  }
 }
 
 let singleton: TradingStore | null = null
