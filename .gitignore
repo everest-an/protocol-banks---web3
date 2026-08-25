@@ -73,3 +73,6 @@ AlphaGPT/
 .omo/
 .playwright-mcp/
 qa-*.png
+
+x-*.png
+
