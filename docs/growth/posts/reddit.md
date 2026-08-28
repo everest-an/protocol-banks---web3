@@ -77,3 +77,6 @@ Source: github.com/everest-an/protocol-banks---web3
 - 用你本人的老账号发，新号会被版主删
 - 每版只发一个相关版块，别同一天跨版发（会像 spam）
 - 回复所有评论，提问越多帖子越热
+- 📅 **时机（配合 PH 发布）**：北京 8/28 **17:00 左右**发（PH 上线 2 小时后、X thread 发完后）
+- 选一个版块发即可（推荐版本 A → r/CryptoCurrency，受众最广）
+- 正文里**不要放 PH 链接**（Reddit 对 Product Hunt 链接敏感），只放 protocolbanks.com
