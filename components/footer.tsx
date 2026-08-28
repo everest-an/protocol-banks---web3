@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen } from "lucide-react"
+import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare } from "lucide-react"
 import Image from "next/image"
 
 export function Footer() {
@@ -98,6 +98,16 @@ export function Footer() {
                 >
                   <Twitter className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                   Twitter / X
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="https://discord.gg/cfknkfSEMu"
+                  target="_blank"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
+                >
+                  <MessagesSquare className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  Discord Community
                 </Link>
               </li>
             </ul>

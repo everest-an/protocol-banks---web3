@@ -19,6 +19,7 @@ import {
   PiggyBank,
   Activity,
   Clock,
+  MessagesSquare,
 } from "lucide-react"
 
 interface LandingPageProps {
@@ -453,6 +454,15 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </Link>
             <Link href="/contact" className="hover:text-foreground transition-colors flex items-center gap-1">
               Contact <ChevronRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="https://discord.gg/cfknkfSEMu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <MessagesSquare className="h-4 w-4" />
+              Join our Discord <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
         </div>

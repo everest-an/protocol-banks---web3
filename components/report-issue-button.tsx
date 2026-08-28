@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { usePathname } from "next/navigation"
-import { MessageSquareWarning, X, Loader2 } from "lucide-react"
+import { MessageSquareWarning, X, Loader2, MessagesSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
@@ -74,6 +74,16 @@ export function ReportIssueButton() {
             <p className="text-xs text-muted-foreground mb-3">
               Something not working? Tell us what happened — the team gets an email immediately.
             </p>
+            <a
+              href="https://discord.gg/cfknkfSEMu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-4 flex items-center gap-2 rounded-lg border border-white/10 bg-background/60 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+            >
+              <MessagesSquare className="h-4 w-4" />
+              Prefer chat? Get help faster in our Discord
+              <span className="ml-auto text-primary">Join →</span>
+            </a>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
