@@ -55,6 +55,17 @@ export default function HyperliquidGuide() {
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
 
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
+          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            Hyperliquid is a decentralized perpetual futures exchange (perp DEX) — a high-performance order book for
+            perps with sub-millisecond matching and its own L1. Its most interesting feature for builders is{" "}
+            <strong>agent wallets</strong>: you can grant an automated agent <strong>trading-only permissions</strong>,
+            so a bot can trade on your behalf without ever being able to withdraw. That's what makes non-custodial AI
+            trading on Hyperliquid possible.
+          </p>
+        </div>
+
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold mb-3">Hyperliquid in one paragraph</h2>

@@ -63,6 +63,16 @@ export default function AiCryptoTradingGuide() {
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
+          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            AI crypto trading uses software to scan markets and execute trades automatically. A non-custodial setup
+            keeps funds in your own wallet and grants the AI <strong>trading-only permissions</strong> — it can open and
+            close positions but can never withdraw. With stop-losses, position caps, and daily circuit breakers, the
+            worst case is the budget you allocate. Start free with paper trading on real market data.
+          </p>
+        </div>
+
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold mb-3">What is AI crypto trading?</h2>

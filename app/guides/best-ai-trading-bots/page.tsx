@@ -83,6 +83,16 @@ export default function BestBotsGuide() {
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
+          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            When comparing AI trading bots, the single most important question is <strong>who holds the funds</strong>.
+            A non-custodial bot trades through a <strong>trading-only agent wallet</strong> — it can enter and exit
+            positions but has no withdrawal rights. That's more important than claimed win rates. Look for transparent
+            trade explanations, enforced stop-losses, and free paper trading you can verify before committing money.
+          </p>
+        </div>
+
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold mb-3">Forget "best" — start with the custody question</h2>

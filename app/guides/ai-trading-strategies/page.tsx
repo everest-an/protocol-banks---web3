@@ -78,6 +78,16 @@ export default function StrategiesGuide() {
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
+          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            The most effective AI trading strategy for most people combines <strong>momentum</strong> (trend-following via
+            z-scores) with <strong>funding-rate carry</strong> — simple, transparent, and easy to reason about. Complex
+            models are harder to trust and often not more profitable. Whatever the strategy, the key is non-custodial
+            execution: the AI can trade within your budget but can never withdraw.
+          </p>
+        </div>
+
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold mb-3">The strategies, in plain language</h2>

@@ -55,6 +55,16 @@ export default function AiTradingSafetyGuide() {
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
 
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
+          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            AI crypto trading can be safe if the AI trades through a <strong>trading-only agent wallet</strong> — it can
+            open and close positions but is structurally unable to withdraw. Combined with per-trade stop-losses and
+            daily circuit breakers, the worst case is capped at the budget you allocate. Funds stay in your own
+            account, and you can revoke the agent on-chain at any time. Try it risk-free with paper trading first.
+          </p>
+        </div>
+
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold mb-3">The question behind the question</h2>

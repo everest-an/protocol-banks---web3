@@ -55,6 +55,17 @@ export default function HyperliquidBotGuide() {
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
+          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            A Hyperliquid trading bot automates trading on Hyperliquid perpetual markets. The key architectural risk
+            point is <strong>key custody</strong>: a non-custodial bot uses <strong>trading-only agent wallets</strong>
+            approved via EIP-712 — it can open and close positions but has no withdrawal rights. Combined with
+            stop-losses and circuit breakers, the bot's worst case is capped to the budget you allocate, and you can
+            revoke it on-chain at any time.
+          </p>
+        </div>
+
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold mb-3">Why Hyperliquid is the natural home for AI trading</h2>

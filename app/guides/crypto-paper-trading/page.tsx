@@ -55,6 +55,16 @@ export default function PaperTradingGuide() {
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
 
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
+          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            Paper trading runs a trading strategy on <strong>real market data with simulated money</strong> — you watch
+            the agent scan markets, open and close positions, and enforce stop-losses, all with zero real funds at
+            risk. It's the safest way to verify a strategy before going live. Look for paper mode that uses the exact
+            same agent and risk engine as live trading, so what you see is what you'd actually get.
+          </p>
+        </div>
+
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold mb-3">What is crypto paper trading?</h2>
