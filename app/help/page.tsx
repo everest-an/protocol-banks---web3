@@ -85,6 +85,8 @@ export default function HelpPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
+            dateModified: "2026-08-25",
+            inLanguage: "en",
             mainEntity: FAQ.map((f) => ({
               "@type": "Question",
               name: f.q,
@@ -107,6 +109,7 @@ export default function HelpPage() {
             From wallet to working agent in minutes — no trading knowledge required.
             Everything below is written for first-time users.
           </p>
+          <p className="text-sm text-muted-foreground mt-4">Last updated: August 2026</p>
         </div>
 
         {/* Getting started */}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
@@ -36,6 +36,8 @@ export default function PaperTradingGuide() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
+            dateModified: "2026-08-25",
+            inLanguage: "en",
             mainEntity: FAQ.map((f) => ({
               "@type": "Question",
               name: f.q,
@@ -51,7 +53,7 @@ export default function PaperTradingGuide() {
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
           Crypto Paper Trading: Practice With Real Market Data
         </h1>
-        <p className="text-muted-foreground mb-8">Updated August 2026 · 5 min read</p>
+        <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
 
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>

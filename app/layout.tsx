@@ -117,6 +117,7 @@ export default function RootLayout({
                   "@type": "WebSite",
                   name: "Protocol Bank",
                   url: "https://protocolbanks.com",
+                  inLanguage: "en",
                   description:
                     "AI automated trading on Hyperliquid. Non-custodial, transparent, with one-click control and profit sweep.",
                 },
@@ -126,9 +127,19 @@ export default function RootLayout({
                   applicationCategory: "FinanceApplication",
                   operatingSystem: "Web",
                   url: "https://protocolbanks.com/trading",
+                  inLanguage: "en",
                   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
                   description:
                     "Connect a wallet, fund a trading budget on Hyperliquid, and let an AI agent trade perpetual markets with strict risk controls. The agent can trade but never withdraw.",
+                },
+                {
+                  "@type": "Organization",
+                  name: "Protocol Bank",
+                  url: "https://protocolbanks.com",
+                  inLanguage: "en",
+                  logo: "https://protocolbanks.com/logo.png",
+                  description:
+                    "Protocol Bank builds non-custodial AI automated trading tools. Funds stay in your own wallet; the AI agent holds trading-only permissions on Hyperliquid.",
                 },
               ],
             }),

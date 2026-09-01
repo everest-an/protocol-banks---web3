@@ -4,7 +4,7 @@ import Link from "next/link"
 export const metadata: Metadata = {
   title: "AI Crypto Trading: The Beginner's Guide (2026)",
   description:
-    "What is AI crypto trading, how do non-custodial AI trading bots work, and how to start with paper trading on real market data — without giving up control of your funds.",
+    "How non-custodial AI crypto trading bots work, the safety guardrails that protect your funds, and how to start with paper trading on real market data.",
   openGraph: {
     title: "AI Crypto Trading: The Beginner's Guide (2026)",
     description:
@@ -44,6 +44,8 @@ export default function AiCryptoTradingGuide() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
+            dateModified: "2026-08-25",
+            inLanguage: "en",
             mainEntity: FAQ.map((f) => ({
               "@type": "Question",
               name: f.q,
@@ -59,7 +61,7 @@ export default function AiCryptoTradingGuide() {
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
           AI Crypto Trading: The Beginner&apos;s Guide
         </h1>
-        <p className="text-muted-foreground mb-8">Updated August 2026 · 6 min read</p>
+        <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
