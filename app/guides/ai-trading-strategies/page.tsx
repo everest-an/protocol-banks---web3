@@ -90,7 +90,7 @@ export default function StrategiesGuide() {
 
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
-            <h2 className="text-2xl font-bold mb-3">The strategies, in plain language</h2>
+            <h2 className="text-2xl font-bold mb-3">What trading strategies does the AI use?</h2>
             <div className="space-y-4">
               {STRATEGIES.map((s) => (
                 <div key={s.name} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
@@ -105,7 +105,7 @@ export default function StrategiesGuide() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold mb-3">What Protocol Bank runs</h2>
+            <h2 className="text-2xl font-bold mb-3">Which strategies does Protocol Bank actually run?</h2>
             <p>
               The robust leg combines <strong>momentum (60%)</strong> and <strong>funding carry (40%)</strong> over
               Hyperliquid&apos;s top-12 perpetuals by volume. The experimental leg explores additional factors with

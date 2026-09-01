@@ -95,7 +95,7 @@ export default function BestBotsGuide() {
 
         <div className="space-y-8 text-foreground/90 leading-relaxed">
           <section>
-            <h2 className="text-2xl font-bold mb-3">Forget "best" — start with the custody question</h2>
+            <h2 className="text-2xl font-bold mb-3">What makes an AI trading bot safe?</h2>
             <p>
               &quot;Best AI trading bot&quot; lists usually rank marketing, not architecture. The single most important
               question is: <strong>who holds your funds, and what can the bot do with them?</strong> Everything else —
@@ -104,7 +104,7 @@ export default function BestBotsGuide() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold mb-3">Custodial vs non-custodial bots</h2>
+            <h2 className="text-2xl font-bold mb-3">What's the difference between custodial and non-custodial bots?</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -128,7 +128,7 @@ export default function BestBotsGuide() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold mb-3">The four-question checklist</h2>
+            <h2 className="text-2xl font-bold mb-3">What four questions should you ask any bot?</h2>
             <ol className="list-decimal pl-6 space-y-2">
               <li>
                 <strong>Custody:</strong> do your funds stay in your own account, or are you depositing into the
