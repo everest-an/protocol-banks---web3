@@ -18,23 +18,18 @@ jobs:
           set -euo pipefail
           START_MS=$(date +%s%3N)
           # Vercel may create the deployment a few seconds before this action
-          # starts (Vercel gets the push first). Use a 1-minute grace window so
-          # we catch this push's deployment without aliasing to an older one.
-          FROM_MS=$((START_MS - 60000))
+          # starts; allow a 1-minute grace window.
+          MIN_CREATED=$((START_MS - 60000))
 
-          echo "Polling Vercel for a production (READY) deployment created after this action started..."
+          echo "Polling Vercel for the newest production (READY) deployment..."
           DEPLOY_URL=""
           for i in $(seq 1 96); do
             sleep 15
-            # from=FROM_MS => only deployments created after this action
-            # started (minus 1-min grace). This avoids any reliance on response
-            # ordering and never aliases to a stale deployment from an earlier
-            # push.
+            # Pull up to 20 READY production deployments and pick the one with
+            # the greatest createdAt in JS — no reliance on response ordering.
             RESP=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&from=$FROM_MS&limit=1")
-            # Take the first deployment from the filtered result; it is
-            # READY, production, and was created after we started.
-            DEPLOY_URL=$(echo "$RESP" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const dpl=(j.deployments||[])[0];console.log(dpl?dpl.url:'')}catch(e){console.log('')}})")
+              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=20")
+            DEPLOY_URL=$(echo "$RESP" | MIN_CREATED="$MIN_CREATED" node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const list=j.deployments||[];list.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));const dpl=list[0];if(!dpl)return console.log('');const created=Number(dpl.createdAt||0);console.log(created>=Number(process.env.MIN_CREATED)?dpl.url:'')}catch(e){console.log('')}})")
             if [ -n "$DEPLOY_URL" ]; then
               echo "New deployment ready: https://$DEPLOY_URL"
               break
