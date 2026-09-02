@@ -29,6 +29,11 @@ jobs:
             # the greatest createdAt in JS — no reliance on response ordering.
             RESP=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
               "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=20")
+            # DEBUG: echo the raw response on the first poll so we can see
+            # whether the API is returning data or an error (invalid token etc.)
+            if [ "$i" -eq 1 ]; then
+              echo "DEBUG raw response (first 600 chars): ${RESP:0:600}"
+            fi
             DEPLOY_URL=$(echo "$RESP" | MIN_CREATED="$MIN_CREATED" node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const list=j.deployments||[];list.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));const dpl=list[0];if(!dpl)return console.log('');const created=Number(dpl.createdAt||0);console.log(created>=Number(process.env.MIN_CREATED)?dpl.url:'')}catch(e){console.log('')}})")
             if [ -n "$DEPLOY_URL" ]; then
               echo "New deployment ready: https://$DEPLOY_URL"
