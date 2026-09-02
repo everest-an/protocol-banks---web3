@@ -17,21 +17,24 @@ jobs:
         run: |
           set -euo pipefail
           START_MS=$(date +%s%3N)
-          # Vercel creates the deployment on push a few seconds *before* this
-          # action starts. Accept deployments created in the last 5 minutes so
-          # we don't miss the one this push produced, while still avoiding
-          # aliasing to a stale deployment from an earlier push.
-          MIN_CREATED=$((START_MS - 300000))
+          # Vercel may create the deployment a few seconds before this action
+          # starts (Vercel gets the push first). Use a 1-minute grace window so
+          # we catch this push's deployment without aliasing to an older one.
+          FROM_MS=$((START_MS - 60000))
 
-          echo "Polling Vercel for the newest production (READY) deployment..."
+          echo "Polling Vercel for a production (READY) deployment created after this action started..."
           DEPLOY_URL=""
           for i in $(seq 1 96); do
             sleep 15
+            # from=FROM_MS => only deployments created after this action
+            # started (minus 1-min grace). This avoids any reliance on response
+            # ordering and never aliases to a stale deployment from an earlier
+            # push.
             RESP=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=1")
-            # The API returns newest-first. Take the single READY production
-            # deployment whose createdAt falls inside the grace window.
-            DEPLOY_URL=$(echo "$RESP" | MIN_CREATED="$MIN_CREATED" node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const dpl=(j.deployments||[])[0];if(!dpl)return console.log('');const created=Number(dpl.createdAt||0);console.log(created>=Number(process.env.MIN_CREATED)?dpl.url:'')}catch(e){console.log('')}})")
+              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&from=$FROM_MS&limit=1")
+            # Take the first deployment from the filtered result; it is
+            # READY, production, and was created after we started.
+            DEPLOY_URL=$(echo "$RESP" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const dpl=(j.deployments||[])[0];console.log(dpl?dpl.url:'')}catch(e){console.log('')}})")
             if [ -n "$DEPLOY_URL" ]; then
               echo "New deployment ready: https://$DEPLOY_URL"
               break
