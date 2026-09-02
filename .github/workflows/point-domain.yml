@@ -14,34 +14,32 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           PROJECT_ID: prj_Da058QFCURMp71dIUxVaCVBXSjNX
-          GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           START_MS=$(date +%s%3N)
-          # Grace window: accept deployments created up to 20 min before the
-          # action starts — Vercel builds can take 10+ minutes, and the API
-          # only returns deployments that were READY at query time.
-          MIN_CREATED=$((START_MS - 1200000))
+          # Vercel creates the deployment on push a few seconds *before* this
+          # action starts. Accept deployments created in the last 5 minutes so
+          # we don't miss the one this push produced, while still avoiding
+          # aliasing to a stale deployment from an earlier push.
+          MIN_CREATED=$((START_MS - 300000))
 
-          echo "Polling Vercel for the new production deployment..."
-          DEPLOY_UID=""
+          echo "Polling Vercel for the newest production (READY) deployment..."
           DEPLOY_URL=""
           for i in $(seq 1 96); do
             sleep 15
             RESP=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=10")
-            # Prefer an exact commit-SHA match (robust); fall back to the
-            # newest READY deployment inside the time window.
-            DEPLOY_UID=$(echo "$RESP" | GITHUB_SHA="$GITHUB_SHA" MIN_CREATED="$MIN_CREATED" node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const ready=j.deployments.filter(x=>x.readyState==='READY'&&x.createdAt>=Number(process.env.MIN_CREATED));const shaMatch=ready.filter(x=>x.meta&&x.meta.githubCommitSha===process.env.GITHUB_SHA);const pick=(shaMatch.length?shaMatch:ready).sort((a,b)=>b.createdAt-a.createdAt);console.log(pick[0]?pick[0].uid:'')}catch(e){console.log('')}})")
-            DEPLOY_URL=$(echo "$RESP" | GITHUB_SHA="$GITHUB_SHA" MIN_CREATED="$MIN_CREATED" node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const ready=j.deployments.filter(x=>x.readyState==='READY'&&x.createdAt>=Number(process.env.MIN_CREATED));const shaMatch=ready.filter(x=>x.meta&&x.meta.githubCommitSha===process.env.GITHUB_SHA);const pick=(shaMatch.length?shaMatch:ready).sort((a,b)=>b.createdAt-a.createdAt);console.log(pick[0]?pick[0].url:'')}catch(e){console.log('')}})")
-            if [ -n "$DEPLOY_UID" ]; then
+              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=1")
+            # The API returns newest-first. Take the single READY production
+            # deployment whose createdAt falls inside the grace window.
+            DEPLOY_URL=$(echo "$RESP" | MIN_CREATED="$MIN_CREATED" node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const j=JSON.parse(d);const dpl=(j.deployments||[])[0];if(!dpl)return console.log('');const created=Number(dpl.createdAt||0);console.log(created>=Number(process.env.MIN_CREATED)?dpl.url:'')}catch(e){console.log('')}})")
+            if [ -n "$DEPLOY_URL" ]; then
               echo "New deployment ready: https://$DEPLOY_URL"
               break
             fi
             echo "  ...waiting for deploy ($i/96)"
           done
 
-          if [ -z "$DEPLOY_UID" ]; then
+          if [ -z "$DEPLOY_URL" ]; then
             echo "No new deployment became ready within 24 minutes — skipping domain update."
             exit 0
           fi
