@@ -80,3 +80,28 @@ Source: github.com/everest-an/protocol-banks---web3
 - 📅 **时机（配合 PH 发布）**：北京 8/28 **17:00 左右**发（PH 上线 2 小时后、X thread 发完后）
 - 选一个版块发即可（推荐版本 A → r/CryptoCurrency，受众最广）
 - 正文里**不要放 PH 链接**（Reddit 对 Product Hunt 链接敏感），只放 protocolbanks.com
+
+---
+
+## ⚠️ 账号门槛（实测）
+
+当前 Reddit 账号 `AwareLiquid` 是 **5 天新号、1 post karma、0 comment karma**。
+r/CryptoCurrency 是管理最严的 sub 之一，低 karma 新号发帖**几乎必被 AutoMod 自动删除**，
+甚至可能触发账号 spam 标记。**直接发版本 A 大概率无效**。
+
+**替代方案（按推荐排序）：**
+
+1. **先养号再发**（最稳，1-2 天）：
+   - 去 r/CryptoCurrency / r/algotrading / r/defi 的每日讨论帖、热门帖下**发有价值的评论**
+   - 攒到 ~50 comment karma 再发主帖，通过率大幅提升
+
+2. **换门槛低的 sub**（当天可发）：
+   - `r/algotrading`（算法交易，对技术向内容宽容，版本 A 稍改即可）
+   - `r/defi`（版本 B 架构路线，天然匹配）
+   - `r/SideProject` / `r/indiehackers`（独立开发者晒作品，对"我做了个 X"类型最友好）
+   - 这些 sub 比 r/CryptoCurrency 门槛低很多
+
+3. **用你自己的老账号**（如果你有注册更久、有 karma 的号），比新号强得多
+
+**结论**：表单文案已备好（3 个版本），但**账号资质才是当前瓶颈**——先养号或换 sub，否则帖子发出去也是被删。
+
