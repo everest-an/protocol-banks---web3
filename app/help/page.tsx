@@ -110,11 +110,21 @@ export default function HelpPage() {
             Everything below is written for first-time users.
           </p>
           <p className="text-sm text-muted-foreground mt-4">Last updated: August 2026</p>
+
+          <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mt-6">
+            <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
+            <p className="text-sm text-foreground/90 leading-relaxed">
+              Connect MetaMask, set a trading budget on Hyperliquid, approve a <strong>trading-only agent
+              wallet</strong> (EIP-712), and the AI trades momentum + funding-carry signals 24/7. The agent can trade
+              but never withdraw — your funds stay in your own wallet, and the worst case is the budget you choose,
+              shown on screen. Start with free paper trading to watch the agent work risk-free before going live.
+            </p>
+          </div>
         </div>
 
         {/* Getting started */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold mb-6">Getting Started</h2>
+          <h2 className="text-2xl font-bold mb-6">How do I get started?</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {STEPS.map((s) => (
               <div key={s.step} className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl p-5">
@@ -140,7 +150,7 @@ export default function HelpPage() {
 
         {/* Cockpit guide */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold mb-6">Understanding the Cockpit</h2>
+          <h2 className="text-2xl font-bold mb-6">How does the cockpit work?</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {COCKPIT.map((c) => (
               <div key={c.title} className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
@@ -161,7 +171,7 @@ export default function HelpPage() {
           <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 sm:p-8">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="h-5 w-5 text-primary" />
-              <h2 className="text-2xl font-bold">Going Live</h2>
+              <h2 className="text-2xl font-bold">How do I go live with real funds?</h2>
             </div>
             <ol className="space-y-4 text-sm sm:text-base text-muted-foreground">
               <li>
@@ -189,7 +199,7 @@ export default function HelpPage() {
         <section className="mb-14">
           <div className="flex items-center gap-2 mb-6">
             <Shield className="h-5 w-5 text-primary" />
-            <h2 className="text-2xl font-bold">Risk Controls</h2>
+            <h2 className="text-2xl font-bold">What risk controls protect my funds?</h2>
           </div>
           <div className="space-y-4">
             {RISK_CONTROLS.map((r) => (
