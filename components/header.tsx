@@ -87,7 +87,9 @@ export function Header() {
 
                 {/* Navigation */}
                 <div className="space-y-1">
-                  {navItems.map((item) => {
+                  {navItems
+                    .filter((item) => item.href !== "/products")
+                    .map((item) => {
                     const Icon = item.icon
                     const isActive = isActivePath(item.href)
                     return (

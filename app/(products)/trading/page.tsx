@@ -18,6 +18,7 @@ import {
   Radar,
   AlertTriangle,
   HelpCircle,
+  Share2,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -181,6 +182,34 @@ export default function TradingPage() {
     })
   }
 
+  const handleShare = async () => {
+    if (!data) return
+    const { mode, account } = data
+    const pnl = account.allTimePnl
+    const sign = pnl >= 0 ? "+" : "-"
+    const abs = fmtUsd(Math.abs(pnl))
+    const isLive = mode === "live"
+
+    // Honest share card: live = real PnL, paper = clearly labeled simulated.
+    const text = isLive
+      ? `My AI trading agent is live on Hyperliquid.\n\nTrading-only permissions — it can trade, never withdraw.\nReal PnL so far: ${sign}$${abs}\n\nTrack record: https://protocolbanks.com/live-track-record`
+      : `Watching the Protocol Bank AI trade real markets.\n\nPaper PnL: ${sign}$${abs} (simulated — zero risk)\nThe AI can trade but never withdraw.\n\nTry it: https://protocolbanks.com`
+
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({
+        title: "Share card copied",
+        description: "Paste it into X, Telegram, or anywhere. Your PnL is public proof.",
+      })
+    } catch {
+      toast({
+        title: "Could not copy",
+        description: "Clipboard access was blocked — please copy manually.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleWithdraw = () => {
     toast({
       title: "Profit sweep",
@@ -322,6 +351,15 @@ export default function TradingPage() {
                       Withdraw Profit
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-1.5 w-full gap-1.5"
+                    onClick={handleShare}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Share my PnL
+                  </Button>
                 </GlassCardContent>
               </GlassCard>
             </div>

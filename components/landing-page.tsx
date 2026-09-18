@@ -483,8 +483,8 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             </Button>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mt-8 text-sm text-muted-foreground">
-            <Link href="/products" className="hover:text-foreground transition-colors flex items-center gap-1">
-              Explore all products <ChevronRight className="h-4 w-4" />
+            <Link href="/live-track-record" className="hover:text-foreground transition-colors flex items-center gap-1">
+              Live Track Record <ChevronRight className="h-4 w-4" />
             </Link>
             <Link href="/help" className="hover:text-foreground transition-colors flex items-center gap-1">
               Usage Guide <ChevronRight className="h-4 w-4" />
