@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare } from "lucide-react"
+import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare, TrendingUp } from "lucide-react"
 import Image from "next/image"
 
 export function Footer() {
@@ -60,6 +60,15 @@ export function Footer() {
                 >
                   <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                   <span className="truncate">Usage Guide</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/live-track-record"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
+                >
+                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate">Live Track Record</span>
                 </Link>
               </li>
               <li>

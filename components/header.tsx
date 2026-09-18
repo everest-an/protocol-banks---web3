@@ -12,6 +12,7 @@ import {
   ArrowLeftRight,
   ShoppingBag,
   Grid3X3,
+  TrendingUp,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -50,6 +51,7 @@ export function Header() {
 
   const navItems = [
     { href: "/trading", label: "AI Trading", icon: Bot },
+    { href: "/live-track-record", label: "Track Record", icon: TrendingUp },
     { href: "/balances", label: "Wallet", icon: Wallet },
     { href: "/history", label: "Transactions", icon: ArrowLeftRight },
     { href: "/vendors", label: "Contacts", icon: ShoppingBag },
