@@ -18,6 +18,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/guides/best-ai-trading-bots", priority: 0.8, changeFrequency: "monthly" as const },
     { path: "/guides/what-is-hyperliquid", priority: 0.8, changeFrequency: "monthly" as const },
     { path: "/guides/ai-trading-strategies", priority: 0.8, changeFrequency: "monthly" as const },
+    { path: "/guides/trading-only-permissions", priority: 0.8, changeFrequency: "monthly" as const },
+    { path: "/live-track-record", priority: 0.8, changeFrequency: "daily" as const },
     { path: "/risk-disclosure", priority: 0.7, changeFrequency: "monthly" as const },
     { path: "/terms", priority: 0.5, changeFrequency: "monthly" as const },
     { path: "/privacy", priority: 0.5, changeFrequency: "monthly" as const },

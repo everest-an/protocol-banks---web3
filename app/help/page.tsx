@@ -74,6 +74,10 @@ const FAQ = [
     q: "What happens if the AI loses money?",
     a: "Losses are capped by the stop-loss on every position and the daily circuit breakers. The worst case is losing your trading-wallet budget — never more, and never your main wallet.",
   },
+  {
+    q: "What does it cost?",
+    a: "Paper mode is free forever. Live mode is profit-share only: 20% of net profits, charged when you sweep profits out. If the agent doesn't make money, you pay nothing — no subscription, no upfront fee, no fee on losses.",
+  },
 ]
 
 export default function HelpPage() {

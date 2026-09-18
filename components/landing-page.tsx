@@ -425,6 +425,43 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         </div>
       </section>
 
+      {/* Pricing — profit share */}
+      <section className="container mx-auto px-4 py-16 sm:py-20">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Pricing</p>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-8">
+            We only earn when you profit
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-5">
+            <div className="p-6 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl">
+              <p className="text-sm font-semibold text-primary mb-1">Paper mode</p>
+              <p className="text-3xl font-bold mb-2">Free</p>
+              <p className="text-sm text-muted-foreground">
+                Real market data, simulated money. Watch the agent trade, read every decision, verify it works — zero
+                risk, forever.
+              </p>
+            </div>
+            <div className="p-6 rounded-2xl border border-primary/30 bg-primary/5 dark:bg-primary/10 backdrop-blur-xl">
+              <p className="text-sm font-semibold text-primary mb-1">Live mode</p>
+              <p className="text-3xl font-bold mb-2">
+                20% <span className="text-base font-normal text-muted-foreground">of profits</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Profit-share only, charged when you sweep profits out. No subscription, no upfront fee. If the agent
+                doesn&apos;t make money, you pay nothing.
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            See real live-account performance on the{" "}
+            <Link href="/live-track-record" className="text-primary underline">
+              Live Track Record
+            </Link>
+            .
+          </p>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="container mx-auto px-4 py-20 sm:py-28">
         <div className="max-w-3xl mx-auto text-center">
