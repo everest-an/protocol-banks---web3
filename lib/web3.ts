@@ -2,10 +2,22 @@ import { ethers } from "ethers"
 import TronWeb from "tronweb"
 import { isEvmAddressFormat, safeGetChecksumAddress } from "@/lib/address-utils"
 
-// Helper to retrieve the injected ethereum provider if it exists
+// Helper to retrieve the injected ethereum provider if it exists.
+// TronLink injects a window.ethereum shim (flagged isTronLink, sometimes even
+// faking isMetaMask). Never return it — EVM flows must use a real EVM wallet.
 export function getInjectedEthereum<T = any>(): T | undefined {
   if (typeof window === "undefined") return undefined
-  return (window as any).ethereum as T | undefined
+  const eth = (window as any).ethereum as any
+  if (!eth) return undefined
+
+  // If window.ethereum itself is TronLink's shim, look for a real EVM
+  // provider in its providers array; otherwise return undefined.
+  if (eth.isTronLink || eth.isTron) {
+    const real = eth.providers?.find((p: any) => !p.isTronLink && !p.isTron)
+    return (real ?? undefined) as T | undefined
+  }
+
+  return eth as T | undefined
 }
 
 // Chain type definition
@@ -139,11 +151,20 @@ export function isMetaMaskAvailable(): boolean {
   const eth = getInjectedEthereum() as any
   if (!eth) return false
 
+  // TronLink injects its own window.ethereum (flagged isTronLink, and some
+  // builds even fake isMetaMask). Never treat it as an EVM wallet.
+  if (isTronProvider(eth)) return false
+
   if (eth.providers) {
-    return eth.providers.some((p: any) => p.isMetaMask)
+    return eth.providers.some((p: any) => p.isMetaMask && !isTronProvider(p))
   }
 
   return !!eth.isMetaMask
+}
+
+/** True when a provider is TronLink's injected shim, which must never be used for EVM flows. */
+function isTronProvider(p: any): boolean {
+  return !!(p && (p.isTronLink || p.isTron))
 }
 
 export function isTokenPocketAvailable(): boolean {
@@ -218,27 +239,40 @@ export async function connectWallet(type: ChainType, preferredWallet?: "MetaMask
     if (type === "EVM") {
       let provider = injectedEthereum
 
+      // If window.ethereum itself is TronLink's shim (some builds hijack it),
+      // refuse it outright — EVM connect must go to a real EVM wallet.
+      if (isTronProvider(provider)) {
+        throw new Error("TronLink detected instead of MetaMask. To connect an EVM wallet, install MetaMask and disable TronLink's Ethereum provider.")
+      }
+
       // Handle multiple wallet providers
       if (provider.providers && provider.providers.length > 0) {
+        // Filter out TronLink so it can never be auto-selected for EVM.
+        const evmProviders = provider.providers.filter((p: any) => !isTronProvider(p))
         // Try to find preferred wallet first
         if (preferredWallet === "TokenPocket") {
-          const tpProvider = provider.providers.find((p: any) => p.isTokenPocket)
+          const tpProvider = evmProviders.find((p: any) => p.isTokenPocket)
           if (tpProvider) {
             provider = tpProvider
             console.log("[Web3] Using TokenPocket provider")
           }
         } else if (preferredWallet === "MetaMask") {
-          const mmProvider = provider.providers.find((p: any) => p.isMetaMask)
+          const mmProvider = evmProviders.find((p: any) => p.isMetaMask)
           if (mmProvider) {
             provider = mmProvider
             console.log("[Web3] Using MetaMask provider")
           }
         } else {
-          // Auto-detect: prefer TokenPocket if available, fallback to MetaMask
-          const tpProvider = provider.providers.find((p: any) => p.isTokenPocket)
-          const mmProvider = provider.providers.find((p: any) => p.isMetaMask)
-          provider = tpProvider || mmProvider || provider.providers[0]
-          console.log("[Web3] Auto-detected provider:", provider.isTokenPocket ? "TokenPocket" : provider.isMetaMask ? "MetaMask" : "Unknown")
+          // Auto-detect: prefer MetaMask first (the supported login wallet),
+          // then TokenPocket, then any other non-Tron EVM provider.
+          const mmProvider = evmProviders.find((p: any) => p.isMetaMask)
+          const tpProvider = evmProviders.find((p: any) => p.isTokenPocket)
+          provider = mmProvider || tpProvider || evmProviders[0]
+          console.log("[Web3] Auto-detected provider:", provider?.isTokenPocket ? "TokenPocket" : provider?.isMetaMask ? "MetaMask" : "Unknown")
+        }
+
+        if (!provider) {
+          throw new Error("No EVM wallet found. Install MetaMask to connect.")
         }
       }
 
