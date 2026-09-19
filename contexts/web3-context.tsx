@@ -340,8 +340,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       console.error("[v0] Failed to connect wallet:", error.message)
+      // Re-throw non-rejection errors so the UI can surface a real message
+      // instead of failing silently. User rejections (4001) stay quiet.
       if (error.code !== 4001) {
-        // Don't alert for user rejection
+        throw error
       }
     } finally {
       setIsConnecting(false)
@@ -400,20 +402,27 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const checkMetaMask = async () => {
-      const available = isMetaMaskAvailable()
-      console.log("[v0] MetaMask available:", available)
-      setIsMetaMaskInstalled(available)
+      try {
+        const available = isMetaMaskAvailable()
+        console.log("[v0] MetaMask available:", available)
+        setIsMetaMaskInstalled(available)
 
-      if (available) {
-        const providerCheck = verifyProviderAuthenticity()
-        setSecurityStatus((prev) => ({
-          ...prev,
-          providerAuthentic: providerCheck.authentic,
-          warnings: providerCheck.warnings,
-        }))
+        if (available) {
+          const providerCheck = verifyProviderAuthenticity()
+          setSecurityStatus((prev) => ({
+            ...prev,
+            providerAuthentic: providerCheck.authentic,
+            warnings: providerCheck.warnings,
+          }))
 
-        const cid = await getChainId()
-        setChainId(cid)
+          const cid = await getChainId()
+          setChainId(cid)
+        }
+      } catch (e) {
+        // A broken/conflicting injected provider (e.g. TronLink shim) must
+        // never surface as an unhandled rejection and crash the page.
+        console.warn("[v0] Provider check failed:", e)
+        setIsMetaMaskInstalled(false)
       }
     }
 

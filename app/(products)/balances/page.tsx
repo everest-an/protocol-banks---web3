@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
+import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -108,6 +109,7 @@ interface TokenGroup {
 
 export default function BalancesPage() {
   const { isConnected, address: activeAddress, connectWallet, isConnecting } = useUnifiedWallet()
+  const { toast } = useToast()
   const { isDemoMode } = useDemo()
   const { balance, loading, error, refresh } = useBalance({ isDemoMode, walletAddress: activeAddress })
   const { stats: paymentStats, payments, loading: paymentsLoading, getMonthlyData } = usePaymentHistory({
@@ -358,7 +360,18 @@ export default function BalancesPage() {
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">
                 Connect your wallet to view your balances across all chains.
               </p>
-              <Button onClick={() => connectWallet()} disabled={isConnecting}>
+              <Button
+                onClick={() =>
+                  connectWallet().catch((e: unknown) => {
+                    toast({
+                      title: "Connection failed",
+                      description: e instanceof Error ? e.message : "Please try again.",
+                      variant: "destructive",
+                    })
+                  })
+                }
+                disabled={isConnecting}
+              >
                 {isConnecting ? "Connecting..." : "Connect Wallet"}
               </Button>
             </GlassCardContent>

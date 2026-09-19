@@ -236,6 +236,25 @@ export function verifyProviderAuthenticity(): {
   }
 
   const eth = window.ethereum as any
+
+  // TronLink injects a window.ethereum shim (isTronLink, sometimes faking
+  // isMetaMask). It is not an EVM wallet — treat it as inauthentic.
+  if (eth.isTronLink || eth.isTron) {
+    return {
+      authentic: false,
+      fingerprint: {
+        isMetaMask: false,
+        isCoinbaseWallet: false,
+        isWalletConnect: false,
+        hasMultipleProviders: Array.isArray(eth.providers),
+        providerCount: eth.providers?.length || 1,
+        chainMethods: [],
+        suspiciousProperties: ["isTronLink"],
+      },
+      warnings: ["TronLink provider detected — not a valid EVM wallet. Install MetaMask."],
+    }
+  }
+
   const fingerprint: ProviderFingerprint = {
     isMetaMask: !!eth.isMetaMask,
     isCoinbaseWallet: !!eth.isCoinbaseWallet,
