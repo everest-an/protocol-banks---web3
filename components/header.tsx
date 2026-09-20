@@ -128,12 +128,12 @@ export function Header() {
                     {isDemoMode ? (
                       <>
                         <StopCircle className="mr-2 h-4 w-4" />
-                        Exit Test Mode
+                        Exit Demo
                       </>
                     ) : (
                       <>
                         <Play className="mr-2 h-4 w-4" />
-                        Try Test Mode
+                        Try Demo
                       </>
                     )}
                   </Button>
@@ -157,7 +157,7 @@ export function Header() {
               variant="outline"
               className="hidden lg:inline-flex border-primary text-primary animate-pulse whitespace-nowrap text-xs"
             >
-              TEST
+              Demo
             </Badge>
           )}
         </div>
@@ -203,12 +203,12 @@ export function Header() {
             {isDemoMode ? (
               <>
                 <StopCircle className="mr-2 h-4 w-4" />
-                <span className="hidden lg:inline">Exit Test</span>
+                <span className="hidden lg:inline">Exit Demo</span>
               </>
             ) : (
               <>
                 <Play className="mr-2 h-4 w-4" />
-                <span className="hidden lg:inline">Try Test</span>
+                <span className="hidden lg:inline">Try Demo</span>
               </>
             )}
           </Button>
