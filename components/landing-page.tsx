@@ -84,7 +84,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                 <Bot className="h-4 w-4" />
-                <span>AI Trading Agent · live on Hyperliquid</span>
+                <span>Non-custodial AI trading on Hyperliquid</span>
               </div>
               <h1 className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.15]">
                 Your AI trades.
@@ -93,8 +93,8 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               </h1>
               <p className="mt-6 sm:mt-8 text-lg sm:text-xl text-muted-foreground leading-relaxed">
                 Connect your wallet, fund a trading wallet, and let the agent work real
-                markets around the clock. Watch every trade in plain language, sweep
-                profits anytime, and stop it with one click.
+                markets around the clock. The AI can trade but never withdraw — your worst
+                case is the budget you choose, written on the screen.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-8 sm:mt-10">
                 <Button size="lg" onClick={onConnectWallet} className="text-base px-8 py-6">
@@ -106,9 +106,17 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                   Try Paper Trading
                 </Button>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">
-                Paper mode uses real market data with simulated money. Zero risk, full experience.
-              </p>
+              <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
+                <Link
+                  href="/live-track-record"
+                  className="inline-flex items-center gap-1.5 text-primary hover:underline font-medium"
+                >
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Every live account is public — see real PnL
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+                <span className="text-muted-foreground">Paper mode is free · real market data</span>
+              </div>
             </div>
 
             {/* Right: visual */}
@@ -172,6 +180,68 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               <p className="text-sm text-muted-foreground leading-relaxed">{item.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* The product — three surfaces, one story */}
+      <section className="border-y border-border bg-muted/20">
+        <div className="container mx-auto px-4 py-20 sm:py-28">
+          <div className="max-w-2xl mb-12 sm:mb-16">
+            <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">The product</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              Three ways to use it — all non-custodial
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+              Start with simulated money, go live when you&apos;re ready, and check the
+              public track record any time.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            <div className="p-6 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl flex flex-col">
+              <div className="p-2.5 rounded-lg bg-primary/10 w-fit mb-4">
+                <Play className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-base font-semibold mb-1.5">Paper mode</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                Watch the agent trade real Hyperliquid markets with simulated money. Zero
+                risk, full experience — free forever.
+              </p>
+              <Button variant="outline" size="sm" className="mt-5 w-fit" onClick={onTryDemo}>
+                Try it free
+              </Button>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-primary/30 bg-primary/5 dark:bg-primary/10 backdrop-blur-xl flex flex-col">
+              <div className="p-2.5 rounded-lg bg-primary/15 w-fit mb-4">
+                <Bot className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-base font-semibold mb-1.5">Live mode</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                Real funds, real markets. The AI trades through a trading-only agent
+                wallet and can never withdraw. 20% of profits, nothing on losses.
+              </p>
+              <Button size="sm" className="mt-5 w-fit" onClick={onConnectWallet}>
+                Go live
+              </Button>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-white/20 bg-white/60 dark:bg-black/20 backdrop-blur-xl flex flex-col">
+              <div className="p-2.5 rounded-lg bg-primary/10 w-fit mb-4">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-base font-semibold mb-1.5">Track record</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                Every live account is public: real budgets, real realized PnL, updated
+                automatically. Wins and losses both shown.
+              </p>
+              <Link href="/live-track-record" className="mt-5">
+                <Button variant="outline" size="sm" className="w-fit">
+                  See live PnL
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

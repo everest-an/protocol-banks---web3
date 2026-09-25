@@ -36,7 +36,14 @@ export default function HomePage() {
           return
         }
         connectingRef.current = true
-        connectWallet()
+        connectWallet().catch((e: unknown) => {
+          connectingRef.current = false
+          toast({
+            title: "Connection failed",
+            description: e instanceof Error ? e.message : "Please try again.",
+            variant: "destructive",
+          })
+        })
       }}
       onTryDemo={() => {
         toggleDemoMode()
