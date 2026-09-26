@@ -18,7 +18,8 @@
     "test:ci": "jest --ci --coverage --runInBand",
     "worker:parser": "ts-node -r dotenv/config -r tsconfig-paths/register backend/worker-parser.ts",
     "trading:agent": "tsx backend/trading-agent.ts",
-    "mcp:stdio": "ts-node -r dotenv/config -r tsconfig-paths/register lib/mcp/stdio-server.ts"
+    "mcp:stdio": "tsx -r dotenv/config lib/mcp/stdio-server.ts",
+    "mcp:test": "node scripts/test-mcp.cjs"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

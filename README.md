@@ -85,6 +85,10 @@ pnpm dev                # http://localhost:3000
 
 # Run the trading agent headlessly (paper mode)
 pnpm trading:agent
+
+# MCP server — control the agent from Claude / any MCP host
+pnpm mcp:stdio           # stdio transport (see docs/MCP.md)
+pnpm mcp:test            # smoke-test tools/list + tools/call
 ```
 
 ## Testing & Quality Gates
@@ -105,6 +109,7 @@ CI runs the full frontend suite (tsc + jest + lint) and Go tests on every push �
 | Document | Description |
 |---|---|
 | [PRD v2 — AI Trading](docs/PRD_V2_AI_TRADING.md) | Product spec: positioning, cockpit, wallet architecture, strategy & risk parameters |
+| [MCP Server](docs/MCP.md) | Control the trading agent from Claude Desktop / Claude Code / any MCP host |
 | [Usage Guide](https://protocolbanks.com/help) | In-product guide (getting started, cockpit, going live, FAQ) |
 | [Risk Disclosure](https://protocolbanks.com/risk-disclosure) | **Read before live trading** |
 | [Terms](https://protocolbanks.com/terms) / [Privacy](https://protocolbanks.com/privacy) | Legal |
@@ -157,6 +162,7 @@ pnpm install
 cp .env.example .env.local   # 见 ENV_SETUP.md
 pnpm dev                     # http://localhost:3000
 pnpm trading:agent           # 后台常驻运行交易 agent（paper 模式）
+pnpm mcp:stdio               # MCP server：在 Claude 里查询/控制 agent（见 docs/MCP.md）
 ```
 
 ### 测试与质量门禁
@@ -175,6 +181,7 @@ pnpm trading:agent           # 后台常驻运行交易 agent（paper 模式）
 | 文档 | 说明 |
 |---|---|
 | [PRD v2 — AI 交易](docs/PRD_V2_AI_TRADING.md) | 产品规格 |
+| [MCP Server](docs/MCP.md) | 在 Claude 等 MCP 客户端里查询/控制交易 agent |
 | [使用指南](https://protocolbanks.com/help) | 上手、驾驶舱、上线流程、FAQ |
 | [风险披露](https://protocolbanks.com/risk-disclosure) | **实盘前必读** |
 | [条款](https://protocolbanks.com/terms) / [隐私](https://protocolbanks.com/privacy) | 法律文档 |

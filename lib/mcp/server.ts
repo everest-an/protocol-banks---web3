@@ -46,6 +46,21 @@ import {
 } from './tools/balance-tools'
 
 import {
+  getTradingOverviewTool,
+  getPositionsTool,
+  getActivityTool,
+  controlTradingAgentTool,
+  getTrackRecordTool,
+  getActivitySchema,
+  controlTradingAgentSchema,
+  handleGetTradingOverview,
+  handleGetPositions,
+  handleGetActivity,
+  handleControlTradingAgent,
+  handleGetTrackRecord,
+} from './tools/trading-tools'
+
+import {
   networkListResource,
   handleNetworkListResource,
   tokenListResource,
@@ -209,6 +224,76 @@ export function createMcpServer(getAuthContext: () => McpAuthContext) {
     async (args) => {
       try {
         const result = await handleExecutePayment(args as Parameters<typeof handleExecutePayment>[0], getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  // ─── AI Trading Tools ───────────────────────────────────────────
+  // Registered with registerTool + zod schemas so arguments are parsed
+  // and validated (the legacy tool() overload treated JSON-schema fragments
+  // as annotations and silently dropped arguments).
+
+  server.registerTool(
+    getTradingOverviewTool.name,
+    { title: getTradingOverviewTool.title, description: getTradingOverviewTool.description },
+    async () => {
+      try {
+        const result = await handleGetTradingOverview(getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    getPositionsTool.name,
+    { title: getPositionsTool.title, description: getPositionsTool.description },
+    async () => {
+      try {
+        const result = await handleGetPositions(getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    getActivityTool.name,
+    { title: getActivityTool.title, description: getActivityTool.description, inputSchema: getActivitySchema },
+    async (args) => {
+      try {
+        const result = await handleGetActivity(args as { limit?: number }, getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    getTrackRecordTool.name,
+    { title: getTrackRecordTool.title, description: getTrackRecordTool.description },
+    async () => {
+      try {
+        const result = await handleGetTrackRecord()
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    controlTradingAgentTool.name,
+    { title: controlTradingAgentTool.title, description: controlTradingAgentTool.description, inputSchema: controlTradingAgentSchema },
+    async (args) => {
+      try {
+        const result = await handleControlTradingAgent(args as { action: 'pause' | 'resume' | 'stop' }, getAuthContext())
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
       } catch (err) {
         return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
