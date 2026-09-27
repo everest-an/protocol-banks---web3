@@ -28,7 +28,15 @@ export const getActivitySchema = {
 }
 
 export const controlTradingAgentSchema = {
-  action: z.enum(['pause', 'resume', 'stop']).describe('The control action to perform.'),
+  action: z
+    .enum(['pause', 'resume', 'stop', 'approve', 'reject', 'set_approval'])
+    .describe(
+      'The control action: pause/resume/stop the agent, approve/reject a pending trade (manual approval mode), or set_approval to switch entry mode.',
+    ),
+  mode: z
+    .enum(['auto', 'manual'])
+    .optional()
+    .describe('Required for set_approval: "auto" places entries automatically, "manual" holds each entry for approval.'),
 }
 
 export const getTradingOverviewTool = {
@@ -73,14 +81,19 @@ export const controlTradingAgentTool = {
   name: 'control_trading_agent',
   title: 'Control the AI trading agent',
   description:
-    'Control the AI trading agent. Actions: "pause" (stop opening new trades, keep managing positions), "resume" (start scanning again), "stop" (emergency stop — halt everything). Requires authentication.',
+    'Control the AI trading agent. Actions: "pause" (stop opening new trades, keep managing positions), "resume" (start scanning again), "stop" (emergency stop — halt everything), "approve"/"reject" (resolve a pending trade in manual approval mode), "set_approval" (+ mode: auto|manual — choose whether entries need your approval). Requires authentication.',
   inputSchema: {
     type: 'object' as const,
     properties: {
       action: {
         type: 'string',
-        enum: ['pause', 'resume', 'stop'],
+        enum: ['pause', 'resume', 'stop', 'approve', 'reject', 'set_approval'],
         description: 'The control action to perform.',
+      },
+      mode: {
+        type: 'string',
+        enum: ['auto', 'manual'],
+        description: 'Required for set_approval: entry mode.',
       },
     },
     required: ['action'],
@@ -128,6 +141,8 @@ export async function handleGetTradingOverview(authCtx: McpAuthContext): Promise
   return {
     mode: o.mode,
     account: o.mode === 'live' ? 'live account' : authCtx.authenticated ? 'your paper account' : 'guest demo account',
+    approval_mode: o.approvalMode ?? 'auto',
+    pending_trade: o.pendingTrade ?? null,
     agent: {
       status: o.agent.status,
       strategy: o.agent.strategy,
@@ -190,7 +205,7 @@ export async function handleGetActivity(
 }
 
 export async function handleControlTradingAgent(
-  args: { action: 'pause' | 'resume' | 'stop' },
+  args: { action: 'pause' | 'resume' | 'stop' | 'approve' | 'reject' | 'set_approval'; mode?: 'auto' | 'manual' },
   authCtx: McpAuthContext,
 ): Promise<unknown> {
   const address = requireAuth(authCtx)
@@ -207,8 +222,23 @@ export async function handleControlTradingAgent(
     case 'stop':
       agent.stop()
       return { ok: true, action: 'stop', status: agent.toOverview().agent.status, note: 'Emergency stop engaged. Revoke the agent wallet to fully cut off access.' }
+    case 'approve': {
+      const result = await agent.approvePendingTrade()
+      return { ok: result.ok, action: 'approve', note: result.note }
+    }
+    case 'reject': {
+      const result = agent.rejectPendingTrade()
+      return { ok: result.ok, action: 'reject', note: result.note }
+    }
+    case 'set_approval': {
+      if (args.mode !== 'auto' && args.mode !== 'manual') {
+        throw new Error('set_approval requires mode: "auto" | "manual"')
+      }
+      const result = agent.setApprovalMode(args.mode)
+      return { ok: result.ok, action: 'set_approval', mode: args.mode, note: result.note }
+    }
     default:
-      throw new Error(`Unknown action "${args.action}". Use pause, resume or stop.`)
+      throw new Error(`Unknown action "${args.action}".`)
   }
 }
 

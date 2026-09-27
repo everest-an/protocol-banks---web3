@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   HelpCircle,
   Share2,
+  Check,
+  X,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -65,6 +67,15 @@ interface ActivityItem {
   pnl: number | null
 }
 
+interface PendingTrade {
+  symbol: string
+  side: "long" | "short"
+  score: number
+  reason: string
+  markPx: number
+  createdAt: string
+}
+
 interface TradingOverview {
   mode: "paper" | "live"
   agent: {
@@ -87,6 +98,8 @@ interface TradingOverview {
   equity: { t: string; v: number }[]
   positions: Position[]
   activity: ActivityItem[]
+  pendingTrade?: PendingTrade | null
+  approvalMode?: "auto" | "manual"
 }
 
 const fmtUsd = (v: number, digits = 2) =>
@@ -132,7 +145,9 @@ export default function TradingPage() {
   const todayUp = (data?.account.todayPnl ?? 0) >= 0
   const agentStatus: AgentStatus = data?.agent.status ?? "running"
 
-  const sendAction = async (action: "pause" | "resume" | "stop" | "reset") => {
+  const sendAction = async (
+    action: "pause" | "resume" | "stop" | "reset" | "approve" | "reject",
+  ) => {
     try {
       const actionUrl = walletAddress
         ? `/api/trading/actions?wallet=${walletAddress}`
@@ -142,14 +157,19 @@ export default function TradingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       })
-      if (!res.ok) throw new Error(`Action failed (${res.status})`)
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { actionNote?: string; error?: string } | null
+        throw new Error(body?.actionNote || body?.error || `Action failed (${res.status})`)
+      }
       await mutate()
+      return true
     } catch (e) {
       toast({
         title: "Action failed",
         description: e instanceof Error ? e.message : "Please try again.",
         variant: "destructive",
       })
+      return false
     }
   }
 
@@ -180,6 +200,33 @@ export default function TradingPage() {
       title: "Paper account reset",
       description: "Simulated funds restored to $500. A fresh AI session has started.",
     })
+  }
+
+  const handleToggleApproval = async () => {
+    const next = data?.approvalMode === "manual" ? "auto" : "manual"
+    try {
+      const actionUrl = walletAddress ? `/api/trading/actions?wallet=${walletAddress}` : "/api/trading/actions"
+      const res = await authFetch(actionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set_approval", mode: next }),
+      })
+      if (!res.ok) throw new Error(`Action failed (${res.status})`)
+      await mutate()
+      toast({
+        title: next === "manual" ? "Manual approval enabled" : "Automatic mode enabled",
+        description:
+          next === "manual"
+            ? "The agent will hold each new entry for your approval. Exits stay automatic."
+            : "The agent places entries itself again.",
+      })
+    } catch (e) {
+      toast({
+        title: "Could not change entry mode",
+        description: e instanceof Error ? e.message : "Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleShare = async () => {
@@ -363,6 +410,57 @@ export default function TradingPage() {
                 </GlassCardContent>
               </GlassCard>
             </div>
+
+            {/* Pending trade — manual approval mode */}
+            {data.pendingTrade && (
+              <GlassCard className="border-amber-500/40 bg-amber-500/5">
+                <GlassCardContent className="pt-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <p className="text-sm font-semibold">Trade awaiting your approval</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-mono font-medium text-foreground">
+                          {data.pendingTrade.symbol} {data.pendingTrade.side.toUpperCase()}
+                        </span>{" "}
+                        at ${fmtUsd(data.pendingTrade.markPx)} — {data.pendingTrade.reason}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        The agent will not place this order without your confirmation. Exits on open positions still
+                        run automatically.
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          const ok = await sendAction("approve")
+                          if (ok) toast({ title: "Trade approved", description: "The position has been opened." })
+                        }}
+                        className="gap-1.5"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          const ok = await sendAction("reject")
+                          if (ok) toast({ title: "Trade rejected", description: "Nothing was placed." })
+                        }}
+                        className="gap-1.5"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                </GlassCardContent>
+              </GlassCard>
+            )}
 
             {/* Equity curve */}
             <GlassCard>
@@ -577,6 +675,24 @@ export default function TradingPage() {
                         Emergency Stop
                       </Button>
                     </div>
+                    {/* Approval mode — auto vs manual entries */}
+                    <button
+                      onClick={handleToggleApproval}
+                      className="w-full flex items-center justify-between rounded-lg border border-white/10 dark:border-white/5 px-3 py-2 text-left hover:border-primary/40 transition-colors"
+                    >
+                      <span className="flex items-center gap-2 text-xs">
+                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          Entry mode:{" "}
+                          <span className="font-medium text-foreground">
+                            {data.approvalMode === "manual" ? "Manual approval" : "Automatic"}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="text-[11px] text-primary">
+                        {data.approvalMode === "manual" ? "Switch to auto" : "Require my approval"}
+                      </span>
+                    </button>
                     <p className="text-[11px] text-muted-foreground/70 text-center">
                       <Shield className="h-3 w-3 inline mr-1" />
                       The AI can trade, but it can never withdraw your funds. Revoke its access anytime.

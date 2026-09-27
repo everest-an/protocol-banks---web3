@@ -24,7 +24,7 @@ import {
 import { getStore, getStoreForWallet, type TradingStore } from "./store"
 import { persistStateToDb } from "./db-store"
 import { notificationService } from "@/lib/services/notification-service"
-import type { TradingState, Position, ActivityItem, AgentStatus } from "./types"
+import type { TradingState, Position, ActivityItem, AgentStatus, PendingTrade } from "./types"
 
 const TICK_INTERVAL_MS = 15_000
 const SIGNAL_UNIVERSE_SIZE = 12
@@ -192,6 +192,8 @@ export class TradingAgent {
         reason: p.reason,
       })),
       activity: s.activity,
+      pendingTrade: s.pendingTrade ?? null,
+      approvalMode: s.approvalMode ?? this.risk.approvalMode,
     }
   }
 
@@ -412,42 +414,162 @@ export class TradingAgent {
         break
       }
 
-      const equity = st.account.tradingWallet
-      const notional = positionNotional(equity, this.risk)
-      const entryPrice = slippedPrice(sig.markPx, sig.side, this.risk)
-      const size = notional / entryPrice
-      const allocated = notional / this.risk.leverage
-      const fee = notional * this.risk.feeRate
-
-      if (st.cash < allocated + fee + 1) {
-        this.noteGuard(`Insufficient free funds ($${st.cash.toFixed(2)}) — skipping new entries.`)
+      // Manual approval mode: hold the best signal for the user instead of
+      // placing anything. Exits still run automatically — only entries gate.
+      const approvalMode = st.approvalMode ?? this.risk.approvalMode
+      if (approvalMode === "manual") {
+        if (!st.pendingTrade) {
+          const pending: PendingTrade = {
+            symbol: sig.coin,
+            side: sig.side,
+            score: sig.score,
+            reason: sig.reason,
+            markPx: sig.markPx,
+            createdAt: new Date().toISOString(),
+          }
+          this.store.mutate((x) => {
+            x.pendingTrade = pending
+          })
+          this.log(
+            "info",
+            `Approval needed: ${sig.coin} ${sig.side} — ${sig.reason}. Approve or reject it in the cockpit.`,
+          )
+          this.notifyOwner("guard", {
+            message: `Approval needed: ${sig.coin} ${sig.side} — open the cockpit to approve or reject.`,
+          })
+        }
         break
       }
 
-      this.store.mutate((x) => {
-        x.cash = Number((x.cash - allocated - fee).toFixed(2))
-        x.positions.push({
-          symbol: sig.coin,
-          side: sig.side,
-          size: Number(size.toFixed(6)),
-          entry: Number(entryPrice.toFixed(6)),
-          mark: Number(sig.markPx.toFixed(6)),
-          allocated: Number(allocated.toFixed(2)),
-          pnl: 0,
-          pnlPct: 0,
-          leverage: this.risk.leverage,
-          reason: sig.reason,
-          openedAt: new Date().toISOString(),
-        })
-        this.refreshAccount(x)
-      })
-
-      this.log("open", `Opened ${sig.coin} ${sig.side} at $${entryPrice.toFixed(2)} (${sig.reason})`)
-      this.notifyOwner("opened", { symbol: sig.coin, side: sig.side, price: entryPrice, reason: sig.reason })
+      const result = this.executeEntry(sig)
+      if (result.note) this.noteGuard(result.note)
+      if (!result.ok) break
       traded = true
     }
 
     return traded
+  }
+
+  /**
+   * Execute an entry for a signal with full risk validation.
+   * Shared by the automatic path and manual approval.
+   */
+  private executeEntry(sig: Signal): { ok: boolean; note?: string } {
+    const st = this.state()
+    if (st.positions.some((p) => p.symbol === sig.coin)) return { ok: false }
+    if (st.positions.length >= this.risk.maxPositions) return { ok: false }
+
+    const risk = dailyRisk(st.todayStartEquity, this.equityOf(st), this.risk)
+    if (risk.stopNewEntries) {
+      return {
+        ok: false,
+        note: `Risk engine: daily loss at ${(risk.todayLossPct * 100).toFixed(1)}% — no new entries today.`,
+      }
+    }
+
+    const equity = st.account.tradingWallet
+    const notional = positionNotional(equity, this.risk)
+    const entryPrice = slippedPrice(sig.markPx, sig.side, this.risk)
+    const size = notional / entryPrice
+    const allocated = notional / this.risk.leverage
+    const fee = notional * this.risk.feeRate
+
+    if (st.cash < allocated + fee + 1) {
+      return { ok: false, note: `Insufficient free funds ($${st.cash.toFixed(2)}) — skipping new entries.` }
+    }
+
+    this.store.mutate((x) => {
+      x.cash = Number((x.cash - allocated - fee).toFixed(2))
+      x.positions.push({
+        symbol: sig.coin,
+        side: sig.side,
+        size: Number(size.toFixed(6)),
+        entry: Number(entryPrice.toFixed(6)),
+        mark: Number(sig.markPx.toFixed(6)),
+        allocated: Number(allocated.toFixed(2)),
+        pnl: 0,
+        pnlPct: 0,
+        leverage: this.risk.leverage,
+        reason: sig.reason,
+        openedAt: new Date().toISOString(),
+      })
+      this.refreshAccount(x)
+    })
+
+    this.log("open", `Opened ${sig.coin} ${sig.side} at $${entryPrice.toFixed(2)} (${sig.reason})`)
+    this.notifyOwner("opened", { symbol: sig.coin, side: sig.side, price: entryPrice, reason: sig.reason })
+    return { ok: true }
+  }
+
+  /**
+   * Approve the pending trade (manual approval mode). Re-prices at the current
+   * market and re-validates every risk limit before placing anything.
+   */
+  async approvePendingTrade(): Promise<{ ok: boolean; note: string }> {
+    const pending = this.state().pendingTrade
+    if (!pending) return { ok: false, note: "No pending trade to approve." }
+
+    // Refresh the mark price so the fill uses the current market, not the
+    // price from when the signal fired.
+    let markPx = pending.markPx
+    try {
+      const { universe: meta, ctxs } = await this.client.metaAndAssetCtxs()
+      const i = meta.findIndex((u) => u.name === pending.symbol)
+      if (i >= 0 && ctxs[i]) markPx = parseFloat(ctxs[i].markPx) || markPx
+    } catch {
+      /* market data unavailable — fall back to the signal-time price */
+    }
+
+    const sig: Signal = {
+      coin: pending.symbol,
+      side: pending.side,
+      score: pending.score,
+      momentumZ: 0,
+      funding: 0,
+      volumeUsd: 0,
+      markPx,
+      reason: pending.reason,
+    }
+
+    this.store.mutate((x) => {
+      x.pendingTrade = null
+    })
+
+    const result = this.executeEntry(sig)
+    if (result.ok) {
+      this.log("info", `Approved: opened ${pending.symbol} ${pending.side} at $${markPx.toFixed(2)} (manual approval).`)
+      return { ok: true, note: `Opened ${pending.symbol} ${pending.side}.` }
+    }
+    this.log("guard", `Approval not executed: ${result.note ?? "position limits reached"}. Nothing was placed.`)
+    return { ok: false, note: result.note ?? "Position limits reached — nothing was placed." }
+  }
+
+  /** Reject the pending trade (manual approval mode). */
+  rejectPendingTrade(): { ok: boolean; note: string } {
+    const pending = this.state().pendingTrade
+    if (!pending) return { ok: false, note: "No pending trade to reject." }
+    this.store.mutate((x) => {
+      x.pendingTrade = null
+    })
+    this.log("info", `Rejected: discarded the ${pending.symbol} ${pending.side} trade (manual approval).`)
+    return { ok: true, note: `Discarded ${pending.symbol}.` }
+  }
+
+  /**
+   * Switch between automatic and manual (approval-gated) entries.
+   * Leaving manual mode discards any waiting trade.
+   */
+  setApprovalMode(mode: "auto" | "manual"): { ok: boolean; note: string } {
+    this.store.mutate((s) => {
+      s.approvalMode = mode
+      if (mode === "auto") s.pendingTrade = null
+    })
+    const note =
+      mode === "manual"
+        ? "Manual approval ON — the agent will hold new entries for your approval."
+        : "Automatic mode ON — the agent places entries itself. Exits were always automatic."
+    this.log("info", note)
+    return { ok: true, note }
   }
 }
 

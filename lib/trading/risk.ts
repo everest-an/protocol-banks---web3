@@ -23,6 +23,13 @@ export interface RiskConfig {
   feeRate: number // taker fee
   slippageRate: number
   leverage: number
+  /**
+   * "auto"   — the agent opens positions by itself (default).
+   * "manual" — when a signal fires the agent holds a pending trade and waits
+   *            for the user to approve or reject it. Nothing is ever placed
+   *            without the user's explicit confirmation in this mode.
+   */
+  approvalMode: "auto" | "manual"
 }
 
 export const DEFAULT_RISK: RiskConfig = {
@@ -39,6 +46,7 @@ export const DEFAULT_RISK: RiskConfig = {
   feeRate: 0.0004,
   slippageRate: 0.0005,
   leverage: 2,
+  approvalMode: "auto",
 }
 
 export interface RiskSnapshot {

@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/middleware/api-auth"
  *
  * Control the paper trading agent:
  *   { "action": "pause" | "resume" | "stop" | "reset" }
+ *   { "action": "approve" | "reject" }   — resolve a pending trade (manual approval mode)
  *
  * Isolation model:
  * - No credentials, no ?wallet= → shared guest demo account
@@ -17,7 +18,7 @@ import { requireAuth } from "@/lib/middleware/api-auth"
  * never touch real funds.
  */
 export async function POST(request: NextRequest) {
-  let body: { action?: string }
+  let body: { action?: string; mode?: string }
   try {
     body = await request.json()
   } catch {
@@ -59,9 +60,30 @@ export async function POST(request: NextRequest) {
     case "reset":
       agent.reset()
       break
+    case "approve": {
+      const result = await agent.approvePendingTrade()
+      if (!result.ok) {
+        return NextResponse.json({ ...agent.toOverview(), actionNote: result.note }, { status: 409 })
+      }
+      break
+    }
+    case "reject": {
+      const result = agent.rejectPendingTrade()
+      if (!result.ok) {
+        return NextResponse.json({ ...agent.toOverview(), actionNote: result.note }, { status: 409 })
+      }
+      break
+    }
+    case "set_approval": {
+      if (body.mode !== "auto" && body.mode !== "manual") {
+        return NextResponse.json({ error: 'set_approval requires mode: "auto" | "manual"' }, { status: 400 })
+      }
+      agent.setApprovalMode(body.mode)
+      break
+    }
     default:
       return NextResponse.json(
-        { error: "Unknown action. Use one of: pause, resume, stop, reset" },
+        { error: "Unknown action. Use one of: pause, resume, stop, reset, approve, reject, set_approval" },
         { status: 400 },
       )
   }

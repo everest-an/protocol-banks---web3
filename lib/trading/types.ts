@@ -54,6 +54,20 @@ export interface EquityPoint {
   v: number
 }
 
+/**
+ * A trade the agent wants to open but is holding for human approval.
+ * Only produced when the agent runs in "manual" approval mode — the user
+ * decides before any order is placed.
+ */
+export interface PendingTrade {
+  symbol: string
+  side: "long" | "short"
+  score: number
+  reason: string
+  markPx: number
+  createdAt: string // ISO
+}
+
 export interface TradingState {
   mode: "paper" | "live"
   agent: AgentInfo
@@ -61,6 +75,13 @@ export interface TradingState {
   equity: EquityPoint[]
   positions: Position[]
   activity: ActivityItem[]
+  /** Trade awaiting user approval (manual approval mode only). */
+  pendingTrade?: PendingTrade | null
+  /**
+   * Runtime approval mode. "auto" (default) places entries automatically;
+   * "manual" holds each entry as a pending trade until the user approves.
+   */
+  approvalMode?: "auto" | "manual"
 
   // --- internal accounting (not exposed to the dashboard) ---
   cash: number // free USD in trading wallet
