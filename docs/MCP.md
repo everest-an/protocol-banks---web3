@@ -67,11 +67,34 @@ from the environment — the MCP server never asks for or stores a private key.
 
 | Tool | Auth | Description |
 |---|---|---|
-| `get_trading_overview` | optional | Agent status, equity, trading wallet, max loss, today/all-time PnL, position count |
+| `get_trading_overview` | optional | Agent status, equity, trading wallet, max loss, today/all-time PnL, position count, **entry mode + pending trade** |
 | `get_positions` | optional | Open positions: side, leverage, entry/mark, size, unrealized PnL, plain-language reason |
 | `get_activity` | optional | Activity feed (scans, opens/closes with PnL, risk-guard events), `limit` 1–50 |
 | `get_track_record` | none | Public anonymized live-account performance (same data as `/live-track-record`) |
-| `control_trading_agent` | **required** | `pause` / `resume` / `stop` the agent |
+| `control_trading_agent` | **required** | `pause` / `resume` / `stop` · `approve` / `reject` (pending trade) · `set_approval` + `mode: auto\|manual` |
+
+### Manual approval mode
+
+By default the agent places entries itself (`auto`). In `manual` mode it holds
+each new entry as a **pending trade** and waits for you:
+
+```
+You:  Require my approval for new trades.
+Bot:  Manual approval ON — the agent will hold new entries for your approval.
+      (Exits on open positions stay automatic.)
+
+You:  What's it waiting on?
+Bot:  Approval needed: SOL SHORT at $108.59 — momentum z=-1.0, funding
+      +0.001%/h, short bias.
+
+You:  Approve it.
+Bot:  Opened SOL SHORT. (Re-priced at the current market; all risk limits
+      re-validated first.)
+```
+
+Safety: approving re-prices at the current market and re-runs every risk
+check — a stale signal can never bypass the risk engine. Stop-losses and
+other exits always execute automatically in both modes.
 
 ### Legacy payments (kept for the Business suite)
 

@@ -78,6 +78,10 @@ const FAQ = [
     q: "What does it cost?",
     a: "Paper mode is free forever. Live mode is profit-share only: 20% of net profits, charged when you sweep profits out. If the agent doesn't make money, you pay nothing — no subscription, no upfront fee, no fee on losses.",
   },
+  {
+    q: "Can I approve every trade myself?",
+    a: "Yes — switch the cockpit to Manual approval mode and the agent will hold each new entry as a pending trade until you approve or reject it. Exits (stop-losses, take-profits) always run automatically for safety, and approving re-checks every risk limit before the order is placed.",
+  },
 ]
 
 export default function HelpPage() {
