@@ -25,7 +25,7 @@ test.describe("Public Pages", () => {
   test("whitepaper page loads", async ({ demoPage }) => {
     await demoPage.goto("/whitepaper")
     await waitForPageReady(demoPage)
-    await expect(demoPage.getByText("Protocol Bank Whitepaper")).toBeVisible()
+    await expect(demoPage.getByText(/Protocol Banks Whitepaper/i).first()).toBeVisible()
   })
 
   test("contact page loads with form", async ({ demoPage }) => {

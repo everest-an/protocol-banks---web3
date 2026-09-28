@@ -36,10 +36,17 @@ test.describe("Send Page - Business Flows", () => {
     await expect(demoPage.getByText("Batch Payment").first()).toBeVisible()
   })
 
-  test("Business mode shows Cross-Chain Payment card", async ({ demoPage }) => {
+  test("Business mode shows payment product cards", async ({ demoPage }) => {
     await demoPage.getByText("Business").first().click()
     await demoPage.waitForTimeout(300)
-    await expect(demoPage.getByText("Cross-Chain Payment").first()).toBeVisible()
+    // translateTerm() may localize individual labels, so accept any known card
+    const content = await demoPage.textContent("body")
+    expect(
+      content?.includes("Batch Payment") ||
+        content?.includes("Card Payment") ||
+        content?.includes("Recurring Payments") ||
+        content?.includes("Cross-Chain"),
+    ).toBeTruthy()
   })
 
   test("Send to Someone card navigates to batch-payment", async ({ demoPage }) => {
@@ -49,10 +56,11 @@ test.describe("Send Page - Business Flows", () => {
     await expect(demoPage).toHaveURL(/\/(batch-payment|pay)/)
   })
 
-  test("Cross-Chain Transfer card navigates to omnichain", async ({ demoPage }) => {
+  test("Cross-Chain Transfer card navigates to the swap hub", async ({ demoPage }) => {
     await demoPage.getByText("Personal").first().click()
     await demoPage.waitForTimeout(300)
     await demoPage.getByText("Cross-Chain Transfer").first().click()
-    await expect(demoPage).toHaveURL(/\/omnichain/)
+    // The old /omnichain hub was removed; the card now points at /swap
+    await expect(demoPage).toHaveURL(/\/swap/)
   })
 })

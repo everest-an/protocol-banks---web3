@@ -134,12 +134,12 @@ test.describe("AI Agent Protocols - Whitepaper v2", () => {
     await waitForPageReady(demoPage)
   })
 
-  test("shows v2.0 version badge", async ({ demoPage }) => {
-    await expect(demoPage.getByText("Version 2.0")).toBeVisible()
+  test("shows current version badge", async ({ demoPage }) => {
+    await expect(demoPage.getByText("Version 2.1")).toBeVisible()
   })
 
-  test("shows updated date Feb 2026", async ({ demoPage }) => {
-    await expect(demoPage.getByText(/Updated Feb 2026/i)).toBeVisible()
+  test("shows updated date", async ({ demoPage }) => {
+    await expect(demoPage.getByText(/Updated Mar 2026/i)).toBeVisible()
   })
 
   test("shows AI-Native in subtitle", async ({ demoPage }) => {
