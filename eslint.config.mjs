@@ -13,6 +13,11 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    // Scope these overrides to the files the Next presets actually cover.
+    // Without `files`, this object also applies to files the presets skip
+    // (e.g. scripts/*.cjs), and ESLint then fails to resolve the react /
+    // react-hooks plugins for those files.
+    files: ["**/*.{js,jsx,mjs,ts,tsx}"],
     rules: {
       // Legacy debt — warn, don't block
       "@typescript-eslint/no-explicit-any": "warn",
@@ -30,6 +35,13 @@ const eslintConfig = defineConfig([
       "react-hooks/rules-of-hooks": "error",
       "prefer-const": "error",
       "@next/next/no-html-link-for-pages": "error",
+    },
+  },
+  {
+    // CommonJS scripts use require() by definition (e.g. scripts/test-mcp.cjs).
+    files: ["**/*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
   globalIgnores([
