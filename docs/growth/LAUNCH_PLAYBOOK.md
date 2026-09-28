@@ -98,9 +98,9 @@ non-custodial agent design + Hyperliquid approveAgent flow.
 - [x] llms.txt + llms-full.txt live at protocolbanks.com
 - [x] sitemap.xml + JSON-LD (WebSite + SoftwareApplication + FAQPage)
 - [ ] Submit sitemap in Google Search Console (needs your Google login)
-- [ ] List the site in the llmstxt.org directory (llmstxt.org/directory — submit form)
-- [ ] Ping indexers: `https://api.indexnow.org/indexnow?url=https://protocolbanks.com&key=YOUR_KEY` (generate a key first)
-- [ ] Bing Webmaster Tools: submit sitemap (free)
+- [x] llmstxt directory listings — submitted 2026-09-29 to llmstxt.site and directory.llmstxt.cloud (standard/free queues); llmstxthub.com needs a GitHub login
+- [x] IndexNow ping — key `a0044d18004c4365856a804563649758` is live at the site root; all 19 sitemap URLs pushed to api.indexnow.org (HTTP 200)
+- [ ] Bing Webmaster Tools: submit sitemap (free) — needs a Microsoft login; Bing already receives the IndexNow push above
 
 **GEO reality check:** AI engines cite pages with backlinks + engagement.
 The single highest-leverage action is the Product Hunt launch + X thread —
