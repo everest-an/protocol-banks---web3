@@ -1,10 +1,18 @@
 # Reddit — 复制即发
 
-> ✅ **已发布（2026-09-29）**：r/SideProject — https://www.reddit.com/r/SideProject/comments/1wsi1g5/i_built_a_noncustodial_ai_trading_agent_the_ai/
-> 用账号 u/AwareLiquid 通过浏览器发布，未触发 reCAPTCHA，未删除。
-> ⏳ 待办：回复所有评论；攒够 comment karma 后再发 r/CryptoCurrency（版本 A）。
+> ⚠️ **实际结果（2026-09-29）**：帖子用 u/AwareLiquid 经浏览器成功发布到 r/SideProject，
+> 约 1 小时后**被 Reddit 垃圾筛选器自动移除**（页面显示"此帖子已被 Reddit 筛选器移除"）——
+> 与本节末尾"账号门槛"的预判完全一致：1 karma 新号发任何带项目链接的帖子都会被过滤。
+> 已采取的动作：
+> 1. 尝试向 r/SideProject 版主发 modmail 申诉（新版 modmail 报服务器错误；旧版私信表单已提交但 Reddit 已把私信迁移至 chat，送达不确定）
+> 2. 开始按建议**养号**：在 r/algotrading「Do pre-calculated strategies even work?」下留了 510 字符的
+>    实质性评论（无链接、纯技术观点：信号 vs 执行包络、bootstrap 置信区间）——
+>    https://www.reddit.com/r/algotrading/comments/1wsh7vv/do_precalculated_strategies_even_work/
+> 
+> **结论：账号资质是唯一瓶颈。** 先持续在 r/algotrading / r/defi 有价值的帖子下评论到 ~50 comment karma，
+> 再重发主帖（或直接用有 karma 的老账号发）。**不要**用 1 karma 号反复重发，会加速账号降权。
 
-三版帖子，按社区调性选。**注意**：crypto 版块对推广敏感，语气要像分享
+三条推文式版本如下（按社区调性选）。**注意**：crypto 版块对推广敏感，语气要像分享
 作品而不是打广告。最好用个人老账号发。
 
 ---
