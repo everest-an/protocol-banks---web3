@@ -1,5 +1,9 @@
 # Reddit — 复制即发
 
+> ✅ **已发布（2026-09-29）**：r/SideProject — https://www.reddit.com/r/SideProject/comments/1wsi1g5/i_built_a_noncustodial_ai_trading_agent_the_ai/
+> 用账号 u/AwareLiquid 通过浏览器发布，未触发 reCAPTCHA，未删除。
+> ⏳ 待办：回复所有评论；攒够 comment karma 后再发 r/CryptoCurrency（版本 A）。
+
 三版帖子，按社区调性选。**注意**：crypto 版块对推广敏感，语气要像分享
 作品而不是打广告。最好用个人老账号发。
 
