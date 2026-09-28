@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { getAgentForWallet } from "@/lib/trading/agent"
+import { resolveAgentForWallet } from "@/lib/trading/agent"
 import { requireAuth } from "@/lib/middleware/api-auth"
 
 /**
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     wallet = auth.address
   }
 
-  const agent = getAgentForWallet(wallet)
+  const agent = await resolveAgentForWallet(wallet)
   switch (body.action) {
     case "pause":
       agent.pause()

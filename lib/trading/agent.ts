@@ -21,9 +21,10 @@ import {
   DEFAULT_RISK,
   type RiskConfig,
 } from "./risk"
-import { getStore, getStoreForWallet, type TradingStore } from "./store"
+import { getStore, getStoreForWallet, seedState, type TradingStore } from "./store"
 import { persistStateToDb } from "./db-store"
 import { notificationService } from "@/lib/services/notification-service"
+import type { LiveOrderExecutor } from "./live-executor"
 import type { TradingState, Position, ActivityItem, AgentStatus, PendingTrade } from "./types"
 
 const TICK_INTERVAL_MS = 15_000
@@ -39,13 +40,24 @@ export class TradingAgent {
   private risk: RiskConfig
   private ownerAddress: string | null
   private ticking: Promise<void> | null = null
+  /** "paper" simulates fills; "live" places real orders via the executor. */
+  private mode: "paper" | "live"
+  /** Real-order bridge — required for live mode, ignored in paper mode. */
+  private executor: LiveOrderExecutor | null
 
-  constructor(store: TradingStore = getStore(), risk: RiskConfig = DEFAULT_RISK, ownerAddress: string | null = null) {
+  constructor(
+    store: TradingStore = getStore(),
+    risk: RiskConfig = DEFAULT_RISK,
+    ownerAddress: string | null = null,
+    options?: { mode?: "paper" | "live"; executor?: LiveOrderExecutor },
+  ) {
     this.store = store
     this.risk = risk
     // Live mode passes the account owner so trade events can trigger
     // push notifications. Paper mode has no owner — no notifications.
     this.ownerAddress = ownerAddress ? ownerAddress.toLowerCase() : null
+    this.mode = options?.mode ?? "paper"
+    this.executor = options?.executor ?? null
   }
 
   // -------------------------------------------------------------------------
@@ -318,7 +330,7 @@ export class TradingAgent {
       }
 
       if (reason) {
-        const realized = this.closePosition(p)
+        const realized = await this.closePosition(p)
         if (realized !== null) {
           traded = true
           this.log(
@@ -333,8 +345,52 @@ export class TradingAgent {
     return traded
   }
 
-  /** Close a position at its current mark. Returns realized pnl or null if not found. */
-  private closePosition(p: Position): number | null {
+  /**
+   * Close a position. Paper: simulated exit at the current mark.
+   * Live: reduceOnly IOC order; realized PnL settles at the exchange fill.
+   * An UNCERTAIN live close halts the agent and leaves the book untouched —
+   * the position may still be open on the exchange, so we never fabricate a fill.
+   */
+  private async closePosition(p: Position): Promise<number | null> {
+    if (this.mode === "live") {
+      if (!this.executor) return null
+      const result = await this.executor.placeOrder({
+        coin: p.symbol,
+        isBuy: p.side === "short", // closing a short buys; closing a long sells
+        sizeUsd: p.size * p.mark,
+        reduceOnly: true,
+      })
+
+      if (!result.ok) {
+        if (!result.rejected) {
+          this.stop()
+          const note = `Close order status UNCERTAIN for ${p.symbol} ${p.side}: ${result.reason} Agent STOPPED — verify on Hyperliquid, then resume.`
+          this.log("error", note)
+          this.notifyOwner("guard", { message: note })
+        } else {
+          this.log("guard", `Close rejected for ${p.symbol}: ${result.reason}`)
+        }
+        return null
+      }
+
+      let realized: number | null = null
+      this.store.mutate((s) => {
+        const idx = s.positions.findIndex((x) => x.symbol === p.symbol && x.side === p.side)
+        if (idx === -1) return
+        const pos = s.positions[idx]
+        const exitNotional = result.avgPx * result.totalSz
+        const entryNotional = pos.entry * pos.size
+        const gross = pos.side === "long" ? exitNotional - entryNotional : entryNotional - exitNotional
+        const exitFee = exitNotional * this.risk.feeRate
+        realized = Number((pos.allocated + gross - exitFee).toFixed(2))
+        s.cash = Number((s.cash + realized).toFixed(2))
+        s.positions.splice(idx, 1)
+        this.refreshAccount(s)
+      })
+      return realized
+    }
+
+    // Paper: simulated exit at the current mark
     let realized: number | null = null
     this.store.mutate((s) => {
       const idx = s.positions.findIndex((x) => x.symbol === p.symbol && x.side === p.side)
@@ -441,7 +497,7 @@ export class TradingAgent {
         break
       }
 
-      const result = this.executeEntry(sig)
+      const result = await this.executeEntry(sig)
       if (result.note) this.noteGuard(result.note)
       if (!result.ok) break
       traded = true
@@ -453,8 +509,14 @@ export class TradingAgent {
   /**
    * Execute an entry for a signal with full risk validation.
    * Shared by the automatic path and manual approval.
+   *
+   * Paper mode: simulated fill at the slipped mark price.
+   * Live mode: real IOC order via the agent wallet; the engine records the
+   * exchange's actual fill price/size. An UNCERTAIN order (timeout, reset,
+   * unparseable response) halts the agent instead of retrying — a retry could
+   * open a duplicate position with real money.
    */
-  private executeEntry(sig: Signal): { ok: boolean; note?: string } {
+  private async executeEntry(sig: Signal): Promise<{ ok: boolean; note?: string; uncertain?: boolean }> {
     const st = this.state()
     if (st.positions.some((p) => p.symbol === sig.coin)) return { ok: false }
     if (st.positions.length >= this.risk.maxPositions) return { ok: false }
@@ -469,10 +531,48 @@ export class TradingAgent {
 
     const equity = st.account.tradingWallet
     const notional = positionNotional(equity, this.risk)
-    const entryPrice = slippedPrice(sig.markPx, sig.side, this.risk)
-    const size = notional / entryPrice
     const allocated = notional / this.risk.leverage
-    const fee = notional * this.risk.feeRate
+
+    // ── Deterministic fill price/size: paper marks vs live exchange fill ──
+    let entryPrice: number
+    let size: number
+
+    if (this.mode === "live") {
+      if (!this.executor) {
+        return { ok: false, note: "Live mode is not configured with an order executor — nothing placed." }
+      }
+      if (!this.executor.isReady()) {
+        return { ok: false, note: "No approved agent wallet for this account — approve one before trading live." }
+      }
+
+      const result = await this.executor.placeOrder({
+        coin: sig.coin,
+        isBuy: sig.side === "long",
+        sizeUsd: notional,
+      })
+
+      if (!result.ok) {
+        if (result.rejected) {
+          return { ok: false, note: `Order rejected by exchange: ${result.reason}` }
+        }
+        // UNCERTAIN — the order may or may not be live on the exchange.
+        // Safety first: halt the agent so it cannot stack more orders, and
+        // leave the position book untouched (never fabricate a position).
+        this.stop()
+        const note = `Order status UNCERTAIN for ${sig.coin} ${sig.side}: ${result.reason} The agent has been STOPPED so it cannot place more orders. Verify the position on Hyperliquid, then resume.`
+        this.log("error", note)
+        this.notifyOwner("guard", { message: note })
+        return { ok: false, note, uncertain: true }
+      }
+
+      entryPrice = result.avgPx
+      size = result.totalSz
+    } else {
+      entryPrice = slippedPrice(sig.markPx, sig.side, this.risk)
+      size = notional / entryPrice
+    }
+
+    const fee = (entryPrice * size) * this.risk.feeRate
 
     if (st.cash < allocated + fee + 1) {
       return { ok: false, note: `Insufficient free funds ($${st.cash.toFixed(2)}) — skipping new entries.` }
@@ -496,7 +596,11 @@ export class TradingAgent {
       this.refreshAccount(x)
     })
 
-    this.log("open", `Opened ${sig.coin} ${sig.side} at $${entryPrice.toFixed(2)} (${sig.reason})`)
+    const fillLabel = this.mode === "live" ? "LIVE" : ""
+    this.log(
+      "open",
+      `Opened ${sig.coin} ${sig.side} at $${entryPrice.toFixed(2)}${fillLabel ? ` ${fillLabel}` : ""} (${sig.reason})`,
+    )
     this.notifyOwner("opened", { symbol: sig.coin, side: sig.side, price: entryPrice, reason: sig.reason })
     return { ok: true }
   }
@@ -535,7 +639,7 @@ export class TradingAgent {
       x.pendingTrade = null
     })
 
-    const result = this.executeEntry(sig)
+    const result = await this.executeEntry(sig)
     if (result.ok) {
       this.log("info", `Approved: opened ${pending.symbol} ${pending.side} at $${markPx.toFixed(2)} (manual approval).`)
       return { ok: true, note: `Opened ${pending.symbol} ${pending.side}.` }
@@ -553,6 +657,11 @@ export class TradingAgent {
     })
     this.log("info", `Rejected: discarded the ${pending.symbol} ${pending.side} trade (manual approval).`)
     return { ok: true, note: `Discarded ${pending.symbol}.` }
+  }
+
+  /** Whether this agent places real orders (live) or simulates fills (paper). */
+  isLive(): boolean {
+    return this.mode === "live"
   }
 
   /**
@@ -592,4 +701,83 @@ export function getAgentForWallet(walletAddress: string | null | undefined): Tra
     walletAgents.set(key, agent)
   }
   return agent
+}
+
+/**
+ * Resolve the agent for a wallet, promoting it to LIVE when the account has
+ * an approved agent wallet on file.
+ *
+ * Promotion rules:
+ * - Requires TradingAccount.status === "live" AND agent_approved (set by the
+ *   approveAgent flow in keys.ts). Otherwise the paper agent is returned.
+ * - The first promotion converts the state to a clean LIVE ledger: the demo
+ *   history curve is dropped (it is simulated data and must never back a live
+ *   account) and the budget is taken from the account row.
+ * - DB unreachable → falls back to the paper agent so the engine never breaks.
+ */
+export async function resolveAgentForWallet(
+  walletAddress: string | null | undefined,
+): Promise<TradingAgent> {
+  if (!walletAddress) return getAgent()
+  const key = walletAddress.toLowerCase()
+
+  // Already promoted?
+  const existing = walletAgents.get(key)
+  if (existing?.isLive()) return existing
+
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    const row = await prisma.tradingAccount.findUnique({
+      where: { wallet_address: key },
+      select: { status: true, agent_approved: true, hyperliquid_address: true, budget_usd: true },
+    })
+
+    if (row && row.status === "live" && row.agent_approved) {
+      const { LiveOrderExecutor } = await import("./live-executor")
+      const executor = new LiveOrderExecutor({
+        walletAddress: key,
+        vaultAddress: row.hyperliquid_address ?? key,
+      })
+      const store = getStoreForWallet(key)
+      const agent = new TradingAgent(store, DEFAULT_RISK, key, { mode: "live", executor })
+
+      // Convert the ledger to live accounting on first promotion.
+      const st = store.get()
+      if (st.mode !== "live") {
+        const budget = row.budget_usd && row.budget_usd > 0 ? row.budget_usd : st.account.budget
+        const today = new Date().toISOString().slice(0, 10)
+        store.mutate((s) => {
+          const clean = seedState({ demoHistory: false })
+          Object.assign(s, clean)
+          s.mode = "live"
+          s.account.budget = budget
+          s.account.tradingWallet = budget
+          s.account.totalEquity = budget
+          s.account.maxLoss = budget
+          s.initialEquity = budget
+          s.todayStartEquity = budget
+          s.cash = budget
+          s.equity = [{ t: today, v: budget }]
+          s.activity = [
+            {
+              time: new Date().toISOString(),
+              type: "info",
+              text: `Live account activated with a $${budget.toFixed(2)} trading budget. The agent places real orders through your approved agent wallet — it can trade, never withdraw.`,
+              pnl: null,
+            },
+          ]
+        })
+        // Persist immediately so subsequent DB hydration loads the LIVE ledger
+        // instead of overwriting it with the last paper state.
+        void persistStateToDb(key, store.get()).catch(() => {})
+      }
+
+      walletAgents.set(key, agent)
+      return agent
+    }
+  } catch {
+    /* DB unavailable or account not live — stay on the paper agent */
+  }
+
+  return getAgentForWallet(key)
 }

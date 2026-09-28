@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { getAgentForWallet } from "@/lib/trading/agent"
+import { resolveAgentForWallet } from "@/lib/trading/agent"
 import { requireAuth } from "@/lib/middleware/api-auth"
 
 /**
@@ -39,14 +39,17 @@ export async function GET(request: NextRequest) {
     wallet = auth.address
   }
 
-  const agent = getAgentForWallet(wallet)
+  // Live accounts are promoted to the real-order agent; others stay on paper.
+  const agent = await resolveAgentForWallet(wallet)
 
   // Hydrate per-user state from the database when available (best effort —
-  // serverless restarts would otherwise lose paper progress).
+  // serverless restarts would otherwise lose paper progress). The mode guard
+  // prevents a stale paper ledger from overwriting a promoted live state.
   if (wallet) {
     const { loadStateFromDb } = await import("@/lib/trading/db-store")
     const dbState = await loadStateFromDb(wallet)
-    if (dbState && dbState.activity && dbState.activity.length > 0) {
+    const expectedMode = agent.isLive() ? "live" : "paper"
+    if (dbState && dbState.mode === expectedMode && dbState.activity && dbState.activity.length > 0) {
       agent.hydrateState(dbState)
     }
   }

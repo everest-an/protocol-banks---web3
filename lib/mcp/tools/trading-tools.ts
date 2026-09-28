@@ -115,16 +115,18 @@ export const getTrackRecordTool = {
 
 /** Load the trading agent for the caller (or the guest demo) and tick it. */
 async function loadOverview(authCtx: McpAuthContext) {
-  const { getAgentForWallet } = await import('@/lib/trading/agent')
+  const { resolveAgentForWallet } = await import('@/lib/trading/agent')
   const wallet = authCtx.authenticated && authCtx.address ? authCtx.address : null
-  const agent = getAgentForWallet(wallet)
+  const agent = await resolveAgentForWallet(wallet)
 
-  // Hydrate per-user paper state from the DB when available (same as the API route).
+  // Hydrate per-user paper state from the DB when available (same as the API
+  // route). Mode-guarded so a stale paper ledger can't overwrite a live state.
   if (wallet) {
     try {
       const { loadStateFromDb } = await import('@/lib/trading/db-store')
       const dbState = await loadStateFromDb(wallet)
-      if (dbState && dbState.activity && dbState.activity.length > 0) {
+      const expectedMode = agent.isLive() ? 'live' : 'paper'
+      if (dbState && dbState.mode === expectedMode && dbState.activity && dbState.activity.length > 0) {
         agent.hydrateState(dbState)
       }
     } catch {
@@ -209,8 +211,8 @@ export async function handleControlTradingAgent(
   authCtx: McpAuthContext,
 ): Promise<unknown> {
   const address = requireAuth(authCtx)
-  const { getAgentForWallet } = await import('@/lib/trading/agent')
-  const agent = getAgentForWallet(address)
+  const { resolveAgentForWallet } = await import('@/lib/trading/agent')
+  const agent = await resolveAgentForWallet(address)
 
   switch (args.action) {
     case 'pause':
