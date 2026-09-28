@@ -35,7 +35,7 @@ Protocol Bank is an **AI automated trading product**. Users connect a wallet (Me
 |---|---|
 | **AI Trading Cockpit** (`/trading`) | Post-login landing: balances, equity curve, plain-language AI activity feed, open positions, pause/stop/reset controls |
 | **Paper Engine** | Real Hyperliquid market data + simulated fills. Momentum (24h z-score) and funding-carry signals, 2.5% TP/SL, 15% position sizing, 5%/8% daily circuit breakers |
-| **Live Mode** | Agent wallet approval flow (EIP-712 `approveAgent`), AES-256-GCM key custody, real order placement, per-user isolation schema |
+| **Live Mode** | Agent wallet approval flow (EIP-712 `approveAgent`), AES-256-GCM key custody, **real IOC order execution signed by the agent key**, uncertain-order safety halt, manual approval mode (opt-in), per-user isolation schema |
 | **Wallet** (`/balances`) | Multi-chain balances and activity (merged from the legacy dashboard) |
 | **Business** (collapsed) | The legacy enterprise payment suite: batch payments, invoices, subscriptions, acquiring, vendors — available but no longer the hero |
 
@@ -112,6 +112,7 @@ CI runs the full frontend suite (tsc + jest + lint) and Go tests on every push �
 | [MCP Server](docs/MCP.md) | Control the trading agent from Claude Desktop / Claude Code / any MCP host |
 | [Usage Guide](https://protocolbanks.com/help) | In-product guide (getting started, cockpit, going live, FAQ) |
 | [Risk Disclosure](https://protocolbanks.com/risk-disclosure) | **Read before live trading** |
+| [Threat Model](docs/SECURITY_THREAT_MODEL.md) | Assets, trust boundaries and known limitations (uncertain orders, ledger drift, key custody) |
 | [Terms](https://protocolbanks.com/terms) / [Privacy](https://protocolbanks.com/privacy) | Legal |
 | [ENV_SETUP.md](ENV_SETUP.md) | Environment configuration |
 | [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Test infrastructure details |
@@ -151,7 +152,7 @@ Protocol Bank 是一款 **AI 自动交易产品**。用户连接钱包（MetaMas
 |---|---|
 | **AI 交易驾驶舱** (`/trading`) | 登录后落地页：余额、净值曲线、自然语言 AI 活动流、持仓、暂停/停止控制 |
 | **Paper 引擎** | 真实 Hyperliquid 行情 + 模拟成交。动量（24h z-score）+ 资金费率信号，±2.5% 止盈止损，15% 仓位，5%/8% 日内熔断 |
-| **Live 模式** | Agent 钱包批准流（EIP-712 approveAgent）、AES-256-GCM 密钥托管、真实下单、每用户隔离 schema |
+| **Live 模式** | Agent 钱包批准流（EIP-712 approveAgent）、AES-256-GCM 密钥托管、**由 agent 密钥签名的真实 IOC 下单**、不确定订单安全停机、人工审批模式（可选）、每用户隔离 schema |
 | **钱包** (`/balances`) | 多链余额与流水（合并自旧 Dashboard） |
 | **Business**（折叠区） | 企业支付套件：批量支付、发票、订阅、收单、联系人——保留但不再主推 |
 

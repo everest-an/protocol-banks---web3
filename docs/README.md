@@ -39,6 +39,7 @@ the AI automated trading product. Start here and follow the links.
 | Document | What it covers |
 |---|---|
 | [Security Model](SECURITY.md) | Security architecture overview |
+| [Threat Model](SECURITY_THREAT_MODEL.md) | Assets, trust boundaries, and **known limitations** (uncertain orders, ledger drift, key custody) |
 | [Security Audits](security/) | Historical audit reports (append-only records) |
 
 ## 🔌 API
