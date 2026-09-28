@@ -245,47 +245,24 @@ export async function handleControlTradingAgent(
 }
 
 export async function handleGetTrackRecord(): Promise<unknown> {
-  // Prefer the direct DB read (fast, no network), fall back to the public API
-  // when the database isn't reachable from this machine (local/proxy setups).
+  // Shared aggregation (lib/trading/track-record.ts) — same code path as the
+  // public API and the /live-track-record page. Falls back to the public API
+  // when the database isn't reachable from this machine.
   try {
-    const { prisma } = await import('@/lib/prisma')
-    const accounts = await prisma.tradingAccount.findMany({
-      where: { status: 'live' },
-      select: {
-        wallet_address: true,
-        agent_name: true,
-        budget_usd: true,
-        trades: { where: { mode: 'live', status: 'closed' }, select: { pnl: true } },
-      },
-    })
-
-    // Same anonymization as the public /api/trading/track-record endpoint.
-    const shortHash = (s: string) => {
-      let h = 0x811c9dc5
-      for (let i = 0; i < s.length; i++) {
-        h ^= s.charCodeAt(i)
-        h = Math.imul(h, 0x01000193) >>> 0
-      }
-      return 'acct-' + h.toString(16).padStart(8, '0').slice(0, 8)
-    }
-
-    const entries = accounts.map((a) => {
-      const realized = (a.trades ?? []).reduce((sum, t) => sum + (t.pnl ?? 0), 0)
-      return {
-        account: shortHash(a.wallet_address),
-        name: a.agent_name ?? 'Agent',
-        budget_usd: Math.round((a.budget_usd ?? 0) * 100) / 100,
-        realized_pnl: Math.round(realized * 100) / 100,
-        trades: (a.trades ?? []).length,
-      }
-    })
-
+    const { getLiveTrackRecord } = await import('@/lib/trading/track-record')
+    const data = await getLiveTrackRecord()
     return {
-      live_accounts: entries.length,
-      total_realized_pnl: Math.round(entries.reduce((s, e) => s + e.realized_pnl, 0) * 100) / 100,
-      accounts: entries,
-      disclaimer:
-        'Real funds traded by the Protocol Bank agent on Hyperliquid. Past performance does not guarantee future results.',
+      live_accounts: data.liveAccountCount,
+      total_realized_pnl: data.totalRealizedPnl,
+      total_budget: data.totalBudget,
+      accounts: data.accounts.map((a) => ({
+        account: a.id,
+        name: a.name,
+        budget_usd: a.budgetUsd,
+        realized_pnl: a.realizedPnl,
+        trades: a.tradeCount,
+      })),
+      disclaimer: data.disclaimer,
     }
   } catch {
     // DB unreachable — use the public API (same data, served by the app).
@@ -299,7 +276,6 @@ export async function handleGetTrackRecord(): Promise<unknown> {
       accounts?: Array<{ id: string; name: string; budgetUsd: number; realizedPnl: number; tradeCount: number }>
       disclaimer?: string
     }
-    // Normalise to the same snake_case shape as the direct-DB path.
     return {
       live_accounts: d.liveAccountCount ?? 0,
       total_realized_pnl: d.totalRealizedPnl ?? 0,

@@ -38,20 +38,21 @@ interface TrackRecord {
 }
 
 async function getTrackRecord(): Promise<TrackRecord> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? ""
-  const empty: TrackRecord = { liveAccountCount: 0, totalRealizedPnl: 0, totalBudget: 0, accounts: [] }
+  // Called directly (server component) — no self-fetch, so there is no
+  // base-URL dependency and no silent failure when the site URL is unset.
   try {
-    const res = await fetch(`${base}/api/trading/track-record`, {
-      next: { revalidate: 60 },
-      cache: "no-store",
-    })
-    if (!res.ok) {
-      // Distinguish "no live accounts" (200, empty) from "data unavailable".
-      return { ...empty, unavailable: true }
+    const { getLiveTrackRecord } = await import("@/lib/trading/track-record")
+    const data = await getLiveTrackRecord()
+    return {
+      liveAccountCount: data.liveAccountCount,
+      totalRealizedPnl: data.totalRealizedPnl,
+      totalBudget: data.totalBudget,
+      accounts: data.accounts,
+      disclaimer: data.disclaimer,
     }
-    return await res.json()
   } catch {
-    return { ...empty, unavailable: true }
+    // DB unreachable — show an honest notice instead of fake zeros.
+    return { liveAccountCount: 0, totalRealizedPnl: 0, totalBudget: 0, accounts: [], unavailable: true }
   }
 }
 

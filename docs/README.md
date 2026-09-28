@@ -10,6 +10,8 @@ the AI automated trading product. Start here and follow the links.
 | Document | What it covers |
 |---|---|
 | [PRD v2 — AI Trading](PRD_V2_AI_TRADING.md) | Product spec: positioning, cockpit design, wallet architecture, strategy & risk parameters, implementation status |
+| [Product Guide](PRODUCT_GUIDE.md) | **Full functional reference**: every surface, what it does, how to use it, and its limits |
+| [Go-Live Checklist](GO_LIVE_CHECKLIST.md) | Step-by-step first real-money run + troubleshooting |
 | [Whitepaper](../WHITEPAPER.md) | Product whitepaper: architecture, 3-layer safety model, strategy explanation, roadmap |
 | [Usage Guide (live)](https://protocolbanks.com/help) | In-product guide: getting started, cockpit walkthrough, going live, FAQ |
 
