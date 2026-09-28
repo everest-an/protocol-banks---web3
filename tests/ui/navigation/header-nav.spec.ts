@@ -11,9 +11,9 @@ test.describe("Header Navigation", () => {
     await expect(demoPage.locator("header")).toBeVisible()
   })
 
-  test("TEST badge is shown in demo mode", async ({ demoPage }) => {
-    // The header shows a "TEST" badge next to the logo
-    await expect(demoPage.locator("header").getByText("TEST", { exact: true })).toBeVisible()
+  test("Demo badge is shown in demo mode", async ({ demoPage }) => {
+    // The header shows a "Demo" badge next to the logo
+    await expect(demoPage.locator("header").getByText("Demo", { exact: true })).toBeVisible()
   })
 
   test("header has AI Trading nav item", async ({ demoPage }) => {

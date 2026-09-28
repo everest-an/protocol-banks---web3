@@ -7,7 +7,7 @@ test.describe("Public Pages", () => {
     await waitForPageReady(demoPage)
     await assertNoCrash(demoPage)
     await expect(demoPage.getByText("Usage Guide").first()).toBeVisible()
-    await expect(demoPage.getByText("Getting Started")).toBeVisible()
+    await expect(demoPage.getByText(/How do I get started\?/).first()).toBeVisible()
   })
 
   test("privacy page loads", async ({ demoPage }) => {

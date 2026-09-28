@@ -185,6 +185,9 @@ export default function HelpPage() {
               <li>
                 <span className="font-medium text-foreground">1. Fund Hyperliquid.</span>{" "}
                 Deposit USDC to your wallet address at app.hyperliquid.xyz (Arbitrum bridge via MetaMask).
+                <span className="block text-xs mt-1 text-muted-foreground/80">
+                  First run: keep it small ($50–100). The trading budget is your maximum loss.
+                </span>
               </li>
               <li>
                 <span className="font-medium text-foreground">2. Create the agent wallet.</span>{" "}
@@ -196,10 +199,20 @@ export default function HelpPage() {
                 trading-only rights — no withdrawals, ever.
               </li>
               <li>
-                <span className="font-medium text-foreground">4. Watch and withdraw.</span>{" "}
-                The agent starts trading. Sweep profits back to your main wallet anytime, or revoke the agent on Hyperliquid.
+                <span className="font-medium text-foreground">4. Start in manual approval mode.</span>{" "}
+                Switch Entry mode to <em>Require my approval</em> on the cockpit. The agent finds signals and
+                holds each entry for you to approve or reject. Exits (stop-loss / take-profit) always run automatically.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">5. Watch and withdraw.</span>{" "}
+                Once the approvals look sane, switch to Automatic if you like. Sweep profits back to your main
+                wallet anytime, or revoke the agent on Hyperliquid.
               </li>
             </ol>
+            <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
+              If an order ever fails with an <strong>UNCERTAIN</strong> status, the agent stops itself rather than
+              retrying (a retry could open a duplicate position). Check your positions on Hyperliquid, then resume.
+            </p>
           </div>
         </section>
 

@@ -33,19 +33,25 @@ interface TrackRecord {
   accounts: AccountEntry[]
   disclaimer?: string
   error?: string
+  /** DB unreachable — show an honest notice instead of fake zeros */
+  unavailable?: boolean
 }
 
 async function getTrackRecord(): Promise<TrackRecord> {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? ""
+  const empty: TrackRecord = { liveAccountCount: 0, totalRealizedPnl: 0, totalBudget: 0, accounts: [] }
   try {
     const res = await fetch(`${base}/api/trading/track-record`, {
       next: { revalidate: 60 },
       cache: "no-store",
     })
-    if (!res.ok) return { liveAccountCount: 0, totalRealizedPnl: 0, totalBudget: 0, accounts: [] }
+    if (!res.ok) {
+      // Distinguish "no live accounts" (200, empty) from "data unavailable".
+      return { ...empty, unavailable: true }
+    }
     return await res.json()
   } catch {
-    return { liveAccountCount: 0, totalRealizedPnl: 0, totalBudget: 0, accounts: [] }
+    return { ...empty, unavailable: true }
   }
 }
 
@@ -122,6 +128,16 @@ export default async function LiveTrackRecordPage() {
               ))}
             </div>
           </>
+        ) : data.unavailable ? (
+          /* DB unreachable — never show fake zeros as if they were data */
+          <div className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-8 text-center mb-8">
+            <Activity className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Track record temporarily unavailable</h2>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              We can&apos;t reach the performance database right now. This is a display outage, not a loss — try
+              again in a minute.
+            </p>
+          </div>
         ) : (
           /* Honest empty state — the trust asset grows as live users join */
           <div className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-8 text-center mb-8">

@@ -15,21 +15,27 @@ import { prisma } from "@/lib/prisma"
  */
 export const GET = async () => {
   try {
-    const accounts = await prisma.tradingAccount.findMany({
-      where: { status: "live" },
-      select: {
-        wallet_address: true,
-        agent_name: true,
-        budget_usd: true,
-        created_at: true,
-        updated_at: true,
-        trades: {
-          where: { mode: "live", status: "closed" },
-          select: { pnl: true, opened_at: true },
+    // Never hang the public endpoint on an unreachable database.
+    const accounts = await Promise.race([
+      prisma.tradingAccount.findMany({
+        where: { status: "live" },
+        select: {
+          wallet_address: true,
+          agent_name: true,
+          budget_usd: true,
+          created_at: true,
+          updated_at: true,
+          trades: {
+            where: { mode: "live", status: "closed" },
+            select: { pnl: true, opened_at: true },
+          },
         },
-      },
-      orderBy: { created_at: "desc" },
-    })
+        orderBy: { created_at: "desc" },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("track-record query timed out")), 5_000),
+      ),
+    ])
 
     // Anonymize: stable short hash of the wallet address (FNV-1a, 8 hex chars).
     const shortHash = (s: string) => {
@@ -71,6 +77,11 @@ export const GET = async () => {
     })
   } catch (error) {
     console.error("[track-record] Failed to aggregate live accounts:", error)
-    return NextResponse.json({ error: "Could not load track record" }, { status: 500 })
+    // 503 (not empty data) so the page can distinguish "no live accounts"
+    // from "database unreachable" — never report fake zeros.
+    return NextResponse.json(
+      { error: "Track record temporarily unavailable", detail: "database unreachable" },
+      { status: 503 },
+    )
   }
 }
