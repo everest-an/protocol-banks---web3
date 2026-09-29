@@ -89,6 +89,30 @@ npx tsx -r dotenv/config scripts/testnet-e2e.ts
 | **reduceOnly close** | ✅ filled `0.00012`, one tick left, dust pass closed it → **account flat** |
 | Round-trip cost | ~$0.01 per $11 round trip (≈0.1%, testnet fees) |
 
+### Autonomous session result (100 ticks, ~50 minutes, testnet)
+
+`scripts/testnet-agent-run.ts` was left running unattended against testnet with
+998 mock USDC. What it did, and what it cost — all figures from the venue, not
+from the ledger:
+
+| | |
+|---|---|
+| Markets scanned | 12 per tick, 100 ticks |
+| Signals acted on | **1** — BTC short (`momentum z=-0.31, funding +0.020%/h`) |
+| Duplicate/churn orders | none (the agent holds a position until TP/SL/signal fade) |
+| Result | BTC short 0.00179 @ 83244, closed at 83475 → **-0.31 USDC** |
+| Fees over the session | **0.57 USDC** |
+| Net | **≈ -0.85 USDC on a 1,000 budget (-0.09%)** |
+
+The decomposition is the interesting part: **fees were nearly double the trading
+loss.** At this size (a ~15 USDC notional position paying ~0.07 per side), the
+round trip costs ~0.7% — which is ~28% of the strategy's 2.5% take-profit. Any
+honest reading of that number says the edge has to clear the fee drag before it
+is worth anything, and that small notional sizes are structurally disadvantaged.
+
+That is also why nothing here is presented as a way to make money: the same
+engine that fills orders in 40 ms also pays the fees in 40 ms.
+
 ### Two real-world behaviours worth knowing
 
 1. **An uncertain order actually happened.** One run failed with `fetch failed`
