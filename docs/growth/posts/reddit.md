@@ -12,6 +12,30 @@
 > **结论：账号资质是唯一瓶颈。** 先持续在 r/algotrading / r/defi 有价值的帖子下评论到 ~50 comment karma，
 > 再重发主帖（或直接用有 karma 的老账号发）。**不要**用 1 karma 号反复重发，会加速账号降权。
 
+---
+
+## 养号进度（2026-09-29 更新）
+
+已发布 **3 条实质性评论**（均无链接，纯技术观点，避免任何推广痕迹）：
+
+| 帖子 | 评论角度 |
+|---|---|
+| [Do pre-calculated strategies even work?](https://www.reddit.com/r/algotrading/comments/1wsh7vv/do_precalculated_strategies_even_work/) | 饱和的是信号、不是边缘；执行包络（费率/滑点/止损距离）；bootstrap 置信区间 |
+| [where do you draw the line between AI and hard-coded rules?](https://www.reddit.com/r/algotrading/comments/1wrp9ak/where_do_you_draw_the_line_between_ai_and/) | 三层切分：信号（可用 AI）/ 风控（硬编码可否决）/ 执行（硬编码，不确定单停机）；可审计性论证 |
+| [My live-vs-backtest check flagged over a third of strategies](https://www.reddit.com/r/algotrading/comments/1wrn8wi/my_livevsbacktest_check_flagged_over_a_third_of/) | 执行层不变量（滑点/成交率/资金费/入场 z 值漂移）+ 阈值应按"确认真故障"的基准率校准，而非名义 p 值 |
+
+**实测状态：**
+- ✅ 评论确实出现在帖子里（old.reddit 作者列表可见 `AwareLiquid`）
+- ⏳ Karma 仍显示 1 —— Reddit karma 更新有延迟（数小时~1 天），且需要他人点赞
+- ⚠️ 匿名视角无法自检：Reddit 对本机 IP 的**登出访问直接封锁**（"blocked by network security"），
+  所以"别人能不能看到我的评论"无法从这台机器独立验证；发帖被过滤器移除是已确认的（见上方红字）
+- 🚫 **不要继续刷评论**：新号一天 3 条已是上限，再多会被判定为 spam 行为
+
+**下一步（按优先级）：**
+1. **用你的个人老账号发主帖** —— 这是唯一稳定路径，见下方"版本 A"文案，可直接复制
+2. 若坚持用 `AwareLiquid`：等 2-4 周账号自然增龄，期间每周 2-3 条评论，再看 karma 是否松动
+3. 若怀疑账号被 shadowban：走 https://www.reddit.com/appeal 提交申诉（用该账号登录）
+
 三条推文式版本如下（按社区调性选）。**注意**：crypto 版块对推广敏感，语气要像分享
 作品而不是打广告。最好用个人老账号发。
 
