@@ -379,8 +379,20 @@ export async function placeMarketOrder(params: {
 
 export interface UserState {
   marginSummary: { accountValue: string; totalMarginUsed: string; totalNtlPos: string; totalRawUsd: string }
+  withdrawable?: string
   assetPositions: {
-    position: { coin: string; szi: string; entryPx: string | null; positionValue: string; unrealizedPnl: string }
+    position: {
+      coin: string
+      szi: string
+      entryPx: string | null
+      positionValue: string
+      unrealizedPnl: string
+      /** Present on the venue response; needed for reconciliation. */
+      marginUsed?: string
+      leverage?: { type: string; value: number }
+      liquidationPx?: string | null
+      cumFunding?: { allTime: string; sinceOpen: string; sinceChange: string }
+    }
   }[]
 }
 
