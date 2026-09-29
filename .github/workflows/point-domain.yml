@@ -1,5 +1,15 @@
 name: Point production domains to latest deployment
 
+# Why this exists: protocolbanks.com is attached to the project, but it does NOT
+# follow the newest production deployment on its own (verified 2026-09-29 by
+# removing the aliases — the domain stayed dark for 5+ minutes). The domains are
+# pinned by explicit aliases, so every deploy needs an explicit `vercel alias set`.
+#
+# Auth: secrets.VERCEL_TOKEN (account-scoped token named
+# "github-actions-domain-alias", created 2026-09-29, expires 2027-09-29).
+# When it expires this job fails fast with an "invalidToken" error — regenerate
+# the token in the Vercel dashboard and update the repository secret.
+
 on:
   push:
     branches: [main]
