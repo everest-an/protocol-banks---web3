@@ -77,7 +77,7 @@ export class LiveOrderExecutor {
       res = await placeMarketOrder({
         agentWallet,
         vaultAddress: this.ctx.vaultAddress,
-        coinIndex,
+        coin: params.coin,
         isBuy: params.isBuy,
         sizeUsd: params.sizeUsd,
         reduceOnly: params.reduceOnly,

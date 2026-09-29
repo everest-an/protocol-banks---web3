@@ -243,23 +243,116 @@ export async function submitApproveAgent(params: {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Order sizing rules (venue constraints)
+// ---------------------------------------------------------------------------
+
+/**
+ * Hyperliquid price rules: no more than 5 significant figures and no more than
+ * (6 - szDecimals) decimal places for perps.
+ */
+export function roundPriceToVenue(px: number, szDecimals: number): number {
+  if (!Number.isFinite(px) || px <= 0) throw new Error(`invalid price: ${px}`)
+  const maxDecimals = Math.max(0, 6 - szDecimals)
+  const sigFigs = Number(px.toPrecision(5))
+  const clamped = Number(sigFigs.toFixed(maxDecimals))
+  // toFixed can nudge the value back above 5 significant figures; re-apply.
+  return Number(clamped.toPrecision(5))
+}
+
+/** Order sizes are floored to the asset's szDecimals — never rounded up. */
+export function floorSizeToVenue(sz: number, szDecimals: number): number {
+  const factor = 10 ** szDecimals
+  return Math.floor(sz * factor) / factor
+}
+
+/**
+ * Aggressive IOC price: mid moved by `slippage` in the direction of the trade,
+ * then venue-rounded. Mirrors hyperliquid-python-sdk `_slippage_price`
+ * (market orders are just aggressive limit orders with tif=Ioc).
+ */
+export function aggressivePrice(mid: number, isBuy: boolean, slippage: number, szDecimals: number): number {
+  const raw = isBuy ? mid * (1 + slippage) : mid * (1 - slippage)
+  return roundPriceToVenue(raw, szDecimals)
+}
+
+export interface AssetContext {
+  coin: string
+  index: number
+  szDecimals: number
+  midPx: number
+}
+
+/** Universe index, size decimals and mid price for a perp — one info call. */
+export async function getAssetContext(coin: string): Promise<AssetContext | null> {
+  try {
+    const res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "metaAndAssetCtxs" }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) return null
+    const body = (await res.json()) as [
+      { universe?: { name: string; szDecimals: number }[] },
+      { midPx?: string; markPx?: string }[],
+    ]
+    const universe = body?.[0]?.universe ?? []
+    const index = universe.findIndex((a) => a.name === coin)
+    if (index < 0) return null
+    const ctx = body?.[1]?.[index]
+    const midPx = Number(ctx?.midPx ?? ctx?.markPx ?? 0)
+    if (!Number.isFinite(midPx) || midPx <= 0) return null
+    return { coin, index, szDecimals: universe[index].szDecimals, midPx }
+  } catch {
+    return null
+  }
+}
+
+/** Hyperliquid rejects orders below this notional value. */
+export const MIN_ORDER_VALUE_USD = 10
+
 /** Market IOC order (agent-signed), acting on the user's account. */
 export async function placeMarketOrder(params: {
   agentWallet: Wallet
   vaultAddress: string
-  coinIndex: number
+  coin: string
   isBuy: boolean
+  /** Notional in USD, converted to coin size at the aggressive price. */
   sizeUsd: number
   reduceOnly?: boolean
+  /** Defaults to 5%, matching the SDK's DEFAULT_SLIPPAGE. */
+  slippage?: number
+  /** Overrides the size in coins (used to close a precise position size). */
+  sizeCoins?: number
 }): Promise<unknown> {
+  const meta = await getAssetContext(params.coin)
+  if (!meta) throw new Error(`Unknown market "${params.coin}" on Hyperliquid`)
+
+  const slippage = params.slippage ?? 0.05
+  const px = aggressivePrice(meta.midPx, params.isBuy, slippage, meta.szDecimals)
+
+  // Size is denominated in coins on the wire — dividing by the mid (not the
+  // aggressive price) keeps the notional honest.
+  const rawSize = params.sizeCoins ?? params.sizeUsd / meta.midPx
+  const size = floorSizeToVenue(rawSize, meta.szDecimals)
+  if (!(size > 0)) {
+    throw new Error(
+      `order size rounds to zero: $${params.sizeUsd} at ${meta.midPx} with szDecimals=${meta.szDecimals}`,
+    )
+  }
+  if (!params.reduceOnly && params.sizeUsd < MIN_ORDER_VALUE_USD) {
+    throw new Error(`order value $${params.sizeUsd} is below Hyperliquid's $${MIN_ORDER_VALUE_USD} minimum`)
+  }
+
   const action: L1Action = {
     type: "order",
     orders: [
       {
-        a: params.coinIndex,
+        a: meta.index,
         b: params.isBuy,
-        p: params.isBuy ? "1e15" : "1",
-        s: String(params.sizeUsd),
+        p: String(px),
+        s: String(size),
         r: params.reduceOnly ?? false,
         t: { limit: { tif: "Ioc" } },
       },

@@ -23,7 +23,12 @@
 
 import { Wallet } from "ethers"
 import { buildSiweMessage } from "@/lib/auth/siwe"
-import { approveAgentDigest, placeMarketOrder, coinToIndex, getUserState } from "@/lib/trading/exchange"
+import {
+  approveAgentDigest,
+  placeMarketOrder,
+  getAssetContext,
+  getUserState,
+} from "@/lib/trading/exchange"
 import { getAgentWallet, loadAgentKeyRecord } from "@/lib/trading/keys"
 import { getHyperliquidNetworkConfig } from "@/lib/trading/network"
 
@@ -215,14 +220,16 @@ async function main() {
 
   const coin = process.env.E2E_COIN ?? "BTC"
   const sizeUsd = Number(process.env.E2E_SIZE_USD ?? "11")
-  const idx = await coinToIndex(coin)
-  if (idx === null) throw new Error(`coin ${coin} not found in the ${cfg.network} universe`)
-  console.log(`   ${coin} index=${idx}, size=$${sizeUsd}`)
+  const asset = await getAssetContext(coin)
+  if (!asset) throw new Error(`coin ${coin} not found in the ${cfg.network} universe`)
+  console.log(
+    `   ${coin} index=${asset.index} szDecimals=${asset.szDecimals} mid=${asset.midPx} size=$${sizeUsd}`,
+  )
 
   const openRes = await placeMarketOrder({
     agentWallet,
     vaultAddress: wallet.address,
-    coinIndex: idx,
+    coin,
     isBuy: true,
     sizeUsd,
   })
@@ -244,9 +251,10 @@ async function main() {
   const closeRes = await placeMarketOrder({
     agentWallet,
     vaultAddress: wallet.address,
-    coinIndex: idx,
+    coin,
     isBuy: Number(pos.position.szi) < 0, // buy to close a short, sell to close a long
-    sizeUsd: Math.max(sizeUsd, size),
+    sizeUsd: sizeUsd,
+    sizeCoins: size, // exact position size — avoids leaving dust behind
     reduceOnly: true,
   })
   console.log(`   close: ${JSON.stringify(closeRes)}`)
