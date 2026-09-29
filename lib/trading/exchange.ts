@@ -24,10 +24,10 @@
 
 import { Wallet, keccak256, toUtf8Bytes, AbiCoder, getBytes, concat, getAddress, Signature, recoverAddress } from "ethers"
 import { encode as msgpackEncode } from "@msgpack/msgpack"
+import { getHyperliquidNetworkConfig } from "./network"
 
-const EXCHANGE_URL = "https://api.hyperliquid.xyz/exchange"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const USER_SIGNED_CHAIN_ID = 0x66eee // fixed by the SDK for user-signed actions
+const USER_SIGNED_CHAIN_ID = 0x66eee // fixed by the SDK for user-signed actions (both networks)
 const L1_DOMAIN_CHAIN_ID = 1337 // legacy chainId in the phantom-agent domain
 
 const coder = AbiCoder.defaultAbiCoder()
@@ -126,7 +126,7 @@ export function signL1Action(
   opts: { vaultAddress: string | null; nonce: number; isMainnet?: boolean },
 ): SignedSignature {
   const digest = l1ActionDigest(action, opts.vaultAddress, opts.nonce)
-  const isMainnet = opts.isMainnet ?? true
+  const isMainnet = opts.isMainnet ?? getHyperliquidNetworkConfig().isMainnet
 
   // Phantom agent typed data (l1_payload)
   const agentFields: Field[] = [
@@ -185,7 +185,7 @@ export function approveAgentTypedData(params: {
     },
     primaryType: "HyperliquidTransaction:ApproveAgent",
     message: {
-      hyperliquidChain: "Mainnet",
+      hyperliquidChain: getHyperliquidNetworkConfig().hyperliquidChain,
       agentAddress: getAddress(params.agentAddress),
       agentName: params.agentName,
       nonce: params.nonce,
@@ -208,7 +208,7 @@ export function approveAgentDigest(typedData: ApproveAgentTypedData): string {
 
 /** Submit a signed exchange request. */
 export async function submitExchange(request: Record<string, unknown>): Promise<unknown> {
-  const res = await fetch(EXCHANGE_URL, {
+  const res = await fetch(getHyperliquidNetworkConfig().exchangeUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
@@ -231,8 +231,8 @@ export async function submitApproveAgent(params: {
   return submitExchange({
     action: {
       type: "approveAgent",
-      hyperliquidChain: "Mainnet",
-      signatureChainId: `0x${USER_SIGNED_CHAIN_ID.toString(16)}`,
+      hyperliquidChain: getHyperliquidNetworkConfig().hyperliquidChain,
+      signatureChainId: getHyperliquidNetworkConfig().signatureChainId,
       agentAddress: getAddress(params.agentAddress),
       agentName: params.agentName,
       nonce: params.nonce,
@@ -292,7 +292,7 @@ export interface UserState {
 
 export async function getUserState(address: string): Promise<UserState | null> {
   try {
-    const res = await fetch("https://api.hyperliquid.xyz/info", {
+    const res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "clearinghouseState", user: address }),
@@ -308,7 +308,7 @@ export async function getUserState(address: string): Promise<UserState | null> {
 /** Map a coin name to its index in the Hyperliquid universe (needed for orders). */
 export async function coinToIndex(coin: string): Promise<number | null> {
   try {
-    const res = await fetch("https://api.hyperliquid.xyz/info", {
+    const res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "meta" }),

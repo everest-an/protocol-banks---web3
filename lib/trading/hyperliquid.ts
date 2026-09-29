@@ -11,7 +11,7 @@
  * with signed exchange-endpoint calls in a later milestone.
  */
 
-const INFO_URL = "https://api.hyperliquid.xyz/info"
+import { getHyperliquidNetworkConfig } from "./network"
 
 export interface UniverseAsset {
   name: string
@@ -43,7 +43,7 @@ interface CacheEntry<T> {
 }
 
 async function postInfo<T>(body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(INFO_URL, {
+  const res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
