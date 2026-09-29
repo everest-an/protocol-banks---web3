@@ -26,6 +26,7 @@
 
 import { Wallet, JsonRpcProvider, Contract, parseUnits, formatUnits } from "ethers"
 import { getHyperliquidNetworkConfig } from "@/lib/trading/network"
+import { claimTestnetDrip } from "./lib/testnet-faucet"
 
 const ARBITRUM_RPC = process.env.ARBITRUM_RPC_URL ?? "https://arb1.arbitrum.io/rpc"
 const USDC_ARBITRUM = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" // native USDC
@@ -119,7 +120,21 @@ async function main() {
     }
     console.log(`  ${i}: accountValue = ${value}`)
     if (value > 0) {
-      console.log("\n✅ credited. The faucet gate (prior mainnet deposit) is now satisfied for this address.")
+      console.log(`\n✅ credited — the address now exists on mainnet, so the faucet gate is satisfied.`)
+
+      console.log("\nclaiming the testnet drip (1,000 mock USDC)…")
+      for (let attempt = 1; attempt <= 6; attempt++) {
+        const drip = await claimTestnetDrip(wallet.address)
+        if (drip.ok) {
+          console.log(`✅ drip claimed: ${drip.detail}`)
+          console.log("\nNext: run the end-to-end check against testnet:")
+          console.log("  $env:HYPERLIQUID_NETWORK='testnet'; npx tsx -r dotenv/config scripts/testnet-e2e.ts")
+          return
+        }
+        console.log(`  attempt ${attempt}: ${drip.detail}`)
+        await new Promise((r) => setTimeout(r, 20_000))
+      }
+      console.log("\n⚠️  the drip is still refused — retry later with: npx tsx scripts/claim-drip.ts (or re-run this script)")
       return
     }
   }

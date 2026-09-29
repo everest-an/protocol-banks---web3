@@ -96,10 +96,19 @@ addresses that have deposited on mainnet before**:
 So there is no free path to a working testnet account: the address needs one
 real mainnet deposit (≥ 5 USDC on Arbitrum). After that one deposit:
 
-1. the faucet credits 1,000 mock USDC on testnet (claim at
-   `app.hyperliquid-testnet.xyz/drip` — needs a browser wallet; import this
-   wallet's key into MetaMask for that one click), and
+1. the faucet credits 1,000 mock USDC on testnet, and
 2. every later run is free, repeatable and risk-free.
+
+**The faucet itself needs no wallet interaction.** Reading the web app's own
+`assets/Drip-*.js` chunk shows the Claim button just POSTs
+`{ type: "claimDrip", user }` to the testnet info endpoint — no signature, no
+connection. So the claim is scriptable and is wired into the funding flow
+(`scripts/lib/testnet-faucet.ts`, `scripts/claim-drip.ts`). The gate is on the
+venue's side and is not bypassable; verified by calling it:
+
+```
+Cannot claim drip because user 0xbf0d7119… does not exist on mainnet.
+```
 
 **Bugs found and fixed while wiring this up:**
 
@@ -151,7 +160,8 @@ Send ~USDC 6–10 on Arbitrum to the wallet above. Then either:
 
 ### Runbook — exactly what runs once the address is funded
 
-Two scripts are ready; both are safe by default and re-runnable.
+Three scripts, all safe by default and re-runnable. No browser or wallet
+extension is involved at any point.
 
 ```powershell
 # 0. the address needs USDC (Arbitrum) AND a little ETH for gas
@@ -164,12 +174,11 @@ npx tsx -r dotenv/config scripts/fund-hyperliquid.ts
 # 2. same command, armed (enforces the docs' 5 USDC floor: below it the venue
 #    keeps the money, so the script refuses anything smaller)
 $env:CONFIRM_DEPOSIT='1'; npx tsx -r dotenv/config scripts/fund-hyperliquid.ts
-#    -> polls clearinghouseState until the account is credited (< 1 min)
+#    -> polls until the account is credited, then claims the testnet drip
+#       (1,000 mock USDC) automatically. To re-claim later:
+#       npx tsx -r dotenv/config scripts/claim-drip.ts
 
-# 3. claim 1,000 mock USDC on testnet at app.hyperliquid-testnet.xyz/drip
-#    (one click; needs this wallet's key imported into MetaMask)
-
-# 4. full end-to-end against testnet
+# 3. full end-to-end against testnet
 $env:HYPERLIQUID_NETWORK='testnet'; pnpm dev          # terminal 1
 $env:HYPERLIQUID_NETWORK='testnet'; npx tsx -r dotenv/config scripts/testnet-e2e.ts   # terminal 2
 ```
