@@ -23,7 +23,8 @@
 
 import { Wallet } from "ethers"
 import { buildSiweMessage } from "@/lib/auth/siwe"
-import { approveAgentDigest } from "@/lib/trading/exchange"
+import { approveAgentDigest, placeMarketOrder, coinToIndex, getUserState } from "@/lib/trading/exchange"
+import { getAgentWallet, loadAgentKeyRecord } from "@/lib/trading/keys"
 import { getHyperliquidNetworkConfig } from "@/lib/trading/network"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"
@@ -100,8 +101,17 @@ async function main() {
   let agentAddress = (status1.json.live as Json | undefined)?.agentAddress as string | null | undefined
   let agentName: string | undefined
   let nonce2: number | undefined
+  const alreadyApproved = ((status1.json.live as Json | undefined)?.approved ?? false) as boolean
+  if (agentAddress && !alreadyApproved) {
+    // A previous attempt generated a key but never got it approved (e.g. the
+    // venue refused for lack of funds). The approval needs a fresh nonce, and
+    // the API only hands one out at generate time — so clear and regenerate.
+    console.log(`   exists but unapproved (${agentAddress}) — revoking to get a fresh nonce`)
+    await post("/api/trading/live/agent-wallet", { action: "revoke" }, token)
+    agentAddress = null
+  }
   if (agentAddress) {
-    console.log(`   exists: ${agentAddress} — skipping generate`)
+    console.log(`   exists and approved: ${agentAddress} — skipping generate`)
     agentName = ((status1.json.live as Json).agentName as string) ?? "Protocol Bank AI"
   } else {
     const gen = await post("/api/trading/live/agent-wallet", { action: "generate" }, token)
@@ -151,7 +161,18 @@ async function main() {
     )
     console.log(`   HTTP ${approve.status}: ${JSON.stringify(approve.json)}`)
     if (approve.status !== 200) {
-      console.log("   -> approval rejected; nothing was left half-done on our side")
+      const msg = JSON.stringify(approve.json)
+      if (/Must deposit before performing actions/i.test(msg)) {
+        console.log("\n   The venue requires a funded account before it accepts ANY action —")
+        console.log("   including an agent approval, on testnet as well. Fund this address once:")
+        console.log(`     1. send USDC (Arbitrum) + a little ETH for gas to ${wallet.address}`)
+        console.log("     2. DRY RUN:  npx tsx -r dotenv/config scripts/fund-hyperliquid.ts")
+        console.log("     3. EXECUTE:  $env:CONFIRM_DEPOSIT='1'; npx tsx -r dotenv/config scripts/fund-hyperliquid.ts")
+        console.log("     4. claim the testnet faucet (1000 mock USDC) at app.hyperliquid-testnet.xyz/drip,")
+        console.log("        then re-run this script for the full order round-trip")
+      } else {
+        console.log("   -> approval rejected; nothing was left half-done on our side")
+      }
       process.exitCode = 1
       return
     }
@@ -162,20 +183,79 @@ async function main() {
   const status2 = await post("/api/trading/live/agent-wallet", { action: "status" }, token)
   console.log(`   ${JSON.stringify(status2.json)}`)
 
-  // 6. read-only sanity: the wallet exists on the configured venue
-  step(6, "venue read-back (getUserState)")
-  const stateRes = await fetch(`${cfg.infoUrl}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "clearinghouseState", user: wallet.address }),
-    signal: AbortSignal.timeout(10_000),
-  })
-  const state = (await stateRes.json().catch(() => null)) as Json | null
-  const margin = state?.marginSummary as Json | undefined
-  console.log(`   accountValue=${margin?.accountValue ?? "n/a"} (0 = not funded yet, expected)`)
-
   const approved = ((status2.json.live as Json | undefined)?.approved ?? false) as boolean
-  console.log(`\nRESULT: ${approved ? "✅ approveAgent accepted by Hyperliquid" : "⚠️  not approved"}`)
+  const liveFinal = status2.json.live as Json | undefined
+
+  // 6. read-only sanity: the wallet exists on the configured venue
+  step(6, "venue read-back (clearinghouseState)")
+  const state = await getUserState(wallet.address)
+  const accountValue = Number(state?.marginSummary?.accountValue ?? 0)
+  console.log(`   accountValue=${accountValue}`)
+
+  if (accountValue <= 0) {
+    console.log("\nNot funded — stopping before the order steps.")
+    console.log("Fund this address (Arbitrum USDC -> Hyperliquid, min 5 USDC), then re-run:")
+    console.log("  npx tsx -r dotenv/config scripts/fund-hyperliquid.ts   # then CONFIRM_DEPOSIT=1")
+    console.log(`\nRESULT: ${approved ? "approveAgent accepted" : "approveAgent blocked (funds required by the venue)"}`)
+    return
+  }
+
+  if (!approved || !liveFinal?.agentAddress) {
+    console.log("\nFunded but the agent is not approved — re-run this script once the approval succeeds.")
+    process.exitCode = 1
+    return
+  }
+
+  // 7. the real thing: place an IOC order through the app's own live-order path
+  step(7, "place an IOC order via the app's live path (placeMarketOrder)")
+  const agentWallet = getAgentWallet(wallet.address)
+  if (!agentWallet) throw new Error("agent key could not be decrypted from the local record")
+  const record = loadAgentKeyRecord(wallet.address)
+  console.log(`   agent key: ${agentWallet.address}${record?.approved ? " (approved)" : " (NOT approved)"}`)
+
+  const coin = process.env.E2E_COIN ?? "BTC"
+  const sizeUsd = Number(process.env.E2E_SIZE_USD ?? "11")
+  const idx = await coinToIndex(coin)
+  if (idx === null) throw new Error(`coin ${coin} not found in the ${cfg.network} universe`)
+  console.log(`   ${coin} index=${idx}, size=$${sizeUsd}`)
+
+  const openRes = await placeMarketOrder({
+    agentWallet,
+    vaultAddress: wallet.address,
+    coinIndex: idx,
+    isBuy: true,
+    sizeUsd,
+  })
+  console.log(`   open : ${JSON.stringify(openRes)}`)
+
+  await new Promise((r) => setTimeout(r, 4000))
+  const afterOpen = await getUserState(wallet.address)
+  const pos = afterOpen?.assetPositions?.find((p) => p.position.coin === coin)
+  console.log(`   position: ${pos ? `${pos.position.szi} @ ${pos.position.entryPx}` : "none"}`)
+
+  // 8. flatten it again (reduceOnly) and confirm the account is flat
+  step(8, "close the position (reduceOnly) and verify flat")
+  if (!pos) {
+    console.log("   no position to close — order may have been rejected; see the response above")
+    process.exitCode = 1
+    return
+  }
+  const size = Math.abs(Number(pos.position.szi))
+  const closeRes = await placeMarketOrder({
+    agentWallet,
+    vaultAddress: wallet.address,
+    coinIndex: idx,
+    isBuy: Number(pos.position.szi) < 0, // buy to close a short, sell to close a long
+    sizeUsd: Math.max(sizeUsd, size),
+    reduceOnly: true,
+  })
+  console.log(`   close: ${JSON.stringify(closeRes)}`)
+
+  await new Promise((r) => setTimeout(r, 4000))
+  const afterClose = await getUserState(wallet.address)
+  const still = afterClose?.assetPositions?.find((p) => p.position.coin === coin && Number(p.position.szi) !== 0)
+  console.log(`   flat: ${still ? `NO — still ${still.position.szi}` : "yes"}`)
+  console.log(`   accountValue after round-trip: ${afterClose?.marginSummary?.accountValue ?? "n/a"}`)
 }
 
 main().catch((err) => {

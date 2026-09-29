@@ -122,6 +122,43 @@ Send ~USDC 6–10 on Arbitrum to the wallet above. Then either:
 - **Mainnet route (≈ $6 at risk):** deposit and run the real path with a tiny
   budget in manual-approval mode.
 
+### Runbook — exactly what runs once the address is funded
+
+Two scripts are ready; both are safe by default and re-runnable.
+
+```powershell
+# 0. the address needs USDC (Arbitrum) AND a little ETH for gas
+#    wallet: 0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C
+
+# 1. deposit into Hyperliquid — DRY RUN first (prints balances, sends nothing)
+$env:DOTENV_CONFIG_PATH='.env.local'
+npx tsx -r dotenv/config scripts/fund-hyperliquid.ts
+
+# 2. same command, armed (enforces the docs' 5 USDC floor: below it the venue
+#    keeps the money, so the script refuses anything smaller)
+$env:CONFIRM_DEPOSIT='1'; npx tsx -r dotenv/config scripts/fund-hyperliquid.ts
+#    -> polls clearinghouseState until the account is credited (< 1 min)
+
+# 3. claim 1,000 mock USDC on testnet at app.hyperliquid-testnet.xyz/drip
+#    (one click; needs this wallet's key imported into MetaMask)
+
+# 4. full end-to-end against testnet
+$env:HYPERLIQUID_NETWORK='testnet'; pnpm dev          # terminal 1
+$env:HYPERLIQUID_NETWORK='testnet'; npx tsx -r dotenv/config scripts/testnet-e2e.ts   # terminal 2
+```
+
+`scripts/testnet-e2e.ts` runs SIWE → agent generate (self-healing: it revokes
+and regenerates when a previous attempt left an unapproved key, because the API
+only issues an approval nonce at generate time) → EIP-712 approve → status →
+**order round-trip**: it places a real IOC order through the app's own
+`placeMarketOrder`, reads the position back from `clearinghouseState`, then
+flattens it with `reduceOnly` and verifies the account is flat again.
+
+Tunables: `E2E_COIN` (default BTC), `E2E_SIZE_USD` (default 11 — Hyperliquid's
+minimum order value is $10), `E2E_BASE_URL`, `ALLOW_MAINNET=1` to permit a
+mainnet run.
+
+
 
 ## Safety notes
 
