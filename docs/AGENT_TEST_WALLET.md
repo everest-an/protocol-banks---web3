@@ -101,7 +101,7 @@ real mainnet deposit (≥ 5 USDC on Arbitrum). After that one deposit:
    wallet's key into MetaMask for that one click), and
 2. every later run is free, repeatable and risk-free.
 
-**Two bugs found and fixed while wiring this up:**
+**Bugs found and fixed while wiring this up:**
 
 - `POST /api/trading/live/agent-wallet {action:"approve"}` called
   `markApproved()` even when Hyperliquid answered `{status:"err"}`, so the
@@ -111,6 +111,16 @@ real mainnet deposit (≥ 5 USDC on Arbitrum). After that one deposit:
   so the venue recovered an unrelated address — a good reminder that the
   *local* `recoverSigner` check cannot catch a `v`-encoding mistake (it
   normalises 54/55 back to 27/28).
+- **The order path could never have matched anything.** Reviewing it against
+  the SDK while preparing this test surfaced two independent errors in
+  `placeMarketOrder`: the price was sent as `"1e15"` (buy) / `"1"` (sell) —
+  market orders ARE aggressive limit orders on Hyperliquid and must sit inside
+  the allowed band — and the size field carried the **USD notional** instead of
+  the size in coins, so an $11 BTC order was being sent as 11 BTC. Both are
+  fixed (`aggressivePrice` = mid ± slippage, venue-rounded to ≤5 significant
+  figures and ≤ 6 − szDecimals decimals; size = notional / mid, floored to
+  szDecimals, with Hyperliquid's $10 minimum enforced), covered by 10 new tests.
+  These would only ever have surfaced on the first real order.
 
 ### Minimal-cost unlock
 
