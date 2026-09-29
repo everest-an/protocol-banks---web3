@@ -130,6 +130,14 @@ real mainnet deposit (≥ 5 USDC on Arbitrum). After that one deposit:
   signing path itself is now pinned to the SDK's own published test vectors, so
   the wire format is verified independently of our own tests. These would only
   ever have surfaced on the first real order.
+- **The paper → live promotion silently reverted manual approval.** The
+  promotion rebuilt the ledger with `Object.assign(state, seedState(...))`,
+  which also reset `approvalMode` to the seed default `"auto"` — so a user who
+  had switched manual approval on (the mode the help page recommends for a
+  first real-money run) would have had it quietly turned off at the exact
+  moment real orders start. Extracted as the pure `promoteToLiveLedger()`
+  (which carries `approvalMode` across and still drops paper positions, pending
+  trades and the simulated curve), covered by 8 tests.
 
 ### Minimal-cost unlock
 
