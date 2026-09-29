@@ -82,9 +82,27 @@ npx tsx -r dotenv/config scripts/testnet-e2e.ts
 | SIWE login (EIP-191) | ✅ JWT issued for the wallet address |
 | Agent key generation | ✅ keypair created, encrypted at rest |
 | EIP-712 `approveAgent` submission | ✅ Hyperliquid parsed it and named *our* address as the signer |
-| `approveAgent` acceptance | ❌ `"Must deposit before performing actions"` |
+| `approveAgent` acceptance | ✅ **`{"status":"ok","response":{"type":"default"}}`** — accepted on testnet once the account was funded |
 | Asset context / account read (`getAssetContext`, `getUserState`) | ✅ `{"coin":"BTC","index":3,"szDecimals":5,"midPx":84316.5}`, accountValue 0 |
 | IOC order submission (unfunded smoke run) | ✅ **the venue recovered our agent address from the signature** and rejected only on registration: `"User or API Wallet 0xa543… does not exist."` — no price, size or format complaint |
+| **Funded IOC order** | ✅ filled: `{"totalSz":"0.00013","avgPx":"84374.6","oid":61371478924}` |
+| **reduceOnly close** | ✅ filled `0.00012`, one tick left, dust pass closed it → **account flat** |
+| Round-trip cost | ~$0.01 per $11 round trip (≈0.1%, testnet fees) |
+
+### Two real-world behaviours worth knowing
+
+1. **An uncertain order actually happened.** One run failed with `fetch failed`
+   after the venue had already filled the order — the HTTP response was lost,
+   not the order. That is precisely the case the live executor treats as
+   *uncertain* (halt, never retry). The position it left behind was found by
+   re-reading `clearinghouseState`, which is also why every run starts with a
+   state read.
+2. **A reduce-only close can leave one tick of dust.** The venue reports sizes
+   rounded to `szDecimals` while the real position can be marginally larger than
+   what is orderable, so an exact-size close may stop one tick short
+   (0.00014 → 0.00013 → 0.00001). Closing that dust *is* accepted even though it
+   is far below the $10 minimum order value. `scripts/flatten-test-wallet.ts`
+   and the E2E's dust loop handle it by closing until the account is flat.
 
 That last row is the strongest pre-funding signal available: the order body parses
 and the L1 signature recovers to the intended agent **on the live venue**, so the
@@ -185,12 +203,16 @@ Send ~USDC 6–10 on Arbitrum to the wallet above. Then either:
 
 ### Runbook — exactly what runs once the address is funded
 
-Three scripts, all safe by default and re-runnable. No browser or wallet
+Four scripts, all safe by default and re-runnable. No browser or wallet
 extension is involved at any point.
 
 ```powershell
-# 0. the address needs USDC (Arbitrum) AND a little ETH for gas
-#    wallet: 0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C
+# 0a. (owner) if the funds sit elsewhere, move them onto this wallet first:
+#     scripts/bridge-funding-to-testnet.ts converts ETH (Ethereum) → USDC + gas
+#     ETH on Arbitrum via LI.FI. Dry-run by default; CONFIRM_BRIDGE=1 to send.
+#
+# 0b. the address then needs USDC (Arbitrum) AND a little ETH for gas
+#     wallet: 0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C
 
 # 1. deposit into Hyperliquid — DRY RUN first (prints balances, sends nothing)
 $env:DOTENV_CONFIG_PATH='.env.local'
@@ -206,6 +228,9 @@ $env:CONFIRM_DEPOSIT='1'; npx tsx -r dotenv/config scripts/fund-hyperliquid.ts
 # 3. full end-to-end against testnet
 $env:HYPERLIQUID_NETWORK='testnet'; pnpm dev          # terminal 1
 $env:HYPERLIQUID_NETWORK='testnet'; npx tsx -r dotenv/config scripts/testnet-e2e.ts   # terminal 2
+
+# 4. if a run is interrupted mid-trade, flatten before the next one
+$env:HYPERLIQUID_NETWORK='testnet'; npx tsx -r dotenv/config scripts/flatten-test-wallet.ts
 ```
 
 `scripts/testnet-e2e.ts` runs SIWE → agent generate (self-healing: it revokes

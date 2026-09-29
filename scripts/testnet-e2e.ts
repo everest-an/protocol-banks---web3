@@ -260,6 +260,29 @@ async function main() {
   console.log(`   close: ${JSON.stringify(closeRes)}`)
 
   await new Promise((r) => setTimeout(r, 4000))
+
+  // The venue reports sizes rounded to szDecimals, so the exact position can be
+  // a hair larger than what we can order; an IOC reduce-only close then leaves
+  // one tick behind. Keep closing until flat rather than declaring success on a
+  // dust position.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const after = await getUserState(wallet.address)
+    const left = after?.assetPositions?.find((p) => p.position.coin === coin && Number(p.position.szi) !== 0)
+    if (!left) break
+    const leftSize = Math.abs(Number(left.position.szi))
+    console.log(`   dust pass ${attempt}: ${left.position.szi} remaining — closing`)
+    await placeMarketOrder({
+      agentWallet,
+      vaultAddress: null,
+      coin,
+      isBuy: Number(left.position.szi) < 0,
+      sizeUsd: sizeUsd,
+      sizeCoins: leftSize,
+      reduceOnly: true,
+    })
+    await new Promise((r) => setTimeout(r, 4000))
+  }
+
   const afterClose = await getUserState(wallet.address)
   const still = afterClose?.assetPositions?.find((p) => p.position.coin === coin && Number(p.position.szi) !== 0)
   console.log(`   flat: ${still ? `NO — still ${still.position.szi}` : "yes"}`)
