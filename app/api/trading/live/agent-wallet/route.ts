@@ -119,6 +119,20 @@ export const POST = withAuth(async (req, address) => {
           nonce,
           signature,
         })
+        // Hyperliquid answers application-level failures with HTTP 200 and a
+        // { status: "err", response } body — never mark the agent approved on
+        // those, or the cockpit would claim live trading is armed when the
+        // venue refused the action (first seen as "Must deposit before
+        // performing actions").
+        const venue = result as { status?: string; response?: unknown } | null
+        if (venue?.status === "err") {
+          const detail =
+            typeof venue.response === "string" ? venue.response : JSON.stringify(venue.response ?? venue)
+          return NextResponse.json(
+            { ok: false, error: `Hyperliquid rejected the approval: ${detail}`, result },
+            { status: 502 },
+          )
+        }
         markApproved(address)
         return NextResponse.json({ ok: true, result })
       } catch (e) {
