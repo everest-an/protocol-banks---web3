@@ -10,7 +10,8 @@ import { seedState, type TradingStore } from "@/lib/trading/store"
 import { TradingAgent } from "@/lib/trading/agent"
 import { LiveOrderExecutor, resolveVaultAddress, type OrderResult } from "@/lib/trading/live-executor"
 import { DEFAULT_RISK } from "@/lib/trading/risk"
-import type { TradingState, PendingTrade } from "@/lib/trading/types"
+import type { TradingState, PendingTrade, Position } from "@/lib/trading/types"
+import type { AssetCtx } from "@/lib/trading/hyperliquid"
 
 // ── Mocks for the executor's dependencies ────────────────────────────
 
@@ -238,5 +239,130 @@ describe("resolveVaultAddress", () => {
   it("passes through a genuinely different vault/subaccount address", () => {
     const vault = "0x9999999999999999999999999999999999999999"
     expect(resolveVaultAddress(vault, WALLET_LOWER)).toBe(vault)
+  })
+})
+
+// ── Exit path ────────────────────────────────────────────────────────
+
+/**
+ * Take-profit, stop-loss, circuit-breaker and the uncertain-close halt.
+ *
+ * Only the entry side had coverage; these branches had run neither in a test
+ * nor in a live session. They are deterministic because the TP/SL/killAll
+ * decisions read the position's own `pnlPct` — no market data is fetched on
+ * those paths (only the signal-fade branch needs candles).
+ */
+type ExitAccess = { applyExits(ctx: Map<string, AssetCtx>, killAll: boolean): Promise<boolean> }
+
+/** A position whose PnL percentage is already recorded, as the exit logic reads it. */
+function positionWith(pnlPct: number, side: "long" | "short" = "long"): Position {
+  const entry = 60000
+  // A long gains when price rises; a short gains when it falls.
+  const mark = side === "long" ? entry * (1 + pnlPct / 100) : entry * (1 - pnlPct / 100)
+  const size = 0.001
+  return {
+    symbol: "BTC",
+    side,
+    size,
+    entry,
+    mark,
+    allocated: 30, // margin posted at open
+    pnl: (side === "long" ? mark - entry : entry - mark) * size,
+    pnlPct,
+    leverage: 2,
+    reason: "test fixture",
+    openedAt: new Date().toISOString(),
+  }
+}
+
+function liveStoreWith(position: Position): TradingStore {
+  return stubStore({ ...seedState({ demoHistory: false }), mode: "live", cash: 70, positions: [position] })
+}
+
+describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
+  it("take-profit closes a long with a reduceOnly sell and books the fill", async () => {
+    const executor = fakeExecutor({ ok: true, avgPx: 61500, totalSz: 0.001, oid: 7 })
+    const store = liveStoreWith(positionWith(2.5))
+    const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
+
+    const traded = await (agent as unknown as ExitAccess).applyExits(new Map(), false)
+
+    expect(traded).toBe(true)
+    // Closing a long sells it, at the mark notional, reduce-only.
+    const call = executor.placeOrder.mock.calls[0][0] as {
+      coin: string
+      isBuy: boolean
+      sizeUsd: number
+      reduceOnly?: boolean
+    }
+    expect(call.coin).toBe("BTC")
+    expect(call.isBuy).toBe(false)
+    expect(call.reduceOnly).toBe(true)
+    expect(call.sizeUsd).toBeCloseTo(61.5, 6) // 0.001 BTC at 61500
+    expect(store.get().positions).toHaveLength(0)
+    // 30 margin returned + 1.50 gross - 0.0246 exit fee
+    expect(store.get().cash).toBeCloseTo(101.48, 2)
+    expect(store.get().activity.some((a) => a.text.includes("take-profit"))).toBe(true)
+  })
+
+  it("stop-loss closes a short by buying it back", async () => {
+    const executor = fakeExecutor({ ok: true, avgPx: 61500, totalSz: 0.001, oid: 8 })
+    const store = liveStoreWith(positionWith(-2.5, "short"))
+    const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
+
+    await (agent as unknown as ExitAccess).applyExits(new Map(), false)
+
+    const call = executor.placeOrder.mock.calls[0][0] as {
+      coin: string
+      isBuy: boolean
+      sizeUsd: number
+      reduceOnly?: boolean
+    }
+    expect(call.coin).toBe("BTC")
+    expect(call.isBuy).toBe(true) // closing a short buys
+    expect(call.reduceOnly).toBe(true)
+    expect(call.sizeUsd).toBeCloseTo(61.5, 6) // 0.001 BTC at 61500 (price rose, short lost)
+    expect(store.get().positions).toHaveLength(0)
+    // 30 margin + (-1.50) gross - 0.0246 exit fee = 28.48 realized, on top of the 70 cash
+    expect(store.get().cash).toBeCloseTo(98.48, 2)
+    expect(store.get().activity.some((a) => a.text.includes("stop-loss"))).toBe(true)
+  })
+
+  it("an UNCERTAIN close halts the agent and never fabricates a fill", async () => {
+    const executor = fakeExecutor({ ok: false, rejected: false, uncertainty: true, reason: "timeout" })
+    const store = liveStoreWith(positionWith(2.5))
+    const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
+
+    const traded = await (agent as unknown as ExitAccess).applyExits(new Map(), false)
+
+    expect(traded).toBe(false)
+    expect(store.get().positions).toHaveLength(1) // may still be open on the exchange
+    expect(store.get().cash).toBe(70) // book untouched
+    expect(store.get().agent.status).toBe("stopped")
+    expect(store.get().activity.some((a) => a.text.includes("UNCERTAIN"))).toBe(true)
+  })
+
+  it("a rejected close keeps the agent running and the position open", async () => {
+    const executor = fakeExecutor({ ok: false, rejected: true, reason: "reduce-only rejected" })
+    const store = liveStoreWith(positionWith(2.5))
+    const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
+
+    await (agent as unknown as ExitAccess).applyExits(new Map(), false)
+
+    expect(store.get().positions).toHaveLength(1)
+    expect(store.get().agent.status).not.toBe("stopped")
+    expect(store.get().activity.some((a) => a.text.includes("Close rejected"))).toBe(true)
+  })
+
+  it("the daily circuit breaker exits even a flat position", async () => {
+    const executor = fakeExecutor({ ok: true, avgPx: 60000, totalSz: 0.001, oid: 9 })
+    const store = liveStoreWith(positionWith(0))
+    const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
+
+    const traded = await (agent as unknown as ExitAccess).applyExits(new Map(), true)
+
+    expect(traded).toBe(true)
+    expect(store.get().positions).toHaveLength(0)
+    expect(store.get().activity.some((a) => a.text.includes("circuit breaker"))).toBe(true)
   })
 })
