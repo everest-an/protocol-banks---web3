@@ -117,6 +117,24 @@ venue's side and is not bypassable; verified by calling it:
 Cannot claim drip because user 0xbf0d7119… does not exist on mainnet.
 ```
 
+**Is there a free path? No — checked exhaustively.**
+
+| Candidate | Verdict |
+|---|---|
+| Testnet faucet without a mainnet account | ✗ refused (live call above) |
+| Depositing testnet USDC via a testnet bridge | ✗ Bridge2 has **no contract** on Arbitrum Sepolia (`eth_getCode` → `0x`); it exists only on Arbitrum One (19,394 bytes of bytecode) |
+| Older advice about an Arbitrum-Sepolia faucet granting 10,000 USDC | ✗ stale, not offered by the venue today |
+
+So one real mainnet deposit (≥ 5 USDC) is genuinely unavoidable. Two ways to
+satisfy it:
+
+1. **Bridge deposit** — send USDC (Arbitrum) + a little ETH for gas to the
+   wallet, then `scripts/fund-hyperliquid.ts`.
+2. **Internal transfer** — if the owner already holds USDC on Hyperliquid
+   mainnet, send ~5 USDC to the wallet *inside* Hyperliquid (no gas, instant).
+   That also makes the address "exist on mainnet", which is all the faucet
+   checks.
+
 **Bugs found and fixed while wiring this up:**
 
 - `POST /api/trading/live/agent-wallet {action:"approve"}` called
