@@ -151,6 +151,48 @@ export function seedState(opts: { demoHistory?: boolean } = {}): TradingState {
   }
 }
 
+/**
+ * Build the ledger for a first-time promotion to live trading.
+ *
+ * The paper ledger must not carry into live — positions, the simulated equity
+ * curve and any pending trade are paper artefacts — so the state is rebuilt
+ * from `seedState`. One field is deliberately carried across: `approvalMode`.
+ * A user who switched manual approval on (the mode the help page recommends
+ * for a first real-money run) must not have it silently flipped back to
+ * "auto" at the exact moment real orders start going out.
+ */
+export function promoteToLiveLedger(current: TradingState, budget: number): TradingState {
+  const now = Date.now()
+  const today = new Date(now).toISOString().slice(0, 10)
+  const next = seedState({ demoHistory: false })
+  return {
+    ...next,
+    mode: "live",
+    approvalMode: current.approvalMode ?? next.approvalMode ?? "auto",
+    account: {
+      ...next.account,
+      budget,
+      tradingWallet: budget,
+      totalEquity: budget,
+      maxLoss: budget,
+    },
+    equity: [{ t: today, v: budget }],
+    positions: [],
+    pendingTrade: null,
+    cash: budget,
+    initialEquity: budget,
+    todayStartEquity: budget,
+    activity: [
+      {
+        time: new Date(now).toISOString(),
+        type: "info",
+        text: `Live account activated with a $${budget.toFixed(2)} trading budget. The agent places real orders through your approved agent wallet — it can trade, never withdraw.`,
+        pnl: null,
+      },
+    ],
+  }
+}
+
 export class TradingStore {
   private state: TradingState | null = null
 

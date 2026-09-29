@@ -21,7 +21,7 @@ import {
   DEFAULT_RISK,
   type RiskConfig,
 } from "./risk"
-import { getStore, getStoreForWallet, seedState, type TradingStore } from "./store"
+import { getStore, getStoreForWallet, promoteToLiveLedger, type TradingStore } from "./store"
 import { persistStateToDb } from "./db-store"
 import { notificationService } from "@/lib/services/notification-service"
 import type { LiveOrderExecutor } from "./live-executor"
@@ -748,27 +748,8 @@ export async function resolveAgentForWallet(
       const st = store.get()
       if (st.mode !== "live") {
         const budget = row.budget_usd && row.budget_usd > 0 ? row.budget_usd : st.account.budget
-        const today = new Date().toISOString().slice(0, 10)
         store.mutate((s) => {
-          const clean = seedState({ demoHistory: false })
-          Object.assign(s, clean)
-          s.mode = "live"
-          s.account.budget = budget
-          s.account.tradingWallet = budget
-          s.account.totalEquity = budget
-          s.account.maxLoss = budget
-          s.initialEquity = budget
-          s.todayStartEquity = budget
-          s.cash = budget
-          s.equity = [{ t: today, v: budget }]
-          s.activity = [
-            {
-              time: new Date().toISOString(),
-              type: "info",
-              text: `Live account activated with a $${budget.toFixed(2)} trading budget. The agent places real orders through your approved agent wallet — it can trade, never withdraw.`,
-              pnl: null,
-            },
-          ]
+          Object.assign(s, promoteToLiveLedger(s, budget))
         })
         // Persist immediately so subsequent DB hydration loads the LIVE ledger
         // instead of overwriting it with the last paper state.
