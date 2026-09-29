@@ -83,6 +83,13 @@ npx tsx -r dotenv/config scripts/testnet-e2e.ts
 | Agent key generation | ✅ keypair created, encrypted at rest |
 | EIP-712 `approveAgent` submission | ✅ Hyperliquid parsed it and named *our* address as the signer |
 | `approveAgent` acceptance | ❌ `"Must deposit before performing actions"` |
+| Asset context / account read (`getAssetContext`, `getUserState`) | ✅ `{"coin":"BTC","index":3,"szDecimals":5,"midPx":84316.5}`, accountValue 0 |
+| IOC order submission (unfunded smoke run) | ✅ **the venue recovered our agent address from the signature** and rejected only on registration: `"User or API Wallet 0xa543… does not exist."` — no price, size or format complaint |
+
+That last row is the strongest pre-funding signal available: the order body parses
+and the L1 signature recovers to the intended agent **on the live venue**, so the
+only thing standing between us and a filled order is funding the account and
+registering the agent.
 
 **The gate:** Hyperliquid requires a funded account before it will accept ANY
 action, including an agent approval — on testnet as well. And testnet funds
