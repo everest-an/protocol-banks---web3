@@ -228,7 +228,7 @@ async function main() {
 
   const openRes = await placeMarketOrder({
     agentWallet,
-    vaultAddress: wallet.address,
+    vaultAddress: null,
     coin,
     isBuy: true,
     sizeUsd,
@@ -250,7 +250,7 @@ async function main() {
   const size = Math.abs(Number(pos.position.szi))
   const closeRes = await placeMarketOrder({
     agentWallet,
-    vaultAddress: wallet.address,
+    vaultAddress: null,
     coin,
     isBuy: Number(pos.position.szi) < 0, // buy to close a short, sell to close a long
     sizeUsd: sizeUsd,

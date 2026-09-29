@@ -315,7 +315,8 @@ export const MIN_ORDER_VALUE_USD = 10
 /** Market IOC order (agent-signed), acting on the user's account. */
 export async function placeMarketOrder(params: {
   agentWallet: Wallet
-  vaultAddress: string
+  /** Vault/subaccount the order acts for; null for a normal account. */
+  vaultAddress: string | null
   coin: string
   isBuy: boolean
   /** Notional in USD, converted to coin size at the aggressive price. */
@@ -368,7 +369,7 @@ export async function placeMarketOrder(params: {
     action,
     nonce,
     signature,
-    vaultAddress: params.vaultAddress.toLowerCase(),
+    vaultAddress: params.vaultAddress ? params.vaultAddress.toLowerCase() : null,
   })
 }
 

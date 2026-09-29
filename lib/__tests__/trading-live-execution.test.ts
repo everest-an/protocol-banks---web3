@@ -8,7 +8,7 @@
 
 import { seedState, type TradingStore } from "@/lib/trading/store"
 import { TradingAgent } from "@/lib/trading/agent"
-import { LiveOrderExecutor, type OrderResult } from "@/lib/trading/live-executor"
+import { LiveOrderExecutor, resolveVaultAddress, type OrderResult } from "@/lib/trading/live-executor"
 import { DEFAULT_RISK } from "@/lib/trading/risk"
 import type { TradingState, PendingTrade } from "@/lib/trading/types"
 
@@ -212,5 +212,31 @@ describe("TradingAgent — live execution", () => {
     const store = stubStore(seedState({ demoHistory: false }))
     const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
     expect(agent.isLive()).toBe(true)
+  })
+})
+
+/**
+ * `vaultAddress` on the Hyperliquid wire means "acting on behalf of a vault or
+ * subaccount" (docs), and the reference implementations omit it for a normal
+ * account. The schema's `hyperliquid_address` is the user's own main account,
+ * so forwarding it verbatim used to claim a vault that does not exist.
+ */
+describe("resolveVaultAddress", () => {
+  const WALLET_LOWER = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+
+  it("returns null when no address is configured", () => {
+    expect(resolveVaultAddress(null, WALLET_LOWER)).toBeNull()
+    expect(resolveVaultAddress(undefined, WALLET_LOWER)).toBeNull()
+    expect(resolveVaultAddress("", WALLET_LOWER)).toBeNull()
+  })
+
+  it("returns null when the address is the user's own account", () => {
+    expect(resolveVaultAddress(WALLET_LOWER, WALLET_LOWER)).toBeNull()
+    expect(resolveVaultAddress(WALLET_LOWER.toUpperCase(), WALLET_LOWER)).toBeNull()
+  })
+
+  it("passes through a genuinely different vault/subaccount address", () => {
+    const vault = "0x9999999999999999999999999999999999999999"
+    expect(resolveVaultAddress(vault, WALLET_LOWER)).toBe(vault)
   })
 })

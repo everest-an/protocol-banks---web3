@@ -733,10 +733,13 @@ export async function resolveAgentForWallet(
     })
 
     if (row && row.status === "live" && row.agent_approved) {
-      const { LiveOrderExecutor } = await import("./live-executor")
+      const { LiveOrderExecutor, resolveVaultAddress } = await import("./live-executor")
       const executor = new LiveOrderExecutor({
         walletAddress: key,
-        vaultAddress: row.hyperliquid_address ?? key,
+        // `vaultAddress` on the wire means "acting for a vault/subaccount"; a
+        // normal account sends nothing, so the user's own main account is not
+        // forwarded here (see resolveVaultAddress).
+        vaultAddress: resolveVaultAddress(row.hyperliquid_address, key),
       })
       const store = getStoreForWallet(key)
       const agent = new TradingAgent(store, DEFAULT_RISK, key, { mode: "live", executor })

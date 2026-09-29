@@ -28,8 +28,28 @@ export type OrderResult =
 export interface LiveExecutorContext {
   /** The user's wallet address (owner of the TradingAccount). */
   walletAddress: string
-  /** The account that trades on Hyperliquid (defaults to the wallet address). */
-  vaultAddress: string
+  /**
+   * The account that trades on Hyperliquid — a vault or subaccount address, or
+   * null for a normal account (see resolveVaultAddress).
+   */
+  vaultAddress: string | null
+}
+
+/**
+ * Hyperliquid's `vaultAddress` means "trading on behalf of a vault or
+ * subaccount" — the Python SDK defaults it to None and CCXT to undefined for a
+ * normal account, and both sign it into the action digest. Forwarding the
+ * user's own main account (which is what `hyperliquid_address` means, per the
+ * schema: "user's Hyperliquid main account (defaults to wallet_address)") would
+ * claim to act for a vault that does not exist, so only a genuinely different
+ * account is passed through.
+ */
+export function resolveVaultAddress(
+  hyperliquidAddress: string | null | undefined,
+  walletAddress: string,
+): string | null {
+  if (!hyperliquidAddress) return null
+  return hyperliquidAddress.toLowerCase() === walletAddress.toLowerCase() ? null : hyperliquidAddress
 }
 
 export class LiveOrderExecutor {
@@ -39,7 +59,7 @@ export class LiveOrderExecutor {
   constructor(ctx: LiveExecutorContext) {
     this.ctx = {
       walletAddress: ctx.walletAddress.toLowerCase(),
-      vaultAddress: ctx.vaultAddress.toLowerCase(),
+      vaultAddress: ctx.vaultAddress ? ctx.vaultAddress.toLowerCase() : null,
     }
   }
 
