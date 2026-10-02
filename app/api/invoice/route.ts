@@ -171,7 +171,11 @@ export const PATCH = withAuth(async (request: NextRequest, callerAddress: string
     }
 
     if (txHash) updateData.tx_hash = txHash
-    if (paidBy) updateData.paid_by = paidBy
+    // The Invoice model has no `paid_by` column: writing one makes Prisma reject
+    // the whole update ("Unknown argument `paid_by`") and the endpoint answers
+    // 500 — i.e. marking an invoice paid failed for any caller that supplied the
+    // payer. The payer address belongs on `customer_wallet`.
+    if (paidBy) updateData.customer_wallet = paidBy
     if (status === "paid") updateData.paid_at = new Date()
 
     const invoice = await prisma.invoice.update({
