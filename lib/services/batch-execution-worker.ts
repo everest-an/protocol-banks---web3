@@ -25,7 +25,10 @@ const CONCURRENCY: Record<string, number> = {
   DEFAULT: 5,
 }
 
-// Chain name → EVM chain ID mapping
+// Chain name → EVM chain ID mapping.
+//
+// Keep this aligned with lib/networks.ts (the app supports testnets there); a
+// name missing here used to fall through to mainnet.
 const CHAIN_ID_BY_NAME: Record<string, number> = {
   ethereum: 1,
   base: 8453,
@@ -33,6 +36,7 @@ const CHAIN_ID_BY_NAME: Record<string, number> = {
   arbitrum: 42161,
   optimism: 10,
   bsc: 56,
+  sepolia: 11155111,
   tron: 728126428,
 }
 
@@ -184,7 +188,14 @@ async function processItem(
 
   try {
     // Execute the payment via Go payout-engine (or TypeScript fallback)
-    const chainId = CHAIN_ID_BY_NAME[item.chain.toLowerCase()] ?? 1
+    //
+    // Never default to mainnet. `?? 1` silently sent every unrecognised chain
+    // name — testnets included — to Ethereum mainnet, where the relayer would
+    // have moved real funds. An unknown chain now fails the item instead.
+    const chainId = CHAIN_ID_BY_NAME[item.chain.toLowerCase()]
+    if (chainId === undefined) {
+      throw new Error(`Unsupported chain "${item.chain}" — refusing to execute on a default network`)
+    }
     const payout = await goServicesBridge.executePayout({
       from_address: fromAddress,
       to_address: item.recipient,

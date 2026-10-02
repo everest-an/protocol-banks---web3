@@ -57,6 +57,16 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       decimals: 18,
     },
   },
+  // Sepolia (testnet) — Circle's official testnet USDC. EIP-3009 capable, so the
+  // payout path can be exercised end to end against a real chain without funds.
+  11155111: {
+    USDC: {
+      address: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      name: "USD Coin",
+      version: "2",
+      decimals: 6,
+    },
+  },
   // Polygon
   137: {
     USDC: {

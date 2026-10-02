@@ -8,10 +8,11 @@ import * as protoLoader from '@grpc/proto-loader';
 import path from 'path';
 import { createPublicClient, createWalletClient, http, parseAbi, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { mainnet, polygon, base, arbitrum, optimism, bsc, type Chain } from 'viem/chains';
+import { mainnet, polygon, base, arbitrum, optimism, bsc, sepolia, type Chain } from 'viem/chains';
 import { getCircuitBreaker, CircuitBreakerOpenError } from './circuit-breaker';
 import { HealthMonitorService } from './health-monitor-service';
 import { ERC3009_TOKENS } from '../erc3009';
+import { EVM_NETWORKS } from '../networks';
 
 // ============================================
 // Types
@@ -55,6 +56,7 @@ const CHAIN_BY_ID: Record<number, Chain> = {
   42161: arbitrum,
   10: optimism,
   56: bsc,
+  11155111: sepolia,
 }
 
 const ERC20_ABI = parseAbi([
@@ -225,8 +227,13 @@ export class GoServicesBridge {
 
     try {
       const account = privateKeyToAccount(privateKey as `0x${string}`);
-      const walletClient = createWalletClient({ account, chain, transport: http() });
-      const publicClient = createPublicClient({ chain, transport: http() });
+      // Use the app's own RPC configuration instead of viem's public default:
+      // the default endpoint for sepolia (drpc.org) answers 400, while
+      // EVM_NETWORKS already carries a working URL per chain.
+      const rpcUrl = Object.values(EVM_NETWORKS).find((n) => n.chainId === request.chain_id)?.rpcUrl
+      const transport = rpcUrl ? http(rpcUrl) : http()
+      const walletClient = createWalletClient({ account, chain, transport });
+      const publicClient = createPublicClient({ chain, transport });
 
       const amountInUnits = parseUnits(request.amount, tokenInfo.decimals);
 

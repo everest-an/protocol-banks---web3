@@ -39,7 +39,7 @@ export const EVM_NETWORKS: Record<string, NetworkConfig> = {
     type: "EVM",
     chainId: 11155111,
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    rpcUrl: "https://rpc.sepolia.org",
+    rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
     blockExplorer: "https://sepolia.etherscan.io",
     isTestnet: true,
   },
