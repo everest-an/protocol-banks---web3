@@ -81,8 +81,12 @@ export class BillingService {
    */
   async getPlanByName(name: string): Promise<SubscriptionPlan | null> {
     try {
-      const data = await prisma.subscriptionPlan.findUnique({
-        where: { name }
+      // The catalogue stores slugs ('free', 'pro'), while callers ask for
+      // 'Free'. `findUnique` matches exactly, so a seeded catalogue still
+      // answered "Free plan not found in database" and every subscription call
+      // 500'd. Match case-insensitively instead.
+      const data = await prisma.subscriptionPlan.findFirst({
+        where: { name: { equals: name, mode: "insensitive" } },
       });
       return data as unknown as SubscriptionPlan;
     } catch (error) {
