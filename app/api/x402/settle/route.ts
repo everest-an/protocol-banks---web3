@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { withAuth } from "@/lib/middleware/api-auth"
+import { verifyErc20TransferOnChain } from "@/lib/x402/onchain-verify"
 
 // Base chain ID for CDP settlement (0 fee)
 const BASE_CHAIN_ID = 8453
@@ -29,6 +30,33 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
 
     if (!authorizationId || !transactionHash || !chainId || !amount || !from || !to) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    // Prove the settlement on-chain before recording it. This endpoint used to
+    // trust `transactionHash` as given, so any caller with a SIWE session could
+    // book a "completed" settlement (and flag the authorization settled) without
+    // a transaction existing.
+    const onchain = await verifyErc20TransferOnChain({
+      chainId,
+      txHash: transactionHash,
+      tokenSymbol: token,
+      from,
+      to,
+      amount,
+    })
+    if (!onchain.ok) {
+      return NextResponse.json(
+        { error: `Transaction does not prove this settlement: ${onchain.reason}` },
+        { status: 400 },
+      )
+    }
+
+    // Replay protection: one transaction may back only one settlement.
+    const alreadySettled = await prisma.x402Settlement.findFirst({
+      where: { transaction_hash: transactionHash },
+    })
+    if (alreadySettled) {
+      return NextResponse.json({ error: "Transaction hash already settled" }, { status: 409 })
     }
 
     // Check if using Base chain (CDP settlement - 0 fee)

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { verifyErc20TransferOnChain } from "@/lib/x402/onchain-verify"
 
 /**
  * x402 Protocol - Payment Verification Endpoint
@@ -78,6 +79,39 @@ export async function POST(request: NextRequest): Promise<NextResponse<X402Verif
         status: "expired",
         message: "Authorization has expired",
       })
+    }
+
+    // Prove the claim on-chain before granting anything. Without this the
+    // endpoint trusted any 64-hex string, marked the payment completed, and
+    // /execute released the paid resource on that status alone.
+    const onchain = await verifyErc20TransferOnChain({
+      chainId: auth.chain_id,
+      txHash,
+      tokenSymbol: auth.token,
+      from: auth.from_address,
+      to: auth.payment_address,
+      amount: auth.amount,
+    })
+    if (!onchain.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          verified: false,
+          error: `Transaction does not prove this payment: ${onchain.reason}`,
+        },
+        { status: 400 },
+      )
+    }
+
+    // Replay protection: one transaction may settle only one authorization.
+    const replayed = await prisma.x402Authorization.findFirst({
+      where: { tx_hash: txHash, status: "completed", NOT: { id: auth.id } },
+    })
+    if (replayed) {
+      return NextResponse.json(
+        { success: false, verified: false, error: "Transaction hash already used for another payment" },
+        { status: 409 },
+      )
     }
 
     // Update authorization with transaction hash and mark as completed
