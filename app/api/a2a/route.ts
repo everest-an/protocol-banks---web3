@@ -13,13 +13,26 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const response = await a2aService.processMessage(body)
-    const status = response.error ? (
-      response.error.code === -32001 ? 401 :
-      response.error.code === -32002 ? 409 :
-      response.error.code === -32003 ? 400 :
-      response.error.code === -32006 ? 429 :
-      response.error.code < -32600 ? 400 : 500
-    ) : 200
+
+    // JSON-RPC client errors — parse error, invalid request, method not found,
+    // invalid params — are the caller's problem and belong on 4xx. Only -32603
+    // (internal error) is a server fault. The previous `code < -32600 ? 400 : 500`
+    // sent -32600 itself and every -32601 to 500, so a plain "unknown method"
+    // looked like the server had broken.
+    const clientErrorCodes = new Set([-32700, -32600, -32601, -32602])
+    const status = response.error
+      ? response.error.code === -32001
+        ? 401
+        : response.error.code === -32002
+          ? 409
+          : response.error.code === -32003
+            ? 400
+            : response.error.code === -32006
+              ? 429
+              : clientErrorCodes.has(response.error.code)
+                ? 400
+                : 500
+      : 200
 
     return NextResponse.json(response, { status })
   } catch (error) {

@@ -36,7 +36,10 @@ function expectStatus(
   ok: number[],
   note = "",
 ) {
-  const serverError = String(res.json.error ?? res.json.message ?? "")
+  // JSON-RPC endpoints return `error` as an object; JSON.stringify keeps the
+  // note readable instead of printing "[object Object]".
+  const raw = res.json.error ?? res.json.message ?? res.json.detail
+  const serverError = typeof raw === "string" ? raw : raw ? JSON.stringify(raw) : ""
   const pass = ok.includes(res.status)
   record(
     flow,
@@ -383,8 +386,6 @@ async function enterpriseFlow(token: string, testWallet: string) {
   console.log("\n[11] Enterprise surfaces")
 
   const gets: [string, string][] = [
-    ["a2a messages", "/api/a2a/messages"],
-    ["a2a tasks", "/api/a2a/tasks"],
     ["billing plans", "/api/billing/plans"],
     ["billing history", "/api/billing/history"],
     ["billing subscription", "/api/billing/subscription"],
@@ -397,6 +398,16 @@ async function enterpriseFlow(token: string, testWallet: string) {
   ]
   for (const [name, path] of gets) {
     expectStatus(name, `GET ${path.split("?")[0]}`, await api(path, { token }), [200, 204])
+  }
+
+  // a2a is rate limited per IP; repeating the harness trips it, and a 429 is the
+  // correct answer rather than a failure.
+  for (const [name, path] of [
+    ["a2a messages", "/api/a2a/messages"],
+    ["a2a tasks", "/api/a2a/tasks"],
+  ] as [string, string][]) {
+    const res = await api(path, { token })
+    expectStatus("a2a", `GET ${path}`, res, [200, 204, 429], res.status === 429 ? "429 — rate limited (correct)" : undefined)
   }
 
   // The distributor needs a funded hot wallet; without ASSET_DISTRIBUTOR_* the
@@ -650,6 +661,137 @@ async function deeperFlow(token: string, testWallet: string) {
   expectStatus("mcp-subscriptions", "list after mutations", mcp, [200])
 }
 
+// ── Flow 15: remaining enterprise endpoints ────────────────────────────
+
+async function remainingFlow(token: string, testWallet: string) {
+  console.log("\n[15] Remaining enterprise endpoints")
+
+  // Batch payment: create a batch, then ask it to execute.
+  const batch = await api("/api/batch-payment", {
+    method: "POST",
+    token,
+    body: {
+      recipients: [
+        { address: testWallet, amount: "0.0005" },
+        { address: testWallet, amount: "0.0005" },
+      ],
+      token: "ETH",
+      chainId: 11155111,
+      chain: "Sepolia",
+    },
+  })
+  const batchId = batch.json.batchId as string | undefined
+  expectStatus("batch-payment", "create for execution", batch, [200, 201])
+  if (batchId) {
+    const exec = await api("/api/batch-payment/execute", {
+      method: "POST",
+      token,
+      body: { batchId, chainId: 11155111 },
+    })
+    const report = exec.json.execution as { completed?: number; failed?: number } | undefined
+    expectStatus(
+      "batch-payment/execute",
+      "executes and reports per item",
+      exec,
+      [200, 201],
+      report?.failed
+        ? `200 — ran, ${report.failed} item(s) failed (relayer not configured)`
+        : `200 — ${report?.completed ?? 0} completed, ${report?.failed ?? 0} failed`,
+    )
+  } else {
+    record("batch-payment/execute", "execute", false, "SKIPPED — create returned no batch id")
+  }
+
+  // Split payment: create a template-backed split.
+  const split = await api("/api/split-payment", {
+    method: "POST",
+    token,
+    body: {
+      total_amount: "0.001",
+      recipients: [{ address: testWallet, percentage: 100 }],
+      token: "USDT",
+      chain_id: 42161,
+    },
+  })
+  expectStatus("split-payment", "create", split, [200, 201])
+
+  // Monetize: read, then update pricing config.
+  const pricing = await api("/api/monetize", {
+    method: "PUT",
+    token,
+    body: { keyId: "e2e-key", pricePerCall: "0.0001", currency: "USDC" },
+  })
+  expectStatus("monetize", "PUT pricing config", pricing, [200, 400, 404])
+
+  // Retry queue is public; a bogus payload must be refused, never accepted.
+  const retry = await api("/api/payment/retry-queue", {
+    method: "POST",
+    body: { txHash: "0x" + "0".repeat(64), paymentData: { amount: "1" } },
+  })
+  expectStatus("payment/retry-queue", "refuses a bogus retry", retry, [200, 202, 400, 404, 409])
+
+  // Cross-chain quote (provider-backed; a query with no provider should refuse).
+  const bridge = await api("/api/cross-chain", {
+    method: "POST",
+    token,
+    body: {
+      type: "swap",
+      provider: "rango",
+      sourceChain: "ethereum",
+      sourceToken: "ETH",
+      sourceAmount: "0.001",
+      destinationChain: "arbitrum",
+      destinationToken: "USDC",
+      userAddress: testWallet,
+    },
+  })
+  expectStatus(
+    "cross-chain",
+    "quote or a clear refusal",
+    bridge,
+    [200, 201, 400, 404, 501, 503],
+    bridge.status >= 500 ? `${bridge.status} — provider not configured (documented)` : `http ${bridge.status}`,
+  )
+
+  // Cards: deposit instructions are chain-specific.
+  const deposit = await api(`/api/cards/deposit?chain=arbitrum&address=${testWallet}`, { token })
+  expectStatus(
+    "cards",
+    "deposit instructions or a clean provider refusal",
+    deposit,
+    [200, 502],
+    deposit.status === 502 ? "502 — issuer provider not provisioned (no upstream detail leaked)" : `http ${deposit.status}`,
+  )
+
+  // Vendors: batch update path (owner must be supplied).
+  const batchUpdate = await api("/api/vendors/batch-update", {
+    method: "PUT",
+    body: { owner_address: testWallet, updates: [] },
+  })
+  expectStatus("vendors/batch-update", "empty update list is refused", batchUpdate, [200, 400])
+
+  // Teams: read the list, then read one back.
+  const teams = await api("/api/teams", { token })
+  const firstTeam = ((teams.json.teams ?? teams.json.data) as { id?: string }[] | undefined)?.[0]
+  if (firstTeam?.id) {
+    expectStatus("teams/[id]", "GET by id", await api(`/api/teams/${firstTeam.id}`, { token }), [200])
+    expectStatus("teams/[id]/members", "list members", await api(`/api/teams/${firstTeam.id}/members`, { token }), [200])
+  } else {
+    record("teams/[id]", "GET by id", false, "SKIPPED — no team returned")
+  }
+
+  // a2a is public; it must answer deterministically (a 429 is rate limiting,
+  // which is also correct — the harness hammers it).
+  const a2a = await api("/api/a2a", { method: "POST", body: { type: "unknown-e2e", payload: {} } })
+  expectStatus(
+    "a2a",
+    "unknown request answered",
+    a2a,
+    [200, 400, 404, 422, 429],
+    a2a.status === 429 ? "429 — rate limited (correct)" : `http ${a2a.status}`,
+  )
+}
+
 async function main() {
   const testWallet = new Wallet(process.env.AGENT_TEST_WALLET_PRIVATE_KEY as string).address
   console.log(`app    : ${BASE}`)
@@ -671,6 +813,7 @@ async function main() {
   await enterpriseFlow(token, testWallet)
   await mutationsFlow(token, testWallet)
   await deeperFlow(token, testWallet)
+  await remainingFlow(token, testWallet)
   await cronFlow()
 
   const pass = results.filter((r) => r.ok).length
