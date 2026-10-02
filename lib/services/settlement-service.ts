@@ -117,11 +117,16 @@ export async function createSettlement(
   }
 
   // 4. Generate settlement ID
+  //
+  // The sequence must be scoped to the ID prefix, not to this exact
+  // period_start: two settlements for the same day but different windows both
+  // counted zero and both minted `STL-<date>-001`, so the second create died on
+  // the unique constraint (500). Counting the prefix keeps the id unique across
+  // users and windows.
   const dateStr = params.periodStart.toISOString().slice(0, 10).replace(/-/g, "")
   const count = await prisma.settlementRecord.count({
     where: {
-      user_address: params.userAddress,
-      period_start: params.periodStart,
+      settlement_id: { startsWith: `STL-${dateStr}-` },
     },
   })
   const settlementId = `STL-${dateStr}-${(count + 1).toString().padStart(3, "0")}`

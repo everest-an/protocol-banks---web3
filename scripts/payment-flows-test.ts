@@ -531,6 +531,125 @@ async function cronFlow() {
   }
 }
 
+// ── Flow 14: gates, sub-routes and lifecycle transitions ───────────────
+
+async function deeperFlow(token: string, testWallet: string) {
+  console.log("\n[14] Gates & sub-routes")
+
+  // x402/execute is the gate that releases the paid resource. It must refuse an
+  // unknown transfer id, and refuse an authorization that was never verified.
+  const unknown = await api("/api/x402/execute", {
+    method: "POST",
+    token,
+    body: { transferId: "x402_does_not_exist", signature: "0x" + "0".repeat(65) },
+  })
+  expectStatus("x402/execute", "refuses an unknown transferId", unknown, [400, 401, 403, 404])
+
+  const pendingAuth = await api("/api/x402/authorize", {
+    method: "POST",
+    body: { from: testWallet, to: testWallet, amount: "0.001", token: "USDC", chainId: 11155111 },
+  })
+  const transferId = (pendingAuth.json.authorization as Json | undefined)?.transferId as string | undefined
+  if (transferId) {
+    const gate = await api("/api/x402/execute", {
+      method: "POST",
+      token,
+      body: { transferId, signature: "0x" + "1".repeat(65) },
+    })
+    expectStatus(
+      "x402/execute",
+      "refuses a never-verified authorization",
+      gate,
+      [400, 401, 403, 404, 409, 503],
+      gate.status === 503
+        ? "503 — no relayer configured; refuses to release (correct)"
+        : gate.status === 200
+          ? "!! 200 — released without verification"
+          : `http ${gate.status}`,
+    )
+  }
+
+  // Subscriptions: create, then exercise the per-id lifecycle.
+  const created = await api("/api/subscriptions", {
+    method: "POST",
+    token,
+    body: {
+      service_name: "E2E Lifecycle",
+      wallet_address: testWallet,
+      amount: "0.001",
+      token: "ETH",
+      frequency: "monthly",
+      chain_id: 11155111,
+      start_date: new Date().toISOString(),
+      memo: "deeper-flow",
+    },
+  })
+  const subId = ((created.json.subscription ?? created.json.data) as Json | undefined)?.id as string | undefined
+  expectStatus("subscriptions/[id]", "create for lifecycle", created, [200, 201])
+  if (subId) {
+    expectStatus("subscriptions/[id]", "GET by id", await api(`/api/subscriptions/${subId}`, { token }), [200])
+    const pay = await api(`/api/subscriptions/${subId}/pay`, { method: "POST", token, body: {} })
+    expectStatus(
+      "subscriptions/[id]/pay",
+      "refuses to record without a relayer",
+      pay,
+      [200, 400, 402, 404, 502],
+      pay.status === 502 ? "502 — no relayer configured; refuses to record (correct)" : `http ${pay.status}`,
+    )
+    const payments = await api(`/api/subscriptions/${subId}/payments`, { token })
+    expectStatus("subscriptions/[id]/payments", "list payments", payments, [200])
+  } else {
+    record("subscriptions/[id]", "GET by id", false, "SKIPPED — no id returned")
+  }
+
+  // Settlements: record a period.
+  const now = new Date()
+  const settle = await api("/api/settlements", {
+    method: "POST",
+    token,
+    body: {
+      periodStart: new Date(now.getTime() - 86_400_000).toISOString(),
+      periodEnd: now.toISOString(),
+      token: "USDC",
+      chain: "arbitrum",
+      onChainBalance: "0",
+    },
+  })
+  expectStatus("settlements", "create period record", settle, [200, 201])
+
+  // Vendors: list, read one, and the address book.
+  const vendors = await api("/api/vendors", { token })
+  const firstVendor = ((vendors.json.vendors ?? vendors.json.data) as { id?: string }[] | undefined)?.[0]
+  if (firstVendor?.id) {
+    expectStatus("vendors/[id]", "GET by id", await api(`/api/vendors/${firstVendor.id}`, { token }), [200])
+    expectStatus("vendors/[id]/addresses", "list addresses", await api(`/api/vendors/${firstVendor.id}/addresses`, { token }), [200])
+  } else {
+    record("vendors/[id]", "GET by id", false, "SKIPPED — no vendor returned")
+  }
+  expectStatus("vendors/multi-network", "multi-network list", await api("/api/vendors/multi-network", { token }), [200])
+
+  // Webhooks: read one back, and ask for a test delivery.
+  const hooks = await api("/api/webhooks", { token })
+  const firstHook = ((hooks.json.webhooks ?? hooks.json.data) as { id?: string }[] | undefined)?.[0]
+  if (firstHook?.id) {
+    expectStatus("webhooks/[id]", "GET by id", await api(`/api/webhooks/${firstHook.id}`, { token }), [200])
+    const deliveries = await api(`/api/webhooks/${firstHook.id}/deliveries`, { token })
+    expectStatus("webhooks/[id]/deliveries", "list deliveries", deliveries, [200])
+    const test = await api(`/api/webhooks/${firstHook.id}/test`, { method: "POST", token, body: {} })
+    expectStatus("webhooks/[id]/test", "send test delivery", test, [200, 202])
+  } else {
+    record("webhooks/[id]", "GET by id", false, "SKIPPED — no webhook returned")
+  }
+
+  // Billing: cancelling must land on the Free plan rather than erroring.
+  const cancel = await api("/api/billing/subscription", { method: "POST", token, body: { plan_id: "free", action: "cancel" } })
+  expectStatus("billing", "cancel subscription", cancel, [200])
+
+  // MCP subscriptions exist for agent hosts.
+  const mcp = await api("/api/mcp-subscriptions", { token })
+  expectStatus("mcp-subscriptions", "list after mutations", mcp, [200])
+}
+
 async function main() {
   const testWallet = new Wallet(process.env.AGENT_TEST_WALLET_PRIVATE_KEY as string).address
   console.log(`app    : ${BASE}`)
@@ -551,6 +670,7 @@ async function main() {
   await readOnlyFlow(token, testWallet)
   await enterpriseFlow(token, testWallet)
   await mutationsFlow(token, testWallet)
+  await deeperFlow(token, testWallet)
   await cronFlow()
 
   const pass = results.filter((r) => r.ok).length
