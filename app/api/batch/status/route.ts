@@ -1,7 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuth } from '@/lib/middleware/api-auth';
 
-export async function GET(req: NextRequest) {
+/**
+ * GET /api/batch/status?id=...
+ *
+ * Returns the state of a batch import job — for its owner.
+ *
+ * This endpoint was public and looked the job up by id alone, so any caller
+ * (authenticated or not) who had an id could read another user's job: status,
+ * line counts, chunk breakdown and error text.
+ */
+export const GET = withAuth(async (req, callerAddress) => {
   const searchParams = req.nextUrl.searchParams;
   const jobId = searchParams.get('id');
 
@@ -18,6 +28,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 });
   }
 
+  if (job.user_id.toLowerCase() !== callerAddress.toLowerCase()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   return NextResponse.json({
     id: job.id,
     status: job.status,
@@ -28,4 +42,4 @@ export async function GET(req: NextRequest) {
     createdAt: job.created_at,
     error: job.error_message,
   });
-}
+}, { component: 'batch-status' });
