@@ -47,7 +47,7 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
     if (!distributorAddress || !distributorPrivateKey) {
       return NextResponse.json(
         { error: "Asset distribution not configured. Set ASSET_DISTRIBUTOR_ADDRESS and ASSET_DISTRIBUTOR_PRIVATE_KEY." },
-        { status: 500 },
+        { status: 503 },
       )
     }
 
@@ -149,7 +149,9 @@ export async function GET(request: NextRequest) {
 
     const distributorAddress = process.env.ASSET_DISTRIBUTOR_ADDRESS
     if (!distributorAddress) {
-      return NextResponse.json({ error: "Distribution not configured" }, { status: 500 })
+      // Feature not provisioned is not a server crash: 503 keeps monitoring from
+    // reading a missing distributor wallet as an error in our code.
+    return NextResponse.json({ error: "Distribution not configured" }, { status: 503 })
     }
 
     const result = await checkAssetAvailability({

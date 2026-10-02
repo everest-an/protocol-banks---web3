@@ -377,6 +377,80 @@ async function readOnlyFlow(token: string, testWallet: string) {
   }
 }
 
+// ── Flow 11: enterprise payment surfaces ──────────────────────────────
+
+async function enterpriseFlow(token: string, testWallet: string) {
+  console.log("\n[11] Enterprise surfaces")
+
+  const gets: [string, string][] = [
+    ["a2a messages", "/api/a2a/messages"],
+    ["a2a tasks", "/api/a2a/tasks"],
+    ["billing plans", "/api/billing/plans"],
+    ["billing history", "/api/billing/history"],
+    ["billing subscription", "/api/billing/subscription"],
+    ["cards", "/api/cards"],
+    ["mcp subscriptions", "/api/mcp-subscriptions"],
+    ["monetize", "/api/monetize"],
+    ["payment groups", "/api/payment-groups"],
+    ["risk", "/api/risk"],
+    ["teams", "/api/teams"],
+  ]
+  for (const [name, path] of gets) {
+    expectStatus(name, `GET ${path.split("?")[0]}`, await api(path, { token }), [200, 204])
+  }
+
+  // The distributor needs a funded hot wallet; without ASSET_DISTRIBUTOR_* the
+  // endpoint reports 503 (not provisioned) rather than a fake 200.
+  const arbUsdc = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+  const distribute = await api(
+    `/api/distribute-asset?recipientAddress=${testWallet}&contractAddress=${arbUsdc}&assetType=token&chainId=42161`,
+    { token },
+  )
+  expectStatus(
+    "distribute-asset",
+    "GET with real parameters",
+    distribute,
+    [200, 503],
+    distribute.status === 503 ? "503 — ASSET_DISTRIBUTOR_* not configured (feature not provisioned)" : `http ${distribute.status}`,
+  )
+
+  const team = await api("/api/teams", {
+    method: "POST",
+    token,
+    body: { name: "E2E Team", description: "payment-flows-test" },
+  })
+  expectStatus("teams", "create", team, [200, 201])
+
+  const group = await api("/api/payment-groups", {
+    method: "POST",
+    token,
+    body: { name: "E2E Group", owner_address: testWallet, purpose: "payment-flows-test" },
+  })
+  expectStatus("payment-groups", "create", group, [200, 201])
+
+  const quote = await api("/api/offramp/quote", {
+    method: "POST",
+    token,
+    body: { amount: "10", sourceToken: "USDC", sourceChain: "ethereum", targetCurrency: "USD" },
+  })
+  expectStatus("offramp", "quote", quote, [200])
+
+  // Subscribe to a real plan, so the check is against live catalogue data.
+  const plans = await api("/api/billing/plans", { token })
+  const firstPlan = ((plans.json.plans ?? plans.json.data) as { id?: string }[] | undefined)?.[0]
+  const planId = (firstPlan as { id?: string } | undefined)?.id ?? (firstPlan as { plan_id?: string } | undefined)?.plan_id
+  if (planId) {
+    const sub = await api("/api/billing/subscription", {
+      method: "POST",
+      token,
+      body: { plan_id: planId, action: "subscribe" },
+    })
+    expectStatus("billing", `subscribe to ${planId}`, sub, [200, 201])
+  } else {
+    record("billing", "subscribe", false, "SKIPPED — no plan returned by /api/billing/plans")
+  }
+}
+
 async function main() {
   const testWallet = new Wallet(process.env.AGENT_TEST_WALLET_PRIVATE_KEY as string).address
   console.log(`app    : ${BASE}`)
@@ -395,6 +469,7 @@ async function main() {
   await webhooksFlow(token)
   await acquiringFlow(token, testWallet)
   await readOnlyFlow(token, testWallet)
+  await enterpriseFlow(token, testWallet)
 
   const pass = results.filter((r) => r.ok).length
   const fail = results.filter((r) => !r.ok)
