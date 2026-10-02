@@ -38,12 +38,17 @@ export async function POST(request: NextRequest) {
       const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
       const isValid = verifyWebhookSignature(payloadStr, signature, secret);
 
-      return NextResponse.json({
-        valid: isValid,
-        message: isValid
-          ? 'Signature is valid'
-          : 'Signature verification failed. The payload may have been tampered with or the secret is incorrect.',
-      });
+      // Same rule as the header mode below: a forged signature must not come
+      // back as 200, or a caller checking only `res.ok` accepts it as genuine.
+      return NextResponse.json(
+        {
+          valid: isValid,
+          message: isValid
+            ? 'Signature is valid'
+            : 'Signature verification failed. The payload may have been tampered with or the secret is incorrect.',
+        },
+        { status: isValid ? 200 : 401 }
+      );
     }
 
     // Mode 2: Raw body with signature in headers (simulating real webhook receipt)
@@ -63,12 +68,18 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
     const isValid = verifyWebhookSignature(rawBody, signature, secret);
 
-    return NextResponse.json({
-      valid: isValid,
-      message: isValid
-        ? 'Signature is valid'
-        : 'Signature verification failed',
-    });
+    // A failed verification must not answer 200. The body already said
+    // `valid: false`, but any caller that checks only the status code (the
+    // common `if (res.ok)` shape) would treat a forged signature as genuine.
+    return NextResponse.json(
+      {
+        valid: isValid,
+        message: isValid
+          ? 'Signature is valid'
+          : 'Signature verification failed',
+      },
+      { status: isValid ? 200 : 401 }
+    );
   } catch (error: any) {
     console.error('[Webhook Verify] Error:', error);
     return NextResponse.json(

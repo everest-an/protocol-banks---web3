@@ -51,12 +51,18 @@ export const GET = withAuth(async (request: NextRequest, callerAddress: string) 
   }
 
   // Determine network and API URL
+  //
+  // Etherscan retired V1: every call to it now answers
+  // "You are using a deprecated V1 endpoint", which is why transaction history
+  // failed for everyone. V2 serves all chains from one host and selects the
+  // chain with a `chainid` parameter (one key covers all of them).
   const isSepolia = chainId === "11155111"
-  const baseUrl = isSepolia ? "https://api-sepolia.etherscan.io/api" : "https://api.etherscan.io/api"
+  const baseUrl = "https://api.etherscan.io/v2/api"
 
   try {
     // Fetch ERC20 token transfer events
     const params = new URLSearchParams({
+      chainid: chainId ?? "1",
       module: "account",
       action: "tokentx",
       address: addressValidation.checksummed!, // Use checksummed address
@@ -70,7 +76,16 @@ export const GET = withAuth(async (request: NextRequest, callerAddress: string) 
     const data = await response.json()
 
     if (data.status === "0" && data.message !== "No transactions found") {
-      throw new Error(data.result || "Failed to fetch transactions")
+      // The explorer failed (rate limit, plan restriction, bad key). That is an
+      // upstream problem, and surfacing it as a 500 tells the caller we broke.
+      // 502 keeps "explorer unavailable" distinguishable from "our bug".
+      return NextResponse.json(
+        {
+          error: "Transaction history is temporarily unavailable",
+          upstream: data.result || data.message || "unknown explorer error",
+        },
+        { status: 502 },
+      )
     }
 
     const transactions = (data.result || []).map((tx: any) => {
