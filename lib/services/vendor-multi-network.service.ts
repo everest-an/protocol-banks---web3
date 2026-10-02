@@ -128,7 +128,11 @@ export async function getVendorWithAddresses(vendorId: string, ownerAddress: str
   const vendor = await prisma.vendor.findFirst({
     where: {
       id: vendorId,
-      owner_address: ownerAddress,
+      // Vendors store owner_address checksummed, while callers arrive lowercase
+      // (SIWE normalises), and Prisma compares strings case-sensitively — so
+      // every lookup missed and /vendors/:id/addresses answered 404 for vendors
+      // that plainly exist. Match the way the vendors list already does.
+      owner_address: { equals: ownerAddress, mode: "insensitive" },
     },
     include: {
       addresses: {
@@ -167,7 +171,7 @@ export async function getVendorWithAddresses(vendorId: string, ownerAddress: str
  */
 export async function listVendorsWithAddresses(ownerAddress: string): Promise<VendorWithAddresses[]> {
   const vendors = await prisma.vendor.findMany({
-    where: { owner_address: ownerAddress },
+    where: { owner_address: { equals: ownerAddress, mode: "insensitive" } },
     include: {
       addresses: {
         orderBy: [{ is_primary: "desc" }, { network: "asc" }],
@@ -212,9 +216,9 @@ export async function addVendorAddress(
     isPrimary?: boolean
   }
 ): Promise<VendorAddress> {
-  // Verify ownership
+  // Verify ownership (case-insensitive: see getVendorWithAddresses)
   const vendor = await prisma.vendor.findFirst({
-    where: { id: vendorId, owner_address: ownerAddress },
+    where: { id: vendorId, owner_address: { equals: ownerAddress, mode: "insensitive" } },
   })
 
   if (!vendor) {
