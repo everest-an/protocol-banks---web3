@@ -278,6 +278,105 @@ async function splitFlow(token: string, testWallet: string) {
   expectStatus("split-payment", "templates", templates, [200])
 }
 
+// ── Flow 6: payments core + refund ─────────────────────────────────────
+
+async function paymentsFlow(token: string) {
+  console.log("\n[6] Payments — list, stats, refund guard")
+  expectStatus("payments", "list", await api("/api/payments", { token }), [200])
+  expectStatus("payments", "stats", await api("/api/payments/stats", { token }), [200])
+  const refund = await api("/api/payments/refund", {
+    method: "POST",
+    token,
+    body: { paymentId: "00000000-0000-0000-0000-000000000000", amount: "0.001", reason: "e2e" },
+  })
+  expectStatus("payments", "refund rejects an unknown payment", refund, [400, 404])
+}
+
+// ── Flow 7: vendors ────────────────────────────────────────────────────
+
+async function vendorsFlow(token: string, testWallet: string) {
+  console.log("\n[7] Vendors — create → list")
+  const created = await api("/api/vendors", {
+    method: "POST",
+    token,
+    body: { name: "E2E Vendor", wallet_address: testWallet, email: "vendor@example.com" },
+  })
+  expectStatus("vendors", "create", created, [200, 201])
+  expectStatus("vendors", "list", await api("/api/vendors", { token }), [200])
+}
+
+// ── Flow 8: webhooks ───────────────────────────────────────────────────
+
+async function webhooksFlow(token: string) {
+  console.log("\n[8] Webhooks — create → list → signature check")
+  const created = await api("/api/webhooks", {
+    method: "POST",
+    token,
+    body: {
+      name: "E2E Hook",
+      url: "https://example.com/hook",
+      events: ["payment.completed"],
+      retry_count: 3,
+      timeout_ms: 5000,
+    },
+  })
+  expectStatus("webhooks", "create", created, [200, 201])
+  expectStatus("webhooks", "list", await api("/api/webhooks", { token }), [200])
+
+  // A forged signature must never validate.
+  const forged = await api("/api/webhooks/verify", {
+    method: "POST",
+    body: { payload: { hello: "world" }, signature: "deadbeef", secret: "not-the-secret" },
+  })
+  expectStatus("webhooks", "verify rejects a forged signature", forged, [400, 401, 403])
+}
+
+// ── Flow 9: acquiring ──────────────────────────────────────────────────
+
+async function acquiringFlow(token: string, testWallet: string) {
+  console.log("\n[9] Acquiring — merchant → order → link")
+  const merchant = await api("/api/acquiring/merchants", {
+    method: "POST",
+    body: { name: "E2E Merchant", wallet_address: testWallet, callback_url: "https://example.com/cb" },
+  })
+  expectStatus("acquiring", "create merchant", merchant, [200, 201])
+  const merchantId = ((merchant.json.merchant ?? merchant.json.data) as Json | undefined)?.id as string | undefined
+
+  const order = await api("/api/acquiring/orders", {
+    method: "POST",
+    body: { merchantId: merchantId ?? "unknown", amount: "0.001", token: "ETH", chainId: 11155111 },
+  })
+  expectStatus("acquiring", "create order", order, [200, 201])
+
+  const link = await api("/api/acquiring/payment-links", {
+    method: "POST",
+    body: { merchantId: merchantId ?? "unknown", amount: "0.001", token: "ETH", chainId: 11155111 },
+  })
+  expectStatus("acquiring", "create payment link", link, [200, 201])
+}
+
+// ── Flow 10: read-only payment surfaces ────────────────────────────────
+
+async function readOnlyFlow(token: string, testWallet: string) {
+  console.log("\n[10] Read-only payment surfaces")
+  const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+  const until = new Date().toISOString()
+  const probes: [string, string][] = [
+    ["transactions", `/api/transactions?address=${testWallet}`],
+    ["ledger", `/api/ledger?address=${testWallet}`],
+    ["ledger export", `/api/ledger/export?start_date=${since}&end_date=${until}`],
+    ["authorizations", "/api/authorizations"],
+    ["settlements", "/api/settlements"],
+    ["multisig wallets", "/api/multisig/wallets"],
+    ["multisig transactions", `/api/multisig/wallets`],
+    ["yield stats", "/api/yield/stats"],
+    ["yield recommendation", "/api/yield/recommendation"],
+  ]
+  for (const [name, path] of probes) {
+    expectStatus(name, `GET ${path.split("?")[0]}`, await api(path, { token }), [200, 204])
+  }
+}
+
 async function main() {
   const testWallet = new Wallet(process.env.AGENT_TEST_WALLET_PRIVATE_KEY as string).address
   console.log(`app    : ${BASE}`)
@@ -291,6 +390,11 @@ async function main() {
   await subscriptionFlow(token, testWallet)
   await batchFlow(token, testWallet)
   await splitFlow(token, testWallet)
+  await paymentsFlow(token)
+  await vendorsFlow(token, testWallet)
+  await webhooksFlow(token)
+  await acquiringFlow(token, testWallet)
+  await readOnlyFlow(token, testWallet)
 
   const pass = results.filter((r) => r.ok).length
   const fail = results.filter((r) => !r.ok)
