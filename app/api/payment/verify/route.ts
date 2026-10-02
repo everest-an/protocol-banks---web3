@@ -37,13 +37,17 @@ export async function POST(req: NextRequest) {
       .digest("hex")
       .slice(0, 16) // Use first 16 characters for compact URLs
 
-    // Constant-time comparison to prevent timing attacks
-    const valid = crypto.timingSafeEqual(
-      Buffer.from(sig, "utf8"),
-      Buffer.from(expectedSig, "utf8")
-    )
+    // Constant-time comparison to prevent timing attacks.
+    //
+    // timingSafeEqual THROWS on a length mismatch, and the expected signature is
+    // truncated to 16 chars — so every malformed-length signature landed in the
+    // catch block and came back as 500 "Verification failed". An auth endpoint
+    // must answer a refusal, not a server error.
+    const sigBuf = Buffer.from(sig, "utf8")
+    const expectedBuf = Buffer.from(expectedSig, "utf8")
+    const valid = sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf)
 
-    return NextResponse.json({ valid })
+    return NextResponse.json({ valid }, { status: valid ? 200 : 401 })
   } catch (error: any) {
     console.error("[Payment Verify] Error:", error)
     return NextResponse.json(

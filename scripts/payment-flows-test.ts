@@ -451,6 +451,86 @@ async function enterpriseFlow(token: string, testWallet: string) {
   }
 }
 
+// ── Flow 12: mutations ─────────────────────────────────────────────────
+
+async function mutationsFlow(token: string, testWallet: string) {
+  console.log("\n[12] Mutation surfaces")
+
+  // Multisig: reuse the wallet if a previous run created it (409), then propose.
+  const walletRes = await api("/api/multisig/wallets", {
+    method: "POST",
+    token,
+    body: { name: "E2E Safe", address: testWallet, chainId: 11155111, threshold: 1, signers: [testWallet] },
+  })
+  expectStatus("multisig", "create wallet (409 = already exists from a previous run)", walletRes, [200, 201, 409])
+  let walletId = ((walletRes.json.wallet ?? walletRes.json.data) as Json | undefined)?.id as string | undefined
+  if (!walletId) {
+    const list = await api("/api/multisig/wallets", { token })
+    const wallets = (list.json.wallets ?? list.json.data) as { id?: string; address?: string }[] | undefined
+    walletId = wallets?.find((w) => w.address?.toLowerCase() === testWallet.toLowerCase())?.id
+  }
+  if (walletId) {
+    const txRes = await api("/api/multisig/transactions", {
+      method: "POST",
+      token,
+      body: { walletId, to: testWallet, value: "1000000000000000", data: "0x" },
+    })
+    expectStatus("multisig", "propose transaction", txRes, [200, 201])
+  } else {
+    record("multisig", "propose transaction", false, "SKIPPED — no wallet id available")
+  }
+
+  // Yield enforces a 1 USDT minimum, so ask for more than that.
+  const deposit = await api("/api/yield/deposit", {
+    method: "POST",
+    token,
+    body: { merchant: testWallet, network: "arbitrum", amount: "5" },
+  })
+  expectStatus("yield", "deposit validates and accepts", deposit, [200, 201])
+
+  // No deposits exist for this merchant yet, so a 404 is the correct answer.
+  const withdraw = await api("/api/yield/withdraw", {
+    method: "POST",
+    token,
+    body: { merchant: testWallet, network: "arbitrum", amount: "5" },
+  })
+  expectStatus(
+    "yield",
+    "withdraw handles a merchant without deposits",
+    withdraw,
+    [200, 201, 404],
+    withdraw.status === 404 ? "404 — no active deposits (correct)" : `http ${withdraw.status}`,
+  )
+
+  // Signature-gated payment verification must never accept a forged signature.
+  const forged = await api("/api/payment/verify", {
+    method: "POST",
+    body: { to: testWallet, amount: "0.001", token: "ETH", exp: Date.now() + 3_600_000, sig: "0xdeadbeef" },
+  })
+  expectStatus("payment/verify", "rejects a forged signature", forged, [400, 401, 403])
+}
+
+// ── Flow 13: scheduled payment jobs ────────────────────────────────────
+
+async function cronFlow() {
+  console.log("\n[13] Scheduled payment jobs")
+  // Without CRON_SECRET these are open in dev, which is how they are exercised
+  // here; production blocks them (verifyCronAuth).
+  const jobs: [string, string, string][] = [
+    ["execute scheduled payments", "GET", "/api/cron/execute-scheduled-payments"],
+    ["process batch", "GET", "/api/cron/process-batch"],
+    ["retry batch items", "GET", "/api/cron/retry-batch-items"],
+    ["settlement reconciliation", "GET", "/api/cron/settlement-reconciliation"],
+    ["stalled transactions", "GET", "/api/cron/stalled-transactions"],
+    ["subscription billing", "GET", "/api/cron/subscriptions"],
+    ["cleanup idempotency", "GET", "/api/cron/cleanup-idempotency"],
+    ["budget reset", "POST", "/api/cron/budget-reset"],
+  ]
+  for (const [name, method, path] of jobs) {
+    expectStatus("cron", name, await api(path, { method }), [200])
+  }
+}
+
 async function main() {
   const testWallet = new Wallet(process.env.AGENT_TEST_WALLET_PRIVATE_KEY as string).address
   console.log(`app    : ${BASE}`)
@@ -470,6 +550,8 @@ async function main() {
   await acquiringFlow(token, testWallet)
   await readOnlyFlow(token, testWallet)
   await enterpriseFlow(token, testWallet)
+  await mutationsFlow(token, testWallet)
+  await cronFlow()
 
   const pass = results.filter((r) => r.ok).length
   const fail = results.filter((r) => !r.ok)
