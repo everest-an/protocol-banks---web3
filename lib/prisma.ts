@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client'
-import { createScopedPrisma } from '@/lib/rls/scoped-prisma'
+import type { Prisma } from '@prisma/client'
+import { createScopedPrisma, rlsMode } from '@/lib/rls/scoped-prisma'
+import { currentRlsContext, runInsideScopedTx } from '@/lib/rls/context'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
@@ -128,4 +130,30 @@ if (process.env.NODE_ENV !== 'production') {
 // Re-export getClient for backward compatibility
 export function getClient(): PrismaClient {
   return prisma
+}
+
+/**
+ * Run an interactive transaction inside the RLS scope.
+ *
+ * Prisma Client extensions cannot intercept `prisma.$transaction`, so the raw
+ * form would execute its callback unscoped (and, under enforce, nest
+ * transactions). User-context code that needs an interactive transaction must
+ * use this helper — it enters the scope on the transaction before the callback
+ * runs. System paths can keep using `prisma.$transaction` directly.
+ */
+export async function scopedTransaction<T>(
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  options?: { maxWait?: number; timeout?: number }
+): Promise<T> {
+  const ctx = currentRlsContext()
+  if (rlsMode() === 'off' || !ctx || ctx.kind === 'system') {
+    return prisma.$transaction(fn, options)
+  }
+  return prisma.$transaction(async (tx) => {
+    return runInsideScopedTx(async () => {
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE prisma_application`)
+      await tx.$queryRawUnsafe(`SELECT set_config('app.wallet', $1, true)`, ctx.wallet)
+      return fn(tx)
+    })
+  }, options)
 }

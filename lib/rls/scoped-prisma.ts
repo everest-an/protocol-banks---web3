@@ -27,7 +27,7 @@
  * operations are scoped automatically.
  */
 import type { PrismaClient } from "@prisma/client"
-import { currentRlsContext } from "./context"
+import { currentRlsContext, insideScopedTx } from "./context"
 
 export type RlsMode = "off" | "enforce"
 
@@ -68,6 +68,12 @@ export function createScopedPrisma<T extends PrismaClient>(base: T) {
 
         // System paths and the off mode keep full (superuser) access.
         if (rlsMode() === "off" || !ctx || ctx.kind === "system") {
+          return query(args)
+        }
+
+        // Inside a scoped transaction (scopedTransaction helper) the role and
+        // identity are already set; re-wrapping would nest transactions.
+        if (insideScopedTx()) {
           return query(args)
         }
 

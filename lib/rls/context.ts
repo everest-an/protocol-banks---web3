@@ -37,3 +37,18 @@ export function currentWallet(): string | undefined {
   const ctx = storage.getStore()
   return ctx?.kind === "user" ? ctx.wallet : undefined
 }
+
+const scopedTxStorage = new AsyncLocalStorage<true>()
+
+/**
+ * Mark the current async context as running inside an RLS-scoped transaction.
+ * The Prisma hook checks this to avoid wrapping operations again — the
+ * transaction already carries the role and identity.
+ */
+export function runInsideScopedTx<T>(fn: () => T): T {
+  return scopedTxStorage.run(true, fn)
+}
+
+export function insideScopedTx(): boolean {
+  return scopedTxStorage.getStore() === true
+}

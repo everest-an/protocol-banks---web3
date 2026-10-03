@@ -83,7 +83,11 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Perform batch update in a transaction
+    // Perform batch update in a transaction.
+    // rls:system — this route runs outside a user RLS context (no withAuth), so
+    // the plain transaction keeps full access. The transaction guard test
+    // allow-lists this marker. NOTE: identity is currently taken from the
+    // request body's owner_address and should move to withAuth.
     const updatedVendors = await prisma.$transaction(
       updates.map((update) => {
         const { sanitized: sanitizedName } = sanitizeTextInput(update.name)

@@ -65,20 +65,37 @@ Fourteen findings, all fixed and re-verified (`git log` has the detail):
   (billing lookup, vendor owner lookup), a settlement id collision, and a
   retired Etherscan endpoint that had broken transaction history for everyone.
 
-## 3. Structural risk still open
+## 3. Tenant isolation — moving to database-enforced RLS
 
-**The RLS policies are inert.** `scripts/*.sql` predicates on Supabase's
-`request.jwt.claims`, which a Prisma connection never sets, and no table
-declares `FORCE ROW LEVEL SECURITY`, so the table owner bypasses every policy.
-Multi-tenant isolation therefore rests **entirely on application-level WHERE
-clauses** — which is exactly how the two leaks above happened.
+**The old policies were inert — and on the current database they were absent.**
+The Supabase-era scripts predicated on `request.jwt.claims`, which a Prisma
+connection never sets. The app now runs on Prisma Postgres, where the database
+had **zero** policies and the connection role (`prisma_migration`) is a
+restricted superuser that bypasses RLS by definition. Multi-tenant isolation
+therefore rested entirely on application-level WHERE clauses — exactly how the
+two leaks above happened.
 
-Two ways to close it:
+**The enforcement foundation is now in place** (behind `RLS_MODE`, off by
+default):
 
-1. **Enforce RLS for real** — connect as a non-owner role, `set_config` the
-   caller per request, and rewrite the policies against that variable.
-2. **Add a CI check** — every Prisma query touching user data must carry an
-   owner filter (a lint/test, so a missing `where` cannot ship).
+- `lib/rls/context.ts` carries the caller's wallet per request; `withAuth` sets it.
+- `lib/rls/scoped-prisma.ts` runs each user-context operation inside a
+  transaction that does `SET LOCAL ROLE prisma_application` (the platform's
+  non-superuser role, pre-granted DML on every table) and
+  `set_config('app.wallet', <caller>, true)`.
+- `scripts/034_enable_rls_all_tables.sql` enables `FORCE ROW LEVEL SECURITY`
+  and adds policies for 76 user-scoped tables (child tables via `EXISTS` on the
+  parent). Policies are inert for the superuser, so applying them changed
+  nothing until `RLS_MODE=enforce`.
+- Verified on the real database: the owner sees their rows, a stranger sees
+  none, and un-scoped system access is unaffected
+  (`scripts/rls-isolation-check.ts`).
+- `scopedTransaction()` covers interactive transactions (which Prisma
+  extensions cannot intercept); a guard test fails on raw `$transaction` in
+  `app/`, and system paths carry an explicit `rls:system` marker.
+
+Remaining: migrate the last system paths to explicit markers, then turn
+`RLS_MODE=enforce` on per environment.
 
 ## 4. Configuration the features need (currently missing)
 
