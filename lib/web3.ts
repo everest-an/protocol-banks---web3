@@ -1,6 +1,7 @@
 import { ethers } from "ethers"
 import TronWeb from "tronweb"
 import { isEvmAddressFormat, safeGetChecksumAddress } from "@/lib/address-utils"
+import { getEIP712Domain } from "@/lib/erc3009"
 
 // Helper to retrieve the injected ethereum provider if it exists.
 // TronLink injects a window.ethereum shim (flagged isTronLink, sometimes even
@@ -681,16 +682,21 @@ export async function signERC3009Authorization(
   const signer = await provider.getSigner()
 
   const contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider)
-  const name = await contract.symbol()
+  const symbol: string = await contract.symbol()
 
   // Random nonce (32 bytes hex)
   const nonce = options?.nonce ?? ethers.hexlify(ethers.randomBytes(32))
   const validAfter = options?.validAfter ?? 0
   const validBefore = options?.validBefore ?? Math.floor(Date.now() / 1000) + 3600 // 1 hour
 
+  // Prefer the pinned ERC-3009 registry. The "USDC → USD Coin" shortcut below
+  // holds on mainnet, but testnet USDC (and some bridged variants) answer
+  // name() = "USDC" — signing against a guessed name produces a different
+  // domain separator and the token then rejects the authorization on-chain.
+  const pinnedDomain = getEIP712Domain(chainId, symbol)
   const domain = {
-    name: name === "USDC" ? "USD Coin" : name,
-    version: name === "USDC" ? "2" : "1",
+    name: pinnedDomain?.name ?? (symbol === "USDC" ? "USD Coin" : symbol),
+    version: pinnedDomain?.version ?? (symbol === "USDC" ? "2" : "1"),
     chainId: chainId,
     verifyingContract: tokenAddress,
   }

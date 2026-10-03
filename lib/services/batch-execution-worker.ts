@@ -15,7 +15,10 @@
 import { getClient } from "@/lib/prisma"
 import { claimBatchItem, updateBatchItem } from "@/lib/services/batch-item-service"
 import { recordTransfer, generateIdempotencyKey } from "@/lib/services/ledger-service"
-import { goServicesBridge } from "@/lib/services/go-services-bridge"
+import { goServicesBridge, type PayoutRequest } from "@/lib/services/go-services-bridge"
+
+/** Signed EIP-3009 authorization, produced by the payer's wallet. */
+type PayoutAuthorization = NonNullable<PayoutRequest["authorization"]>
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -29,7 +32,7 @@ const CONCURRENCY: Record<string, number> = {
 //
 // Keep this aligned with lib/networks.ts (the app supports testnets there); a
 // name missing here used to fall through to mainnet.
-const CHAIN_ID_BY_NAME: Record<string, number> = {
+export const CHAIN_ID_BY_NAME: Record<string, number> = {
   ethereum: 1,
   base: 8453,
   polygon: 137,
@@ -55,6 +58,8 @@ export interface BatchExecutionResult {
   completed: number
   failed: number
   skipped: number
+  /** Items settled through an EIP-3009 authorization (funds left the signer's own balance). */
+  nonCustodial: number
   duration_ms: number
 }
 
@@ -65,6 +70,8 @@ interface ExecutableItem {
   amount: string
   token: string
   chain: string
+  /** Present when the payer signed an EIP-3009 authorization for this item. */
+  authorization?: PayoutAuthorization
 }
 
 // ─── Core Execution ─────────────────────────────────────────────────────────
@@ -76,7 +83,14 @@ interface ExecutableItem {
 export async function executeBatch(
   batchId: string,
   fromAddress: string,
-  networkType: string = "EVM"
+  networkType: string = "EVM",
+  /**
+   * Signed EIP-3009 authorizations keyed by item index. An item with an
+   * authorization settles from the signer's own balance — the relayer only
+   * submits it and pays gas. An item without one uses the legacy relayer-funded
+   * path.
+   */
+  authorizations: Record<number, PayoutAuthorization> = {}
 ): Promise<BatchExecutionResult> {
   const prisma = getClient()
   const start = Date.now()
@@ -97,6 +111,7 @@ export async function executeBatch(
       completed: 0,
       failed: 0,
       skipped: 0,
+      nonCustodial: 0,
       duration_ms: Date.now() - start,
     }
   }
@@ -111,6 +126,7 @@ export async function executeBatch(
   let completed = 0
   let failed = 0
   let skipped = 0
+  let nonCustodial = 0
 
   // Process items in concurrent batches
   const items: ExecutableItem[] = pendingItems.map((item) => ({
@@ -120,6 +136,7 @@ export async function executeBatch(
     amount: item.amount.toString(),
     token: item.token,
     chain: item.chain,
+    authorization: authorizations[item.index],
   }))
 
   // Chunk items for concurrent processing
@@ -132,8 +149,10 @@ export async function executeBatch(
 
     for (const result of results) {
       if (result.status === "fulfilled") {
-        if (result.value === "completed") completed++
-        else if (result.value === "failed") failed++
+        if (result.value === "completed" || result.value === "completed-eip3009") {
+          completed++
+          if (result.value === "completed-eip3009") nonCustodial++
+        } else if (result.value === "failed") failed++
         else skipped++
       } else {
         failed++
@@ -169,6 +188,7 @@ export async function executeBatch(
     completed,
     failed,
     skipped,
+    nonCustodial,
     duration_ms: Date.now() - start,
   }
 }
@@ -179,7 +199,7 @@ export async function executeBatch(
 async function processItem(
   item: ExecutableItem,
   fromAddress: string
-): Promise<"completed" | "failed" | "skipped"> {
+): Promise<"completed" | "completed-eip3009" | "failed" | "skipped"> {
   // Claim the item (atomic, prevents double-processing)
   const claimed = await claimBatchItem(item.batchId, item.index)
   if (!claimed) {
@@ -203,6 +223,7 @@ async function processItem(
       token: item.token,
       chain_id: chainId,
       memo: `Batch ${item.batchId} item #${item.index}`,
+      authorization: item.authorization,
     })
 
     if (!payout.success) {
@@ -253,7 +274,7 @@ async function processItem(
       txHash: payment.tx_hash ?? undefined,
     })
 
-    return "completed"
+    return item.authorization ? "completed-eip3009" : "completed"
   } catch (error: any) {
     // Update batch item as failed
     await updateBatchItem({

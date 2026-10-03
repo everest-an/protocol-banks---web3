@@ -25,11 +25,16 @@ verified / config-gated · ❌ unverified.
 | **Split payments** | Same EIP-3009 design (`lib/services/eip712.service.ts`). | ⚠️ calculate/templates/create verified; execution not run |
 | **Yield** (`/yield`) | The API **records** a deposit; the client executes the on-chain transfer. | ⚠️ validation verified (1 USDT minimum), real position not verified |
 
+### Mixed — non-custodial when the payer signs, custodial otherwise
+
+| Feature | Split | Proven |
+|---|---|---|
+| **Batch payments** (`/batch-payment`) | **EIP-3009 path (non-custodial)** — the payer's wallet signs one `transferWithAuthorization` per item; the relayer only submits and pays gas, so the funds never touch the platform. The execute endpoint validates every signature (signer = batch owner, recipient/amount/window pinned) and refuses the batch if any pending item on an EIP-3009-capable chain is unsigned — no silent fallback to custody. **Legacy path (custodial)** — items without an authorization (tokens without EIP-3009 support) are still paid by the relayer from its own balance, as before. | ✅ E2E on Sepolia: payer 0.55 → 0.45, relayer unchanged (19.25), two recipients 0 → 0.05 each; 12 unit tests on the validator; earlier float run: relayer 20 → 19.25 |
+
 ### Custodial — the platform (or a provider) holds the funds
 
 | Feature | Why it is custodial | Proven |
 |---|---|---|
-| **Batch payments** (`/batch-payment`) | The relayer pays **from its own balance** (`executePayout` → `transfer` signed with `RELAYER_PRIVATE_KEY`). I proved this end to end: relayer 20 → 19.25 USDC, recipient 0 → 0.75, two real tx hashes. Internal ledger credits the user's account, but the platform holds the float. | ✅ real transfers on Sepolia |
 | **Subscriptions** (`/subscriptions`) execution | Records only after an on-chain submission by a **hosted relayer** (`RELAYER_API_KEY`/`RELAYER_URL`) — no local-key path. Whether the funds leave the payer or the float depends on that service. | ⚠️ refuses cleanly when unconfigured |
 | **Cards** (`/card`) | Issued through **Yativo** (a BaaS); the platform holds a provider balance. | ⚠️ needs `YATIVO_SECRET` |
 | **Off-ramp** (`/offramp`) | Same Yativo path; fiat settlement through the provider. | ⚠️ quote returns a **mock** when no provider is configured |
@@ -88,12 +93,12 @@ Two ways to close it:
 
 ## 5. Positioning implication
 
-"Non-custodial" is accurate for the **trading product** and for the
-direct-transfer payment surfaces (invoice, acquiring, x402, split, send/swap).
-It is **not** accurate for **batch payments**, **cards** and **off-ramp**, which
-hold funds with the platform or a provider.
-
-The cleanest way to make the claim true everywhere: port batch payouts onto the
-EIP-3009 authorisation path that already exists in the codebase (`erc3009.ts`,
-used by x402 and split) — the user signs, the relayer only submits. Until then,
-keep the distinction visible in the marketing copy.
+"Non-custodial" is accurate for the **trading product**, the direct-transfer
+payment surfaces (invoice, acquiring, x402, split, send/swap), and — since the
+EIP-3009 payout path shipped — **batch payments whenever the payer signs the
+batch** (one signature per item, validated in
+`lib/services/eip3009-authorization.ts`; the relayer only submits and pays
+gas). It is still **not** accurate for **cards** and **off-ramp** (provider
+custody), nor for batch items paid through the legacy relayer-funded path
+(tokens without EIP-3009 support); keep the distinction visible in the
+marketing copy until those are ported too.

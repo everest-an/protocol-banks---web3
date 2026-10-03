@@ -11,8 +11,51 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, polygon, base, arbitrum, optimism, bsc, sepolia, type Chain } from 'viem/chains';
 import { getCircuitBreaker, CircuitBreakerOpenError } from './circuit-breaker';
 import { HealthMonitorService } from './health-monitor-service';
-import { ERC3009_TOKENS } from '../erc3009';
+import { ERC3009_TOKENS, TRANSFER_WITH_AUTHORIZATION_ABI } from '../erc3009';
 import { EVM_NETWORKS } from '../networks';
+
+/**
+ * Serialize relayer transactions per chain+address and assign explicit,
+ * locally-incrementing nonces.
+ *
+ * Batch items are submitted back to back from one relayer account. Two races
+ * showed up in the E2E run: concurrent sends fetched the same pending nonce
+ * ("replacement transaction underpriced"), and even after broadcast
+ * serialization the shared public RPC sometimes lagged the mempool and handed
+ * out a stale pending nonce. Both disappear when the queue owns the nonce:
+ * each send gets the next explicit value, and only a failure re-syncs from the
+ * chain. On-chain reverts still consume their nonce, so the counter advances
+ * in the success and revert cases alike.
+ *
+ * Scoped per serverless instance; the Go payout service keeps its own
+ * distributed nonce locking on the path used in production.
+ */
+type RelayerSendQueue = { tail: Promise<unknown>; nextNonce?: number };
+const relayerSendQueues = new Map<string, RelayerSendQueue>();
+
+function enqueueRelayerSend<T>(
+  key: string,
+  fetchNonce: () => Promise<number>,
+  send: (nonce: number) => Promise<T>,
+): Promise<T> {
+  const queue = relayerSendQueues.get(key) ?? { tail: Promise.resolve() };
+  const run = async (): Promise<T> => {
+    const nonce = queue.nextNonce ?? (await fetchNonce());
+    try {
+      const result = await send(nonce);
+      queue.nextNonce = nonce + 1;
+      return result;
+    } catch (error) {
+      // After any failure the chain is the source of truth again.
+      queue.nextNonce = undefined;
+      throw error;
+    }
+  };
+  const next = queue.tail.catch(() => {}).then(run);
+  queue.tail = next;
+  relayerSendQueues.set(key, queue);
+  return next;
+}
 
 // ============================================
 // Types
@@ -25,6 +68,21 @@ export interface PayoutRequest {
   token: string;
   chain_id: number;
   memo?: string;
+  /**
+   * EIP-3009 authorization signed by `from_address`.
+   *
+   * Present → the transfer goes through `transferWithAuthorization`: the funds
+   * leave the signer's own balance and the relayer only submits and pays gas
+   * (non-custodial). Absent → the legacy path pays from the relayer's balance.
+   */
+  authorization?: {
+    validAfter: number;
+    validBefore: number;
+    nonce: string; // bytes32
+    v: number;
+    r: string;
+    s: string;
+  };
 }
 
 export interface PayoutResponse {
@@ -124,6 +182,16 @@ export class GoServicesBridge {
    */
   async executePayout(request: PayoutRequest): Promise<PayoutResponse> {
     const startTime = Date.now();
+
+    // The Go payout-engine predates EIP-3009: its proto has no authorization
+    // field, so it would execute a custodial transfer from the relayer's own
+    // balance even when the caller supplied a signed authorization — the
+    // non-custodial guarantee would be dropped silently. Route those to the
+    // TypeScript path, which implements transferWithAuthorization.
+    if (request.authorization) {
+      return await this.executePayoutTypescript(request);
+    }
+
     const circuitBreaker = getCircuitBreaker('payout-engine', {
       failureThreshold: 3,
       timeout: 30000, 
@@ -237,12 +305,51 @@ export class GoServicesBridge {
 
       const amountInUnits = parseUnits(request.amount, tokenInfo.decimals);
 
-      const txHash = await walletClient.writeContract({
-        address: tokenInfo.address as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'transfer',
-        args: [request.to_address as `0x${string}`, amountInUnits],
-      });
+      // Nonces are per-chain, so the queue key must include the chain.
+      const sendKey = `${account.address}:${request.chain_id}`;
+
+      let txHash: `0x${string}`;
+      if (request.authorization) {
+        // Non-custodial: the signer's own balance funds the transfer; the
+        // relayer only submits the authorization and pays gas.
+        const { validAfter, validBefore, nonce, v, r, s } = request.authorization;
+        txHash = await enqueueRelayerSend(
+          sendKey,
+          () => publicClient.getTransactionCount({ address: account.address, blockTag: 'pending' }),
+          (txNonce) =>
+            walletClient.writeContract({
+              address: tokenInfo.address as `0x${string}`,
+              abi: TRANSFER_WITH_AUTHORIZATION_ABI,
+              functionName: 'transferWithAuthorization',
+              args: [
+                request.from_address as `0x${string}`,
+                request.to_address as `0x${string}`,
+                amountInUnits,
+                BigInt(validAfter),
+                BigInt(validBefore),
+                nonce as `0x${string}`,
+                v,
+                r as `0x${string}`,
+                s as `0x${string}`,
+              ],
+              nonce: txNonce,
+            })
+        );
+      } else {
+        // Legacy custodial path: the relayer pays from its own balance.
+        txHash = await enqueueRelayerSend(
+          sendKey,
+          () => publicClient.getTransactionCount({ address: account.address, blockTag: 'pending' }),
+          (txNonce) =>
+            walletClient.writeContract({
+              address: tokenInfo.address as `0x${string}`,
+              abi: ERC20_ABI,
+              functionName: 'transfer',
+              args: [request.to_address as `0x${string}`, amountInUnits],
+              nonce: txNonce,
+            })
+        );
+      }
 
       await publicClient.waitForTransactionReceipt({ hash: txHash });
 

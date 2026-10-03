@@ -59,10 +59,14 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
   },
   // Sepolia (testnet) — Circle's official testnet USDC. EIP-3009 capable, so the
   // payout path can be exercised end to end against a real chain without funds.
+  //
+  // Domain name verified on-chain: the contract answers name() = "USDC" (not the
+  // mainnet's "USD Coin"). Using the wrong name changes the domain separator and
+  // the token rejects every authorization.
   11155111: {
     USDC: {
       address: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-      name: "USD Coin",
+      name: "USDC",
       version: "2",
       decimals: 6,
     },
