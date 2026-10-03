@@ -26,6 +26,7 @@ import { userAddressHeaderSchema } from '@/lib/validations/yield'
 import { logger } from '@/lib/logger/structured-logger'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { verifySession } from '@/lib/auth/session'
+import { runWithWallet } from '@/lib/rls/context'
 
 export interface AuthResult {
   address: string
@@ -148,6 +149,8 @@ export function withAuth(
   return async (request: NextRequest): Promise<NextResponse> => {
     const auth = await requireAuth(request, options)
     if (auth.error) return auth.error
-    return handler(request, auth.address)
+    // Run the handler inside the caller's RLS context so every database
+    // operation is scoped to this wallet (see lib/rls/scoped-prisma.ts).
+    return runWithWallet(auth.address, () => handler(request, auth.address))
   }
 }

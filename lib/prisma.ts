@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { createScopedPrisma } from '@/lib/rls/scoped-prisma'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
@@ -104,7 +105,21 @@ function createPrismaClient(): PrismaClient {
   }
 }
 
-export const prisma = globalForPrisma.prisma || createPrismaClient()
+/**
+ * Wrap the base client with the RLS scoping layer. With RLS_MODE=off (the
+ * default) the wrapper is a pass-through and behaviour is unchanged; with
+ * RLS_MODE=enforce, operations made under a user context (set by withAuth via
+ * lib/rls/context.ts) run as the non-superuser role and are filtered by the
+ * database's row-level-security policies.
+ */
+function createClient() {
+  return createScopedPrisma(createPrismaClient())
+}
+
+// The runtime client carries the RLS scoping layer; its public surface is the
+// standard PrismaClient API, so it is typed as one (restoring the type the
+// codebase compiled against before the wrapper existed).
+export const prisma = (globalForPrisma.prisma || createClient()) as PrismaClient
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
