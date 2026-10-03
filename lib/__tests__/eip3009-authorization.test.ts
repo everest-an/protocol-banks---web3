@@ -9,7 +9,11 @@
 
 import { getAddress } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
-import { buildTransferAuthorizationTypedData, createTransferAuthorization } from "@/lib/erc3009"
+import {
+  buildTransferAuthorizationTypedData,
+  createTransferAuthorization,
+  isERC3009Supported,
+} from "@/lib/erc3009"
 import {
   validateAuthorizations,
   type AuthorizableItem,
@@ -202,5 +206,24 @@ describe("validateAuthorizations (EIP-3009 batch)", () => {
         entry(0, authorization, signature),
       ])
     ).rejects.toThrow(/unsupported chain/)
+  })
+})
+
+describe("isERC3009Supported (registry semantics)", () => {
+  test("Circle USDC on every registered chain qualifies", () => {
+    for (const chainId of [1, 137, 42161, 8453, 10, 11155111]) {
+      expect(isERC3009Supported(chainId, "USDC")).toBe(true)
+    }
+  })
+
+  test("tokens listed only for address/decimals lookup are rejected", () => {
+    // USDT and DAI do not implement transferWithAuthorization...
+    expect(isERC3009Supported(1, "USDT")).toBe(false)
+    expect(isERC3009Supported(1, "DAI")).toBe(false)
+    expect(isERC3009Supported(42161, "USDT")).toBe(false)
+    // ...and BSC's "USDC" is Binance-Peg (18 decimals), not Circle USDC.
+    expect(isERC3009Supported(56, "USDC")).toBe(false)
+    // Unknown pairs are rejected too.
+    expect(isERC3009Supported(11155111, "USDT")).toBe(false)
   })
 })

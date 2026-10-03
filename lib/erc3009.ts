@@ -34,8 +34,10 @@ export const TOKEN_DECIMALS: Record<string, number> = {
   WBTC: 8,
 }
 
-// Supported tokens with ERC-3009 / permit support
-export const ERC3009_TOKENS: Record<number, Record<string, { address: string; name: string; version: string; decimals: number }>> = {
+// Tokens the payout layer can resolve. `supportsEip3009: true` marks the ones
+// that actually implement transferWithAuthorization (Circle USDC) — the others
+// (USDT, DAI, Binance-Peg USDC) are listed only for address/decimals lookup.
+export const ERC3009_TOKENS: Record<number, Record<string, { address: string; name: string; version: string; decimals: number; supportsEip3009?: boolean }>> = {
   // Ethereum Mainnet
   1: {
     USDC: {
@@ -43,6 +45,7 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       name: "USD Coin",
       version: "2",
       decimals: 6,
+      supportsEip3009: true,
     },
     USDT: {
       address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
@@ -69,6 +72,7 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       name: "USDC",
       version: "2",
       decimals: 6,
+      supportsEip3009: true,
     },
   },
   // Polygon
@@ -78,6 +82,7 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       name: "USD Coin",
       version: "2",
       decimals: 6,
+      supportsEip3009: true,
     },
     USDT: {
       address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
@@ -99,6 +104,7 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       name: "USD Coin",
       version: "2",
       decimals: 6,
+      supportsEip3009: true,
     },
     USDT: {
       address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
@@ -120,6 +126,7 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       name: "USD Coin",
       version: "2",
       decimals: 6,
+      supportsEip3009: true,
     },
     DAI: {
       address: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
@@ -135,6 +142,7 @@ export const ERC3009_TOKENS: Record<number, Record<string, { address: string; na
       name: "USD Coin",
       version: "2",
       decimals: 6,
+      supportsEip3009: true,
     },
     USDT: {
       address: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
@@ -286,7 +294,11 @@ export function formatTokenAmount(units: bigint, decimals: number = 6): string {
  * Check if a token supports ERC-3009 on a given chain
  */
 export function isERC3009Supported(chainId: number, tokenSymbol: string): boolean {
-  return !!ERC3009_TOKENS[chainId]?.[tokenSymbol]
+  // The registry also lists tokens present only so the payout layer can
+  // resolve address/decimals (USDT, DAI, Binance-Peg USDC). Only tokens that
+  // actually implement transferWithAuthorization may take the EIP-3009 path —
+  // the method call reverts on-chain for the others.
+  return ERC3009_TOKENS[chainId]?.[tokenSymbol]?.supportsEip3009 === true
 }
 
 /**
