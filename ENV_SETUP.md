@@ -186,6 +186,30 @@ development without wallets you can temporarily restore the legacy behaviour:
 ALLOW_INSECURE_HEADER_AUTH=true
 ```
 
+### 6c. Row-Level Security (RLS)
+
+By default the app connects as the migration role, a restricted superuser that
+bypasses RLS — so tenant isolation rests on application-level WHERE clauses.
+With `RLS_MODE=enforce`, the scoped Prisma layer (`lib/rls/`) runs every
+user-context operation as the non-superuser `prisma_application` role and
+publishes the caller's wallet, so the database policies enforce isolation.
+
+```env
+# off (default) | enforce
+# Enable only after applying scripts/034_enable_rls_all_tables.sql and running
+# scripts/rls-isolation-check.ts against the target database.
+RLS_MODE=off
+```
+
+Notes:
+
+- Wallet-authenticated routes (wrapped with `withAuth`) are scoped automatically.
+- System paths (cron, webhooks, pre-session auth, public endpoints) carry an
+  explicit `rls:system` marker; a guard test fails on any prisma-using route
+  that is neither scoped nor marked.
+- Interactive transactions in user-context code must use `scopedTransaction()`
+  from `@/lib/prisma` (Prisma extensions cannot intercept `$transaction`).
+
 ### 7. Webhook Configuration
 
 For production webhook delivery:
