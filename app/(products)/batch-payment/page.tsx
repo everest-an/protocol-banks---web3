@@ -69,6 +69,7 @@ interface MultisigWallet {
   updated_at: string
 }
 import { publicBatchTransferService, TOKEN_ADDRESSES } from "@/lib/services/public-batch-transfer-service"
+import { getTokenAddress, isERC3009Supported } from "@/lib/erc3009"
 import { createWalletClient, createPublicClient, http, custom } from "viem"
 import { arbitrum, base, mainnet, polygon, bsc, type Chain } from "viem/chains"
 import { getVendorDisplayName, getVendorInitials } from "@/lib/utils"
@@ -1187,6 +1188,130 @@ export default function BatchPaymentPage() {
       const ethereum = getInjectedEthereum() as any
       if (!ethereum) {
         throw new Error('Please install MetaMask or another Web3 wallet.')
+      }
+
+      // ── EIP-3009 non-custodial path ─────────────────────────────────────
+      // When the chain and token support it, the wallet signs one
+      // transferWithAuthorization per item and the relayer only submits them:
+      // funds move from the user's own wallet, the user pays no gas, and the
+      // platform never holds the float.
+      const uniformToken = validRecipients.every((r) => (r.token || "USDT") === tokenSymbol)
+      const eip3009Token = uniformToken ? getTokenAddress(chainId, tokenSymbol) : null
+      if (eip3009Token && isERC3009Supported(chainId, tokenSymbol)) {
+        setBatchTransferStep("approving")
+        setIsApproving(true)
+
+        // 1. One signature per recipient (off-chain, no gas).
+        const authorizations: Array<{
+          index: number
+          validAfter: number
+          validBefore: number
+          nonce: string
+          v: number
+          r: string
+          s: string
+        }> = []
+        for (let i = 0; i < validRecipients.length; i++) {
+          const r = validRecipients[i]
+          const auth = await signERC3009Authorization({
+            tokenAddress: eip3009Token,
+            from: currentWallet,
+            to: r.address,
+            amount: r.amount,
+            chainId,
+          })
+          authorizations.push({
+            index: i,
+            validAfter: auth.validAfter,
+            validBefore: auth.validBefore,
+            nonce: auth.nonce,
+            v: auth.v,
+            r: auth.r,
+            s: auth.s,
+          })
+        }
+
+        // 2. Create the batch the server-side worker will execute.
+        const createRes = await fetch("/api/batch-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders(currentWallet),
+          },
+          body: JSON.stringify({
+            recipients: validRecipients.map((r) => ({
+              address: r.address,
+              amount: r.amount,
+              token: r.token || tokenSymbol,
+              memo: r.vendorName,
+            })),
+            fromAddress: currentWallet,
+            chain: deriveEvmChainSlug(chainId),
+            chainId,
+            network_type: "EVM",
+          }),
+        })
+        const createData = await createRes.json().catch(() => ({}))
+        if (!createRes.ok || !createData.batchId) {
+          throw new Error(createData.error || "Failed to create the batch")
+        }
+
+        // 3. Submit — the relayer takes it from here and pays the gas.
+        setIsApproving(false)
+        setBatchTransferStep("transferring")
+
+        const execRes = await fetch("/api/batch-payment/execute", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders(currentWallet),
+          },
+          body: JSON.stringify({ batchId: createData.batchId, authorizations }),
+        })
+        const execData = await execRes.json().catch(() => ({}))
+        if (!execRes.ok) {
+          throw new Error(execData.error || "Batch execution failed")
+        }
+
+        const completedCount = Number(execData.execution?.completed ?? 0)
+        const failedCount = Number(execData.execution?.failed ?? 0)
+        const itemRows: Array<{ tx_hash?: string }> = Array.isArray(execData.items)
+          ? execData.items
+          : []
+        const firstHash = itemRows.find((it) => it?.tx_hash)?.tx_hash
+        if (firstHash) setBatchTxHash(firstHash)
+
+        if (failedCount === 0) {
+          setTimeout(() => setBatchTransferStep("success"), 1500)
+          toast({
+            title: "Batch Transfer Successful!",
+            description: `Settled ${completedCount} payment${completedCount === 1 ? "" : "s"} from your wallet (gas sponsored).`,
+          })
+          setRecipients([
+            {
+              id: "1",
+              address: "",
+              amount: "",
+              vendorName: "",
+              vendorId: "",
+              token: "USDT",
+              chain: selectedPaymentChain,
+            },
+          ])
+        } else {
+          setBatchTransferStep("error")
+          setBatchErrorMessage(
+            `${completedCount} of ${completedCount + failedCount} items settled; ${failedCount} failed.`,
+          )
+          toast({
+            title: "Batch Partially Failed",
+            description: `${completedCount} settled, ${failedCount} failed — check the batch history.`,
+            variant: "destructive",
+          })
+        }
+
+        await loadPaymentHistory()
+        return
       }
 
       const batchChain = BATCH_CHAINS[chainId]
