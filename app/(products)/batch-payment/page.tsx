@@ -135,7 +135,12 @@ export default function BatchPaymentPage() {
     jobStatus: asyncJobStatus,
     isUploading: isAsyncUploading,
     isPolling: isAsyncPolling
-  } = useAsyncBatchPayment()
+  } = useAsyncBatchPayment({
+    wallet: unifiedAddress,
+    chainId,
+    chain: deriveEvmChainSlug(chainId),
+    signAuthorization: signERC3009Authorization,
+  })
 
   // HashKey Chain is now supported with USDC tokens
 
@@ -1623,7 +1628,7 @@ export default function BatchPaymentPage() {
               <GlassCardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        {(isAsyncUploading || asyncJobStatus?.status === 'queued' || asyncJobStatus?.status === 'parsing' ||  asyncJobStatus?.status === 'processing') ? (
+                        {(isAsyncUploading || asyncJobStatus?.status === 'QUEUED' || asyncJobStatus?.status === 'PARSING' ||  asyncJobStatus?.status === 'PROCESSING') ? (
                             <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
                         ) : asyncJobStatus?.status === 'completed' ? (
                             <CheckCircle2 className="h-5 w-5 text-green-500" />
