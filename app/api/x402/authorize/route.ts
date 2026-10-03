@@ -1,3 +1,6 @@
+// rls:system — this public x402 authorization endpoint runs without a
+// wallet-scoped RLS context (payer-side, pre-session); database access keeps
+// full (superuser) access and identity is enforced here, not by RLS.
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import crypto from "crypto"

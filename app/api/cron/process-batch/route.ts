@@ -1,3 +1,6 @@
+// rls:system — this route runs without a wallet-scoped RLS context
+// (pre-auth / session-cookie / cron / public endpoint). Database access
+// keeps full (superuser) access; identity is enforced here, not by RLS.
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { promises as fs } from 'fs';

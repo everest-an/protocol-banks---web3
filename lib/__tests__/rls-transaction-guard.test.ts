@@ -14,6 +14,7 @@ import { join } from "node:path"
 const APP_DIR = join(process.cwd(), "app")
 const RAW_TX = /\bprisma\.\$transaction\s*\(/
 const SYSTEM_MARKER = "rls:system"
+const SCOPED_OR_SYSTEM = /(withAuth|requireAuth|runAsSystem|rls:system)/
 
 function filesUnder(dir: string): string[] {
   const out: string[] = []
@@ -34,6 +35,17 @@ describe("rls transaction guard", () => {
     for (const file of filesUnder(APP_DIR)) {
       const content = readFileSync(file, "utf8")
       if (RAW_TX.test(content) && !content.includes(SYSTEM_MARKER)) {
+        offenders.push(file.replace(process.cwd(), ""))
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  test("every prisma-using route is wallet-scoped or explicitly system", () => {
+    const offenders: string[] = []
+    for (const file of filesUnder(APP_DIR)) {
+      const content = readFileSync(file, "utf8")
+      if (/\bprisma\./.test(content) && !SCOPED_OR_SYSTEM.test(content)) {
         offenders.push(file.replace(process.cwd(), ""))
       }
     }
