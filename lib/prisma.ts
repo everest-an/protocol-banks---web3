@@ -155,5 +155,5 @@ export async function scopedTransaction<T>(
       await tx.$queryRawUnsafe(`SELECT set_config('app.wallet', $1, true)`, ctx.wallet)
       return fn(tx)
     })
-  }, options)
+  }, { maxWait: 10_000, timeout: 30_000, ...options })
 }

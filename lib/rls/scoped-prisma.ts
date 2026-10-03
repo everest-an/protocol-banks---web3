@@ -57,6 +57,30 @@ async function enterScope(tx: ScopeableTx, wallet: string): Promise<void> {
 }
 
 /**
+ * Prisma Postgres occasionally answers "Unable to start a transaction in the
+ * given time" (P2028) when many scoped operations run close together — the
+ * default 2s maxWait is too tight while connections are being recycled. The
+ * scoped transaction therefore waits up to 10s, and a transient P2028 is
+ * retried once before surfacing to the caller.
+ */
+const SCOPED_TX_OPTIONS = { maxWait: 10_000, timeout: 30_000 } as const
+
+function isTransactionStartTimeout(error: unknown): boolean {
+  const err = error as { code?: string; message?: string }
+  return err?.code === "P2028" && /Unable to start a transaction/.test(err?.message ?? "")
+}
+
+async function runScopedTransaction<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run()
+  } catch (error) {
+    if (!isTransactionStartTimeout(error)) throw error
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    return await run()
+  }
+}
+
+/**
  * Wrap a base client with the RLS scoping hook. The returned client exposes the
  * same API, so existing call sites need no changes.
  */
@@ -82,20 +106,22 @@ export function createScopedPrisma<T extends PrismaClient>(base: T) {
           return query(args)
         }
 
-        return base.$transaction(async (tx) => {
-          await enterScope(tx, ctx.wallet)
+        return runScopedTransaction(() =>
+          base.$transaction(async (tx) => {
+            await enterScope(tx, ctx.wallet)
 
-          // Model operations dispatch to the transaction delegate; raw
-          // operations (model === undefined) dispatch to the raw client itself.
-          // The assertion is the standard dynamic-dispatch shape for Prisma
-          // extension hooks and is confined to this call.
-          const delegate = (
-            model
-              ? (tx as unknown as Record<string, DynamicDelegate>)[model]
-              : (tx as unknown as DynamicDelegate)
-          )
-          return delegate[operation](args)
-        })
+            // Model operations dispatch to the transaction delegate; raw
+            // operations (model === undefined) dispatch to the raw client itself.
+            // The assertion is the standard dynamic-dispatch shape for Prisma
+            // extension hooks and is confined to this call.
+            const delegate = (
+              model
+                ? (tx as unknown as Record<string, DynamicDelegate>)[model]
+                : (tx as unknown as DynamicDelegate)
+            )
+            return delegate[operation](args)
+          }, SCOPED_TX_OPTIONS)
+        )
       },
     },
   })
