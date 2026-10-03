@@ -234,6 +234,15 @@ COINBASE_ONRAMP_API_KEY=your_coinbase_api_key
 TRANSAK_API_KEY=your_transak_api_key
 ```
 
+**Behaviour without a provider**: quote and execute requests are refused with
+`503` — the API never returns a mock quote or fabricates a provider order.
+Local development can opt back into mocks explicitly:
+
+```env
+# LOCAL DEVELOPMENT ONLY — mock off-ramp quotes/executions. Ignored in production.
+ALLOW_MOCK_EXECUTION=true
+```
+
 ### 9. Storage Configuration
 
 For production Redis storage (optional, defaults to in-memory):

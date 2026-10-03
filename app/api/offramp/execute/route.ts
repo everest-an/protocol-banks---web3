@@ -98,13 +98,23 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
     } else if (provider === "transak" && PROVIDERS.transak.enabled) {
       providerResponse = await executeTransakOfframp(body)
       providerOrderId = providerResponse?.order_id
-    } else {
-      // Mock execution for development
+    } else if (process.env.ALLOW_MOCK_EXECUTION === "true" && process.env.NODE_ENV !== "production") {
+      // Explicit local-development opt-in ONLY — fabricates a provider order id.
+      console.warn("[OfframpAPI] ALLOW_MOCK_EXECUTION enabled — simulating off-ramp execution with a FAKE provider order")
       providerResponse = {
         id: `mock_${crypto.randomUUID().slice(0, 8)}`,
         status: "pending",
       }
       providerOrderId = providerResponse.id
+    } else {
+      return NextResponse.json(
+        {
+          error:
+            `Off-ramp provider "${provider}" is not configured. Set BRIDGE_API_KEY, COINBASE_ONRAMP_API_KEY or TRANSAK_API_KEY. ` +
+            "Refusing to fabricate an execution — for local testing set ALLOW_MOCK_EXECUTION=true.",
+        },
+        { status: 503 },
+      )
     }
 
     // Record transaction in database

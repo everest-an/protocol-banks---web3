@@ -168,6 +168,14 @@ export class BatchTransferService {
     recipients: BatchTransferRecipient[],
     tokenSymbol: string = 'USDT'
   ): Promise<BatchTransferResult> {
+    // Refuse before touching the chain: a zero address would revert on-chain
+    // and burn the caller's gas for nothing.
+    if (this.contractAddress === '0x0000000000000000000000000000000000000000') {
+      throw new Error(
+        'Batch transfer contract is not configured. Set NEXT_PUBLIC_BATCH_TRANSFER_CONTRACT, or use the EIP-3009 batch path (USDC) instead.'
+      );
+    }
+
     try {
       const tokenAddress = TOKEN_ADDRESSES[tokenSymbol];
       if (!tokenAddress) {

@@ -80,10 +80,22 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
       quote = await getTransakQuote(body)
     }
 
-    // If no provider available, return mock quote with warning
+    // No provider configured: mock only for explicit local development; refuse
+    // otherwise, so nobody ever acts on a quote that no provider gave.
     if (!quote) {
-      console.warn("[OfframpAPI] No provider configured, returning mock quote")
-      quote = getMockQuote(body)
+      if (process.env.ALLOW_MOCK_EXECUTION === "true" && process.env.NODE_ENV !== "production") {
+        console.warn("[OfframpAPI] ALLOW_MOCK_EXECUTION enabled — returning a MOCK quote (local development only)")
+        quote = getMockQuote(body)
+      } else {
+        return NextResponse.json(
+          {
+            error:
+              "No off-ramp provider is configured. Set BRIDGE_API_KEY, COINBASE_ONRAMP_API_KEY or TRANSAK_API_KEY. " +
+              "Refusing to return a quote that no provider gave — for local testing set ALLOW_MOCK_EXECUTION=true.",
+          },
+          { status: 503 },
+        )
+      }
     }
 
     return NextResponse.json(quote)

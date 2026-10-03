@@ -117,9 +117,16 @@ export async function getOffRampQuote(
     if (quote) return quote
   }
 
-  // No provider available - return mock quote for development
-  console.warn("[OffRamp] No provider configured, returning mock quote")
-  return getMockQuote(amount, token, targetCurrency, provider)
+  // No provider available: mock only for explicit local development; refuse
+  // otherwise so callers never act on a quote that no provider gave.
+  if (process.env.ALLOW_MOCK_EXECUTION === "true" && process.env.NODE_ENV !== "production") {
+    console.warn("[OffRamp] ALLOW_MOCK_EXECUTION enabled — returning a MOCK quote (local development only)")
+    return getMockQuote(amount, token, targetCurrency, provider)
+  }
+  throw new Error(
+    "No off-ramp provider configured. Set BRIDGE_API_KEY, COINBASE_ONRAMP_API_KEY or TRANSAK_API_KEY. " +
+      "Refusing to return a mock quote — for local testing set ALLOW_MOCK_EXECUTION=true.",
+  )
 }
 
 /**
