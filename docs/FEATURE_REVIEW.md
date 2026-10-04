@@ -37,7 +37,7 @@ verified / config-gated · ❌ unverified.
 
 | Feature | Why it is custodial | Proven |
 |---|---|---|
-| **Cards** (`/card`) | Issued through a provider (Yativo today; a **Rain client is implemented**). The provider holds the card balance. | ⚠️ Yativo credentials answer **401** (invalid); Rain awaits `RAIN_API_KEY` + partner/KYB (`lib/services/rain-card.service.ts`) |
+| **Cards** (`/card`) | Issued through a provider (Yativo today; a **Rain client is implemented**). The provider holds the card balance. | ⚠️ the Yativo client now uses the documented host + Bearer flow; the credential pair itself is rejected at `/auth/login` — re-issue it in the Yativo dashboard. Rain awaits `RAIN_API_KEY` + partner/KYB (`lib/services/rain-card.service.ts`) |
 | **Off-ramp** (`/offramp`) | Bridge / Coinbase / Transak settlement; provider-custodied. | ⚠️ without a provider key quotes/execution answer **503** — no fabricated mocks (mocks require `ALLOW_MOCK_EXECUTION` outside production) |
 
 ### Read-only / infrastructure (no custody at all)
@@ -114,7 +114,7 @@ to 10s and retries once; endpoint-heavy flows were re-verified under enforce
 | `RELAYER_PRIVATE_KEY` (local-key relayer) | ✅ set in production; **funded on Ethereum, Base and Polygon**; `scripts/relayer-readiness.ts` lists per-chain gaps |
 | `RELAYER_API_KEY` / `RELAYER_URL` (hosted relayer) | — optional: the local key already covers batch payouts, subscription charges and x402 settlement |
 | `ASSET_DISTRIBUTOR_ADDRESS` / `..._PRIVATE_KEY` | ✅ provisioned locally and in Vercel (`scripts/setup-asset-distributor.ts`); fund the wallet before use |
-| `YATIVO_API_KEY` / `YATIVO_API_SECRET` | ⚠️ present but invalid (401) — needs fresh credentials |
+| `YATIVO_API_KEY` / `YATIVO_API_SECRET` | ⚠️ client fixed (`api.yativo.com` + Bearer token); the pair is rejected at `/auth/login` — regenerate it in the Yativo dashboard (Developer → API Key → Generate Secret) |
 | `RAIN_API_KEY` (+ partner access / KYB) | ⚠️ missing — outbound client ready (`lib/services/rain-card.service.ts`) |
 | Off-ramp provider (Bridge / Coinbase / Transak) | ⚠️ missing — answers 503 with an actionable message until configured |
 | `NEXT_PUBLIC_BATCH_TRANSFER_CONTRACT` | — not needed: USDC batches settle via EIP-3009 |

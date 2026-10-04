@@ -129,7 +129,7 @@ if (process.argv.includes("--probe")) {
 
     if (process.env.YATIVO_API_KEY && process.env.YATIVO_API_SECRET) {
       try {
-        await yativoClient.getBusinessDetails()
+        await yativoClient.getWalletBalance()
         console.log("✅ Yativo (cards)           authenticated")
       } catch (error) {
         console.log(`❌ Yativo (cards)           ${String((error as Error)?.message ?? error).slice(0, 110)}`)
