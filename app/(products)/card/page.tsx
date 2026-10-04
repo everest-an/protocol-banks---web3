@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { authHeaders } from "@/lib/authenticated-fetch"
+import { getTokenAddress, isERC3009Supported } from "@/lib/erc3009"
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -224,12 +225,17 @@ function DepositModal({
   open,
   onClose,
   depositInfo,
+  onWalletPay,
+  paying,
 }: {
   open: boolean
   onClose: () => void
   depositInfo: DepositInfo | null
+  onWalletPay: (amount: number) => void
+  paying: boolean
 }) {
   const { toast } = useToast()
+  const [walletAmount, setWalletAmount] = useState("")
   const copyAddress = () => {
     if (!depositInfo) return
     navigator.clipboard.writeText(depositInfo.depositAddress)
@@ -265,7 +271,42 @@ function DepositModal({
               </div>
             </div>
 
-            {/* Deposit address */}
+              {/* Non-custodial: pay straight from the wallet */}
+              <div className="rounded-xl p-4 space-y-2" style={{
+                background: "rgba(34,197,94,0.06)",
+                border: "0.5px solid rgba(34,197,94,0.25)",
+              }}>
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-green-500" />
+                  Pay from your wallet
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Sign once — USDC leaves your wallet directly, no gas. Arrives in 1-3 minutes.
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="100.00"
+                    value={walletAmount}
+                    onChange={(e) => setWalletAmount(e.target.value)}
+                    min={1}
+                  />
+                  <Button
+                    onClick={() => onWalletPay(parseFloat(walletAmount))}
+                    disabled={!walletAmount || parseFloat(walletAmount) <= 0 || paying}
+                  >
+                    {paying ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Pay"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                or transfer manually
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              {/* Deposit address */}
             <div className="space-y-2">
               <Label>Deposit Address ({depositInfo.token} on {depositInfo.network})</Label>
               <div className="flex gap-2">
@@ -420,7 +461,7 @@ function IssueCardModal({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CardPage() {
-  const { isConnected, address } = useUnifiedWallet()
+  const { isConnected, address, chainId, signERC3009Authorization } = useUnifiedWallet()
   const { toast } = useToast()
 
   const [activeTab, setActiveTab] = useState<"overview" | "cards" | "manage">("overview")
@@ -479,6 +520,95 @@ export default function CardPage() {
   const handleOpenDeposit = () => {
     fetchDepositInfo()
     setShowDepositModal(true)
+  }
+
+  // ── Pay the provider from the user's own wallet (non-custodial) ────────────
+
+  /** Known deposit-network labels → the chain the wallet must be on. Unknown = no guess. */
+  const expectedChainForLabel = (label: string): number | null => {
+    const l = label.toLowerCase()
+    if (l.includes("sepolia")) return 11155111
+    if (l.includes("eth") || l.includes("erc")) return 1
+    if (l.includes("base")) return 8453
+    if (l.includes("poly") || l.includes("matic")) return 137
+    if (l.includes("arb")) return 42161
+    if (l.includes("opt")) return 10
+    if (l.includes("bsc") || l.includes("bep")) return 56
+    return null
+  }
+
+  const handleDepositFromWallet = async (amount: number) => {
+    if (!address || !chainId) return
+    const tokenAddress = getTokenAddress(chainId, 'USDC')
+    if (!tokenAddress || !isERC3009Supported(chainId, 'USDC')) {
+      toast({
+        title: "Chain not supported",
+        description: "Wallet payments need USDC with EIP-3009 support — Ethereum, Base, Polygon, Arbitrum or Sepolia.",
+        variant: "destructive",
+      })
+      return
+    }
+    setActionLoading(true)
+    try {
+      // 1. The provider's deposit address is the funding target — fetched so the
+      // signature is pinned to it and nothing else.
+      const depRes = await fetch('/api/cards/deposit', { headers: authHeaders(address) })
+      if (!depRes.ok) {
+        const err = await depRes.json().catch(() => null)
+        throw new Error(err?.error ?? 'Could not load the deposit address')
+      }
+      const dep = await depRes.json()
+
+      // Guard: when the deposit network is recognizable, the wallet must be on it.
+      const expected = dep.network ? expectedChainForLabel(String(dep.network)) : null
+      if (expected !== null && expected !== chainId) {
+        throw new Error(`The deposit address expects ${dep.network}. Switch your wallet to that network and try again.`)
+      }
+
+      // 2. One off-chain signature — no gas, the funds move from the wallet itself.
+      const auth = await signERC3009Authorization({
+        tokenAddress,
+        from: address,
+        to: dep.depositAddress,
+        amount: String(amount),
+        chainId,
+      })
+
+      // 3. The relayer submits it; the payment goes straight to the provider.
+      const res = await fetch('/api/cards/fund', {
+        method: 'POST',
+        headers: { ...authHeaders(address), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          chainId,
+          authorization: {
+            validAfter: auth.validAfter,
+            validBefore: auth.validBefore,
+            nonce: auth.nonce,
+            v: auth.v,
+            r: auth.r,
+            s: auth.s,
+          },
+        }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? 'Payment failed')
+
+      setShowDepositModal(false)
+      toast({
+        title: "Payment sent",
+        description: `$${amount} USDC sent from your wallet — no gas needed. Your balance updates in 1-3 minutes.`,
+      })
+      fetchDepositInfo()
+    } catch (err) {
+      toast({
+        title: "Payment failed",
+        description: err instanceof Error ? err.message : "Could not send the payment.",
+        variant: "destructive",
+      })
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   // ── Reveal card details ────────────────────────────────────────────────────
@@ -1018,6 +1148,8 @@ export default function CardPage() {
         open={showDepositModal}
         onClose={() => setShowDepositModal(false)}
         depositInfo={depositInfo}
+        onWalletPay={handleDepositFromWallet}
+        paying={actionLoading}
       />
       <FundCardModal
         open={showFundModal}
