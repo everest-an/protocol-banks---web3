@@ -106,15 +106,67 @@ export interface YativoApiResponse<T = unknown> {
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-const BASE_URL = process.env.YATIVO_API_URL ?? 'https://smtp.yativo.com/api/v1'
+// Official fiat / virtual-card API host. (`smtp.yativo.com` was a mistake.)
+const BASE_URL = process.env.YATIVO_API_URL ?? 'https://api.yativo.com/api/v1'
 const API_KEY = process.env.YATIVO_API_KEY ?? ''
 const API_SECRET = process.env.YATIVO_API_SECRET ?? ''
+
+// ─── Auth ───────────────────────────────────────────────────────────────────
+//
+// The virtual-card API authenticates with a short-lived Bearer token:
+//   POST /auth/login { account_id, app_secret } → data.access_token (600s)
+// API keys (yvk_/yvs_) can be exchanged the same way at POST /apikey/token.
+// Tokens are cached until shortly before expiry and re-fetched on a 401.
+
+let tokenCache: { token: string; expiresAt: number } | null = null
+
+async function fetchBearerToken(): Promise<string> {
+  const sendLogin = async (path: string, body: Record<string, string>) => {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const text = await response.text()
+    let data: Record<string, unknown> | null = null
+    try {
+      data = JSON.parse(text) as Record<string, unknown>
+    } catch {
+      throw new Error(`Yativo auth returned non-JSON [${response.status}] ${path}: ${text.slice(0, 200)}`)
+    }
+    if (!response.ok) {
+      const message = (data?.message as string) ?? text.slice(0, 200)
+      throw new Error(`Yativo auth failed [${response.status}] ${path}: ${message}`)
+    }
+    const nested = (data?.data ?? {}) as Record<string, unknown>
+    const token = (nested.access_token ?? data?.access_token) as string | undefined
+    const expiresIn = Number(nested.expires_in ?? data?.expires_in ?? 600)
+    if (!token) throw new Error(`Yativo auth response missing access_token: ${text.slice(0, 200)}`)
+    return { token, expiresIn }
+  }
+
+  const attempt = API_KEY.startsWith('yvk_')
+    ? () => sendLogin('/apikey/token', { api_key: API_KEY, api_secret: API_SECRET })
+    : () => sendLogin('/auth/login', { account_id: API_KEY, app_secret: API_SECRET })
+
+  const { token, expiresIn } = await attempt()
+  tokenCache = { token, expiresAt: Date.now() + expiresIn * 1000 }
+  return token
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  if (tokenCache && tokenCache.expiresAt > Date.now() + 30_000) {
+    return { Authorization: `Bearer ${tokenCache.token}` }
+  }
+  return { Authorization: `Bearer ${await fetchBearerToken()}` }
+}
 
 // ─── HTTP Helper ─────────────────────────────────────────────────────────────
 
 async function yativoFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryOnAuthFailure = true,
 ): Promise<T> {
   if (!API_KEY || !API_SECRET) {
     throw new Error('Yativo API credentials not configured. Set YATIVO_API_KEY and YATIVO_API_SECRET.')
@@ -124,14 +176,19 @@ async function yativoFetch<T>(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'account-id': API_KEY,
-    'api-secret': API_SECRET,
+    ...(await authHeaders()),
     ...(options.headers as Record<string, string> ?? {}),
   }
 
   console.log(`[Yativo] ${options.method ?? 'GET'} ${path}`)
 
   const response = await fetch(url, { ...options, headers })
+
+  // A stale token looks identical to bad credentials; refresh once and retry.
+  if (response.status === 401 && retryOnAuthFailure) {
+    tokenCache = null
+    return yativoFetch<T>(path, options, false)
+  }
 
   const responseText = await response.text()
   let responseData: T
