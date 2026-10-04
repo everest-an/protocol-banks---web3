@@ -6,6 +6,10 @@
  * Read-only: inspects environment variables only. Use it before go-live to see
  * which surfaces are ready and what each missing key blocks.
  */
+import { JsonRpcProvider, Wallet, formatEther } from "ethers"
+import { prisma } from "@/lib/prisma"
+import { yativoClient } from "@/lib/services/yativo-client.service"
+
 const has = (...keys: string[]) => keys.every((key) => !!process.env[key])
 const any = (...keys: string[]) => keys.some((key) => !!process.env[key])
 
@@ -88,3 +92,42 @@ for (const row of rows) {
 
 const gaps = rows.filter((row) => !row.ready)
 console.log(`\n${gaps.length} gap(s): ${gaps.map((gap) => gap.area).join(", ") || "none"}`)
+
+// ── Live probes (only with --probe) ─────────────────────────────────────────
+// Env presence does not mean the credentials work — this actually connects.
+if (process.argv.includes("--probe")) {
+  void (async () => {
+    console.log("\nLive probes\n")
+
+    try {
+      await prisma.$queryRawUnsafe("SELECT 1")
+      console.log("✅ Database                 connected")
+    } catch (error) {
+      console.log(`❌ Database                 ${String((error as Error)?.message ?? error).slice(0, 90)}`)
+    }
+
+    if (process.env.RELAYER_PRIVATE_KEY) {
+      try {
+        const wallet = new Wallet(process.env.RELAYER_PRIVATE_KEY)
+        const rpc = new JsonRpcProvider(
+          process.env.SEPOLIA_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com",
+          undefined,
+          { staticNetwork: true },
+        )
+        const balance = await rpc.getBalance(wallet.address)
+        console.log(`✅ Local relayer            ${wallet.address.slice(0, 10)}… · ${formatEther(balance)} Sepolia ETH`)
+      } catch (error) {
+        console.log(`❌ Local relayer            ${String((error as Error)?.message ?? error).slice(0, 90)}`)
+      }
+    }
+
+    if (process.env.YATIVO_API_KEY && process.env.YATIVO_API_SECRET) {
+      try {
+        await yativoClient.getBusinessDetails()
+        console.log("✅ Yativo (cards)           authenticated")
+      } catch (error) {
+        console.log(`❌ Yativo (cards)           ${String((error as Error)?.message ?? error).slice(0, 110)}`)
+      }
+    }
+  })()
+}
