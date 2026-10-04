@@ -158,6 +158,25 @@ demos only, you can opt back into simulation:
 ALLOW_MOCK_EXECUTION=true
 ```
 
+**Local-key relayer (no hosted service)**: setting `RELAYER_PRIVATE_KEY` makes
+the app submit EIP-3009 authorizations itself — the same path used by batch
+payouts, subscription charges and x402 settlement. It only pays gas and never
+holds user funds, so it needs a little native currency on every chain that
+should settle:
+
+```env
+RELAYER_PRIVATE_KEY=0x...
+```
+
+Check per-chain gas readiness (re-run after funding):
+
+```bash
+$env:DOTENV_CONFIG_PATH='.env.local'; npx tsx -r dotenv/config scripts/relayer-readiness.ts
+```
+
+`GET /api/status` reports a `relayer` component (mode + public address, never
+the key); it shows `degraded` when nothing is configured.
+
 ### 6b. Core Authentication & Database (REQUIRED — the app will not run without these)
 
 ```env
