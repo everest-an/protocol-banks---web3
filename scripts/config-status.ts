@@ -58,6 +58,12 @@ const rows: Row[] = [
     blocks: "card funding",
   },
   {
+    area: "Cards (Rain)",
+    ready: has("RAIN_API_KEY"),
+    detail: has("RAIN_API_KEY") ? "set" : "missing",
+    blocks: "card issuing via Rain (alternative to Yativo)",
+  },
+  {
     area: "Asset distribution",
     ready: has("ASSET_DISTRIBUTOR_ADDRESS", "ASSET_DISTRIBUTOR_PRIVATE_KEY"),
     detail: has("ASSET_DISTRIBUTOR_ADDRESS", "ASSET_DISTRIBUTOR_PRIVATE_KEY") ? "set" : "missing",
