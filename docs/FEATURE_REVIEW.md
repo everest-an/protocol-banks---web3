@@ -118,7 +118,7 @@ to 10s and retries once; endpoint-heavy flows were re-verified under enforce
 | `RAIN_API_KEY` (+ partner access / KYB) | ⚠️ missing — outbound client ready (`lib/services/rain-card.service.ts`) |
 | Off-ramp provider (Bridge / Coinbase / Transak) | ⚠️ missing — answers 503 with an actionable message until configured |
 | `NEXT_PUBLIC_BATCH_TRANSFER_CONTRACT` | — not needed: USDC batches settle via EIP-3009 |
-| Yield deployments | ⚠️ missing — the aggregator logs "No deployment found" per chain |
+| Yield deployments | ⚠️ missing — the aggregator logs "No deployment found" per chain and the API answers **503** (not 500) until deployed |
 | `RLS_MODE` | ✅ `enforce` in production and preview |
 
 Ops helpers: `scripts/config-status.ts --probe`, `scripts/relayer-readiness.ts`,
