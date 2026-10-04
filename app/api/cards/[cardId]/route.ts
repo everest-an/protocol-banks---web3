@@ -10,6 +10,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/middleware/api-auth'
+import { isYativoConfigError } from '@/lib/services/yativo-client.service'
 import { userVirtualCardService } from '@/lib/services/user-virtual-card.service'
 import { z } from 'zod'
 
@@ -93,6 +94,12 @@ export async function PATCH(
           )
       }
     } catch (err) {
+      if (isYativoConfigError(err)) {
+        return NextResponse.json(
+          { error: 'Card operations are not available: the provider credentials are missing or rejected.' },
+          { status: 503 },
+        )
+      }
       const message = err instanceof Error ? err.message : 'Operation failed'
       return NextResponse.json({ error: message }, { status: 500 })
     }
@@ -111,6 +118,12 @@ export async function DELETE(
       const result = await userVirtualCardService.terminateCard(cardId, address)
       return NextResponse.json(result)
     } catch (err) {
+      if (isYativoConfigError(err)) {
+        return NextResponse.json(
+          { error: 'Card operations are not available: the provider credentials are missing or rejected.' },
+          { status: 503 },
+        )
+      }
       const message = err instanceof Error ? err.message : 'Failed to terminate card'
       return NextResponse.json({ error: message }, { status: 500 })
     }

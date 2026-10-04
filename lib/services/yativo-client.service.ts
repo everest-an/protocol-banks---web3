@@ -210,6 +210,17 @@ async function yativoFetch<T>(
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 
+/**
+ * True when a failure means the provider is unconfigured or rejected our
+ * credentials — a provisioning problem (503), not a server fault (500).
+ */
+export function isYativoConfigError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  return /not configured|auth failed|invalid login credentials|invalid or revoked|Yativo API error \[401\]/i.test(
+    message,
+  )
+}
+
 export const yativoClient = {
   /**
    * Get the platform's wallet balances on Yativo.

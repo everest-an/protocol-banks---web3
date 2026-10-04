@@ -12,6 +12,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/middleware/api-auth'
 import { userVirtualCardService } from '@/lib/services/user-virtual-card.service'
+import { isYativoConfigError } from '@/lib/services/yativo-client.service'
 import { z } from 'zod'
 
 const createCardSchema = z.object({
@@ -53,6 +54,14 @@ export async function POST(request: NextRequest) {
       })
       return NextResponse.json(card, { status: 201 })
     } catch (err) {
+      // Missing/rejected provider credentials are a provisioning gap (503),
+      // not a server fault.
+      if (isYativoConfigError(err)) {
+        return NextResponse.json(
+          { error: 'Card issuing is not available: the provider credentials are missing or rejected.' },
+          { status: 503 },
+        )
+      }
       const message = err instanceof Error ? err.message : 'Failed to create card'
       return NextResponse.json({ error: message }, { status: 500 })
     }

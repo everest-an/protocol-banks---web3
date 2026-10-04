@@ -104,6 +104,9 @@ export const userVirtualCardService = {
    */
   async createCard(input: CreateUserCardInput): Promise<VirtualCardPublic> {
     const response = await yativoClient.createCard({
+      // Yativo requires an activated customer; the platform's own customer id
+      // lives in YATIVO_CUSTOMER_ID (dashboard → Customers).
+      customer_id: process.env.YATIVO_CUSTOMER_ID,
       amount: input.initialAmount,
       name_on_card: input.label ?? 'Protocol Banks Card',
     })
