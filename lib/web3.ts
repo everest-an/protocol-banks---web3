@@ -67,7 +67,8 @@ export const CHAIN_IDS = {
 // RPC URLs for supported chains
 export const RPC_URLS: Record<number, string> = {
   [1]: "https://eth.llamarpc.com",
-  [11155111]: "https://rpc.sepolia.org",
+  // rpc.sepolia.org is retired (dead endpoint); publicnode answers reliably.
+  [11155111]: "https://ethereum-sepolia-rpc.publicnode.com",
   [137]: "https://polygon-bor-rpc.publicnode.com",
   [10]: "https://mainnet.optimism.io",
   [8453]: "https://mainnet.base.org",

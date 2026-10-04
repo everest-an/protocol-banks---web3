@@ -210,6 +210,24 @@ Notes:
 - Interactive transactions in user-context code must use `scopedTransaction()`
   from `@/lib/prisma` (Prisma extensions cannot intercept `$transaction`).
 
+### 6d. Asset Distribution (post-payment NFTs/tokens)
+
+Distributions (see `app/api/distribute-asset`) run from a dedicated wallet that
+must hold the assets being handed out (plus gas):
+
+```env
+ASSET_DISTRIBUTOR_ADDRESS=0x...
+ASSET_DISTRIBUTOR_PRIVATE_KEY=0x...
+```
+
+Provision it (generates the wallet if absent, funds it from the relayer on
+Sepolia) and verify the path end to end:
+
+```bash
+$env:DOTENV_CONFIG_PATH='.env.local'; npx tsx -r dotenv/config scripts/setup-asset-distributor.ts
+$env:DOTENV_CONFIG_PATH='.env.local'; npx tsx -r dotenv/config scripts/asset-distribution-e2e.ts
+```
+
 ### 7. Webhook Configuration
 
 For production webhook delivery:
