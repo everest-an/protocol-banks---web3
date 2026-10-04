@@ -73,6 +73,12 @@ export interface TransferWithAuthorizationParams {
   s: string
 }
 
+/** Ethers' raw wording for an empty-gas relayer is not actionable on its own. */
+function isInsufficientFunds(error: unknown): boolean {
+  const message = String((error as { message?: string })?.message ?? error).toLowerCase()
+  return message.includes("insufficient funds") || message.includes("insufficient balance")
+}
+
 /**
  * Submit a signed EIP-3009 authorization with the local relayer key and wait
  * for the receipt. Returns the transaction hash.
@@ -117,7 +123,15 @@ export async function submitTransferWithAuthorization(
         ],
         nonce: txNonce,
       }),
-  )
+  ).catch((error: unknown) => {
+    if (isInsufficientFunds(error)) {
+      throw new Error(
+        `Relayer ${account.address} has no gas on chain ${params.chainId}; settlements on this chain cannot be submitted. ` +
+          "Fund it with native currency — check gaps with scripts/relayer-readiness.ts.",
+      )
+    }
+    throw error
+  })
 
   await publicClient.waitForTransactionReceipt({ hash: txHash })
   return txHash
