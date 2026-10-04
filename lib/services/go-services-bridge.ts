@@ -13,49 +13,7 @@ import { getCircuitBreaker, CircuitBreakerOpenError } from './circuit-breaker';
 import { HealthMonitorService } from './health-monitor-service';
 import { ERC3009_TOKENS, TRANSFER_WITH_AUTHORIZATION_ABI } from '../erc3009';
 import { EVM_NETWORKS } from '../networks';
-
-/**
- * Serialize relayer transactions per chain+address and assign explicit,
- * locally-incrementing nonces.
- *
- * Batch items are submitted back to back from one relayer account. Two races
- * showed up in the E2E run: concurrent sends fetched the same pending nonce
- * ("replacement transaction underpriced"), and even after broadcast
- * serialization the shared public RPC sometimes lagged the mempool and handed
- * out a stale pending nonce. Both disappear when the queue owns the nonce:
- * each send gets the next explicit value, and only a failure re-syncs from the
- * chain. On-chain reverts still consume their nonce, so the counter advances
- * in the success and revert cases alike.
- *
- * Scoped per serverless instance; the Go payout service keeps its own
- * distributed nonce locking on the path used in production.
- */
-type RelayerSendQueue = { tail: Promise<unknown>; nextNonce?: number };
-const relayerSendQueues = new Map<string, RelayerSendQueue>();
-
-function enqueueRelayerSend<T>(
-  key: string,
-  fetchNonce: () => Promise<number>,
-  send: (nonce: number) => Promise<T>,
-): Promise<T> {
-  const queue = relayerSendQueues.get(key) ?? { tail: Promise.resolve() };
-  const run = async (): Promise<T> => {
-    const nonce = queue.nextNonce ?? (await fetchNonce());
-    try {
-      const result = await send(nonce);
-      queue.nextNonce = nonce + 1;
-      return result;
-    } catch (error) {
-      // After any failure the chain is the source of truth again.
-      queue.nextNonce = undefined;
-      throw error;
-    }
-  };
-  const next = queue.tail.catch(() => {}).then(run);
-  queue.tail = next;
-  relayerSendQueues.set(key, queue);
-  return next;
-}
+import { enqueueRelayerSend } from './relayer-submit';
 
 // ============================================
 // Types

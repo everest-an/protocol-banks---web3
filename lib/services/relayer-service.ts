@@ -13,6 +13,7 @@
 
 import { Address, Hex, encodeFunctionData, parseAbi } from 'viem'
 import { ERC3009_TOKENS, getTokenAddress, buildTransferAuthorizationTypedData } from '../erc3009'
+import { submitTransferWithAuthorization } from './relayer-submit'
 
 // ============================================================================
 // Types
@@ -93,6 +94,26 @@ export class RelayerService {
 
     // Parse signature into v, r, s
     const { v, r, s } = this.parseSignature(request.signature)
+
+    // Local submission path: no hosted relayer service, but we hold a relayer
+    // key — submit the authorization ourselves (same path as batch payouts).
+    const hostedReady = Boolean(this.config.apiUrl && this.config.apiKey)
+    if (!hostedReady && process.env.RELAYER_PRIVATE_KEY) {
+      const txHash = await submitTransferWithAuthorization({
+        chainId: request.chainId,
+        tokenAddress: tokenInfo.address,
+        from: request.from,
+        to: request.to,
+        value: BigInt(request.value),
+        validAfter: request.validAfter,
+        validBefore: request.validBefore,
+        nonce: request.nonce,
+        v,
+        r,
+        s,
+      })
+      return { taskId: txHash, transactionHash: txHash, status: 'confirmed' }
+    }
 
     // Encode the transferWithAuthorization call
     const calldata = encodeFunctionData({
@@ -522,12 +543,14 @@ export async function executeGaslessUSDCTransfer(
  * Check if relayer is configured and available
  */
 export function isRelayerConfigured(): boolean {
-  return !!(process.env.RELAYER_URL || process.env.RELAYER_API_KEY)
+  // Hosted relayer service, or the local submission path (RELAYER_PRIVATE_KEY),
+  // which the batch payout bridge already uses in production.
+  return !!(process.env.RELAYER_URL || process.env.RELAYER_API_KEY || process.env.RELAYER_PRIVATE_KEY)
 }
 
 /**
  * Get supported chains for relayer
  */
 export function getSupportedRelayChains(): number[] {
-  return [1, 137, 42161, 8453, 10]
+  return [1, 137, 42161, 8453, 10, 56, 11155111]
 }
