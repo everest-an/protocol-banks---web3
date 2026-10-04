@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { privateKeyToAccount } from 'viem/accounts';
 
 // ============================================
 // Types
@@ -83,6 +84,9 @@ export class HealthMonitorService {
       components.push(serviceHealth);
     }
 
+    // Check the settlement relayer configuration
+    components.push(await this.checkRelayer());
+
     // Determine overall status
     const overallStatus = this.calculateOverallStatus(components);
 
@@ -92,6 +96,50 @@ export class HealthMonitorService {
       version: APP_VERSION,
       uptime_seconds: Math.floor((Date.now() - APP_START_TIME) / 1000),
       components,
+    };
+  }
+
+  /**
+   * Check the settlement relayer configuration.
+   *
+   * A missing relayer silently blocks batch payouts, subscription charges and
+   * x402 settlement — they fail loudly at call time, but nothing surfaces it in
+   * monitoring. This reports the mode and the public address; the key itself
+   * never leaves the server. Unconfigured is reported as `degraded` so the
+   * signal is visible without turning the whole status endpoint into a failure.
+   */
+  async checkRelayer(): Promise<ComponentHealth> {
+    const hosted = Boolean(process.env.RELAYER_URL && process.env.RELAYER_API_KEY);
+    const localKey = process.env.RELAYER_PRIVATE_KEY;
+
+    if (!hosted && !localKey) {
+      return {
+        name: 'relayer',
+        status: 'degraded',
+        message: 'Not configured — batch payouts, subscription charges and x402 settlement cannot settle',
+        last_check: new Date().toISOString(),
+      };
+    }
+
+    let address = '';
+    if (!hosted && localKey) {
+      try {
+        address = privateKeyToAccount(localKey as `0x${string}`).address;
+      } catch {
+        return {
+          name: 'relayer',
+          status: 'degraded',
+          message: 'RELAYER_PRIVATE_KEY is not a valid key',
+          last_check: new Date().toISOString(),
+        };
+      }
+    }
+
+    return {
+      name: 'relayer',
+      status: 'healthy',
+      message: hosted ? 'hosted service' : `local key ${address}`,
+      last_check: new Date().toISOString(),
     };
   }
 
