@@ -110,10 +110,15 @@ export async function GET(request: NextRequest) {
       action: 'get_balance'
     })
 
+    // A missing deployment is a configuration gap, not a server fault.
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    const notProvisioned = /not initialized|deployment not found|no deployment/i.test(message)
+    const status = notProvisioned ? 503 : 500
+
     logger.logApiRequest(
       'GET',
       '/api/yield/balance',
-      500,
+      status,
       Date.now() - startTime,
       {
         component: 'yield-api'
@@ -123,9 +128,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: notProvisioned ? 'Yield is not deployed on this network yet.' : message
       },
-      { status: 500 }
+      { status }
     )
   }
 }
