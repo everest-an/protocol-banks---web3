@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend (tsc + jest + lint)
+    name: Frontend (tsc + jest + lint + build)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -42,6 +42,17 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      # The production build is the only gate that catches client/server
+      # boundary mistakes (e.g. server-only modules pulled into client chunks,
+      # which broke the Vercel build while tsc/jest/lint stayed green).
+      - name: Production build
+        run: pnpm build
+        env:
+          # Placeholders only — the build must not need real credentials.
+          DATABASE_URL: postgresql://user:pass@localhost:5432/placeholder
+          DIRECT_DATABASE_URL: postgresql://user:pass@localhost:5432/placeholder
+          AI_JWT_SECRET: ci-placeholder
 
   go-services:
     name: Go services
