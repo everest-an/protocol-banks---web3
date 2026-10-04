@@ -87,6 +87,9 @@ export class HealthMonitorService {
     // Check the settlement relayer configuration
     components.push(await this.checkRelayer());
 
+    // Report the tenant-isolation mode
+    components.push(await this.checkRls());
+
     // Determine overall status
     const overallStatus = this.calculateOverallStatus(components);
 
@@ -139,6 +142,24 @@ export class HealthMonitorService {
       name: 'relayer',
       status: 'healthy',
       message: hosted ? 'hosted service' : `local key ${address}`,
+      last_check: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Report the tenant-isolation mode.
+   *
+   * The database policies are inert unless RLS_MODE is `enforce`; with it off,
+   * isolation rests on application WHERE clauses alone (see ENV_SETUP 6c).
+   */
+  async checkRls(): Promise<ComponentHealth> {
+    const enforced = process.env.RLS_MODE === 'enforce';
+    return {
+      name: 'rls',
+      status: enforced ? 'healthy' : 'degraded',
+      message: enforced
+        ? 'enforce — database policies active'
+        : 'off — policies inert, isolation is application-level only',
       last_check: new Date().toISOString(),
     };
   }
