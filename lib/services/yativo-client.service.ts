@@ -1,24 +1,19 @@
 /**
- * Yativo API Client Service
+ * Yativo Crypto API Client Service
  *
- * Encapsulates all interactions with the Yativo Card Issuing API.
- * Yativo supports USDC/USDT-funded virtual Visa cards for online spending.
+ * Encapsulates interactions with the Yativo Crypto platform (crypto.yativo.com):
+ * crypto-funded virtual cards, wallets, accounts and the card issuer program.
  *
- * API Base: https://smtp.yativo.com/api/v1
- * Auth: account-id + api-secret headers
+ * API base:  https://crypto-api.yativo.com/api        (live)
+ *            https://crypto-sandbox.yativo.com/api    (sandbox — card features are mock)
+ * Auth:      POST /auth/token { api_key, api_secret } → Bearer token (60 min).
+ *            API keys are created in the crypto dashboard and require 2FA on
+ *            the account. Tokens are cached and re-fetched on a 401.
  *
- * Virtual Card endpoints (extracted from Yativo frontend):
- *   POST /customer/virtual/cards/create
- *   GET  /customer/virtual/cards/list
- *   POST /customer/virtual/cards/activate
- *   POST /customer/virtual/cards/topup
- *   POST /customer/virtual/cards/withdraw
- *   POST /customer/virtual/cards/terminate
- *
- * Env vars required:
- *   - YATIVO_API_KEY     (account-id)
- *   - YATIVO_API_SECRET  (api-secret)
- *   - YATIVO_API_URL     (optional, defaults to sandbox)
+ * Env vars:
+ *   - YATIVO_API_KEY     (API key from the crypto dashboard)
+ *   - YATIVO_API_SECRET  (secret shown once at key creation)
+ *   - YATIVO_BASE_URL    (optional; defaults to the live crypto API)
  *
  * @module lib/services/yativo-client.service
  */
@@ -106,50 +101,45 @@ export interface YativoApiResponse<T = unknown> {
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-// Official fiat / virtual-card API host. (`smtp.yativo.com` was a mistake.)
-const BASE_URL = process.env.YATIVO_API_URL ?? 'https://api.yativo.com/api/v1'
+// Yativo Crypto platform API.
+// Sandbox: https://crypto-sandbox.yativo.com/api (cards are mock there)
+const BASE_URL =
+  process.env.YATIVO_BASE_URL ?? process.env.YATIVO_API_URL ?? 'https://crypto-api.yativo.com/api'
 const API_KEY = process.env.YATIVO_API_KEY ?? ''
 const API_SECRET = process.env.YATIVO_API_SECRET ?? ''
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
 //
-// The virtual-card API authenticates with a short-lived Bearer token:
-//   POST /auth/login { account_id, app_secret } → data.access_token (600s)
-// API keys (yvk_/yvs_) can be exchanged the same way at POST /apikey/token.
+// The crypto platform exchanges an API key + secret for a short-lived Bearer
+// token: POST /auth/token { api_key, api_secret } → access_token (60 min).
+// Contract verified against the live API — bad keys answer
+//   401 {"success":false,"error":"Invalid, expired, or revoked API key"}.
 // Tokens are cached until shortly before expiry and re-fetched on a 401.
 
 let tokenCache: { token: string; expiresAt: number } | null = null
 
 async function fetchBearerToken(): Promise<string> {
-  const sendLogin = async (path: string, body: Record<string, string>) => {
-    const response = await fetch(`${BASE_URL}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
-    })
-    const text = await response.text()
-    let data: Record<string, unknown> | null = null
-    try {
-      data = JSON.parse(text) as Record<string, unknown>
-    } catch {
-      throw new Error(`Yativo auth returned non-JSON [${response.status}] ${path}: ${text.slice(0, 200)}`)
-    }
-    if (!response.ok) {
-      const message = (data?.message as string) ?? text.slice(0, 200)
-      throw new Error(`Yativo auth failed [${response.status}] ${path}: ${message}`)
-    }
-    const nested = (data?.data ?? {}) as Record<string, unknown>
-    const token = (nested.access_token ?? data?.access_token) as string | undefined
-    const expiresIn = Number(nested.expires_in ?? data?.expires_in ?? 600)
-    if (!token) throw new Error(`Yativo auth response missing access_token: ${text.slice(0, 200)}`)
-    return { token, expiresIn }
+  const path = '/auth/token'
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ api_key: API_KEY, api_secret: API_SECRET }),
+  })
+  const text = await response.text()
+  let data: Record<string, unknown> | null = null
+  try {
+    data = JSON.parse(text) as Record<string, unknown>
+  } catch {
+    throw new Error(`Yativo auth returned non-JSON [${response.status}] ${path}: ${text.slice(0, 200)}`)
   }
-
-  const attempt = API_KEY.startsWith('yvk_')
-    ? () => sendLogin('/apikey/token', { api_key: API_KEY, api_secret: API_SECRET })
-    : () => sendLogin('/auth/login', { account_id: API_KEY, app_secret: API_SECRET })
-
-  const { token, expiresIn } = await attempt()
+  if (!response.ok) {
+    const message = (data?.message as string) ?? (data?.error as string) ?? text.slice(0, 200)
+    throw new Error(`Yativo auth failed [${response.status}] ${path}: ${message}`)
+  }
+  const nested = (data?.data ?? {}) as Record<string, unknown>
+  const token = (nested.access_token ?? data?.access_token) as string | undefined
+  const expiresIn = Number(nested.expires_in ?? data?.expires_in ?? 3600)
+  if (!token) throw new Error(`Yativo auth response missing access_token: ${text.slice(0, 200)}`)
   tokenCache = { token, expiresAt: Date.now() + expiresIn * 1000 }
   return token
 }
@@ -222,6 +212,14 @@ export function isYativoConfigError(error: unknown): boolean {
 }
 
 export const yativoClient = {
+  /**
+   * List the accounts on the crypto platform (connectivity check).
+   * Endpoint: GET /accounts/get-accounts
+   */
+  async getAccounts(): Promise<unknown> {
+    return yativoFetch<unknown>('/accounts/get-accounts')
+  },
+
   /**
    * Get the platform's wallet balances on Yativo.
    */
