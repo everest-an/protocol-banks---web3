@@ -120,7 +120,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="https://discord.gg/cfknkfSEMu"
+                  href="https://discord.gg/aBeZEsfXkH"
                   target="_blank"
                   className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
                 >

@@ -239,7 +239,7 @@ Setup & tool reference → [MCP.md](MCP.md)
 |---|---|
 | In-app report | Floating **Report an issue** button (every product page) → emails the team |
 | Email | e@awareness.market |
-| Discord | https://discord.gg/cfknkfSEMu (linked in footer, landing CTA, report dialog) |
+| Discord | https://discord.gg/aBeZEsfXkH (linked in footer, landing CTA, report dialog) |
 
 ## 10. Pricing
 

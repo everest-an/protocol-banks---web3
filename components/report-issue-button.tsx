@@ -75,7 +75,7 @@ export function ReportIssueButton() {
               Something not working? Tell us what happened — the team gets an email immediately.
             </p>
             <a
-              href="https://discord.gg/cfknkfSEMu"
+              href="https://discord.gg/aBeZEsfXkH"
               target="_blank"
               rel="noopener noreferrer"
               className="mb-4 flex items-center gap-2 rounded-lg border border-white/10 bg-background/60 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"

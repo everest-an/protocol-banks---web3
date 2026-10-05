@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { prisma, scopedTransaction } from "@/lib/prisma"
+import { withAuth } from "@/lib/middleware/api-auth"
 import {
   validateAndChecksumAddress,
   sanitizeTextInput,
@@ -13,20 +14,19 @@ const MAX_BATCH_SIZE = 100
  * PUT /api/vendors/batch-update
  * Batch update vendor names (only names, not addresses).
  * Address changes require individual signature confirmation.
+ *
+ * Identity comes from the verified session (withAuth) — never from the request
+ * body — and the reads/writes run inside the caller's RLS context.
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(async (request: NextRequest, callerAddress: string) => {
   try {
     const body = await request.json()
-    const { updates, owner_address } = body as {
+    const { updates } = body as {
       updates: Array<{ id: string; name: string }>
-      owner_address: string
     }
 
-    if (!owner_address || !updates || !Array.isArray(updates)) {
-      return NextResponse.json(
-        { error: "owner_address and updates array are required" },
-        { status: 400 },
-      )
+    if (!updates || !Array.isArray(updates)) {
+      return NextResponse.json({ error: "updates array is required" }, { status: 400 })
     }
 
     if (updates.length === 0) {
@@ -40,10 +40,14 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Validate owner address
-    const ownerValidation = validateAndChecksumAddress(owner_address)
+    // The owner is the authenticated caller. Normalise to checksum form so the
+    // created_by comparisons below stay case-insensitive-safe.
+    const ownerValidation = validateAndChecksumAddress(callerAddress)
     if (!ownerValidation.valid) {
-      return NextResponse.json({ error: `Invalid owner address: ${ownerValidation.error}` }, { status: 400 })
+      return NextResponse.json(
+        { error: `Invalid owner address: ${ownerValidation.error}` },
+        { status: 400 },
+      )
     }
 
     // Validate all updates have required fields
@@ -83,31 +87,29 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Perform batch update in a transaction.
-    // rls:system — this route runs outside a user RLS context (no withAuth), so
-    // the plain transaction keeps full access. The transaction guard test
-    // allow-lists this marker. NOTE: identity is currently taken from the
-    // request body's owner_address and should move to withAuth.
-    const updatedVendors = await prisma.$transaction(
-      updates.map((update) => {
-        const { sanitized: sanitizedName } = sanitizeTextInput(update.name)
-        const existing = existingVendors.find((v) => v.id === update.id)!
+    // Perform batch update inside the caller's RLS-scoped transaction.
+    const updatedVendors = await scopedTransaction(async (tx) =>
+      Promise.all(
+        updates.map((update) => {
+          const { sanitized: sanitizedName } = sanitizeTextInput(update.name)
+          const existing = existingVendors.find((v) => v.id === update.id)!
 
-        const integrityHash = createVendorIntegrityHash({
-          id: update.id,
-          name: sanitizedName,
-          wallet_address: existing.wallet_address,
-          created_by: existing.created_by!,
-        })
-
-        return prisma.vendor.update({
-          where: { id: update.id },
-          data: {
+          const integrityHash = createVendorIntegrityHash({
+            id: update.id,
             name: sanitizedName,
-            integrity_hash: integrityHash,
-          },
-        })
-      }),
+            wallet_address: existing.wallet_address,
+            created_by: existing.created_by!,
+          })
+
+          return tx.vendor.update({
+            where: { id: update.id },
+            data: {
+              name: sanitizedName,
+              integrity_hash: integrityHash,
+            },
+          })
+        }),
+      ),
     )
 
     // Single audit log for the batch
@@ -138,4 +140,4 @@ export async function PUT(request: NextRequest) {
     console.error("[Vendors API] Batch update error:", error)
     return NextResponse.json({ error: error.message || "Failed to batch update vendors" }, { status: 500 })
   }
-}
+}, { component: "vendors-batch-update" })

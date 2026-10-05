@@ -563,7 +563,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               Contact <ChevronRight className="h-4 w-4" />
             </Link>
             <Link
-              href="https://discord.gg/cfknkfSEMu"
+              href="https://discord.gg/aBeZEsfXkH"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors flex items-center gap-1"

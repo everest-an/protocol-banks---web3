@@ -565,7 +565,7 @@ export default function VendorsPage() {
       const res = await fetch("/api/vendors/batch-update", {
         method: "PUT",
         headers: authHeaders(wallet, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ updates, owner_address: wallet }),
+        body: JSON.stringify({ updates }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
