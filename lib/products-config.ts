@@ -8,13 +8,10 @@ import {
   ArrowRightLeft,
   CreditCard,
   ShoppingBag,
-  Store,
   Wallet,
   Code,
   Settings,
-  PiggyBank,
   BarChart3,
-  FileCheck,
   SplitSquareHorizontal,
   FileText,
 } from "lucide-react"
@@ -44,6 +41,12 @@ export const overviewItems: ProductItem[] = [
     title: "Wallet",
     description: "Balances, activity, and quick actions across chains",
     icon: CreditCard,
+  },
+  {
+    href: "/card",
+    title: "Card",
+    description: "Virtual crypto debit card",
+    icon: Wallet,
   },
   {
     href: "/settings",
@@ -92,28 +95,10 @@ export const businessItems: ProductItem[] = [
     icon: ShoppingBag,
   },
   {
-    href: "/card",
-    title: "Card",
-    description: "Virtual crypto debit card",
-    icon: Wallet,
-  },
-  {
     href: "/history",
     title: "Transactions",
     description: "History, reconciliation, and analytics",
     icon: ArrowRightLeft,
-  },
-  {
-    href: "/reconciliation",
-    title: "Reconciliation",
-    description: "Match and verify payment records",
-    icon: FileCheck,
-  },
-  {
-    href: "/acquiring",
-    title: "Acquiring",
-    description: "Checkout, invoicing, and POS terminal",
-    icon: Store,
   },
   {
     href: "/receive",
@@ -124,14 +109,8 @@ export const businessItems: ProductItem[] = [
   {
     href: "/swap",
     title: "Swap",
-    description: "Exchange tokens or off-ramp to fiat",
+    description: "Exchange tokens across chains via Rango",
     icon: RefreshCw,
-  },
-  {
-    href: "/yield",
-    title: "Yield",
-    description: "Earn interest via Aave & JustLend",
-    icon: PiggyBank,
   },
   {
     href: "/agents",
