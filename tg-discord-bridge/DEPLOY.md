@@ -114,6 +114,18 @@ AI_AUTO=mention     # mention | all | off
 
 ---
 
+## 5.5 邀请激励（Referrals）—— 让成员帮你拉人
+
+- 群成员发 **`/invite`** → 专属邀请链接；**`/top`** 看邀请榜。
+- 归因靠 `chat_member` 更新（已在 `allowed_updates` 里）。
+- 计数写入 **`referrals.json`**；Docker **必须挂卷**（compose 已配 `./data:/app/data`）。
+- `REF_REWARD_AT=5`：邀请满 5 人自动播报达标。
+- 前置：bot 是**管理员**且有 **"邀请用户"** 权限。
+
+> ⚠️ 平台不允许 bot 主动加人；"自动加人"唯一合规落地 = **自动归因 + 自动激励**，拉人交给人。
+
+---
+
 ## 6. 安全
 
 - `.env` 含密钥，**已 gitignore，勿提交**。
