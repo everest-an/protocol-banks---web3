@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 675px; overflow: hidden; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background: #0a0e1a; color: #f5f7ff; position: relative;
+  }
+  .glow { position: absolute; inset: 0; background:
+      radial-gradient(620px 430px at 80% 16%, rgba(94,224,210,0.28), transparent 60%),
+      radial-gradient(560px 430px at 10% 94%, rgba(123,104,238,0.30), transparent 62%); }
+  .grid { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 60px 60px; -webkit-mask-image: radial-gradient(circle at 50% 40%, #000 40%, transparent 80%); }
+  .wrap { position: relative; height: 100%; padding: 60px 72px; display: flex; flex-direction: column; justify-content: space-between; }
+  .brand { display: flex; align-items: baseline; gap: 14px; font-weight: 800; font-size: 25px; }
+  .brand .dot { align-self: center; width: 24px; height: 24px; border-radius: 50%; background: conic-gradient(from 120deg, #5ce0d2, #7b68ee, #5ce0d2); box-shadow: 0 0 26px rgba(92,224,210,.6); }
+  .brand small { font-weight: 500; font-size: 15px; color: #9fb0cc; }
+  .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #5ce0d2; margin-bottom: 14px; }
+  h1 { font-size: __TITLESIZE__px; line-height: 1.1; font-weight: 800; letter-spacing: -1px; max-height: __TITLEMAXH__px; overflow: hidden; }
+  h1 .hl { background: linear-gradient(90deg,#5ce0d2,#7b68ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { margin-top: 18px; font-size: 21px; color: #c3cde3; line-height: 1.45; max-height: 64px; overflow: hidden; }
+  .chips { display: flex; gap: 10px; margin-top: 18px; }
+  .chips span { font-size: 15px; font-weight: 600; padding: 7px 14px; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; color: #c3cde3; background: rgba(255,255,255,.04); }
+  .stat { display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; padding: 13px 24px; border: 1px solid rgba(92,224,210,.45); border-radius: 999px; background: rgba(92,224,210,.10); font-size: 22px; font-weight: 700; color: #e8f6f4; }
+  .stat b { color: #5ce0d2; font-size: 27px; }
+  .foot { display: flex; align-items: center; justify-content: space-between; font-size: 16px; color: #8fa0bd; }
+  .foot .u { font-weight: 700; color: #dfe7f7; }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="grid"></div>
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span> Awareness <small>AI memory layer for coding agents</small></div>
+    <div class="mid">
+      <div class="eyebrow">__EYEBROW__</div>
+      <h1>__TITLE__</h1>
+      <div class="sub">__SUB__</div>
+      <div class="chips"><span>Claude Code</span><span>Cursor</span><span>MCP</span><span>multi-agent</span></div>
+      <div class="stat">__STAT__</div>
+    </div>
+    <div class="foot"><span class="u">awareness.market</span><span>MCP · local-first · ERC-8350</span></div>
+  </div>
+</body>
+</html>

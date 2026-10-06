@@ -1,0 +1,26 @@
+{
+  "product": "Protocol Bank — a non-custodial AI trading agent on Hyperliquid. The agent gets trading-only rights (it can never withdraw); your worst case is the budget you choose. Paper mode is free, live pays 20% of profits. Every live account is public with real PnL. Also ships a Model Context Protocol server so any chat assistant can read and control the agent, plus an AI advisor model that reviews every entry (veto-only — the risk engine always has the final say).",
+  "topics": [
+    "AI trading", "Hyperliquid", "perpetual futures", "non-custodial", "AI agents",
+    "agent wallets", "MCP", "trading automation", "risk management", "on-chain transparency"
+  ],
+  "github": {
+    "user": "everest-an",
+    "repos": ["everest-an/protocol-banks---web3"],
+    "queries": ["hyperliquid trading bot stars:>100", "mcp server stars:>500"],
+    "max": 6
+  },
+  "hn": { "max": 10 },
+  "arxiv": { "query": "cat:cs.AI OR cat:cs.CL OR cat:q-fin.TR", "max": 6 },
+  "voice": "Technical, concise, honest. No hype, no emoji spam. First person plural (we). Cite specifics and numbers (Hyperliquid, agent-wallet model, risk caps, real PnL). Never invent facts. Never mention private/unreleased work. Never give financial advice and never promise returns — say plainly that trading can lose the entire budget.",
+  "x": {
+    "handle": "0xPrococolBank",
+    "max_chars": 280,
+    "posts_per_run": 1,
+    "track_accounts": [
+      "HyperliquidX", "dYdX", "AerodromeFi", "morpho_org", "jito_sol",
+      "DriftProtocol", "base", "chainlink"
+    ],
+    "_track_accounts_note": "Starter list — run `node x-engage.mjs --resolve` to verify each handle, then prune to the 5K-50K follower band (replies on bigger accounts get buried) and add Hyperliquid-ecosystem builders as they appear."
+  }
+}

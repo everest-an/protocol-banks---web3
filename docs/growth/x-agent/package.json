@@ -1,0 +1,16 @@
+{
+  "name": "awareness-x-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "news": "node x-agent.mjs",
+    "post": "node x-poster.mjs",
+    "card": "node make-card.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0",
+    "twitter-api-v2": "^1.17.2",
+    "nodemailer": "^6.9.14"
+  }
+}

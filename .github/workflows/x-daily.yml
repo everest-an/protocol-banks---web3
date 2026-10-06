@@ -1,0 +1,48 @@
+name: X daily poster (draft-first)
+
+# Turns the repo's real GitHub activity into one grounded X post per day.
+# Draft-first and compliant: with X keys configured it posts the original post
+# through the official API; without them it uploads the draft as an artifact.
+# No auto-reply, no auto-follow, no browsing simulation — those get accounts
+# suspended (see docs/growth/x-agent/README.md).
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # 09:00 Asia/Shanghai (01:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install agent deps (twitter-api-v2, nodemailer, playwright)
+        working-directory: docs/growth/x-agent
+        run: npm install --no-fund --no-audit
+
+      - name: Draft (auto-posts when X keys exist)
+        working-directory: docs/growth/x-agent
+        env:
+          LLM_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          LLM_BASE_URL: https://openrouter.ai/api/v1/chat/completions
+          LLM_MODEL: deepseek/deepseek-v4-flash
+          X_CONSUMER_KEY: ${{ secrets.X_CONSUMER_KEY }}
+          X_CONSUMER_SECRET: ${{ secrets.X_CONSUMER_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          GH_TOKEN: ${{ github.token }}
+        run: node x-poster.mjs
+
+      - name: Upload drafts
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-drafts
+          path: docs/growth/x-agent/out/
+          if-no-files-found: ignore
