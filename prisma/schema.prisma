@@ -1981,6 +1981,9 @@ model TradingAccount {
   llm_key_tag         String?
   llm_provider        String?   @default("openrouter") // openrouter | deepseek
   llm_model           String?
+  /// Opt-in: publish this account's address on the public track record so
+  /// anyone can verify the live results on-chain (default: anonymized only).
+  public_track_record Boolean   @default(false)
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
 

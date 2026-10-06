@@ -24,6 +24,10 @@ interface AccountEntry {
   tradeCount: number
   startedAt: string
   lastActiveAt: string
+  /** True when the owner opted in to sharing the address for verification. */
+  verifiable: boolean
+  /** Hyperliquid explorer link, only for opted-in accounts. */
+  explorerUrl: string | null
 }
 
 interface TrackRecord {
@@ -116,8 +120,28 @@ export default async function LiveTrackRecordPage() {
                     <p className="font-medium flex items-center gap-2">
                       <Bot className="h-4 w-4 text-primary" />
                       {a.name}
+                      {a.verifiable && (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          verifiable
+                        </span>
+                      )}
                     </p>
-                    <p className="text-xs text-muted-foreground font-mono">{a.id}</p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {a.id}
+                      {a.explorerUrl && (
+                        <>
+                          {" · "}
+                          <a
+                            href={a.explorerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline"
+                          >
+                            verify on-chain
+                          </a>
+                        </>
+                      )}
+                    </p>
                   </div>
                   <span className="text-right font-mono">{fmtUsd(a.budgetUsd)}</span>
                   <span className="text-right font-mono">{a.tradeCount}</span>
@@ -128,6 +152,11 @@ export default async function LiveTrackRecordPage() {
                 </div>
               ))}
             </div>
+
+            <p className="text-xs text-muted-foreground mb-8">
+              Live accounts are anonymized by default. Owners can opt in to publishing their address for on-chain
+              verification straight from the cockpit (Go Live → Public track record).
+            </p>
           </>
         ) : data.unavailable ? (
           /* DB unreachable — never show fake zeros as if they were data */

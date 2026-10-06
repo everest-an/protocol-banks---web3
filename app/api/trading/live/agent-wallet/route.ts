@@ -37,6 +37,11 @@ export const POST = withAuth(async (req, address) => {
   switch (body.action) {
     case "status": {
       const record = loadAgentKeyRecord(address)
+      const { prisma } = await import("@/lib/prisma")
+      const row = await prisma.tradingAccount.findUnique({
+        where: { wallet_address: address.toLowerCase() },
+        select: { public_track_record: true },
+      })
       return NextResponse.json({
         live: {
           available: true,
@@ -45,8 +50,20 @@ export const POST = withAuth(async (req, address) => {
           approved: record?.approved ?? false,
           approvedAt: record?.approvedAt ?? null,
           createdAt: record?.createdAt ?? null,
+          publicTrackRecord: row?.public_track_record ?? false,
         },
       })
+    }
+
+    case "set-public-track-record": {
+      const isPublic = body.public === true
+      const { prisma } = await import("@/lib/prisma")
+      await prisma.tradingAccount.upsert({
+        where: { wallet_address: address.toLowerCase() },
+        create: { wallet_address: address.toLowerCase(), public_track_record: isPublic },
+        update: { public_track_record: isPublic },
+      })
+      return NextResponse.json({ ok: true, public: isPublic })
     }
 
     case "generate": {
@@ -150,7 +167,7 @@ export const POST = withAuth(async (req, address) => {
 
     default:
       return NextResponse.json(
-        { error: "Unknown action. Use one of: status, generate, approve, revoke" },
+        { error: "Unknown action. Use one of: status, generate, approve, revoke, set-public-track-record" },
         { status: 400 },
       )
   }

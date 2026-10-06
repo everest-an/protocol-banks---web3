@@ -13,6 +13,7 @@ interface LiveStatus {
   keySecretConfigured: boolean
   agentAddress: string | null
   approved: boolean
+  publicTrackRecord: boolean
 }
 
 interface ApprovePayload {
@@ -39,7 +40,7 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
   const [status, setStatus] = useState<LiveStatus | null>(null)
   const [approvePayload, setApprovePayload] = useState<ApprovePayload | null>(null)
   const [liveState, setLiveState] = useState<LiveState | null>(null)
-  const [busy, setBusy] = useState<"generate" | "approve" | null>(null)
+  const [busy, setBusy] = useState<"generate" | "approve" | "public" | null>(null)
   const [riskAccepted, setRiskAccepted] = useState(false)
 
   const headers = authHeaders(walletAddress, { "Content-Type": "application/json" })
@@ -136,6 +137,31 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
       await loadStatus()
     } catch (e) {
       toast({ title: "Approval failed", description: e instanceof Error ? e.message : "Try again", variant: "destructive" })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleTogglePublic = async () => {
+    if (!walletAddress || !status) return
+    setBusy("public")
+    try {
+      const res = await fetch("/api/trading/live/agent-wallet", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action: "set-public-track-record", public: !status.publicTrackRecord }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Could not update the track record visibility")
+      await loadStatus()
+      toast({
+        title: data.public ? "Public track record enabled" : "Public track record disabled",
+        description: data.public
+          ? "Your address will appear on the public track record for on-chain verification."
+          : "Your account shows as an anonymized id again.",
+      })
+    } catch (e) {
+      toast({ title: "Could not update", description: e instanceof Error ? e.message : "Try again", variant: "destructive" })
     } finally {
       setBusy(null)
     }
@@ -266,12 +292,34 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
         )}
 
         {status?.approved && (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-primary" />
-              <span className="font-medium text-foreground">Agent approved.</span> Live trading opens with the Beta —
-              paper mode keeps running meanwhile so you can watch the agent work risk-free.
-            </p>
+          <div className="rounded-lg border border-white/10 p-3 bg-white/30 dark:bg-black/20 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium">Public track record</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Publish this account's address so anyone can verify your live results on-chain. Off by default — your
+                  account shows as an anonymized id.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs shrink-0"
+                onClick={handleTogglePublic}
+                disabled={busy !== null}
+              >
+                {status.publicTrackRecord ? "Disable" : "Enable"}
+              </Button>
+            </div>
+            {status.publicTrackRecord && (
+              <p className="text-[11px] text-muted-foreground">
+                Live on{" "}
+                <a href="/live-track-record" className="text-primary underline">
+                  the track record
+                </a>{" "}
+                with an explorer link.
+              </p>
+            )}
           </div>
         )}
       </GlassCardContent>

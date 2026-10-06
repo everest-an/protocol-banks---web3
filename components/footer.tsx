@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare, TrendingUp, Image as ImageIcon } from "lucide-react"
+import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare, TrendingUp, Image as ImageIcon, Terminal } from "lucide-react"
 import Image from "next/image"
 
 export function Footer() {
@@ -69,6 +69,15 @@ export function Footer() {
                 >
                   <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                   <span className="truncate">Live Track Record</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/mcp"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
+                >
+                  <Terminal className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate">MCP Server</span>
                 </Link>
               </li>
               <li>

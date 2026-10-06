@@ -6,8 +6,10 @@
  *   - /live-track-record page (server component, called directly — no self-fetch)
  *   - MCP get_track_record tool
  *
- * Privacy: wallet addresses are never exposed. Identity is a short stable
- * hash so the same account keeps the same label across requests.
+ * Privacy: wallet addresses are never exposed unless the account owner
+ * explicitly opts in (TradingAccount.public_track_record) — then the entry
+ * carries an on-chain verification link. Otherwise identity stays a short
+ * stable hash so the same account keeps the same label across requests.
  */
 
 export interface TrackRecordAccount {
@@ -18,6 +20,10 @@ export interface TrackRecordAccount {
   tradeCount: number
   startedAt: string
   lastActiveAt: string
+  /** True when the owner opted in to sharing the address for verification. */
+  verifiable: boolean
+  /** Hyperliquid explorer link, only for opted-in accounts. */
+  explorerUrl: string | null
 }
 
 export interface TrackRecord {
@@ -56,6 +62,7 @@ export async function getLiveTrackRecord(): Promise<TrackRecord> {
         wallet_address: true,
         agent_name: true,
         budget_usd: true,
+        public_track_record: true,
         created_at: true,
         updated_at: true,
         trades: {
@@ -84,6 +91,10 @@ export async function getLiveTrackRecord(): Promise<TrackRecord> {
       tradeCount: closed.length,
       startedAt: (firstTradeAt ?? a.created_at).toISOString(),
       lastActiveAt: a.updated_at.toISOString(),
+      verifiable: a.public_track_record === true,
+      explorerUrl: a.public_track_record
+        ? `https://app.hyperliquid.xyz/explorer/address/${a.wallet_address}`
+        : null,
     }
   })
 
