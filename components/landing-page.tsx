@@ -84,21 +84,17 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
 
   useEffect(() => {
     const el = ref.current
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setShown(true)
-      return
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
           setShown(true)
-          io.disconnect()
         }
       },
       { threshold: 0.12 },
     )
-    io.observe(el)
-    return () => io.disconnect()
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [])
 
   return (
@@ -113,11 +109,11 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
   )
 }
 
-function BrandChip({ src, name, px = 20 }: { src: string; name: string; px?: number }) {
+function BrandChip({ src, name, px = 18 }: { src: string; name: string; px?: number }) {
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="inline-flex items-center gap-1.5">
       <Image src={src} alt={name} width={px} height={px} className="opacity-90" />
-      <span className="font-mono text-xs text-[#6F6B64]">{name}</span>
+      <span className="font-mono text-[11px] text-[#6F6B64]">{name}</span>
     </span>
   )
 }
@@ -241,10 +237,11 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               </div>
 
               {/* Trust: official marks of what actually signs and executes */}
-              <div className="mt-10 pt-6 border-t border-[#E4E2DD] flex flex-wrap items-center gap-x-8 gap-y-4">
+              <div className="mt-10 pt-6 border-t border-[#E4E2DD] flex flex-wrap items-center gap-x-6 gap-y-3">
                 <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">SIGNS WITH</span>
                 <BrandChip src="/brands/metamask.svg" name="MetaMask" />
                 <BrandChip src="/brands/walletconnect.svg" name="WalletConnect" />
+                <span aria-hidden className="hidden sm:block w-px h-3.5 bg-[#E4E2DD]" />
                 <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">TRADES ON</span>
                 <BrandChip src="/brands/hyperliquid.png" name="Hyperliquid" />
               </div>

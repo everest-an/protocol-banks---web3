@@ -99,8 +99,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" translate="no" suppressHydrationWarning>
       <head>
+        {/* Google Translate rewrites text nodes into <font> wrappers; React then
+            throws on the next client navigation (removeChild of a moved node).
+            The product UI is English-only by design, so the page opts out of
+            machine translation instead of shipping a crash. */}
+        <meta name="google" content="notranslate" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

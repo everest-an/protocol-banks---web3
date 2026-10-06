@@ -62,4 +62,5 @@ Subtle only: fade + `translateY(12px)` on section entry (IntersectionObserver, 6
 ## 8. Accessibility & accepted debt
 
 - Contrast: `--ink` on paper ≥ 15:1; `--ink-2` ≥ 4.6:1; focus-visible rings preserved on all interactive elements.
-- **Accepted debt:** brand font not yet swapped (no new font requested); reveal-on-scroll currently applied to major sections only; `UnicornHero` component left in the repo unused (delete in a later pass).
+- **Fonts (confirmed, no debt):** the app already ships **Aeonik** (local, weights 100–900, `--font-aeonik`) as `--font-sans` and **JetBrains Mono** as `--font-mono` via `app/layout.tsx` + `globals.css @theme` — the mono `[ labels ]`, figures and the terminal artifact all render in JetBrains Mono. No font swap required.
+- **Accepted debt:** reveal-on-scroll currently applied to major sections only; the retired `UnicornHero` component and its 167 KB `unicorn-studio.umd.js` runtime were deleted on 2026-10-06.
