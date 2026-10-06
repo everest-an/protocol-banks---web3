@@ -107,7 +107,7 @@ async function postToX(text, mediaPath) {
   try {
     const { TwitterApi } = await import('twitter-api-v2');
     const client = new TwitterApi({ appKey: keys.ck, appSecret: keys.cs, accessToken: keys.at, accessSecret: keys.as });
-    let payload = { text: text.slice(0, 280) };
+    const payload = { text: text.slice(0, 280) };
     if (mediaPath && fs.existsSync(mediaPath)) {
       try {
         const mediaId = await client.v1.uploadMedia(mediaPath);

@@ -46,7 +46,7 @@ try {
     const plainLen = String(title).replace(/<[^>]+>/g, '').length;
     const size = plainLen > 90 ? 44 : plainLen > 64 ? 52 : plainLen > 38 ? 62 : 72;
     const maxH = size * 3 + 20;
-    let html = fs.readFileSync(path.join(DIR, 'card.html'), 'utf8')
+    const html = fs.readFileSync(path.join(DIR, 'card.html'), 'utf8')
       .replace('__EYEBROW__', esc(eyebrow))
       .replace('__TITLESIZE__', String(size))
       .replace('__TITLEMAXH__', String(maxH))
