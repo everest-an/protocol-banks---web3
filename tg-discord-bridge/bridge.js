@@ -135,6 +135,7 @@ const HELP = [
   '/ban <user_id> — 封禁',
   '/unban <user_id> — 解封',
   '/kick <user_id> — 踢出',
+  '/invite [名称] — 生成群邀请链接（外联用）',
   '/reset — 清空对话上下文',
   '/id — 显示群 ID / 我的 ID',
   '/help — 帮助'
@@ -211,6 +212,12 @@ async function handleOwnerDM(text, dmChatId) {
       await tgCall('banChatMember', { chat_id: G, user_id: Number(uid) });
       const r = await tgCall('unbanChatMember', { chat_id: G, user_id: Number(uid), only_if_banned: true });
       return reply(r && r.ok ? `✅ 已踢出 ${uid}` : `❌ 失败：${r && r.description}`);
+    }
+    case '/invite': {
+      const name = rest || 'outreach';
+      const r = await tgCall('createChatInviteLink', { chat_id: G, name, member_limit: 0 });
+      if (r && r.ok) return reply(`✅ 永久邀请链接：\n${r.result.invite_link}\n\n把它夹进外联文案发给垂直用户即可（bot 不能主动加人，见平台限制）。`);
+      return reply('❌ 生成失败（bot 需管理员）：' + (r && r.description));
     }
     default:
       return reply('未知命令，发 /help 查看。');
