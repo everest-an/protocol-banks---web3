@@ -25,6 +25,7 @@ import { getStore, getStoreForWallet, promoteToLiveLedger, type TradingStore } f
 import { persistStateToDb } from "./db-store"
 import { notificationService } from "@/lib/services/notification-service"
 import type { LiveOrderExecutor } from "./live-executor"
+import { adviseOnSignal } from "./llm-advisor"
 import type { TradingState, Position, ActivityItem, AgentStatus, PendingTrade } from "./types"
 
 const TICK_INTERVAL_MS = 15_000
@@ -460,6 +461,9 @@ export class TradingAgent {
     }
 
     // Open entries within limits
+    // The advisor gets at most one consult per tick: it reviews the best
+    // eligible signal only, which bounds tick latency and token spend.
+    let advisorConsulted = false
     for (const sig of eligible) {
       const st = this.state()
       if (st.positions.length >= this.risk.maxPositions) break
@@ -495,6 +499,35 @@ export class TradingAgent {
           })
         }
         break
+      }
+
+      // BYO-LLM second opinion (optional): the user's model may veto this
+      // entry. A null result (gate closed, no channel configured, or every
+      // channel down) leaves the deterministic signal untouched — the model
+      // can never block trading by being unavailable, and the risk caps above
+      // still rule every position regardless of the answer.
+      const proposal = !advisorConsulted
+        ? await adviseOnSignal(this.ownerAddress, {
+            signal: {
+              coin: sig.coin,
+              side: sig.side,
+              score: sig.score,
+              momentumZ: sig.momentumZ,
+              funding: sig.funding,
+              volumeUsd: sig.volumeUsd,
+              markPx: sig.markPx,
+            },
+            equityUsd: this.equityOf(st),
+            openPositions: st.positions.map((p) => p.symbol),
+          }).catch(() => null)
+        : null
+      advisorConsulted = true
+      if (proposal?.action === "skip") {
+        this.log(
+          "info",
+          `AI advisor skipped ${sig.coin} ${sig.side}: ${proposal.reason || "no reason given"}`,
+        )
+        continue
       }
 
       const result = await this.executeEntry(sig)

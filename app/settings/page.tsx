@@ -9,7 +9,8 @@ import {
   FileSignature,
   Settings,
   Bell,
-  Volume2
+  Volume2,
+  Brain
 } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -47,6 +48,14 @@ const settingGroups = [
         icon: Key,
         color: "text-amber-500",
         bg: "bg-amber-500/10",
+      },
+      {
+        title: "AI Model",
+        description: "Model that reviews trades — bring your own key or use the free default",
+        href: "/settings/ai-model",
+        icon: Brain,
+        color: "text-emerald-500",
+        bg: "bg-emerald-500/10",
       },
       {
         title: "Multi-sig Wallets",

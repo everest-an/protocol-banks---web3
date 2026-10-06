@@ -71,6 +71,19 @@ export function hasKeySecret(): boolean {
   return !!raw && /^[0-9a-fA-F]{64}$/.test(raw)
 }
 
+/**
+ * Seal an arbitrary textual secret with the same AES-256-GCM scheme used for
+ * agent keys (e.g. a user's BYO-LLM API key). Callers gate on hasKeySecret().
+ */
+export function sealSecret(plaintext: string): EncryptedBlob {
+  return encrypt(Buffer.from(plaintext, "utf8"))
+}
+
+/** Open a blob produced by sealSecret. */
+export function openSecret(blob: EncryptedBlob): string {
+  return decrypt(blob).toString("utf8")
+}
+
 function encrypt(plaintext: Buffer): EncryptedBlob {
   const iv = randomBytes(12)
   const cipher = createCipheriv("aes-256-gcm", deriveSecret(), iv)
