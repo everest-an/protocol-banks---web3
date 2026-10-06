@@ -1,0 +1,16 @@
+services:
+  bridge:
+    build: .
+    container_name: protocolbank-tg-discord-bridge
+    restart: unless-stopped
+    env_file: .env
+    # Reach the co-located doubao-free-api by container name (127.0.0.1 inside a
+    # container is the container itself, not the host).
+    environment:
+      - LLM_BASE_URL=http://doubao-free-api:8000/v1/chat/completions
+    networks:
+      - bridge-net
+
+networks:
+  bridge-net:
+    external: true

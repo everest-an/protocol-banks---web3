@@ -1,0 +1,17 @@
+{
+  "name": "protocolbank-tg-discord-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Two-way bridge between the ProtocolBank Telegram group and the Protocol Bank Discord channel.",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node --env-file=.env bridge.js",
+    "start:plain": "node bridge.js"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3"
+  }
+}
