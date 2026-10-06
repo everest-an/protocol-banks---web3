@@ -1,15 +1,19 @@
 'use strict';
 /**
- * Community agent — Telegram <-> Discord bridge + AI answers (with context) + owner commands
+ * Community agent — Telegram <-> Discord bridge + AI answers (with context)
+ *                   + owner commands + referral / invite incentives
  *
  * 1) Relay: Telegram group <-> Discord channel (two-way)
- * 2) AI: when the group mentions the bot / uses AI_TRIGGER, answer with the LLM,
- *        INCLUDING a rolling per-chat conversation history (so it remembers the
- *        previous messages instead of answering statelessly).
- * 3) Owner DM commands: the group owner can DM the bot to manage the group.
+ * 2) AI: @mention / AI_TRIGGER -> answer with the LLM using rolling chat history
+ * 3) Owner DM commands (announce / pin / mute / ban / ask / invite ...)
+ * 4) Referrals: every member gets a personal invite link (/invite in the group);
+ *    joins are attributed via `chat_member` updates and counted on a leaderboard
+ *    (/top). This is the compliant "let members bring members" growth loop.
  *
  * Config via environment variables (see .env.example).
  */
+const fs = require('fs');
+const path = require('path');
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 
 const NAME = process.env.BRIDGE_NAME || 'bridge';
@@ -27,9 +31,21 @@ const AI_TRIGGER = (process.env.AI_TRIGGER || '').trim();
 const AI_AUTO = (process.env.AI_AUTO || 'mention').toLowerCase(); // mention | all | off
 const MAX_HISTORY = parseInt(process.env.MAX_HISTORY || '16', 10);
 const HISTORY_TTL_MS = parseInt(process.env.HISTORY_TTL_MS || String(30 * 60 * 1000), 10);
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'referrals.json');
+const REF_REWARD_AT = parseInt(process.env.REF_REWARD_AT || '5', 10); // announce when someone reaches N invites
+const ALLOWED_UPDATES = ['message', 'channel_post', 'chat_member', 'my_chat_member', 'chat_join_request'];
 
-// per-chat rolling conversation history (in memory)
+// ---- rolling conversation memory ----
 const histories = new Map(); // chatId -> [{ role, content, ts }]
+
+// ---- referral store (persisted to DATA_FILE) ----
+let store = { links: {}, counts: {}, names: {}, joiners: [] };
+function loadStore() {
+  try { store = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { /* first run */ }
+  store.links = store.links || {}; store.counts = store.counts || {};
+  store.names = store.names || {}; store.joiners = store.joiners || [];
+}
+function saveStore() { try { fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2)); } catch (e) { log('saveStore', e.message); } }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(new Date().toISOString(), `[${NAME}]`, ...a);
@@ -98,10 +114,7 @@ async function llmAnswer(chatId, extraSystem) {
   if (!LLM_API_KEY) return null;
   const hist = (histories.get(String(chatId)) || []).map(({ role, content }) => ({ role, content }));
   if (!hist.length) return null;
-  const messages = [
-    { role: 'system', content: LLM_SYSTEM + (extraSystem ? '\n' + extraSystem : '') },
-    ...hist,
-  ];
+  const messages = [{ role: 'system', content: LLM_SYSTEM + (extraSystem ? '\n' + extraSystem : '') }, ...hist];
   try {
     const res = await fetch(LLM_BASE_URL, {
       method: 'POST',
@@ -123,22 +136,75 @@ function isAiTriggered(text) {
   return false;
 }
 
+// ---------------- Referrals ----------------
+function leaderboard(limit = 10) {
+  return Object.entries(store.counts)
+    .map(([uid, n]) => ({ uid, n, name: store.names[uid] || uid }))
+    .sort((a, b) => b.n - a.n)
+    .slice(0, limit);
+}
+
+async function memberInviteLink(user) {
+  const uid = String(user.id);
+  store.names[uid] = user.first_name || store.names[uid] || uid;
+  if (store.links[uid]) { saveStore(); return store.links[uid]; }
+  const r = await tgCall('createChatInviteLink', { chat_id: TG_CHAT_ID, name: 'inv_' + uid, member_limit: 0 });
+  if (r && r.ok) { store.links[uid] = r.result.invite_link; saveStore(); return r.result.invite_link; }
+  log('createChatInviteLink failed', r && r.description);
+  return null;
+}
+
+async function handleGroupCommand(cmd, from, messageId) {
+  if (cmd === '/invite' || cmd === '/myinvite') {
+    const link = await memberInviteLink(from);
+    if (!link) return tgSend(TG_CHAT_ID, '❌ 生成邀请链接失败（需把 bot 设为管理员并允许"邀请用户"）', { reply_to_message_id: messageId });
+    const n = store.counts[String(from.id)] || 0;
+    return tgSend(TG_CHAT_ID,
+      `${from.first_name}，这是你的专属邀请链接（已带来 ${n} 人）：\n${link}\n\n分享给你的社群/账号；拉人达标有奖励 🎁`,
+      { reply_to_message_id: messageId, disable_web_page_preview: true });
+  }
+  if (cmd === '/top' || cmd === '/leaderboard') {
+    const rows = leaderboard(10);
+    if (!rows.length) return tgSend(TG_CHAT_ID, '还没有邀请记录。发送 /invite 获取你的专属链接。', { reply_to_message_id: messageId });
+    const list = rows.map((r, i) => `${i + 1}. ${r.name} — ${r.n} 人`).join('\n');
+    return tgSend(TG_CHAT_ID, '🏆 邀请榜\n' + list, { reply_to_message_id: messageId });
+  }
+  return null;
+}
+
+async function handleChatMemberUpdate(cm) {
+  try {
+    const nw = cm.new_chat_member && cm.new_chat_member.status;
+    const old = cm.old_chat_member && cm.old_chat_member.status;
+    const joined = ['member', 'administrator', 'creator'].includes(nw) && ['left', 'kicked'].includes(old);
+    const linkName = cm.invite_link && cm.invite_link.name;
+    if (!joined || !linkName || !linkName.startsWith('inv_')) return;
+    const inviter = linkName.slice(4);
+    store.counts[inviter] = (store.counts[inviter] || 0) + 1;
+    const joiner = cm.new_chat_member.user || {};
+    store.joiners.push({ inviter, joiner: joiner.id, name: joiner.first_name, at: Date.now() });
+    saveStore();
+    log('referral', inviter, '<-', joiner.id, 'total', store.counts[inviter]);
+    const n = store.counts[inviter];
+    const invName = store.names[inviter] || inviter;
+    let msg = `👋 欢迎 ${joiner.first_name || ''}！（由 ${invName} 邀请）`;
+    if (n === REF_REWARD_AT || (n > REF_REWARD_AT && n % REF_REWARD_AT === 0)) {
+      msg += `\n🎁 ${invName} 已邀请满 ${n} 人，达标奖励已触发！`;
+    }
+    await tgSend(TG_CHAT_ID, msg);
+  } catch (e) { log('chat_member', e.message); }
+}
+
 // ---------------- Owner DM commands ----------------
 const HELP = [
-  '🤖 命令（仅群主私聊可用）：',
+  '🤖 群主私聊命令：',
   '/ask <问题> — 用豆包回答（带上下文）',
   '/say <内容> — 发到群里',
   '/announce <内容> — 发到群里并置顶',
   '/pin <内容> — 同 announce',
-  '/mute <user_id> [分钟] — 禁言',
-  '/unmute <user_id> — 解除禁言',
-  '/ban <user_id> — 封禁',
-  '/unban <user_id> — 解封',
-  '/kick <user_id> — 踢出',
-  '/invite [名称] — 生成群邀请链接（外联用）',
-  '/reset — 清空对话上下文',
-  '/id — 显示群 ID / 我的 ID',
-  '/help — 帮助'
+  '/invite [名称] — 生成一条通用邀请链接',
+  '/leaderboard — 邀请榜',
+  '/mute <user_id> [分钟] / /unmute / /ban / /unban / /kick / /id / /reset / /help'
 ].join('\n');
 
 async function handleOwnerDM(text, dmChatId) {
@@ -158,9 +224,13 @@ async function handleOwnerDM(text, dmChatId) {
     case '/id':
       return reply(`群 ID: ${G}\n你的 ID: ${dmChatId}`);
     case '/reset':
-      histories.delete(String(G));
-      histories.delete(String(dmChatId));
+      histories.delete(String(G)); histories.delete(String(dmChatId));
       return reply('✅ 已清空对话上下文');
+    case '/leaderboard': {
+      const rows = leaderboard(20);
+      if (!rows.length) return reply('还没有邀请记录。');
+      return reply('🏆 邀请榜\n' + rows.map((r, i) => `${i + 1}. ${r.name} (${r.uid}) — ${r.n} 人`).join('\n'));
+    }
     case '/ask': {
       if (!rest) return reply('用法：/ask 你的问题');
       pushHist(dmChatId, 'user', rest);
@@ -172,7 +242,7 @@ async function handleOwnerDM(text, dmChatId) {
       if (!rest) return reply('用法：/say 内容');
       const r = await tgSend(G, rest);
       if (r && r.ok) pushHist(G, 'assistant', rest);
-      return reply(r && r.ok ? '✅ 已发送到群' : '❌ 发送失败（检查 bot 是否在群内）');
+      return reply(r && r.ok ? '✅ 已发送到群' : '❌ 发送失败');
     }
     case '/announce':
     case '/pin': {
@@ -183,14 +253,20 @@ async function handleOwnerDM(text, dmChatId) {
         pushHist(G, 'assistant', rest);
         return reply('✅ 已发送并置顶');
       }
-      return reply('❌ 发送失败（bot 需为管理员才能置顶）');
+      return reply('❌ 发送失败（bot 需管理员才能置顶）');
+    }
+    case '/invite': {
+      const name = rest || 'outreach';
+      const r = await tgCall('createChatInviteLink', { chat_id: G, name, member_limit: 0 });
+      if (r && r.ok) return reply(`✅ 永久邀请链接：\n${r.result.invite_link}`);
+      return reply('❌ 生成失败（bot 需管理员）：' + (r && r.description));
     }
     case '/mute': {
       const uid = sp[1]; const mins = parseInt(sp[2] || '60', 10);
       if (!uid) return reply('用法：/mute <user_id> [分钟]');
       const until = Math.floor(Date.now() / 1000) + mins * 60;
       const r = await tgCall('restrictChatMember', { chat_id: G, user_id: Number(uid), until_date: until, permissions: { can_send_messages: false } });
-      return reply(r && r.ok ? `✅ 已禁言 ${uid} ${mins} 分钟` : `❌ 失败（bot 需管理员）：${r && r.description}`);
+      return reply(r && r.ok ? `✅ 已禁言 ${uid} ${mins} 分钟` : `❌ 失败：${r && r.description}`);
     }
     case '/unmute': {
       const uid = sp[1]; if (!uid) return reply('用法：/unmute <user_id>');
@@ -213,12 +289,6 @@ async function handleOwnerDM(text, dmChatId) {
       const r = await tgCall('unbanChatMember', { chat_id: G, user_id: Number(uid), only_if_banned: true });
       return reply(r && r.ok ? `✅ 已踢出 ${uid}` : `❌ 失败：${r && r.description}`);
     }
-    case '/invite': {
-      const name = rest || 'outreach';
-      const r = await tgCall('createChatInviteLink', { chat_id: G, name, member_limit: 0 });
-      if (r && r.ok) return reply(`✅ 永久邀请链接：\n${r.result.invite_link}\n\n把它夹进外联文案发给垂直用户即可（bot 不能主动加人，见平台限制）。`);
-      return reply('❌ 生成失败（bot 需管理员）：' + (r && r.description));
-    }
     default:
       return reply('未知命令，发 /help 查看。');
   }
@@ -228,13 +298,22 @@ async function handleOwnerDM(text, dmChatId) {
 async function tgPoller() {
   let offset = 0;
   const base = `https://api.telegram.org/bot${TG_TOKEN}`;
-  log('telegram poller started');
+  const allowed = encodeURIComponent(JSON.stringify(ALLOWED_UPDATES));
+  log('telegram poller started, allowed_updates =', ALLOWED_UPDATES.join(','));
   for (;;) {
     try {
-      const j = await (await fetch(`${base}/getUpdates?timeout=30&offset=${offset}`)).json();
-      if (!j.ok) { await sleep(3000); continue; }
+      const j = await (await fetch(`${base}/getUpdates?timeout=30&offset=${offset}&allowed_updates=${allowed}`)).json();
+      if (!j.ok) { log('getUpdates not ok', j.description); await sleep(3000); continue; }
       for (const u of j.result) {
         offset = u.update_id + 1;
+
+        if (u.chat_member) { await handleChatMemberUpdate(u.chat_member); continue; }
+        if (u.chat_join_request) {
+          const jr = u.chat_join_request;
+          log('join_request from', jr.from && jr.from.id, 'via', jr.invite_link && jr.invite_link.name);
+          continue;
+        }
+
         const m = u.message || u.channel_post;
         if (!m || !m.text) continue;
         if (m.from && m.from.is_bot) continue;
@@ -247,6 +326,13 @@ async function tgPoller() {
         }
         if (chatId !== TG_CHAT_ID) continue;
 
+        const txt = m.text.trim();
+        if (txt.startsWith('/')) {
+          const cmd = txt.split(/\s+/)[0].toLowerCase().replace(/@[\w_]+$/, '');
+          const handled = await handleGroupCommand(cmd, m.from || {}, m.message_id);
+          if (handled) continue;
+        }
+
         const who = m.from ? `${m.from.first_name || ''}${m.from.last_name ? ' ' + m.from.last_name : ''}`.trim() : 'TG';
         const uname = m.from && m.from.username ? ` (@${m.from.username})` : '';
         pushHist(chatId, 'user', `${who}${uname}: ${m.text}`);
@@ -254,10 +340,7 @@ async function tgPoller() {
 
         if (isAiTriggered(m.text)) {
           const a = await llmAnswer(chatId);
-          if (a) {
-            await tgSend(TG_CHAT_ID, a, m.message_id ? { reply_to_message_id: m.message_id } : {});
-            pushHist(chatId, 'assistant', a);
-          }
+          if (a) { await tgSend(TG_CHAT_ID, a, m.message_id ? { reply_to_message_id: m.message_id } : {}); pushHist(chatId, 'assistant', a); }
         }
       }
     } catch (e) { log('tg poll', e.message); await sleep(3000); }
@@ -278,6 +361,7 @@ client.on(Events.MessageCreate, async (msg) => {
 });
 
 (async () => {
+  loadStore();
   await loadBotIdentity();
   client.login(DC_TOKEN).catch((e) => log('discord login failed', e.message));
   tgPoller();
