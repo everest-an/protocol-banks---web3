@@ -378,7 +378,7 @@ export default function VendorsPage() {
           totalReceived,
           ltv: totalReceived || vendor.ltv || 0,
           transaction_count: vendorPayments.length || vendor.transaction_count || 0,
-          category: vendor.category || categories[vendor.id.charCodeAt(0) % categories.length],
+          category: vendor.category || "General",
           tier: vendor.tier || "vendor",
           metadata: {
             ...(vendor.metadata || {}),

@@ -112,12 +112,27 @@ export function NetworkGraph({
     const centerX = width * 0.45
     const centerY = height / 2
 
+    // The root carries real aggregates so its detail panel shows actual
+    // mesh totals instead of zeros.
+    const meshTotals = vendors.reduce(
+      (acc, v) => ({
+        volume: acc.volume + getVendorMetricValue(v, tokenFilter),
+        tx: acc.tx + (v.transaction_count || 0),
+      }),
+      { volume: 0, tx: 0 },
+    )
+
     const rootNode: Node = {
       id: "root",
       x: centerX,
       y: centerY,
       r: 40,
-      data: { company_name: "MY ORGANIZATION", wallet_address: userAddress || "0x..." } as Vendor,
+      data: {
+        company_name: "MY ORGANIZATION",
+        wallet_address: userAddress || "0x...",
+        monthly_volume: meshTotals.volume,
+        transaction_count: meshTotals.tx,
+      } as Vendor,
       type: "root",
       color: "#ffffff",
     }
@@ -468,12 +483,14 @@ export function NetworkGraph({
             >
               {selectedNode.type.toUpperCase()}
             </span>
-            <button
-              className="p-2 hover:bg-muted rounded transition-colors"
-              onClick={() => window.open(`/vendors/${selectedNode.id}`, "_blank")}
-            >
-              <ExternalLink className="w-4 h-4 text-muted-foreground" />
-            </button>
+            {selectedNode.type !== "root" && (
+              <button
+                className="p-2 hover:bg-muted rounded transition-colors"
+                onClick={() => window.open(`/vendors/${selectedNode.id}`, "_blank")}
+              >
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
           </div>
 
           <h2 className="text-lg md:text-xl font-light text-foreground mb-2">
@@ -503,23 +520,9 @@ export function NetworkGraph({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-end">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Payment Flow (YTD)</p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-500">+12.4% vs prev</p>
-            </div>
-            <div className="h-12 md:h-16 flex items-end gap-0.5">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-1 bg-muted hover:bg-muted-foreground/20 transition-all rounded-t-sm"
-                  style={{
-                    height: `${20 + ((i * 17 + (selectedNode.data?.id?.charCodeAt(0) || 0) + tokenFilter.length * 13) % 80)}%`,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+          {/* Payment Flow (YTD) widget removed: it was static demo data
+              (a hardcoded "+12.4% vs prev" chip and seeded bars) with no real
+              time series behind it. */}
 
           <div className="space-y-3">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono border-b border-border pb-2">
@@ -533,10 +536,33 @@ export function NetworkGraph({
               <span className="text-muted-foreground">Contract</span>
               <span className="text-foreground/80">{selectedNode.data.notes || "Standard Agreement"}</span>
               <span className="text-muted-foreground">Status</span>
-              <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-500">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Active Contract
-              </span>
+              {(() => {
+                const isRoot = selectedNode.type === "root"
+                const active = isRoot
+                  ? !!userAddress
+                  : (selectedNode.data?.transaction_count || 0) > 0
+                const label = isRoot
+                  ? userAddress
+                    ? "Wallet Connected"
+                    : "Not Connected"
+                  : active
+                    ? "Active Contract"
+                    : "No Payments Yet"
+                return (
+                  <span
+                    className={`flex items-center gap-2 ${
+                      active ? "text-emerald-600 dark:text-emerald-500" : "text-muted-foreground"
+                    }`}
+                  >
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        active ? "bg-emerald-500" : "bg-muted-foreground/50"
+                      }`}
+                    />
+                    {label}
+                  </span>
+                )
+              })()}
             </div>
           </div>
         </div>
