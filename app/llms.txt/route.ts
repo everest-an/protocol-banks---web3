@@ -41,7 +41,7 @@ const LLMS_TXT = `# Protocol Bank
 - Hosted MCP endpoint (Streamable HTTP): POST https://protocolbanks.com/api/mcp
   Public tools work without auth; account tools require a JWT Bearer token.
 - Local stdio server for MCP hosts (Claude Desktop / Claude Code / Cursor):
-  `pnpm mcp:stdio` (env: MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS)
+  pnpm mcp:stdio (env: MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS)
 - Human-facing guide: https://protocolbanks.com/mcp
 
 Tools (16): list_supported_tokens, get_payment_quote, estimate_gas,

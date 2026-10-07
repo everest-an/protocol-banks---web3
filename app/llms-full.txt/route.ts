@@ -106,8 +106,8 @@ MCP transports:
 - Hosted (Streamable HTTP): POST https://protocolbanks.com/api/mcp
   Public tools: list_supported_tokens, get_payment_quote, estimate_gas,
   compare_chain_fees. Everything else needs a JWT Bearer token.
-- Local stdio: `pnpm mcp:stdio` (env MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS);
-  smoke-test with `pnpm mcp:test` (tools/list + tools/call round trip).
+- Local stdio: pnpm mcp:stdio (env MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS);
+  smoke-test with pnpm mcp:test (tools/list + tools/call round trip).
 
 Payment tools (non-custodial):
 - Quote -> pay: get_payment_quote -> create_payment -> execute_payment
