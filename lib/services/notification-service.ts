@@ -636,7 +636,12 @@ export class NotificationService {
       tag: `trade-guard-${Date.now()}`,
       data: { type: 'trade_guard', message },
     });
-    this.sendTelegram('Risk guardrail', message);
+    // The funds guard repeats by design (the account is simply at capacity —
+    // one position at this size), so it would spam the operator channel every
+    // dedup window. Telegram only carries ACTIONABLE guards.
+    if (!/insufficient free funds/i.test(message)) {
+      this.sendTelegram('Risk guardrail', message);
+    }
   }
 
   /**
