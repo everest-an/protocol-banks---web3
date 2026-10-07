@@ -198,6 +198,24 @@ async function postToBluesky(text: string): Promise<{ posted?: string; error?: s
   }
 }
 
+// ---------- Telegram notification (optional) ----------
+// Posts the day's result to @Gavis0bot. Never throws: a notification failure
+// must not lose a post that already went out.
+async function notifyTelegram(text: string): Promise<void> {
+  const token = process.env.TG_TOKEN
+  const chat = process.env.TG_CHAT_ID
+  if (!token || !chat) return
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text: text.slice(0, 3900), disable_web_page_preview: true }),
+    })
+  } catch {
+    // swallow
+  }
+}
+
 // ---------- handler ----------
 export async function GET(req: NextRequest) {
   const authError = verifyCronAuth(req)
@@ -243,11 +261,21 @@ export async function GET(req: NextRequest) {
 
   if (dry) return NextResponse.json({ ok: true, dry: true, attempts, issues, post: text })
 
+  if (req.nextUrl.searchParams.get('tg') === '1') {
+    await notifyTelegram('Protocol Bank Telegram channel test from /api/cron/x-post.')
+    return NextResponse.json({ ok: true, tg: 'sent' })
+  }
+
   const [x, bsky] = await Promise.all([postToX(text), postToBluesky(text)])
+  const xLine = x.posted ? `https://x.com/0xPrococolBank/status/${x.posted}` : `X failed: ${x.error}`
+  const bLine = bsky.posted || `Bluesky failed: ${bsky.error}`
+  await notifyTelegram(`Protocol Bank daily post\nX: ${xLine}\nBluesky: ${bLine}\n\n${text}`)
   return NextResponse.json({ ok: true, attempts, issues, post: text, x, bluesky: bsky })
   } catch (e) {
+    const msg = e instanceof Error ? e.message : 'poster failed'
+    await notifyTelegram(`Protocol Bank x-post FAILED: ${msg}`)
     return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : 'poster failed' },
+      { ok: false, error: msg },
       { status: 502 },
     )
   }
