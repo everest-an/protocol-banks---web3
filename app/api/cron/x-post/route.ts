@@ -56,24 +56,55 @@ async function repoStats(): Promise<string[]> {
 }
 
 // ---------- draft ----------
+// Provider chain: OpenRouter (cheap) -> DeepSeek direct (paid fallback).
+// OpenRouter free-tier accounts intermittently get 402 on frontier models, so
+// the paid DeepSeek key keeps the daily post alive.
 async function llm(system: string, user: string): Promise<string> {
-  const key = process.env.OPENROUTER_API_KEY
-  if (!key) throw new Error('missing OPENROUTER_API_KEY')
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
+  const providers: Array<{ url: string; key: string; model: string }> = []
+  if (process.env.OPENROUTER_API_KEY) {
+    providers.push({
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      key: process.env.OPENROUTER_API_KEY,
       model: 'deepseek/deepseek-v4-flash',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.7,
-    }),
-  })
-  if (!r.ok) throw new Error('LLM ' + r.status)
-  const j = (await r.json()) as { choices?: Array<{ message?: { content?: string } }> }
-  return j.choices?.[0]?.message?.content || ''
+    })
+  }
+  if (process.env.DEEPSEEK_API_KEY) {
+    providers.push({
+      url: 'https://api.deepseek.com/chat/completions',
+      key: process.env.DEEPSEEK_API_KEY,
+      model: 'deepseek-flash',
+    })
+  }
+  if (!providers.length) throw new Error('no LLM provider configured (OPENROUTER_API_KEY or DEEPSEEK_API_KEY)')
+
+  let last = 'no provider attempted'
+  for (const p of providers) {
+    try {
+      const r = await fetch(p.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${p.key}` },
+        body: JSON.stringify({
+          model: p.model,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+          ],
+          temperature: 0.7,
+        }),
+      })
+      if (!r.ok) {
+        last = `${p.url} -> ${r.status}`
+        continue
+      }
+      const j = (await r.json()) as { choices?: Array<{ message?: { content?: string } }> }
+      const content = j.choices?.[0]?.message?.content
+      if (content) return content
+      last = `${p.url} -> empty completion`
+    } catch (e) {
+      last = `${p.url} -> ${e instanceof Error ? e.message : 'network error'}`
+    }
+  }
+  throw new Error('all LLM providers failed: ' + last)
 }
 
 // Enforced, not just prompted — same checks as the local poster.
@@ -174,7 +205,8 @@ export async function GET(req: NextRequest) {
 
   const dry = req.nextUrl.searchParams.get('dry') === '1'
 
-  const activity = await recentActivity()
+  try {
+    const activity = await recentActivity()
   if (!activity.length) return NextResponse.json({ ok: true, skipped: 'no public activity in the last 7 days' })
   const stats = await repoStats()
 
@@ -213,4 +245,10 @@ export async function GET(req: NextRequest) {
 
   const [x, bsky] = await Promise.all([postToX(text), postToBluesky(text)])
   return NextResponse.json({ ok: true, attempts, issues, post: text, x, bluesky: bsky })
+  } catch (e) {
+    return NextResponse.json(
+      { ok: false, error: e instanceof Error ? e.message : 'poster failed' },
+      { status: 502 },
+    )
+  }
 }
