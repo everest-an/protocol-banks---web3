@@ -5,10 +5,12 @@ name: X daily poster (draft-first)
 # through the official API; without them it uploads the draft as an artifact.
 # No auto-reply, no auto-follow, no browsing simulation — those get accounts
 # suspended (see docs/growth/x-agent/README.md).
+#
+# The daily schedule moved to Vercel Cron (/api/cron/x-post on
+# protocolbanks.com) so the automation runs on Protocol Bank's own
+# infrastructure. This workflow stays as a manual fallback only.
 
 on:
-  schedule:
-    - cron: "0 1 * * *" # 09:00 Asia/Shanghai (01:00 UTC)
   workflow_dispatch:
 
 jobs:
