@@ -1,3 +1,7 @@
+// rls:system — Telegram webhook: answers ONLY the configured owner chat;
+// enumerates live accounts to power the assistant. No wallet request context
+// (the bot is the operator's own channel, not a per-user surface).
+//
 // Telegram bot webhook — plain-language Q&A about the live trading account.
 //
 // The owner texts the bot; this route assembles REAL data (Hyperliquid venue
