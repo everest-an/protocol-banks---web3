@@ -83,7 +83,7 @@ async function llm(system, user) {
   ].join('\n');
 
   console.log(`drafting (${news.split('\n').length} items)...`);
-  const system = `You are ${cfg.product ? 'the social lead for Awareness' : 'a social lead'}. Voice: ${cfg.voice}\nProduct: ${cfg.product}\nTopics: ${cfg.topics.join(', ')}`;
+  const system = `You are ${cfg.product ? 'the social lead for Protocol Bank' : 'a social lead'}. Voice: ${cfg.voice}\nProduct: ${cfg.product}\nTopics: ${cfg.topics.join(', ')}`;
   const user = `Here is today's industry news:\n\n${news}\n\nProduce a Markdown digest with EXACTLY these sections (reply in the same language as the majority of the product brief; default 中文):\n\n## 今日行业动态\nTop 5 most relevant items (title + one-line "为什么相关").\n\n## 可评论的点（人工发送）\nFor 3 items: the source link, a suggested reply (<=280 chars, adds real value, NOT salesy, no links unless the post already has one). Include one line on why this earns engagement.\n\n## 原创推文草稿（3 条）\nThree original posts (<=280 chars) that are useful on their own AND mention the product naturally at most once across all three. Vary angle: (1) pain point, (2) technical deep-dive, (3) honest benchmark/comparison.\n\n## 建议话题标签\n2-4 hashtags.`;
 
   const digest = await llm(system, user);

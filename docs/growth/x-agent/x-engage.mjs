@@ -143,7 +143,7 @@ function validateReply(t) {
   if (/https?:\/\//.test(s)) bad.push('contains a URL (link replies are penalised + cost $0.20)');
   if (/^(great|nice|awesome|love this|thanks for sharing|this is great|agreed)/i.test(s)) bad.push('opens with empty praise');
   if (/\b(great post|well said|100%|this!)\b/i.test(s)) bad.push('empty-praise filler');
-  if (/\b(awareness|our product|we built|check out our)\b/i.test(s)) bad.push('pitches our product (spam)');
+  if (/\b(awareness|protocol bank|protocolbank|our product|we built|check out our)\b/i.test(s)) bad.push('pitches our product (spam)');
   if (/it'?s not .+,\s*it'?s|not because .+because|the result\?/i.test(s)) bad.push('AI-tell phrasing');
   if (!/[?.]|\d/.test(s)) bad.push('no question, no number, no claim');
   return bad;
@@ -205,7 +205,7 @@ async function listTimeline() {
 
 // ---------- draft ----------
 const SYSTEM = [
-  `You write X (Twitter) replies for @${cfg.x.handle} — the account behind Awareness, a local-first memory layer for AI coding agents.`,
+  `You write X (Twitter) replies for @${cfg.x.handle} — the account behind Protocol Bank - a non-custodial AI trading agent on Hyperliquid. The agent gets trading-only rights, can never withdraw, and every live account is public with real PnL.`,
   `Voice: ${cfg.voice}`,
   'You are NOT selling. You are a practitioner joining a technical conversation. A reply that only praises is worth zero — you must ADD one of: a new data point, a concrete first-hand experience, a polite disagreement, or a sharp question.',
   'Write like a human engineer on a phone: no corporate tone, no hashtags, no emoji spam, never more than 2 short sentences.',
@@ -220,7 +220,7 @@ ${post.text}
 
 Metrics: ${JSON.stringify(post.public_metrics || {})}
 
-TASK: decide if replying adds value. If the post is off-topic (not about AI coding agents, agent memory, MCP, context engineering, LLM tooling), or is a job ad / pure promotion, or you have nothing real to add — say SKIP.
+TASK: decide if replying adds value. If the post is off-topic (not about AI trading, Hyperliquid, perpetual futures, non-custodial tooling, MCP, agent wallets), or is a job ad / pure promotion, or you have nothing real to add — say SKIP.
 Otherwise write ONE reply that adds exactly one of: a new data point, a concrete experience, a polite pushback, or a sharp question.
 
 HARD RULES: <= 260 chars; NO URLs; NO hashtags; NO product pitch or brand mention; do not open with praise; reference something SPECIFIC from their post; no AI-tell phrasing ("it's not X, it's Y", "the result?").
@@ -278,8 +278,8 @@ async function deliver(text) {
     const ids = Object.values(users).map((v) => v.id);
     if (!ids.length) { console.error('no resolved accounts — run --resolve first'); process.exit(1); }
     const j = await xPost('/2/lists', {
-      name: 'Agent memory / MCP watch',
-      description: 'Accounts Awareness engages with: AI coding agents, agent memory, MCP tooling.',
+      name: 'AI trading / Hyperliquid watch',
+      description: 'Accounts Protocol Bank engages with: AI trading, Hyperliquid, perp DEX, MCP tooling.',
       private: false,
     });
     charge(0.010, 'POST /2/lists');

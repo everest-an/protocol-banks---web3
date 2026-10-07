@@ -139,7 +139,7 @@ async function alertEmail(subject, body) {
   try {
     const { default: nodemailer } = await import('nodemailer');
     const t = nodemailer.createTransport({ host: process.env.SMTP_HOST || 'smtp.exmail.qq.com', port: parseInt(process.env.SMTP_PORT || '465', 10), secure: (process.env.SMTP_SECURE || 'true') !== 'false', auth: { user: SMTP_USER, pass: SMTP_PASS } });
-    await t.sendMail({ from: `"Awareness" <${process.env.MAIL_FROM || SMTP_USER}>`, to: process.env.ALERT_TO || SMTP_USER, subject, text: body });
+    await t.sendMail({ from: `"Protocol Bank" <${process.env.MAIL_FROM || SMTP_USER}>`, to: process.env.ALERT_TO || SMTP_USER, subject, text: body });
     log('alert email sent to ' + (process.env.ALERT_TO || SMTP_USER));
   } catch (e) { log('alert email failed:', e.message); }
 }
@@ -165,12 +165,12 @@ async function deliver(text) {
   log(`${activity.length} activity line(s)`);
 
   const system = [
-    `You are the social lead for Awareness (@${cfg.x.handle}), writing for technical builders on X.`,
+    `You are the social lead for Protocol Bank (@${cfg.x.handle}), writing for technical builders on X.`,
     `Product: ${cfg.product}`,
     `Voice: ${cfg.voice}`,
     'You follow the X ranking playbook: hook in the first 8 words, name the topic in the first 10 words, write to be DM-forwarded and to earn a follow (not a like), be specific, never use AI-tells.',
   ].join('\n');
-  const user = `My GitHub activity (last 7 days):\n${activity.map((a) => '- ' + a).join('\n')}\n\nRepo stats:\n${stats.map((s) => '- ' + s).join('\n')}\n\nWrite ONE X post that would earn shares and follows from AI-coding-agent developers.\n\nFORMAT (proven; the ENTIRE post MUST be <= ${cfg.x.max_chars} chars INCLUDING newlines and hashtags - count characters before you answer):\n- Line 1 = HOOK: a specific claim, pain, or surprising number within the FIRST 8 words. Do NOT start with "We", "I", or the product name. Name the topic (agent memory / Claude Code / MCP) within the first 10 words. <= 8 words / ~60 chars.\n- Then 1-2 short lines (~70 chars each) that give the reader something useful. Translate the work into what a developer building agents CARES ABOUT - never describe our commits, PRs or workflows.\n- 1 short line of PROOF: a real number from the data above (~45 chars).\n- 1 short line CTA: a question OR "repo in bio" (~35 chars).\n- LAST line: EXACTLY 2 hashtags (X rewards 1-2; more looks spammy).\n- BUDGET: hook 60 + middle 70 + proof 45 + CTA 35 + hashtags 25 = ~235 chars. If you are over ${cfg.x.max_chars}, CUT WORDS - never drop the hashtag line.\n\nBANNED phrases (AI-tells + reach killers): "It's not X, it's Y" / "Not because X. Because Y." / negation lists ("no X, no Y") / colon reveals ("The result? ...") / trailing pile-ons / engagement-bait / raw changelogs ("N commits", "we shipped").\nHARD RULES: <= ${cfg.x.max_chars} chars total; use specific nouns (Claude Code, Cursor, MCP, ERC-8350); grounded ONLY in the data above (never invent); NO URLs; <=1 emoji.\n\nAlso write the card image copy. Return STRICT JSON only:\n{"post":"<full post incl. newlines and the 2-hashtag last line>","card":{"eyebrow":"<2-3 word CAPS label>","title":"<punchy hook headline <=60 chars>","sub":"<one supporting line <=100 chars>","stat":"<short proof stat, may contain <b>..</b>>"}}`;
+  const user = `My GitHub activity (last 7 days):\n${activity.map((a) => '- ' + a).join('\n')}\n\nRepo stats:\n${stats.map((s) => '- ' + s).join('\n')}\n\nWrite ONE X post that would earn shares and follows from crypto traders and developers building AI agents (Hyperliquid perp DEX, non-custodial tooling).\n\nFORMAT (proven; the ENTIRE post MUST be <= ${cfg.x.max_chars} chars INCLUDING newlines and hashtags - count characters before you answer):\n- Line 1 = HOOK: a specific claim, pain, or surprising number within the FIRST 8 words. Do NOT start with "We", "I", or the product name. Name the topic (AI trading / Hyperliquid / non-custodial / MCP) within the first 10 words. <= 8 words / ~60 chars.\n- Then 1-2 short lines (~70 chars each) that give the reader something useful. Translate the work into what a developer building agents CARES ABOUT - never describe our commits, PRs or workflows.\n- 1 short line of PROOF: a real number from the data above (~45 chars).\n- 1 short line CTA: a question OR "repo in bio" (~35 chars).\n- LAST line: EXACTLY 2 hashtags (X rewards 1-2; more looks spammy).\n- BUDGET: hook 60 + middle 70 + proof 45 + CTA 35 + hashtags 25 = ~235 chars. If you are over ${cfg.x.max_chars}, CUT WORDS - never drop the hashtag line.\n\nBANNED phrases (AI-tells + reach killers): "It's not X, it's Y" / "Not because X. Because Y." / negation lists ("no X, no Y") / colon reveals ("The result? ...") / trailing pile-ons / engagement-bait / raw changelogs ("N commits", "we shipped").\nHARD RULES: <= ${cfg.x.max_chars} chars total; use specific nouns (Hyperliquid, MCP, MetaMask, USDC, agent wallet); grounded ONLY in the data above (never invent); NO URLs; <=1 emoji.\n\nAlso write the card image copy. Return STRICT JSON only:\n{"post":"<full post incl. newlines and the 2-hashtag last line>","card":{"eyebrow":"<2-3 word CAPS label>","title":"<punchy hook headline <=60 chars>","sub":"<one supporting line <=100 chars>","stat":"<short proof stat, may contain <b>..</b>>"}}`;
 
   // --- FIXED POSTING REQUIREMENTS (X playbook) — enforced, not just prompted ---
   function validatePost(p) {
@@ -181,7 +181,7 @@ async function deliver(text) {
     if (tags.length !== 2) issues.push(`needs exactly 2 hashtags (has ${tags.length})`);
     const firstLine = t.split('\n')[0].trim();
     if (firstLine.split(/\s+/).length > 12) issues.push('hook is longer than 12 words');
-    if (/^(we|i|our|awareness)\b/i.test(firstLine)) issues.push('hook must not start with We/I/the product name');
+    if (/^(we|i|our|awareness|protocol)\b/i.test(firstLine)) issues.push('hook must not start with We/I/the product name');
     if (/\b\d+\s+commits?\b|we shipped|we built/i.test(t)) issues.push('reads like a changelog');
     if (/it'?s not .+,\s*it'?s|not because .+because|the result\?/i.test(t)) issues.push('contains an AI-tell');
     if (!/\d/.test(t)) issues.push('missing a concrete number/proof');
@@ -233,7 +233,7 @@ async function deliver(text) {
     // if it looks like a credits/quota issue, email the owner to top up
     const s = JSON.stringify(res).toLowerCase();
     if (/credit|402|403|quota|payment|billing|usage cap/.test(s)) {
-      await alertEmail('[Awareness] X posting paused — top up credits',
+      await alertEmail('[Protocol Bank] X posting paused — top up credits',
         `Your scheduled X poster could not post (credits/quota).\n\nError: ${JSON.stringify(res)}\n\nTop up: https://console.x.com/accounts/2090896037367914496\n(Draft kept at ${out})`);
     }
   }
