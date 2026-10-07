@@ -603,6 +603,7 @@ export class NotificationService {
       tag: `trade-open-${symbol}-${Date.now()}`,
       data: { type: 'trade_opened', symbol, side, entryPrice, reason },
     });
+    this.sendTelegram(`AI opened ${symbol} ${side.toUpperCase()}`, `Entry $${entryPrice.toFixed(2)} - ${reason}`);
   }
 
   /**
@@ -622,6 +623,7 @@ export class NotificationService {
       tag: `trade-close-${symbol}-${Date.now()}`,
       data: { type: 'trade_closed', symbol, side, pnl, reason },
     });
+    this.sendTelegram(`AI closed ${symbol} ${side.toUpperCase()}`, `${sign}$${Math.abs(pnl).toFixed(2)} - ${reason}`);
   }
 
   /**
@@ -634,6 +636,28 @@ export class NotificationService {
       tag: `trade-guard-${Date.now()}`,
       data: { type: 'trade_guard', message },
     });
+    this.sendTelegram('Risk guardrail', message);
+  }
+
+  /**
+   * Optional Telegram sink for trade notifications (TG_TOKEN + TG_CHAT_ID).
+   * Fire-and-forget: a chat outage must never affect trading, and the web-push
+   * path above stays the per-user product channel. Telegram gives the
+   * operator a channel that works without a browser subscription.
+   */
+  private sendTelegram(title: string, body: string): void {
+    const token = process.env.TG_TOKEN;
+    const chat = process.env.TG_CHAT_ID;
+    if (!token || !chat) return;
+    void fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chat,
+        text: `[Protocol Bank] ${title}\n${body}`,
+        disable_web_page_preview: true,
+      }),
+    }).catch(() => {});
   }
 
   // ============================================

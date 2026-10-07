@@ -270,8 +270,11 @@ export class TradingAgent {
   }
 
   private noteGuard(text: string): void {
-    const last = this.state().activity[0]
-    if (last?.type === "guard" && last.text === text) return // don't spam identical guards
+    // Don't spam identical guards: scan a window, not just the last entry — a
+    // [scan] line lands between ticks, so the old activity[0] check never
+    // matched and the funds guard notified the owner every minute.
+    const recent = this.state().activity.slice(0, 10)
+    if (recent.some((a) => a.type === "guard" && a.text === text)) return
     this.log("guard", text)
     this.notifyOwner("guard", { message: text })
   }
