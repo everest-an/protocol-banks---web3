@@ -208,6 +208,29 @@ describe("TradingAgent — live execution", () => {
     expect(store.get().activity.some((a) => a.text.includes("UNCERTAIN"))).toBe(true)
   })
 
+  it("refuses to place a live order when free funds are gone (venue untouched)", async () => {
+    // Regression (mainnet, 2026-10-07): the funds check used to run AFTER
+    // placeOrder(), so a filled order whose margin no longer fit the ledger
+    // was dropped (never recorded) and the next tick re-entered the same
+    // symbol — six duplicate XRP shorts with real money. An order that
+    // reaches the venue must always be recordable, so the check must run
+    // BEFORE any order is placed.
+    const executor = fakeExecutor({ ok: true, avgPx: 60123.5, totalSz: 0.001, oid: 42 })
+    const store = stubStore({ ...seedState({ demoHistory: false }), pendingTrade: PENDING, approvalMode: "manual" })
+    store.mutate((s) => {
+      s.cash = 3 // below allocated (seed equity ~$500 -> $37.50 margin) + fee + $1
+    })
+    const agent = new TradingAgent(store, { ...DEFAULT_RISK, approvalMode: "manual" }, WALLET, {
+      mode: "live",
+      executor,
+    })
+
+    const result = await agent.approvePendingTrade()
+    expect(result.ok).toBe(false)
+    expect(executor.placeOrder).not.toHaveBeenCalled() // the venue was never touched
+    expect(store.get().positions).toHaveLength(0)
+  })
+
   it("reports live mode in toOverview", () => {
     const executor = fakeExecutor({ ok: true, avgPx: 1, totalSz: 1, oid: null })
     const store = stubStore(seedState({ demoHistory: false }))

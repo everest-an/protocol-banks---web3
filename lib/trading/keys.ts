@@ -130,6 +130,46 @@ export function loadAgentKeyRecord(walletAddress: string): AgentKeyRecord | null
 }
 
 /** Decrypt and return the agent signing wallet. */
+/**
+ * Serverless hydration: rebuild the local agent-key file from the
+ * TradingAccount row. Vercel's filesystem is ephemeral (read-only repo dir,
+ * per-instance /tmp), so the DB row written by markApproved() is the durable
+ * copy — without this, live executors in production can never load the key
+ * and silently refuse to trade. Returns true when a record is available.
+ */
+export async function hydrateAgentKeyFromDb(walletAddress: string): Promise<boolean> {
+  if (loadAgentKeyRecord(walletAddress)) return true
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    const row = await prisma.tradingAccount.findUnique({
+      where: { wallet_address: walletAddress.toLowerCase() },
+      select: {
+        agent_address: true,
+        agent_key_encrypted: true,
+        agent_key_iv: true,
+        agent_key_tag: true,
+        agent_name: true,
+        agent_approved: true,
+        agent_approved_at: true,
+      },
+    })
+    if (!row?.agent_key_encrypted || !row.agent_key_iv || !row.agent_key_tag || !row.agent_address) return false
+    const record: AgentKeyRecord = {
+      walletAddress: walletAddress.toLowerCase(),
+      agentAddress: row.agent_address,
+      encryptedKey: { data: row.agent_key_encrypted, iv: row.agent_key_iv, tag: row.agent_key_tag },
+      name: row.agent_name ?? "Protocol Bank AI",
+      approved: row.agent_approved ?? false,
+      approvedAt: row.agent_approved_at ? row.agent_approved_at.toISOString() : null,
+      createdAt: new Date().toISOString(),
+    }
+    fs.mkdirSync(LIVE_DIR, { recursive: true })
+    fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), "utf-8")
+    return true
+  } catch {
+    return false
+  }
+}
 export function getAgentWallet(walletAddress: string): Wallet | null {
   const record = loadAgentKeyRecord(walletAddress)
   if (!record) return null

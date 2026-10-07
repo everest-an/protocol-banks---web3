@@ -566,6 +566,19 @@ export class TradingAgent {
     const notional = positionNotional(equity, this.risk)
     const allocated = notional / this.risk.leverage
 
+    // ── Funds check BEFORE any order reaches the venue ──────────────────
+    // On 2026-10-07 the live path ran this check AFTER placeOrder(): a filled
+    // order whose margin no longer fit the ledger was dropped (never
+    // recorded), and the next tick re-entered the same symbol — six duplicate
+    // XRP shorts with real money. An order that exists on the venue must
+    // always exist in the ledger, so the check runs first. The estimate is
+    // exact for paper mode (fee = notional * feeRate) and within the $1
+    // buffer for live fills at slightly different prices.
+    const feeEstimate = notional * this.risk.feeRate
+    if (st.cash < allocated + feeEstimate + 1) {
+      return { ok: false, note: `Insufficient free funds ($${st.cash.toFixed(2)}) — skipping new entries.` }
+    }
+
     // ── Deterministic fill price/size: paper marks vs live exchange fill ──
     let entryPrice: number
     let size: number
@@ -606,10 +619,6 @@ export class TradingAgent {
     }
 
     const fee = (entryPrice * size) * this.risk.feeRate
-
-    if (st.cash < allocated + fee + 1) {
-      return { ok: false, note: `Insufficient free funds ($${st.cash.toFixed(2)}) — skipping new entries.` }
-    }
 
     this.store.mutate((x) => {
       x.cash = Number((x.cash - allocated - fee).toFixed(2))
@@ -766,6 +775,11 @@ export async function resolveAgentForWallet(
     })
 
     if (row && row.status === "live" && row.agent_approved) {
+      // Serverless runtimes have no persistent disk: hydrate the agent-key
+      // record from the TradingAccount row (written by markApproved) so the
+      // live executor can actually load and sign with the key in production.
+      const { hydrateAgentKeyFromDb } = await import("./keys")
+      await hydrateAgentKeyFromDb(key)
       const { LiveOrderExecutor, resolveVaultAddress } = await import("./live-executor")
       const executor = new LiveOrderExecutor({
         walletAddress: key,
