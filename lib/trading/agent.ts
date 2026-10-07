@@ -774,7 +774,7 @@ export async function resolveAgentForWallet(
     const { prisma } = await import("@/lib/prisma")
     const row = await prisma.tradingAccount.findUnique({
       where: { wallet_address: key },
-      select: { status: true, agent_approved: true, hyperliquid_address: true, budget_usd: true },
+      select: { status: true, agent_approved: true, hyperliquid_address: true, budget_usd: true, state_json: true },
     })
 
     if (row && row.status === "live" && row.agent_approved) {
@@ -794,10 +794,18 @@ export async function resolveAgentForWallet(
       const store = getStoreForWallet(key)
       const agent = new TradingAgent(store, DEFAULT_RISK, key, { mode: "live", executor })
 
-      // Convert the ledger to live accounting on first promotion.
-      const st = store.get()
-      if (st.mode !== "live") {
-        const budget = row.budget_usd && row.budget_usd > 0 ? row.budget_usd : st.account.budget
+      // ── Promotion is one-way, decided by the DURABLE ledger ─────────────
+      // In a cold serverless instance the in-memory store is still a fresh
+      // seed (mode "paper") and the caller hydrates it from the DB only
+      // AFTER this function returns. Deciding from the store re-ran the
+      // promotion on every fresh instance — and `promoteToLiveLedger` resets
+      // positions to [] — which on 2026-10-07 wiped a recorded XRP position
+      // mid-flight and the agent re-entered the same symbol (duplicate real
+      // exposure). The DB row is the durable truth: once it carries a live
+      // ledger, never promote again.
+      const dbState = row.state_json as { mode?: string } | null
+      if (dbState?.mode !== "live") {
+        const budget = row.budget_usd && row.budget_usd > 0 ? row.budget_usd : store.get().account.budget
         store.mutate((s) => {
           Object.assign(s, promoteToLiveLedger(s, budget))
         })
