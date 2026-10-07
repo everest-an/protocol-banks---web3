@@ -133,6 +133,18 @@ async function postToX(text, mediaPath) {
   }
 }
 
+async function postToBluesky(text) {
+  const id = process.env.BSKY_IDENTIFIER, pw = process.env.BSKY_APP_PASSWORD;
+  if (!id || !pw) return { skipped: 'no Bluesky keys' };
+  if (DRY) return { dry: text };
+  try {
+    const s = await (await fetch('https://bsky.social/xrpc/com.atproto.server.createSession', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier: id, password: pw }) })).json();
+    if (!s.accessJwt) return { error: 'login', body: JSON.stringify(s).slice(0, 200) };
+    const r = await (await fetch('https://bsky.social/xrpc/com.atproto.repo.createRecord', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.accessJwt }, body: JSON.stringify({ repo: s.did, collection: 'app.bsky.feed.post', record: { $type: 'app.bsky.feed.post', text: text.slice(0, 300), createdAt: new Date().toISOString() } }) })).json();
+    if (r.uri) return { posted: 'https://bsky.app/profile/' + s.handle + '/post/' + r.uri.split('/').pop() };
+    return { error: 'create', body: JSON.stringify(r).slice(0, 200) };
+  } catch (e) { return { error: 'net', body: e.message }; }
+}
 async function alertEmail(subject, body) {
   const { SMTP_USER, SMTP_PASS } = process.env;
   if (!SMTP_USER || !SMTP_PASS) { log('(no SMTP env — skipping email alert)'); return; }
@@ -216,8 +228,8 @@ async function deliver(text) {
     execFileSync(process.execPath, ['make-card.mjs',
       '--eyebrow', card.eyebrow || 'SHIPPED THIS WEEK',
       '--title', title,
-      '--sub', card.sub || 'Persistent, local-first memory for Claude Code, Cursor and multi-agent teams.',
-      '--stat', card.stat || '<b>96.0%</b> R@5 &middot; zero LLM calls',
+      '--sub', card.sub || 'Non-custodial AI trading on Hyperliquid - the agent can trade, never withdraw.',
+      '--stat', card.stat || '<b>Trading-only</b> agent wallet &middot; public track record',
       '--out', cardPath,
     ], { cwd: DIR, stdio: 'ignore' });
     log('card rendered: ' + cardPath);
@@ -237,5 +249,11 @@ async function deliver(text) {
         `Your scheduled X poster could not post (credits/quota).\n\nError: ${JSON.stringify(res)}\n\nTop up: https://console.x.com/accounts/2090896037367914496\n(Draft kept at ${out})`);
     }
   }
+  // 3) cross-post the same text to Bluesky (independent of X)
+  const bres = await postToBluesky(first);
+  if (bres.posted) log('cross-posted to Bluesky: ' + bres.posted);
+  else if (bres.skipped) log('(no Bluesky keys - skipping cross-post)');
+  else if (bres.dry) log('dry-run: would post to Bluesky');
+  else log('Bluesky post failed:', JSON.stringify(bres));
   log('wrote ' + out);
 })().catch((e) => { console.error('ERROR:', e.message); process.exit(1); });
