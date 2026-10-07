@@ -97,6 +97,33 @@ Not a production signal until it passes paper-trading validation.
 - CI: GitHub Actions (tsc + Jest 1050 tests + ESLint + Go tests)
 - Deployment: Vercel (auto-deploy on main)
 
+## Agent integration — how an AI assistant calls trading and payments
+
+Protocol Bank is agent-native: any MCP host (Claude Desktop / Claude Code /
+Cursor) or web MCP client can operate it through tools instead of HTTP calls.
+
+MCP transports:
+- Hosted (Streamable HTTP): POST https://protocolbanks.com/api/mcp
+  Public tools: list_supported_tokens, get_payment_quote, estimate_gas,
+  compare_chain_fees. Everything else needs a JWT Bearer token.
+- Local stdio: `pnpm mcp:stdio` (env MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS);
+  smoke-test with `pnpm mcp:test` (tools/list + tools/call round trip).
+
+Payment tools (non-custodial):
+- Quote -> pay: get_payment_quote -> create_payment -> execute_payment
+  (funds move from the user's wallet; the platform never holds a balance)
+- Status: check_payment_status, list_payments, get_balance
+- Invoices: create_invoice, list_invoices
+- Cost helpers: estimate_gas, compare_chain_fees, list_supported_tokens
+- x402 (HTTP 402) REST equivalents:
+  POST /api/x402/authorize -> /api/x402/execute -> /api/x402/verify -> /api/x402/settle
+
+Trading tools:
+- Read: get_trading_overview, get_positions, get_activity, get_track_record
+- Control (auth required): control_trading_agent (pause | resume | stop | reset)
+- The agent wallet is approved on Hyperliquid with trading-only rights and
+  physically cannot withdraw; worst case is the funded budget.
+
 ## Legal
 
 Automated trading can lose the entire trading wallet balance. Protocol Bank

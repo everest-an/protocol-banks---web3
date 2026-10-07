@@ -36,6 +36,29 @@ const LLMS_TXT = `# Protocol Bank
 - GET /api/trading/live/state — user's Hyperliquid account state
 - GET /api/health — health check
 
+## MCP — let any AI agent use Protocol Bank
+
+- Hosted MCP endpoint (Streamable HTTP): POST https://protocolbanks.com/api/mcp
+  Public tools work without auth; account tools require a JWT Bearer token.
+- Local stdio server for MCP hosts (Claude Desktop / Claude Code / Cursor):
+  `pnpm mcp:stdio` (env: MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS)
+- Human-facing guide: https://protocolbanks.com/mcp
+
+Tools (16): list_supported_tokens, get_payment_quote, estimate_gas,
+compare_chain_fees, create_payment, check_payment_status, list_payments,
+create_invoice, list_invoices, get_balance, execute_payment,
+get_trading_overview, get_positions, get_activity, get_track_record,
+control_trading_agent (pause | resume | stop | reset — auth required).
+
+## Agent payments (x402 + wallet)
+
+- x402 (HTTP 402 payment protocol) flow:
+  POST /api/x402/authorize -> POST /api/x402/execute -> /api/x402/verify -> /api/x402/settle
+- Quote-first: agents should call get_payment_quote (MCP) or the quote flow
+  before moving funds; estimate_gas / compare_chain_fees help pick a chain.
+- Supported chains: Ethereum, Polygon, Arbitrum, Base, Optimism, BSC.
+  Non-custodial: funds always move from the user's wallet, never a platform balance.
+
 ## Legal
 
 Automated trading can lose the entire trading wallet. Protocol Bank provides no
