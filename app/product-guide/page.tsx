@@ -1,0 +1,267 @@
+// Product Guide — renders docs/PRODUCT_GUIDE.md as a public page.
+//
+// Static: the markdown is read at BUILD time (fs at module scope for a page
+// without dynamic APIs), so the deployed HTML has no runtime file dependency.
+// A tiny purpose-built renderer covers exactly what this document uses:
+// headings, paragraphs, tables, quotes, lists, hr, and inline
+// bold / code / links. Relative .md links are rewritten to GitHub blobs —
+// they point at repo docs, not site routes.
+import fs from "node:fs"
+import path from "node:path"
+import Link from "next/link"
+import { BookOpen, ExternalLink } from "lucide-react"
+
+const GITHUB_BLOB = "https://github.com/everest-an/protocol-banks---web3/blob/main/docs/"
+
+type Block =
+  | { kind: "h"; level: 1 | 2 | 3; text: string }
+  | { kind: "p"; text: string }
+  | { kind: "quote"; text: string }
+  | { kind: "ul"; items: string[] }
+  | { kind: "ol"; items: string[] }
+  | { kind: "hr" }
+  | { kind: "table"; head: string[]; rows: string[][] }
+
+function buildBlocks(md: string): Block[] {
+  const lines = md.split(/\r?\n/)
+  const blocks: Block[] = []
+  let i = 0
+  const isSpecial = (s: string) => /^(#{1,3} |\||> |[-*] |\d+\. |---+$)/.test(s)
+  while (i < lines.length) {
+    const line = lines[i]
+    if (!line.trim()) {
+      i++
+      continue
+    }
+    if (/^#{1,3} /.test(line)) {
+      const m = /^(#{1,3}) (.*)$/.exec(line)!
+      blocks.push({ kind: "h", level: m[1].length as 1 | 2 | 3, text: m[2] })
+      i++
+      continue
+    }
+    if (/^---+$/.test(line.trim())) {
+      blocks.push({ kind: "hr" })
+      i++
+      continue
+    }
+    if (line.startsWith("|")) {
+      const raw: string[][] = []
+      while (i < lines.length && lines[i].startsWith("|")) {
+        const cells = lines[i].split("|").slice(1, -1).map((c) => c.trim())
+        if (!cells.every((c) => /^:?-{2,}:?$/.test(c))) raw.push(cells)
+        i++
+      }
+      const [head, ...rows] = raw
+      blocks.push({ kind: "table", head: head ?? [], rows })
+      continue
+    }
+    if (/^> ?/.test(line)) {
+      const parts: string[] = []
+      while (i < lines.length && /^> ?/.test(lines[i])) {
+        parts.push(lines[i].replace(/^> ?/, ""))
+        i++
+      }
+      blocks.push({ kind: "quote", text: parts.join(" ") })
+      continue
+    }
+    if (/^[-*] /.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^[-*] /.test(lines[i])) {
+        items.push(lines[i].replace(/^[-*] /, ""))
+        i++
+      }
+      blocks.push({ kind: "ul", items })
+      continue
+    }
+    if (/^\d+\. /.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push(lines[i].replace(/^\d+\. /, ""))
+        i++
+      }
+      blocks.push({ kind: "ol", items })
+      continue
+    }
+    const parts: string[] = [line]
+    i++
+    while (i < lines.length && lines[i].trim() && !isSpecial(lines[i])) {
+      parts.push(lines[i])
+      i++
+    }
+    blocks.push({ kind: "p", text: parts.join(" ") })
+  }
+  return blocks
+}
+
+function inline(text: string, keyBase: string): React.ReactNode[] {
+  const out: React.ReactNode[] = []
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
+  let last = 0
+  let k = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index))
+    const token = m[0]
+    if (token.startsWith("**")) {
+      out.push(
+        <strong key={keyBase + k++} className="font-semibold text-foreground">
+          {token.slice(2, -2)}
+        </strong>,
+      )
+    } else if (token.startsWith("`")) {
+      out.push(
+        <code key={keyBase + k++} className="px-1.5 py-0.5 rounded bg-foreground/5 border border-foreground/10 text-[0.85em]">
+          {token.slice(1, -1)}
+        </code>,
+      )
+    } else {
+      const mm = /\[([^\]]+)\]\(([^)]+)\)/.exec(token)!
+      let href = mm[2]
+      const isExternal = /^https?:/.test(href)
+      if (!isExternal && href.endsWith(".md")) {
+        href = GITHUB_BLOB + href.replace(/^\.\//, "")
+      }
+      out.push(
+        isExternal || href.startsWith("http") ? (
+          <a key={keyBase + k++} href={href} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
+            {mm[1]}
+          </a>
+        ) : (
+          <Link key={keyBase + k++} href={href} className="text-primary underline underline-offset-2">
+            {mm[1]}
+          </Link>
+        ),
+      )
+    }
+    last = m.index + token.length
+  }
+  if (last < text.length) out.push(text.slice(last))
+  return out
+}
+
+export const metadata = {
+  title: "Product Guide — Protocol Bank",
+  description:
+    "The complete functional reference for Protocol Bank: every surface, what it does, how to use it, and where its limits are.",
+}
+
+export default function ProductGuidePage() {
+  const md = fs.readFileSync(path.join(process.cwd(), "docs", "PRODUCT_GUIDE.md"), "utf8")
+  const blocks = buildBlocks(md)
+  let key = 0
+  return (
+    <div className="min-h-screen bg-background">
+      <article className="max-w-3xl mx-auto px-6 py-16 sm:py-24">
+        <div className="flex items-center gap-2 mb-3">
+          <BookOpen className="h-5 w-5 text-primary" />
+          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Documentation</span>
+        </div>
+        <h1 className="text-4xl font-bold mb-4">Product Guide</h1>
+        <p className="text-muted-foreground mb-8 leading-relaxed">
+          Every surface, what it does, how to use it, and where its limits are.{" "}
+          <a
+            href={GITHUB_BLOB + "PRODUCT_GUIDE.md"}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline underline-offset-2 inline-flex items-center gap-1"
+          >
+            Source on GitHub <ExternalLink className="h-3 w-3" />
+          </a>
+        </p>
+        <div className="space-y-4">
+          {blocks.map((b) => {
+            const k = `b${key++}`
+            switch (b.kind) {
+              case "h":
+                if (b.level === 1) return null // the page header above is the h1
+                return b.level === 2 ? (
+                  <h2 key={k} className="text-2xl font-bold pt-8">
+                    {inline(b.text, k)}
+                  </h2>
+                ) : (
+                  <h3 key={k} className="text-lg font-semibold pt-4">
+                    {inline(b.text, k)}
+                  </h3>
+                )
+              case "p":
+                return (
+                  <p key={k} className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    {inline(b.text, k)}
+                  </p>
+                )
+              case "quote":
+                return (
+                  <blockquote key={k} className="border-l-2 border-primary/40 pl-4 text-sm text-muted-foreground italic">
+                    {inline(b.text, k)}
+                  </blockquote>
+                )
+              case "ul":
+                return (
+                  <ul key={k} className="list-disc pl-6 space-y-1.5 text-sm sm:text-base text-muted-foreground">
+                    {b.items.map((it, j) => (
+                      <li key={k + j}>{inline(it, k + "i" + j)}</li>
+                    ))}
+                  </ul>
+                )
+              case "ol":
+                return (
+                  <ol key={k} className="list-decimal pl-6 space-y-1.5 text-sm sm:text-base text-muted-foreground">
+                    {b.items.map((it, j) => (
+                      <li key={k + j}>{inline(it, k + "i" + j)}</li>
+                    ))}
+                  </ol>
+                )
+              case "hr":
+                return <hr key={k} className="border-foreground/10 my-6" />
+              case "table":
+                return (
+                  <div key={k} className="overflow-x-auto rounded-xl border border-foreground/10">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-foreground/5">
+                          {b.head.map((h, j) => (
+                            <th key={k + j} className="text-left font-semibold px-4 py-2.5 whitespace-nowrap">
+                              {inline(h, k + "h" + j)}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {b.rows.map((r, j) => (
+                          <tr key={k + "r" + j} className="border-t border-foreground/10">
+                            {r.map((c, l) => (
+                              <td key={k + "c" + j + l} className="px-4 py-2.5 text-muted-foreground align-top">
+                                {inline(c, k + "c" + j + l)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+            }
+          })}
+        </div>
+        <div className="mt-12 pt-6 border-t border-foreground/10 text-sm text-muted-foreground">
+          More docs:{" "}
+          <Link href="/help" className="text-primary underline underline-offset-2">
+            Usage guide
+          </Link>{" "}
+          ·{" "}
+          <Link href="/whitepaper" className="text-primary underline underline-offset-2">
+            Whitepaper
+          </Link>{" "}
+          ·{" "}
+          <Link href="/mcp" className="text-primary underline underline-offset-2">
+            MCP server
+          </Link>{" "}
+          ·{" "}
+          <Link href="/live-track-record" className="text-primary underline underline-offset-2">
+            Live track record
+          </Link>
+        </div>
+      </article>
+    </div>
+  )
+}
