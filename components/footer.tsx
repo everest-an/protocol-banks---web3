@@ -144,7 +144,7 @@ export function Footer() {
                   className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
                 >
                   <Send className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
-                  Telegram
+                  Telegram Community
                 </Link>
               </li>
             </ul>

@@ -232,14 +232,14 @@ export default function HelpPage() {
                 <h3 className="font-semibold text-sm mb-1">
                   Telegram —{" "}
                   <Link href="https://t.me/protocolbanks" target="_blank" className="text-primary underline underline-offset-2">
-                    t.me/protocolbanks
+                    community group
                   </Link>
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Message the assistant directly — &ldquo;how are my positions doing?&rdquo;, &ldquo;why
-                  hasn&apos;t the AI entered?&rdquo;, &ldquo;what are the risk rules?&rdquo; — it answers from your
-                  live account data. Trade events (opens, closes, risk guardrails) are pushed to the same chat,
-                  and you can add it to a group and @mention it.
+                  Join the group and @mention the assistant with any question — &ldquo;how are the positions
+                  doing?&rdquo;, &ldquo;why hasn&apos;t the AI entered?&rdquo;, &ldquo;what are the risk
+                  rules?&rdquo; — it answers from live account data. Trade events (opens, closes, risk guardrails)
+                  are pushed to your private chat with the bot.
                 </p>
               </div>
             </div>
