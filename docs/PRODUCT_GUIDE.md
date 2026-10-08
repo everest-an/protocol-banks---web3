@@ -248,7 +248,43 @@ Setup & tool reference → [MCP.md](MCP.md)
 | Paper | Free forever |
 | Live | **20% of net profits**, charged when profits are swept out. No subscription, no upfront fee, nothing on losses. |
 
-## 11. Documentation map
+## 11. Business suite (payments)
+
+The payment-era surfaces remain available but are deliberately de-emphasized —
+the company's focus is the AI trading product, and several of these surfaces
+are hidden from the current navigation (their URLs still resolve). Custody
+differs per feature and is stated explicitly: "non-custodial" is only true
+where it is true.
+
+### Non-custodial — the platform never holds the funds
+
+| Surface | What it does | How funds move | Proven |
+|---|---|---|---|
+| **Batch payments** (`/batch-payment`) | Excel/CSV import, address validation, per-item execution with progress + retry | Each payout is an EIP-3009 `transferWithAuthorization` signed by the payer; a relayer only submits and pays gas. If any item on an EIP-3009 chain is unsigned the batch is refused — no silent custody fallback | E2E on Sepolia: payer balances move, relayer balance unchanged |
+| **Send / Pay** (`/send`, `/pay`) | Direct transfers | The user signs the transfer in their own wallet; the platform only displays it | UI flows covered by E2E |
+| **Swap / Bridge** (`/swap`) | Cross-chain quotes (Rango, ZetaChain) across 50+ chains | The user signs; the platform never holds | Endpoints answer; providers config-gated, refusals are clean |
+| **Split payments** (`/split-payments`) | One payment split across recipients | EIP-3009 authorizations signed by the payer | Calculate / templates / create verified; execution pending |
+| **x402** | Machine payments over HTTP 402 for AI agents | The payer signs an EIP-3009 authorization; a relayer only submits and pays gas. An audit-era paywall bypass (any 64-hex string accepted as proof) was found and fixed | Verified with the local relayer, on-chain |
+| **Subscriptions** (`/subscriptions`) | Recurring charges | Charges are pre-signed EIP-3009 authorizations, submitted by the app (a hosted relayer is optional) | Verified with the local relayer |
+
+### Provider-custodied — a provider holds the balance
+
+| Surface | What it does | Why it is custodial | Status |
+|---|---|---|---|
+| **Cards** (`/card`) | Virtual cards funded from the wallet | Issued through a provider (Yativo; a Rain client is also implemented) that holds the card balance | Yativo credentials await the provider's account approval; Rain awaits `RAIN_API_KEY` + KYB |
+| **Off-ramp** (`/offramp`) | Sell crypto for fiat (Bridge / Coinbase / Transak) | Provider-executed settlement | Without a provider key the surfaces answer 503 — no fabricated mocks |
+
+### Read-only / infrastructure — no custody at all
+
+Balances, history, analytics, reconciliation, vendors (address book), payment
+groups, webhooks, notifications, audit log, teams, MCP server, cron jobs.
+
+> Enterprise hardening applies across the suite: Row-Level Security,
+> per-user scoping on every authenticated route, request signing, replay
+> protection, and the fourteen audit fixes (cross-tenant reads, wrong-chain
+> fallback, error-semantics bugs) — see [FEATURE_REVIEW.md](FEATURE_REVIEW.md).
+
+## 12. Documentation map
 
 | Doc | Covers |
 |---|---|
