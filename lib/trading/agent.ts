@@ -26,7 +26,7 @@ import { persistStateToDb } from "./db-store"
 import { notificationService } from "@/lib/services/notification-service"
 import type { LiveOrderExecutor } from "./live-executor"
 import { adviseOnSignal } from "./llm-advisor"
-import type { TradingState, Position, ActivityItem, AgentStatus, PendingTrade } from "./types"
+import type { TradingState, Position, ActivityItem, AgentStatus, PendingTrade, VerifyingOrder } from "./types"
 
 const TICK_INTERVAL_MS = 15_000
 const SIGNAL_UNIVERSE_SIZE = 12
@@ -90,6 +90,94 @@ export class TradingAgent {
     return this.store.get()
   }
 
+  /**
+   * Live-only: bring the ledger in line with the exchange.
+   *  - adopts positions that exist on the venue but not in the book (this is
+   *    how an UNCERTAIN entry self-heals),
+   *  - drops book positions the venue no longer holds,
+   *  - anchors cash/equity to the venue account value (equity === account
+   *    value), so reported balances can never drift for more than one tick,
+   *  - resolves `verifying` items (confirmed / released after 5 minutes).
+   * Network failures are ignored — the next tick retries.
+   */
+  private async reconcileWithVenue(): Promise<void> {
+    if (this.mode !== "live" || !this.ownerAddress) return
+    try {
+      const { getUserState } = await import("./exchange")
+      const state = await getUserState(this.ownerAddress)
+      const venueValue = Number(state?.marginSummary?.accountValue ?? Number.NaN)
+      if (!Number.isFinite(venueValue)) return
+
+      const venue = new Map<string, { size: number; entry: number; side: "long" | "short" }>()
+      for (const p of state?.assetPositions ?? []) {
+        const szi = Number(p.position.szi)
+        if (!szi || !Number.isFinite(szi)) continue
+        venue.set(p.position.coin, {
+          size: Math.abs(szi),
+          entry: Number(p.position.entryPx ?? 0) || 0,
+          side: szi > 0 ? "long" : "short",
+        })
+      }
+
+      const notes: string[] = []
+      this.store.mutate((s) => {
+        const known = new Map(s.positions.map((p) => [p.symbol, p]))
+        for (const [coin, vp] of venue) {
+          const k = known.get(coin)
+          if (!k) {
+            const notional = positionNotional(venueValue, this.risk)
+            s.positions.push({
+              symbol: coin,
+              side: vp.side,
+              size: vp.size,
+              entry: vp.entry || 0,
+              mark: vp.entry || 0,
+              allocated: Number((notional / this.risk.leverage).toFixed(2)),
+              pnl: 0,
+              pnlPct: 0,
+              leverage: this.risk.leverage,
+              reason: "adopted from the exchange (reconciliation)",
+              openedAt: new Date().toISOString(),
+            })
+            notes.push(`Reconciled: adopted ${coin} ${vp.side} ${vp.size} from the exchange (untracked position - likely an UNCERTAIN order that filled).`)
+          } else {
+            if (Math.abs(k.size - vp.size) > 1e-9) k.size = vp.size
+            if (vp.entry > 0) k.entry = vp.entry
+            k.side = vp.side
+          }
+        }
+        s.positions = s.positions.filter((p) => venue.has(p.symbol))
+
+        // Resolve verifying items against what the venue actually shows.
+        const stillVerifying: VerifyingOrder[] = []
+        for (const v of s.verifying ?? []) {
+          const onVenue = venue.has(v.coin)
+          if (v.kind === "entry" && onVenue) {
+            notes.push(`Verified: the UNCERTAIN ${v.coin} entry filled - position adopted, trading continues.`)
+          } else if (v.kind === "exit" && !onVenue) {
+            notes.push(`Verified: the UNCERTAIN ${v.coin} exit executed - position closed on the exchange.`)
+          } else if (Date.now() - new Date(v.at).getTime() > 5 * 60_000) {
+            notes.push(`Verified: the UNCERTAIN ${v.coin} ${v.kind} never reached the exchange (5 min, unchanged) - released.`)
+          } else {
+            stillVerifying.push(v)
+          }
+        }
+        s.verifying = stillVerifying
+
+        // Anchor to the venue: cash holds everything that is not margin or
+        // unrealized PnL, so equityOf(s) === accountValue exactly.
+        const commited = s.positions.reduce((a, p) => a + p.allocated + p.pnl, 0)
+        s.cash = Number((venueValue - commited).toFixed(2))
+        s.account.totalEquity = Number(venueValue.toFixed(2))
+        s.account.tradingWallet = Number(venueValue.toFixed(2))
+        s.account.maxLoss = Number(venueValue.toFixed(2))
+      })
+      for (const n of notes) this.log("info", n)
+    } catch {
+      /* venue unreachable - next tick retries */
+    }
+  }
+
   async tick(): Promise<void> {
     // 1. Daily rollover — reset the daily loss watermark
     const today = new Date().toISOString().slice(0, 10)
@@ -100,6 +188,13 @@ export class TradingAgent {
         s.equity.push({ t: today, v: Number(s.todayStartEquity.toFixed(2)) })
       }
     })
+
+    // 1.5 Reconcile with the venue BEFORE anything else (live only). This is
+    // the structural net: the position book is corrected toward the exchange
+    // (adopt untracked positions, drop vanished ones) and cash/equity are
+    // anchored to the account value, so no accounting drift can survive a
+    // tick, and an UNCERTAIN order resolves itself here.
+    await this.reconcileWithVenue()
 
     // 2. Market data (offline-safe, cached by the client)
     const ctxByCoin = new Map<string, AssetCtx>()
@@ -367,9 +462,17 @@ export class TradingAgent {
 
       if (!result.ok) {
         if (!result.rejected) {
-          this.stop()
-          const note = `Close order status UNCERTAIN for ${p.symbol} ${p.side}: ${result.reason} Agent STOPPED — verify on Hyperliquid, then resume.`
-          this.log("error", note)
+          // Same policy as entries: never halt, never retry — the venue
+          // reconciliation confirms within a tick. The position stays in the
+          // book until the exchange shows it gone.
+          this.store.mutate((s) => {
+            s.verifying = [
+              ...(s.verifying ?? []).filter((v) => !(v.coin === p.symbol && v.kind === "exit")),
+              { coin: p.symbol, side: p.side, kind: "exit", at: new Date().toISOString() },
+            ]
+          })
+          const note = `Close order status UNCERTAIN for ${p.symbol} ${p.side}: ${result.reason} Verification pending — reconciliation confirms within a tick.`
+          this.log("guard", note)
           this.notifyOwner("guard", { message: note })
         } else {
           this.log("guard", `Close rejected for ${p.symbol}: ${result.reason}`)
@@ -420,6 +523,10 @@ export class TradingAgent {
   }
 
   private async scanAndEnter(ctxByCoin: Map<string, AssetCtx>): Promise<boolean> {
+    if ((this.state().verifying ?? []).length) {
+      this.noteGuard("Waiting for a prior UNCERTAIN order to be verified - no new entries this tick.")
+      return false
+    }
     let traded = false
 
     // Rank top-by-volume universe
@@ -615,11 +722,18 @@ export class TradingAgent {
           return { ok: false, note: `Order rejected by exchange: ${result.reason}` }
         }
         // UNCERTAIN — the order may or may not be live on the exchange.
-        // Safety first: halt the agent so it cannot stack more orders, and
-        // leave the position book untouched (never fabricate a position).
-        this.stop()
-        const note = `Order status UNCERTAIN for ${sig.coin} ${sig.side}: ${result.reason} The agent has been STOPPED so it cannot place more orders. Verify the position on Hyperliquid, then resume.`
-        this.log("error", note)
+        // Do NOT halt and do NOT retry: record a verifying item and let the
+        // per-tick venue reconciliation resolve it (adopts the position if
+        // the order landed, releases it otherwise). No new entries are placed
+        // while any verification is pending; exits keep running.
+        this.store.mutate((s) => {
+          s.verifying = [
+            ...(s.verifying ?? []).filter((v) => !(v.coin === sig.coin && v.kind === "entry")),
+            { coin: sig.coin, side: sig.side, kind: "entry", at: new Date().toISOString() },
+          ]
+        })
+        const note = `Order status UNCERTAIN for ${sig.coin} ${sig.side}: ${result.reason} Verification pending — the next tick reconciles with the exchange automatically.`
+        this.log("guard", note)
         this.notifyOwner("guard", { message: note })
         return { ok: false, note, uncertain: true }
       }

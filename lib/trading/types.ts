@@ -68,6 +68,22 @@ export interface PendingTrade {
   createdAt: string // ISO
 }
 
+/**
+ * An order whose HTTP round-trip failed without a confirmed response
+ * (timeout/reset). It may or may not have reached the exchange. Rather than
+ * halting for a human, the agent blocks new entries and lets the
+ * venue-reconciliation resolve it on a following tick: entry → adopted from
+ * the exchange if it landed; exit → the position simply disappears from the
+ * venue. Stale items (5 min, never seen on the venue) are dropped as
+ * "not placed".
+ */
+export interface VerifyingOrder {
+  coin: string
+  side: "long" | "short"
+  kind: "entry" | "exit"
+  at: string // ISO
+}
+
 export interface TradingState {
   mode: "paper" | "live"
   agent: AgentInfo
@@ -77,6 +93,12 @@ export interface TradingState {
   activity: ActivityItem[]
   /** Trade awaiting user approval (manual approval mode only). */
   pendingTrade?: PendingTrade | null
+  /**
+   * Orders awaiting venue verification after an UNCERTAIN response. While
+   * non-empty the agent places no new entries (exits always run); each one is
+   * resolved by the per-tick reconciliation.
+   */
+  verifying?: VerifyingOrder[] | null
   /**
    * Runtime approval mode. "auto" (default) places entries automatically;
    * "manual" holds each entry as a pending trade until the user approves.

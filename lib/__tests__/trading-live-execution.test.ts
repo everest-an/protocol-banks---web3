@@ -22,6 +22,7 @@ jest.mock("@/lib/trading/keys", () => ({
 jest.mock("@/lib/trading/exchange", () => ({
   placeMarketOrder: jest.fn(),
   coinToIndex: jest.fn(),
+  getUserState: jest.fn(),
 }))
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -33,6 +34,7 @@ const keys = require("@/lib/trading/keys") as {
 const exchange = require("@/lib/trading/exchange") as {
   placeMarketOrder: jest.Mock
   coinToIndex: jest.Mock
+  getUserState: jest.Mock
 }
 
 const WALLET = "0x1111111111111111111111111111111111111111"
@@ -187,7 +189,7 @@ describe("TradingAgent — live execution", () => {
     expect(store.get().positions).toHaveLength(0)
   })
 
-  it("halts the agent on an UNCERTAIN order instead of retrying", async () => {
+  it("an UNCERTAIN entry queues verification instead of halting (reconciliation resolves it)", async () => {
     const executor = fakeExecutor({
       ok: false,
       rejected: false,
@@ -203,7 +205,11 @@ describe("TradingAgent — live execution", () => {
     const result = await agent.approvePendingTrade()
     expect(result.ok).toBe(false)
     expect(store.get().positions).toHaveLength(0) // never fabricate a position
-    expect(store.get().agent.status).toBe("stopped") // safety halt
+    // No halt: the next tick's venue reconciliation adopts the position if the
+    // order actually landed, or releases it if it never did.
+    expect(store.get().agent.status).toBe("running")
+    expect(store.get().verifying).toHaveLength(1)
+    expect(store.get().verifying?.[0]).toMatchObject({ coin: "BTC", kind: "entry" })
     expect(executor.placeOrder).toHaveBeenCalledTimes(1) // no retry
     expect(store.get().activity.some((a) => a.text.includes("UNCERTAIN"))).toBe(true)
   })
@@ -351,7 +357,7 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
     expect(store.get().activity.some((a) => a.text.includes("stop-loss"))).toBe(true)
   })
 
-  it("an UNCERTAIN close halts the agent and never fabricates a fill", async () => {
+  it("an UNCERTAIN close queues verification instead of halting and never fabricates a fill", async () => {
     const executor = fakeExecutor({ ok: false, rejected: false, uncertainty: true, reason: "timeout" })
     const store = liveStoreWith(positionWith(2.5))
     const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
@@ -361,8 +367,48 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
     expect(traded).toBe(false)
     expect(store.get().positions).toHaveLength(1) // may still be open on the exchange
     expect(store.get().cash).toBe(70) // book untouched
-    expect(store.get().agent.status).toBe("stopped")
+    expect(store.get().agent.status).toBe("running") // no halt — reconciliation confirms
+    expect(store.get().verifying?.[0]).toMatchObject({ kind: "exit" })
     expect(store.get().activity.some((a) => a.text.includes("UNCERTAIN"))).toBe(true)
+  })
+
+  it("reconciliation adopts an untracked venue position and anchors equity to the account value", async () => {
+    exchange.getUserState.mockResolvedValue({
+      marginSummary: { accountValue: "18.5" },
+      assetPositions: [{ position: { coin: "XRP", szi: "-14", entryPx: "1.42" } }],
+    })
+    const executor = fakeExecutor({ ok: true, avgPx: 1, totalSz: 1, oid: null })
+    const store = stubStore(seedState({ demoHistory: false }))
+    const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
+
+    await (agent as unknown as { reconcileWithVenue: () => Promise<void> }).reconcileWithVenue()
+
+    const st = store.get()
+    const pos = st.positions.find((p) => p.symbol === "XRP")
+    expect(pos).toBeDefined()
+    expect(pos?.side).toBe("short")
+    expect(pos?.size).toBeCloseTo(14)
+    expect(st.account.totalEquity).toBeCloseTo(18.5)
+    // cash holds everything that is not margin or unrealized PnL
+    const committed = st.positions.reduce((a, p) => a + p.allocated + p.pnl, 0)
+    expect(st.cash + committed).toBeCloseTo(18.5)
+    expect(st.activity.some((a) => a.text.includes("adopted XRP"))).toBe(true)
+  })
+
+  it("reconciliation drops a book position the venue no longer holds", async () => {
+    exchange.getUserState.mockResolvedValue({
+      marginSummary: { accountValue: "80" },
+      assetPositions: [],
+    })
+    const executor = fakeExecutor({ ok: true, avgPx: 1, totalSz: 1, oid: null })
+    const store = liveStoreWith(positionWith(2.5))
+    const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
+
+    await (agent as unknown as { reconcileWithVenue: () => Promise<void> }).reconcileWithVenue()
+
+    const st = store.get()
+    expect(st.positions).toHaveLength(0)
+    expect(st.account.totalEquity).toBeCloseTo(80)
   })
 
   it("a rejected close keeps the agent running and the position open", async () => {
