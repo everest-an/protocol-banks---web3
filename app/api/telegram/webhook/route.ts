@@ -18,6 +18,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const HL_INFO = 'https://api.hyperliquid.xyz/info'
+const BOT_USERNAME = process.env.TG_BOT_USERNAME || 'ProtocolTraderBot'
 
 async function venueSnapshot(wallet: string): Promise<string> {
   try {
@@ -123,18 +124,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 })
   }
 
-  let update: { message?: { chat?: { id?: number }; text?: string } }
+  let update: {
+    message?: {
+      chat?: { id?: number; type?: string }
+      text?: string
+      entities?: Array<{ type: string; offset: number; length: number }>
+    }
+  }
   try {
     update = await req.json()
   } catch {
     return NextResponse.json({ ok: true })
   }
 
-  const chatId = update.message?.chat?.id ? String(update.message.chat.id) : ''
-  const text = (update.message?.text ?? '').trim()
+  const msg = update.message
+  const chatId = msg?.chat?.id ? String(msg.chat.id) : ''
+  const chatType = msg?.chat?.type ?? ''
+  const isGroup = chatType === 'group' || chatType === 'supergroup'
+  let text = (msg?.text ?? '').trim()
   const owner = process.env.TG_CHAT_ID ? String(process.env.TG_CHAT_ID) : ''
-  if (!chatId || !text || (owner && chatId !== owner)) {
-    return NextResponse.json({ ok: true }) // ignore strangers silently
+
+  if (!chatId || !text) return NextResponse.json({ ok: true })
+
+  if (isGroup) {
+    // Privacy mode means the bot only sees @mentions and commands here. Answer
+    // when mentioned (any group member may ask — the data is read-only), and
+    // strip the mention before the question reaches the model.
+    const mentioned = (msg?.entities ?? []).some(
+      (e) => e.type === 'mention' && text.slice(e.offset, e.offset + e.length).toLowerCase() === '@' + BOT_USERNAME.toLowerCase(),
+    )
+    if (!mentioned) return NextResponse.json({ ok: true })
+    text = text.replace(new RegExp('@' + BOT_USERNAME, 'gi'), '').trim() || '简要介绍一下当前状态'
+  } else if (owner && chatId !== owner) {
+    return NextResponse.json({ ok: true }) // strangers in DM are ignored silently
   }
 
   try {
