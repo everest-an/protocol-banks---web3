@@ -44,29 +44,27 @@ async function venueSnapshot(wallet: string): Promise<string> {
   }
 }
 
-async function ledgerSnapshot(): Promise<string> {
+async function ledgerSnapshot(wallet: string): Promise<string> {
   try {
-    const rows = await prisma.tradingAccount.findMany({
-      where: { status: 'live' },
+    const row = await prisma.tradingAccount.findUnique({
+      where: { wallet_address: wallet },
       select: { wallet_address: true, state_json: true, updated_at: true },
     })
-    if (!rows.length) return '(没有 live 账户)'
+    if (!row) return '(该账户不存在)'
+    const st = row.state_json as {
+      cash?: number
+      positions?: Array<{ symbol: string; side: string; size: number }>
+      account?: { totalEquity?: number; allTimePnl?: number }
+      activity?: Array<{ type: string; text: string }>
+    } | null
     const out: string[] = []
-    for (const row of rows) {
-      const st = row.state_json as {
-        cash?: number
-        positions?: Array<{ symbol: string; side: string; size: number }>
-        account?: { totalEquity?: number; allTimePnl?: number }
-        activity?: Array<{ type: string; text: string }>
-      } | null
-      out.push(
-        `账本（${row.wallet_address.slice(0, 10)}…，更新于 ${row.updated_at.toISOString()}）：`,
-        `- 现金 $${st?.cash ?? '?'}｜权益 $${st?.account?.totalEquity ?? '?'}｜累计盈亏 $${st?.account?.allTimePnl ?? '?'}`,
-        `- 持仓：${(st?.positions ?? []).length ? (st?.positions ?? []).map((p) => `${p.symbol} ${p.side} ${p.size}`).join('，') : '无'}`,
-        '- 最近动态：',
-      )
-      for (const a of (st?.activity ?? []).slice(0, 8)) out.push(`  [${a.type}] ${a.text.slice(0, 140)}`)
-    }
+    out.push(
+      `账本（${row.wallet_address.slice(0, 10)}…，更新于 ${row.updated_at.toISOString()}）：`,
+      `- 现金 $${st?.cash ?? '?'}｜权益 $${st?.account?.totalEquity ?? '?'}｜累计盈亏 $${st?.account?.allTimePnl ?? '?'}`,
+      `- 持仓：${(st?.positions ?? []).length ? (st?.positions ?? []).map((p) => `${p.symbol} ${p.side} ${p.size}`).join('，') : '无'}`,
+      '- 最近动态：',
+    )
+    for (const a of (st?.activity ?? []).slice(0, 8)) out.push(`  [${a.type}] ${a.text.slice(0, 140)}`)
     return out.join('\n')
   } catch {
     return '(账本暂时读不到)'
@@ -160,11 +158,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const rows = await prisma.tradingAccount.findMany({ where: { status: 'live' }, select: { wallet_address: true }, take: 3 })
-    const venueParts: string[] = []
-    for (const w of rows) venueParts.push(await venueSnapshot(w.wallet_address))
-    const venue = venueParts.join('\n') || '(没有 live 账户)'
-    const ledger = await ledgerSnapshot()
+    // Pinned to ONE account. Answers must never enumerate other users'
+    // accounts — multi-tenant support requires a chat_id -> wallet binding
+    // (planned), and until that exists this operator bot only ever reports the
+    // configured wallet.
+    const account = (process.env.TG_ACCOUNT_WALLET || '').toLowerCase()
+    if (!account) {
+      await send(chatId, '未配置查询账户（TG_ACCOUNT_WALLET），请联系管理员。')
+      return NextResponse.json({ ok: true })
+    }
+    const venue = await venueSnapshot(account)
+    const ledger = await ledgerSnapshot(account)
 
     const system = [
       '你是 Protocol Bank 的交易助理，服务账户主人（就是正在和你聊天的人）。用中文、简洁、直接地回答。',
