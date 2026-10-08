@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare, TrendingUp, Image as ImageIcon, Terminal } from "lucide-react"
+import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare, TrendingUp, Image as ImageIcon, Terminal, Send } from "lucide-react"
 import Image from "next/image"
 
 export function Footer() {
@@ -135,6 +135,16 @@ export function Footer() {
                 >
                   <MessagesSquare className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                   Discord Community
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="https://t.me/protocolbanks"
+                  target="_blank"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
+                >
+                  <Send className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  Telegram
                 </Link>
               </li>
             </ul>

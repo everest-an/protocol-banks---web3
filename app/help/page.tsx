@@ -9,6 +9,7 @@ import {
   HelpCircle,
   ArrowRight,
   Check,
+  Send,
 } from "lucide-react"
 
 const STEPS = [
@@ -213,6 +214,76 @@ export default function HelpPage() {
               If an order ever fails with an <strong>UNCERTAIN</strong> status, the agent stops itself rather than
               retrying (a retry could open a duplicate position). Check your positions on Hyperliquid, then resume.
             </p>
+          </div>
+        </section>
+
+        {/* Talk to the AI */}
+        <section className="mb-14">
+          <div className="flex items-center gap-2 mb-6">
+            <Send className="h-5 w-5 text-primary" />
+            <h2 className="text-2xl font-bold">How do I talk to the AI?</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
+              <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
+                <Check className="h-4 w-4 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm mb-1">
+                  Telegram —{" "}
+                  <Link href="https://t.me/protocolbanks" target="_blank" className="text-primary underline underline-offset-2">
+                    t.me/protocolbanks
+                  </Link>
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Message the assistant directly — &ldquo;how are my positions doing?&rdquo;, &ldquo;why
+                  hasn&apos;t the AI entered?&rdquo;, &ldquo;what are the risk rules?&rdquo; — it answers from your
+                  live account data. Trade events (opens, closes, risk guardrails) are pushed to the same chat,
+                  and you can add it to a group and @mention it.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
+              <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
+                <Check className="h-4 w-4 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm mb-1">Cockpit controls</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Pause AI, Emergency Stop and Reset live on the cockpit, and the activity feed narrates every
+                  scan, entry, exit and guard decision in plain language.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
+              <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
+                <Check className="h-4 w-4 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm mb-1">Manual approval mode</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Prefer to approve every entry? Switch Entry mode to <em>Require my approval</em> — the agent
+                  holds each signal until you approve or reject it. Exits always run automatically.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
+              <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
+                <Check className="h-4 w-4 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm mb-1">
+                  MCP —{" "}
+                  <Link href="/mcp" className="text-primary underline underline-offset-2">
+                    any AI assistant
+                  </Link>
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Claude Desktop, Claude Code or any MCP host can read positions and control the agent through
+                  the Protocol Bank MCP server.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
