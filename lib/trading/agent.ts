@@ -334,15 +334,15 @@ export class TradingAgent {
       }
 
       if (reason) {
-        const realized = await this.closePosition(p)
-        if (realized !== null) {
+        const pnl = await this.closePosition(p)
+        if (pnl !== null) {
           traded = true
           this.log(
             "close",
-            `Closed ${p.symbol} ${p.side} ${realized >= 0 ? "+" : "-"}$${Math.abs(realized).toFixed(2)} (${reason})`,
-            Number(realized.toFixed(2)),
+            `Closed ${p.symbol} ${p.side} ${pnl >= 0 ? "+" : "-"}$${Math.abs(pnl).toFixed(2)} (${reason})`,
+            Number(pnl.toFixed(2)),
           )
-          this.notifyOwner("closed", { symbol: p.symbol, side: p.side, pnl: realized, reason })
+          this.notifyOwner("closed", { symbol: p.symbol, side: p.side, pnl, reason })
         }
       }
     }
@@ -377,7 +377,7 @@ export class TradingAgent {
         return null
       }
 
-      let realized: number | null = null
+      let pnl: number | null = null
       this.store.mutate((s) => {
         const idx = s.positions.findIndex((x) => x.symbol === p.symbol && x.side === p.side)
         if (idx === -1) return
@@ -386,27 +386,37 @@ export class TradingAgent {
         const entryNotional = pos.entry * pos.size
         const gross = pos.side === "long" ? exitNotional - entryNotional : entryNotional - exitNotional
         const exitFee = exitNotional * this.risk.feeRate
-        realized = Number((pos.allocated + gross - exitFee).toFixed(2))
-        s.cash = Number((s.cash + realized).toFixed(2))
+        const entryFee = entryNotional * this.risk.feeRate
+        // Two DIFFERENT numbers: the wallet gets the allocated margin back
+        // plus the net result of the trade; the REPORTED PnL must not include
+        // the margin. The old code returned `allocated + gross - exitFee` as
+        // the PnL, so every close read "≈ +$10" regardless of the outcome
+        // (2026-10-07: "Closed UNI short +$10.53 (stop-loss)" on a fill the
+        // venue showed as -$0.23).
+        const proceeds = Number((pos.allocated + gross - exitFee).toFixed(2))
+        pnl = Number((gross - exitFee - entryFee).toFixed(2))
+        s.cash = Number((s.cash + proceeds).toFixed(2))
         s.positions.splice(idx, 1)
         this.refreshAccount(s)
       })
-      return realized
+      return pnl
     }
 
     // Paper: simulated exit at the current mark
-    let realized: number | null = null
+    let pnl: number | null = null
     this.store.mutate((s) => {
       const idx = s.positions.findIndex((x) => x.symbol === p.symbol && x.side === p.side)
       if (idx === -1) return
       const pos = s.positions[idx]
       const exitFee = pos.size * pos.mark * this.risk.feeRate
-      realized = Number((pos.allocated + pos.pnl - exitFee).toFixed(2))
-      s.cash = Number((s.cash + realized).toFixed(2))
+      const entryFee = pos.size * pos.entry * this.risk.feeRate
+      const proceeds = Number((pos.allocated + pos.pnl - exitFee).toFixed(2))
+      pnl = Number((pos.pnl - exitFee - entryFee).toFixed(2))
+      s.cash = Number((s.cash + proceeds).toFixed(2))
       s.positions.splice(idx, 1)
       this.refreshAccount(s)
     })
-    return realized
+    return pnl
   }
 
   private async scanAndEnter(ctxByCoin: Map<string, AssetCtx>): Promise<boolean> {
