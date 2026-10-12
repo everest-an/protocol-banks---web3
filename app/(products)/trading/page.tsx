@@ -731,7 +731,7 @@ export default function TradingPage() {
                 </p>
               </a>
               <a
-                href="/help"
+                href="/guides/ai-trading-strategies"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl p-4 hover:border-primary/30 transition-colors"

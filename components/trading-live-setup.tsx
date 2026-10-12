@@ -203,7 +203,7 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
           index={1}
           title="Fund your Hyperliquid account"
           done={!!liveState}
-          hint="Deposit USDC to your wallet address on Hyperliquid."
+          hint="Native USDC on Arbitrum (min $5) — use the app's Deposit button, it walks you through it. Start with $50-100: whatever you deposit is your maximum possible loss."
           action={
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1" asChild>
               <a href={HYPERLIQUID_URL} target="_blank" rel="noopener noreferrer">
