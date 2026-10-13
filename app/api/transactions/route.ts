@@ -3,21 +3,52 @@ import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security/se
 import { addSecurityHeaders, validateOrigin } from "@/lib/security/security-middleware"
 import { withAuth } from "@/lib/middleware/api-auth"
 
-// Regex for basic Ethereum address validation
-const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/
+// Etherscan V2: one host + one key serves every chain (selected with
+// `chainid`). The route used to query a single chain's ERC-20 transfers and
+// then filter down to USDT/USDC/DAI — which is why a real wallet's history
+// looked empty. It now returns native transfers AND ERC-20 transfers across
+// the chains the product supports, newest first.
+const ETHERSCAN_V2 = "https://api.etherscan.io/v2/api"
 
-// Token addresses for filtering (Mainnet & Sepolia)
-const TOKENS = {
-  mainnet: {
-    USDT: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-    USDC: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-    DAI: "0x6b175474e89094c44da98b954eedeac495271d0f",
-  },
-  sepolia: {
-    USDT: "0xaa8e23fb1079ea71e0a56f48a2aa51851d8433d0",
-    USDC: "0x94a9d9ac8a22534e3faca9f4e7f2e2cf85d5e4c8",
-    DAI: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357",
-  },
+const CHAINS: Array<{ id: string; name: string; native: string }> = [
+  { id: "1", name: "ethereum", native: "ETH" },
+  { id: "42161", name: "arbitrum", native: "ETH" },
+  { id: "8453", name: "base", native: "ETH" },
+  { id: "137", name: "polygon", native: "POL" },
+  { id: "10", name: "optimism", native: "ETH" },
+  { id: "56", name: "bsc", native: "BNB" },
+]
+
+interface RawTx {
+  hash: string
+  from: string
+  to: string
+  value: string
+  timeStamp: string
+  tokenSymbol?: string
+  tokenDecimal?: string
+  contractAddress?: string
+}
+
+async function explorerList(chainId: string, action: "txlist" | "tokentx", address: string, apiKey: string): Promise<RawTx[]> {
+  const params = new URLSearchParams({
+    chainid: chainId,
+    module: "account",
+    action,
+    address,
+    page: "1",
+    offset: "50",
+    sort: "desc",
+    apikey: apiKey,
+  })
+  try {
+    const res = await fetch(`${ETHERSCAN_V2}?${params.toString()}`, { cache: "no-store" })
+    const data = await res.json()
+    if (!data || data.status === "0") return [] // "No transactions found" or per-chain error
+    return Array.isArray(data.result) ? (data.result as RawTx[]) : []
+  } catch {
+    return [] // one chain failing must not blank the whole history
+  }
 }
 
 export const GET = withAuth(async (request: NextRequest, callerAddress: string) => {
@@ -28,7 +59,7 @@ export const GET = withAuth(async (request: NextRequest, callerAddress: string) 
 
   const searchParams = request.nextUrl.searchParams
   const address = searchParams.get("address")
-  const chainId = searchParams.get("chainId")
+  const chainParam = searchParams.get("chainId")
 
   if (!address) {
     return addSecurityHeaders(NextResponse.json({ error: "Address is required" }, { status: 400 }))
@@ -50,81 +81,64 @@ export const GET = withAuth(async (request: NextRequest, callerAddress: string) 
     return addSecurityHeaders(NextResponse.json({ error: "API configuration error" }, { status: 500 }))
   }
 
-  // Determine network and API URL
-  //
-  // Etherscan retired V1: every call to it now answers
-  // "You are using a deprecated V1 endpoint", which is why transaction history
-  // failed for everyone. V2 serves all chains from one host and selects the
-  // chain with a `chainid` parameter (one key covers all of them).
-  const isSepolia = chainId === "11155111"
-  const baseUrl = "https://api.etherscan.io/v2/api"
+  // "all" (or nothing) = every supported chain; a specific id = that chain only.
+  const targets =
+    chainParam && chainParam !== "all" ? CHAINS.filter((c) => c.id === chainParam) : CHAINS
+  const chainsToQuery = targets.length ? targets : CHAINS
 
   try {
-    // Fetch ERC20 token transfer events
-    const params = new URLSearchParams({
-      chainid: chainId ?? "1",
-      module: "account",
-      action: "tokentx",
-      address: addressValidation.checksummed!, // Use checksummed address
-      page: "1",
-      offset: "100",
-      sort: "desc",
-      apikey: apiKey,
-    })
+    const perChain = await Promise.all(
+      chainsToQuery.flatMap((chain) => [
+        explorerList(chain.id, "txlist", addressValidation.checksummed!, apiKey).then((txs) =>
+          txs.map((tx) => ({ tx, chain, kind: "native" as const })),
+        ),
+        explorerList(chain.id, "tokentx", addressValidation.checksummed!, apiKey).then((txs) =>
+          txs.map((tx) => ({ tx, chain, kind: "token" as const })),
+        ),
+      ]),
+    )
 
-    const response = await fetch(`${baseUrl}?${params.toString()}`)
-    const data = await response.json()
+    const transactions = perChain
+      .flat()
+      .map(({ tx, chain, kind }) => {
+        const rawValue = Number.parseFloat(tx.value || "0")
+        // Native listings include value-0 contract calls (token moves are
+        // already covered by tokentx) — skip them so the list stays real.
+        if (kind === "native" && rawValue === 0) return null
+        const symbol = kind === "native" ? chain.native : tx.tokenSymbol || "TOKEN"
+        const parsedDecimals = kind === "native" ? 18 : Number.parseInt(tx.tokenDecimal ?? "18")
+        const decimals = Number.isFinite(parsedDecimals) ? parsedDecimals : 18
+        const amount = Number.parseFloat(tx.value || "0") / Math.pow(10, decimals)
+        const { sanitized: sanitizedSymbol } = sanitizeTextInput(symbol)
 
-    if (data.status === "0" && data.message !== "No transactions found") {
-      // The explorer failed (rate limit, plan restriction, bad key). That is an
-      // upstream problem, and surfacing it as a 500 tells the caller we broke.
-      // 502 keeps "explorer unavailable" distinguishable from "our bug".
-      return NextResponse.json(
-        {
-          error: "Transaction history is temporarily unavailable",
-          upstream: data.result || data.message || "unknown explorer error",
-        },
-        { status: 502 },
-      )
-    }
+        return {
+          id: `ext-${chain.id}-${tx.hash}-${kind}`,
+          tx_hash: tx.hash,
+          from_address: tx.from,
+          to_address: tx.to,
+          token_symbol: sanitizedSymbol,
+          amount: amount.toFixed(6),
+          amount_usd: amount,
+          timestamp: new Date(Number.parseInt(tx.timeStamp) * 1000).toISOString(),
+          status: "completed",
+          is_external: true,
+          chain: chain.name,
+          chain_id: chain.id,
+          tx_type: kind,
+        }
+      })
+      .filter((tx): tx is NonNullable<typeof tx> => tx !== null)
+      .sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1))
+      .slice(0, 120)
 
-    const transactions = (data.result || []).map((tx: any) => {
-      let symbol = tx.tokenSymbol
-      const tokenAddress = tx.contractAddress.toLowerCase()
-
-      if (isSepolia) {
-        if (tokenAddress === TOKENS.sepolia.USDT.toLowerCase()) symbol = "USDT"
-        if (tokenAddress === TOKENS.sepolia.USDC.toLowerCase()) symbol = "USDC"
-        if (tokenAddress === TOKENS.sepolia.DAI.toLowerCase()) symbol = "DAI"
-      } else {
-        if (tokenAddress === TOKENS.mainnet.USDT.toLowerCase()) symbol = "USDT"
-        if (tokenAddress === TOKENS.mainnet.USDC.toLowerCase()) symbol = "USDC"
-        if (tokenAddress === TOKENS.mainnet.DAI.toLowerCase()) symbol = "DAI"
-      }
-
-      const decimals = Number.parseInt(tx.tokenDecimal)
-      const amount = Number.parseFloat(tx.value) / Math.pow(10, decimals)
-
-      const { sanitized: sanitizedSymbol } = sanitizeTextInput(symbol)
-
-      return {
-        id: `ext-${tx.hash}`,
-        tx_hash: tx.hash,
-        from_address: tx.from,
-        to_address: tx.to,
-        token_symbol: sanitizedSymbol,
-        amount: amount.toFixed(2),
-        amount_usd: amount,
-        timestamp: new Date(Number.parseInt(tx.timeStamp) * 1000).toISOString(),
-        status: "completed",
-        is_external: true,
-      }
-    })
-
-    const filteredTxs = transactions.filter((tx: any) => ["USDT", "USDC", "DAI"].includes(tx.token_symbol))
-
-    return addSecurityHeaders(NextResponse.json({ transactions: filteredTxs }))
-  } catch (error: any) {
+    return addSecurityHeaders(
+      NextResponse.json({
+        transactions,
+        chains: chainsToQuery.map((c) => c.name),
+        count: transactions.length,
+      }),
+    )
+  } catch (error: unknown) {
     console.error("Indexer fetch error:", error)
     return addSecurityHeaders(NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 }))
   }

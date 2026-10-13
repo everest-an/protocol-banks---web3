@@ -342,8 +342,12 @@ export default function VendorsPage() {
       // Enrich with payment stats from transactions API
       let allPayments: any[] = []
       try {
-        const currentChainId = chainId || "1"
-        const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
+        // Auth headers are required (withAuth) — without them this call always
+        // 401'd and vendor stats silently stayed empty. chainId=all merges the
+        // wallet's history across every supported chain.
+        const response = await fetch(`/api/transactions?address=${wallet}&chainId=all`, {
+          headers: authHeaders(wallet),
+        })
         const data = await response.json()
         if (data.transactions) {
           allPayments = data.transactions.filter(
