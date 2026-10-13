@@ -2,6 +2,7 @@
 
 import { useWeb3 } from "@/contexts/web3-context"
 import { useAuth } from "@/contexts/auth-provider"
+import { getStoredSiweSession } from "@/lib/auth/siwe-client"
 
 /**
  * Unified wallet hook that aggregates connection sources:
@@ -36,12 +37,12 @@ export function useUnifiedWallet() {
 
   const { isAuthenticated, user } = useAuth()
 
-  // The auth session exposes the wallet under `walletAddress`, but some login
-  // paths (SIWE restore/embedded flows) only populate `address` — reading just
-  // one of them left authenticated users with no address, so the trading
-  // cockpit fell back to the shared guest demo account (the "$520 while logged
-  // in" bug). Accept either.
-  const authWalletAddress = user?.walletAddress || user?.address
+  // The auth session exposes the wallet under `walletAddress`, but that field
+  // can be empty for SIWE sessions restored from the token store — which left
+  // an authenticated user with NO address, so the trading cockpit fell back to
+  // the shared guest demo account (the "$520 while logged in" bug). Fall back
+  // to the SIWE session's own address.
+  const authWalletAddress = user?.walletAddress || getStoredSiweSession()?.address || undefined
 
   // Aggregated connection state
   const isConnected = isWeb3Connected || isAuthenticated
