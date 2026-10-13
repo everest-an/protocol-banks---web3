@@ -45,6 +45,9 @@ export function WalletOnchainActivity({ wallet, limit = 25 }: { wallet?: string 
 
   const short = (addr?: string) => (addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—")
 
+  // Nothing to show without a connected wallet.
+  if (!wallet) return null
+
   const renderRow = (tx: OnchainTx) => {
     const isOut = tx.from_address?.toLowerCase() === wallet?.toLowerCase()
     const isContract = tx.tx_type === "contract"

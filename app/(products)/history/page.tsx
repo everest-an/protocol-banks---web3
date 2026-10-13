@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Download, ArrowUpRight, ArrowDownLeft, ExternalLink, Calendar, Filter, ChevronDown, ChevronRight, Layers, FolderOpen, ArrowLeft, ArrowRightLeft, RefreshCw as RefreshCwIcon } from "lucide-react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { WalletOnchainActivity } from "@/components/wallet-onchain-activity"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useDemo } from "@/contexts/demo-context"
@@ -391,6 +392,12 @@ export default function HistoryPage() {
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* The wallet's real on-chain history — independent of platform records,
+          so a fresh wallet still sees its actual transactions. */}
+      <div className="mb-4">
+        <WalletOnchainActivity wallet={showDemoData ? null : wallet} />
       </div>
 
       {showDemoData && (
