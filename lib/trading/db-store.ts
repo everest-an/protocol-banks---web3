@@ -44,8 +44,12 @@ export class DbTradingStore {
           this.state = row.state_json as unknown as TradingState
           return this.state
         }
-        // First run — seed and persist
-        const seeded = seedState()
+        // First run — seed and persist. A CONNECTED wallet must never be
+        // given the visitor demo's fabricated curve/history (the "demo mixed
+        // with the real account" bug: a fresh wallet showed $500 + fake trades
+        // as if they were the user's). Real accounts start clean; the demo
+        // seed stays for guests only (getAgent path).
+        const seeded = seedState({ demoHistory: false })
         await this.save(seeded)
         this.state = seeded
         return this.state
