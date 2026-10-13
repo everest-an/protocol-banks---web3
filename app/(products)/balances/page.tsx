@@ -41,6 +41,7 @@ import { useBalance } from "@/hooks/use-balance"
 import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { BalanceDistribution } from "@/components/balance-distribution"
 import { BalanceActivity } from "@/components/balance-activity"
+import { WalletOnchainActivity } from "@/components/wallet-onchain-activity"
 import { categorizeTransaction, CATEGORY_COLORS, calculateRunway, type Category } from "@/lib/business-logic"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import type { TokenBalance } from "@/types"
@@ -716,6 +717,10 @@ export default function BalancesPage() {
                   </GlassCardContent>
                 </GlassCard>
               </div>
+
+              {/* The wallet's real on-chain history — visible even when the
+                  account has no platform transactions yet. */}
+              <WalletOnchainActivity wallet={!isDemoMode && isConnected ? activeAddress : null} />
             </TabsContent>
 
             {/* ══════════ Tokens Tab: L2 → L3 Drill-Down ══════════ */}

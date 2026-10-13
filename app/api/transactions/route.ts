@@ -28,6 +28,9 @@ interface RawTx {
   tokenSymbol?: string
   tokenDecimal?: string
   contractAddress?: string
+  input?: string
+  functionName?: string
+  methodId?: string
 }
 
 async function explorerList(chainId: string, action: "txlist" | "tokentx", address: string, apiKey: string): Promise<RawTx[]> {
@@ -102,17 +105,22 @@ export const GET = withAuth(async (request: NextRequest, callerAddress: string) 
       .flat()
       .map(({ tx, chain, kind }) => {
         const rawValue = Number.parseFloat(tx.value || "0")
-        // Native listings include value-0 contract calls (token moves are
-        // already covered by tokentx) — skip them so the list stays real.
-        if (kind === "native" && rawValue === 0) return null
-        const symbol = kind === "native" ? chain.native : tx.tokenSymbol || "TOKEN"
-        const parsedDecimals = kind === "native" ? 18 : Number.parseInt(tx.tokenDecimal ?? "18")
+        const inputData = tx.input ?? "0x"
+        // Native listings carry three things: plain value transfers, token
+        // moves (already covered by tokentx) and CONTRACT INTERACTIONS
+        // (approve / swap / mint / ... with value 0). Keep real transfers AND
+        // contract calls; drop only the token duplicates.
+        const isContractCall = kind === "native" && rawValue === 0 && inputData !== "0x"
+        if (kind === "native" && rawValue === 0 && !isContractCall) return null
+        const txKind = isContractCall ? "contract" : kind
+        const symbol = txKind === "native" ? chain.native : tx.tokenSymbol || "TOKEN"
+        const parsedDecimals = txKind === "native" ? 18 : Number.parseInt(tx.tokenDecimal ?? "18")
         const decimals = Number.isFinite(parsedDecimals) ? parsedDecimals : 18
-        const amount = Number.parseFloat(tx.value || "0") / Math.pow(10, decimals)
+        const amount = rawValue / Math.pow(10, decimals)
         const { sanitized: sanitizedSymbol } = sanitizeTextInput(symbol)
 
         return {
-          id: `ext-${chain.id}-${tx.hash}-${kind}`,
+          id: `ext-${chain.id}-${tx.hash}-${txKind}`,
           tx_hash: tx.hash,
           from_address: tx.from,
           to_address: tx.to,
@@ -124,7 +132,8 @@ export const GET = withAuth(async (request: NextRequest, callerAddress: string) 
           is_external: true,
           chain: chain.name,
           chain_id: chain.id,
-          tx_type: kind,
+          tx_type: txKind,
+          contract_function: isContractCall ? tx.functionName || tx.methodId || "contract call" : undefined,
         }
       })
       .filter((tx): tx is NonNullable<typeof tx> => tx !== null)
