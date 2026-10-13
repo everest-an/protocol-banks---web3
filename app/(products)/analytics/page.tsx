@@ -168,10 +168,11 @@ export default function AnalyticsPage() {
 
       if (wallet) {
         try {
-          // Determine chain ID (default to Mainnet if undefined)
-          const currentChainId = chainId || "1"
-
-          const response = await fetch(`/api/transactions?address=${wallet}&chainId=${currentChainId}`)
+          // Public endpoint (no sign-in needed for public chain data); all
+          // supported chains instead of just the connected one — the old
+          // single-chain + auth-gated call left analytics empty for fresh
+          // wallets.
+          const response = await fetch(`/api/transactions?address=${wallet}&chainId=all`)
           const data = await response.json()
 
           if (data.transactions) {
