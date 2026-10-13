@@ -125,7 +125,14 @@ export class TradingAgent {
         for (const [coin, vp] of venue) {
           const k = known.get(coin)
           if (!k) {
-            const notional = positionNotional(venueValue, this.risk)
+            // Allocate margin for what the venue ACTUALLY holds, capped by the
+            // standard sizing. A sub-minimum dust position (leftover from a
+            // partially-filled close) must not lock a full positionNotional of
+            // virtual margin — on 2026-10-09 a $0.02 PUMP dust locked $10 and
+            // the funds guard blocked every entry for days.
+            const venueNotional = vp.size * (vp.entry || 0)
+            const standard = positionNotional(venueValue, this.risk)
+            const notional = Math.min(standard, venueNotional > 0 ? venueNotional : standard)
             s.positions.push({
               symbol: coin,
               side: vp.side,
