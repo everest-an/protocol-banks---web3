@@ -56,6 +56,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { BatchVendorEditDialog } from "@/components/batch-vendor-edit-dialog"
+import { WalletCounterparties } from "@/components/wallet-counterparties"
 
 import type { Vendor, VendorCategory, ReputationTag } from "@/types/vendor"
 import { getVendorDisplayName, getVendorInitials } from "@/lib/utils"
@@ -886,6 +887,29 @@ export default function VendorsPage() {
                 </GlassCardContent>
               </GlassCard>
             </div>
+
+            {/* On-chain counterparties — auto-tagged from the wallet's real
+                history, one click to add as a contact. */}
+            <WalletCounterparties
+              wallet={isDemoMode ? null : wallet}
+              contacts={displayVendors.map((v) => ({ id: v.id, name: v.name, wallet_address: v.wallet_address }))}
+              onAddContact={(address) => {
+                const short = `${address.slice(0, 6)}…${address.slice(-4)}`
+                setEditMode(false)
+                setEditingVendor(null)
+                setFormData({
+                  name: short,
+                  wallet_address: address,
+                  ens_name: "",
+                  email: "",
+                  notes: "Discovered from on-chain activity",
+                  category: "",
+                  tier: "vendor",
+                  chain: "Ethereum",
+                })
+                setDialogOpen(true)
+              }}
+            />
 
             {/* Contact List */}
             <div className="space-y-2">
