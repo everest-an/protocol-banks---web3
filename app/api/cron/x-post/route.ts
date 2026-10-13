@@ -199,10 +199,11 @@ async function postToBluesky(text: string): Promise<{ posted?: string; error?: s
 }
 
 // ---------- Telegram notification (optional) ----------
-// Posts the day's result to @Gavis0bot. Never throws: a notification failure
-// must not lose a post that already went out.
+// Media/tech broadcasts go through the MEDIA bot (TG_MEDIA_TOKEN, @Gavis0bot);
+// trading progress stays on the trading bot. Never throws: a notification
+// failure must not lose a post that already went out.
 async function notifyTelegram(text: string): Promise<void> {
-  const token = process.env.TG_TOKEN
+  const token = process.env.TG_MEDIA_TOKEN || process.env.TG_TOKEN
   const chat = process.env.TG_CHAT_ID
   if (!token || !chat) return
   try {

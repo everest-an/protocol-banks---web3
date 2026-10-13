@@ -153,8 +153,16 @@ export async function POST(req: NextRequest) {
     )
     if (!mentioned) return NextResponse.json({ ok: true })
     text = text.replace(new RegExp('@' + BOT_USERNAME, 'gi'), '').trim() || '简要介绍一下当前状态'
+    console.log('[telegram] group message', chatId, text.slice(0, 40))
   } else if (owner && chatId !== owner) {
     return NextResponse.json({ ok: true }) // strangers in DM are ignored silently
+  }
+
+  // Ops command: report the chat id (used to wire broadcast targets like the
+  // community group for the media bot).
+  if (/^\/(id|chatid)\b/i.test(text)) {
+    await send(chatId, `chat id: ${chatId}${isGroup ? ' (group)' : ' (private)'}`)
+    return NextResponse.json({ ok: true })
   }
 
   try {
