@@ -307,6 +307,31 @@ export default function TradingPage() {
           </div>
         </div>
 
+        {/* Mode clarity: it must be impossible to mistake simulated funds for
+            real money (the $520 confusion). */}
+        {!isLoading &&
+          data &&
+          (data.mode === "paper" ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-sky-500/30 bg-sky-500/5 px-4 py-3 text-xs sm:text-sm">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-sky-600 dark:text-sky-400">
+                <Sparkles className="h-4 w-4" /> Paper mode — simulated funds
+              </span>
+              <span className="text-muted-foreground">
+                Real market data, demo money: the ${fmtUsd(data.account.tradingWallet, 0)} budget is simulated — nothing here touches real funds.
+              </span>
+              {!walletAddress && <span className="text-muted-foreground">Connect your wallet to walk the live path.</span>}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-xs sm:text-sm">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                <Sparkles className="h-4 w-4" /> Live — real funds on Hyperliquid
+              </span>
+              <span className="text-muted-foreground">
+                Trades are real, through your trading-only agent wallet. Worst case: ${fmtUsd(data.account.maxLoss, 0)}.
+              </span>
+            </div>
+          ))}
+
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-32 w-full rounded-2xl" />
