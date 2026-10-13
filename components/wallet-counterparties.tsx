@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo } from "react"
-import { ArrowRightLeft, Loader2, Plus, UserCheck } from "lucide-react"
+import { useMemo, useState } from "react"
+import { ArrowDownLeft, ArrowRightLeft, ArrowUpRight, FileCode2, Loader2, Plus, UserCheck } from "lucide-react"
 import { useOnchainHistory } from "@/hooks/use-onchain-history"
 
 interface Contact {
@@ -27,9 +27,11 @@ export function WalletCounterparties({
   limit?: number
 }) {
   const { transactions, loading, error } = useOnchainHistory(wallet)
+  const [expanded, setExpanded] = useState<string | null>(null)
 
-  const rows = useMemo(() => {
-    if (!wallet) return []
+  const { rows, txsByCounterparty } = useMemo(() => {
+    const byAddress = new Map<string, typeof transactions>()
+    if (!wallet) return { rows: [], txsByCounterparty: byAddress }
     const me = wallet.toLowerCase()
     const contactByAddress = new Map(contacts.map((c) => [c.wallet_address?.toLowerCase(), c]))
     const agg = new Map<string, { count: number; volume: number; lastAt: string }>()
@@ -47,8 +49,13 @@ export function WalletCounterparties({
       } else {
         agg.set(counterparty, { count: 1, volume: Number(tx.amount_usd) || 0, lastAt: tx.timestamp })
       }
+      const list = byAddress.get(counterparty) ?? []
+      if (list.length < 5) {
+        list.push(tx)
+        byAddress.set(counterparty, list)
+      }
     }
-    return [...agg.entries()]
+    const rows = [...agg.entries()]
       .map(([address, v]) => ({
         address,
         ...v,
@@ -56,6 +63,7 @@ export function WalletCounterparties({
       }))
       .sort((a, b) => b.count - a.count || b.volume - a.volume)
       .slice(0, limit)
+    return { rows, txsByCounterparty: byAddress }
   }, [transactions, wallet, contacts, limit])
 
   if (!wallet) return null
@@ -84,38 +92,75 @@ export function WalletCounterparties({
         <div className="text-sm text-muted-foreground py-4 text-center">No counterparties found yet.</div>
       ) : (
         <div className="space-y-1.5">
-          {rows.map((r) => (
-            <div
-              key={r.address}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2"
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs sm:text-sm truncate">{short(r.address)}</span>
-                  {r.contact && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] px-2 py-0.5 font-medium">
-                      <UserCheck className="h-3 w-3" />
-                      {r.contact.name || "Contact"}
-                    </span>
+          {rows.map((r) => {
+            const isOpen = expanded === r.address
+            const txs = txsByCounterparty.get(r.address) ?? []
+            return (
+              <div key={r.address} className="rounded-lg border border-border/60">
+                <div
+                  className="flex items-center justify-between gap-3 px-3 py-2 cursor-pointer hover:bg-muted/30"
+                  onClick={() => setExpanded(isOpen ? null : r.address)}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs sm:text-sm truncate">{short(r.address)}</span>
+                      {r.contact && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] px-2 py-0.5 font-medium">
+                          <UserCheck className="h-3 w-3" />
+                          {r.contact.name || "Contact"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {r.count} transaction{r.count > 1 ? "s" : ""} · {new Date(r.lastAt).toLocaleDateString()}
+                      {txs.length > 0 && <span className="ml-1 text-primary/70">{isOpen ? "· hide" : "· details"}</span>}
+                    </div>
+                  </div>
+                  {r.contact ? (
+                    <span className="text-[11px] text-muted-foreground shrink-0">tagged</span>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAddContact(r.address)
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-muted/40 shrink-0"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add contact
+                    </button>
                   )}
                 </div>
-                <div className="text-[11px] text-muted-foreground">
-                  {r.count} transaction{r.count > 1 ? "s" : ""} · {new Date(r.lastAt).toLocaleDateString()}
-                </div>
+                {isOpen && txs.length > 0 && (
+                  <div className="border-t border-border/60 px-3 py-2 space-y-1.5 bg-muted/10">
+                    {txs.map((tx) => {
+                      const out = tx.from_address?.toLowerCase() === wallet?.toLowerCase()
+                      const isContract = tx.tx_type === "contract"
+                      return (
+                        <div key={tx.id} className="flex items-center justify-between gap-2 text-[11px]">
+                          <span className="flex items-center gap-1.5 text-muted-foreground min-w-0 truncate">
+                            {isContract ? (
+                              <FileCode2 className="h-3 w-3 shrink-0" />
+                            ) : out ? (
+                              <ArrowUpRight className="h-3 w-3 text-red-500 shrink-0" />
+                            ) : (
+                              <ArrowDownLeft className="h-3 w-3 text-green-500 shrink-0" />
+                            )}
+                            {new Date(tx.timestamp).toLocaleString()} · {tx.chain}
+                          </span>
+                          <span className="font-mono shrink-0">
+                            {isContract
+                              ? tx.contract_function?.split("(")[0] || "contract call"
+                              : `${out ? "-" : "+"}${Number(tx.amount).toFixed(6).replace(/\.?0+$/, "")} ${tx.token_symbol}`}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-              {r.contact ? (
-                <span className="text-[11px] text-muted-foreground shrink-0">tagged</span>
-              ) : (
-                <button
-                  onClick={() => onAddContact(r.address)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-muted/40 shrink-0"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add contact
-                </button>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

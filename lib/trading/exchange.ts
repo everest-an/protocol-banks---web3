@@ -326,6 +326,8 @@ export async function placeMarketOrder(params: {
   slippage?: number
   /** Overrides the size in coins (used to close a precise position size). */
   sizeCoins?: number
+  /** Client order id (0x + 32 hex chars) — enables exact orderStatus lookups. */
+  cloid?: string
 }): Promise<unknown> {
   const meta = await getAssetContext(params.coin)
   if (!meta) throw new Error(`Unknown market "${params.coin}" on Hyperliquid`)
@@ -356,6 +358,9 @@ export async function placeMarketOrder(params: {
         s: String(size),
         r: params.reduceOnly ?? false,
         t: { limit: { tif: "Ioc" } },
+        // Client order id (16-byte hex). Lets an UNCERTAIN submission be
+        // resolved EXACTLY via the orderStatus query instead of guessing.
+        ...(params.cloid ? { c: params.cloid } : {}),
       },
     ],
     grouping: "na",
@@ -406,6 +411,30 @@ export async function getUserState(address: string): Promise<UserState | null> {
     })
     if (!res.ok) return null
     return (await res.json()) as UserState
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Exact order lookup by client order id. Used to resolve an UNCERTAIN
+ * submission definitively: "order" means it reached the venue (whatever its
+ * state), "unknownOid" means it never arrived.
+ */
+export async function getOrderStatus(
+  user: string,
+  cloid: string,
+): Promise<{ status: string; state?: string } | null> {
+  try {
+    const res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "orderStatus", user, oid: cloid }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) return null
+    const body = (await res.json()) as { status?: string; order?: { status?: string } }
+    return { status: body.status ?? "unknown", state: body.order?.status }
   } catch {
     return null
   }

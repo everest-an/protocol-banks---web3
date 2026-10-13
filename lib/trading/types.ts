@@ -82,6 +82,8 @@ export interface VerifyingOrder {
   side: "long" | "short"
   kind: "entry" | "exit"
   at: string // ISO
+  /** Client order id of the submission — lets the reconciliation resolve this exactly. */
+  cloid?: string
 }
 
 export interface TradingState {

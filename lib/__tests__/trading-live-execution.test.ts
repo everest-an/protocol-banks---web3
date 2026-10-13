@@ -23,6 +23,7 @@ jest.mock("@/lib/trading/exchange", () => ({
   placeMarketOrder: jest.fn(),
   coinToIndex: jest.fn(),
   getUserState: jest.fn(),
+  getOrderStatus: jest.fn(),
 }))
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -35,6 +36,7 @@ const exchange = require("@/lib/trading/exchange") as {
   placeMarketOrder: jest.Mock
   coinToIndex: jest.Mock
   getUserState: jest.Mock
+  getOrderStatus: jest.Mock
 }
 
 const WALLET = "0x1111111111111111111111111111111111111111"
@@ -62,7 +64,11 @@ describe("LiveOrderExecutor — response translation", () => {
       response: { data: { statuses: [{ filled: { avgPx: "60123.5", totalSz: "0.001", oid: 42 } }] } },
     })
     const r = await executor.placeOrder({ coin: "BTC", isBuy: true, sizeUsd: 60 })
-    expect(r).toEqual({ ok: true, avgPx: 60123.5, totalSz: 0.001, oid: 42 })
+    expect(r).toMatchObject({ ok: true, avgPx: 60123.5, totalSz: 0.001, oid: 42 })
+    // Every submission carries a client order id (exact UNCERTAIN resolution).
+    expect(r.ok && r.cloid).toMatch(/^0x[0-9a-f]{32}$/)
+    // ...and it is forwarded to the venue with the order.
+    expect(exchange.placeMarketOrder.mock.calls[0][0]).toMatchObject({ cloid: r.ok ? r.cloid : undefined })
   })
 
   it("maps an exchange error status to a definitive rejection", async () => {
@@ -409,6 +415,25 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
     const st = store.get()
     expect(st.positions).toHaveLength(0)
     expect(st.account.totalEquity).toBeCloseTo(80)
+  })
+
+  it("resolves an UNCERTAIN order exactly via its cloid (unknownOid releases it immediately)", async () => {
+    const cloid = "0x" + "ab".repeat(16)
+    const executor = fakeExecutor({ ok: false, rejected: false, uncertainty: true, reason: "timeout", cloid })
+    const store = stubStore({ ...seedState({ demoHistory: false }), pendingTrade: PENDING, approvalMode: "manual" })
+    const agent = new TradingAgent(store, { ...DEFAULT_RISK, approvalMode: "manual" }, WALLET, {
+      mode: "live",
+      executor,
+    })
+    await agent.approvePendingTrade()
+    expect(store.get().verifying?.[0]?.cloid).toBe(cloid)
+
+    exchange.getUserState.mockResolvedValue({ marginSummary: { accountValue: "70" }, assetPositions: [] })
+    exchange.getOrderStatus.mockResolvedValue({ status: "unknownOid" })
+    await (agent as unknown as { reconcileWithVenue: () => Promise<void> }).reconcileWithVenue()
+
+    expect(store.get().verifying).toHaveLength(0)
+    expect(store.get().activity.some((a) => a.text.includes("never reached the exchange"))).toBe(true)
   })
 
   it("a rejected close keeps the agent running and the position open", async () => {

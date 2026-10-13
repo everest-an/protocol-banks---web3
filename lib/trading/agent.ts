@@ -119,6 +119,20 @@ export class TradingAgent {
         })
       }
 
+      // Exact resolution for submissions carrying a client order id: the venue
+      // states definitively whether the order exists ("order") or never
+      // arrived ("unknownOid") — no five-minute guessing.
+      const cloidStatus = new Map<string, string>()
+      const pending = this.state().verifying ?? []
+      if (pending.some((v) => v.cloid)) {
+        const { getOrderStatus } = await import("./exchange")
+        for (const v of pending) {
+          if (!v.cloid) continue
+          const st = await getOrderStatus(this.ownerAddress, v.cloid).catch(() => null)
+          if (st?.status) cloidStatus.set(v.cloid, st.status)
+        }
+      }
+
       const notes: string[] = []
       this.store.mutate((s) => {
         const known = new Map(s.positions.map((p) => [p.symbol, p]))
@@ -159,6 +173,15 @@ export class TradingAgent {
         const stillVerifying: VerifyingOrder[] = []
         for (const v of s.verifying ?? []) {
           const onVenue = venue.has(v.coin)
+          const orderKnown = v.cloid ? cloidStatus.get(v.cloid) : undefined
+          if (orderKnown === "unknownOid") {
+            notes.push(`Verified: the UNCERTAIN ${v.coin} ${v.kind} never reached the exchange (order id not found) - released.`)
+            continue
+          }
+          if (orderKnown === "order") {
+            notes.push(`Verified: the UNCERTAIN ${v.coin} ${v.kind} reached the exchange (order found) - resolved.`)
+            continue
+          }
           if (v.kind === "entry" && onVenue) {
             notes.push(`Verified: the UNCERTAIN ${v.coin} entry filled - position adopted, trading continues.`)
           } else if (v.kind === "exit" && !onVenue) {
@@ -475,7 +498,7 @@ export class TradingAgent {
           this.store.mutate((s) => {
             s.verifying = [
               ...(s.verifying ?? []).filter((v) => !(v.coin === p.symbol && v.kind === "exit")),
-              { coin: p.symbol, side: p.side, kind: "exit", at: new Date().toISOString() },
+              { coin: p.symbol, side: p.side, kind: "exit", at: new Date().toISOString(), cloid: result.cloid },
             ]
           })
           const note = `Close order status UNCERTAIN for ${p.symbol} ${p.side}: ${result.reason} Verification pending — reconciliation confirms within a tick.`
@@ -736,7 +759,7 @@ export class TradingAgent {
         this.store.mutate((s) => {
           s.verifying = [
             ...(s.verifying ?? []).filter((v) => !(v.coin === sig.coin && v.kind === "entry")),
-            { coin: sig.coin, side: sig.side, kind: "entry", at: new Date().toISOString() },
+            { coin: sig.coin, side: sig.side, kind: "entry", at: new Date().toISOString(), cloid: result.cloid },
           ]
         })
         const note = `Order status UNCERTAIN for ${sig.coin} ${sig.side}: ${result.reason} Verification pending — the next tick reconciles with the exchange automatically.`

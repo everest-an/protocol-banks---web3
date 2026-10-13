@@ -17,13 +17,14 @@
  * over-count rather than risk double-spending the user's funds.
  */
 
+import { randomBytes } from "node:crypto"
 import { getAgentWallet, loadAgentKeyRecord } from "./keys"
 import { placeMarketOrder, coinToIndex } from "./exchange"
 
 export type OrderResult =
-  | { ok: true; avgPx: number; totalSz: number; oid: number | null }
+  | { ok: true; avgPx: number; totalSz: number; oid: number | null; cloid?: string }
   | { ok: false; rejected: true; reason: string }
-  | { ok: false; rejected: false; uncertainty: true; reason: string }
+  | { ok: false; rejected: false; uncertainty: true; reason: string; cloid?: string }
 
 export interface LiveExecutorContext {
   /** The user's wallet address (owner of the TradingAccount). */
@@ -89,6 +90,10 @@ export class LiveOrderExecutor {
       return { ok: false, rejected: true, reason: `Unknown market "${params.coin}" on Hyperliquid.` }
     }
 
+    // Client order id for this submission: if the response is lost, the exact
+    // order can be found (or ruled out) via the orderStatus query.
+    const cloid = "0x" + randomBytes(16).toString("hex")
+
     // ── The only uncertain zone: the HTTP round-trip ──────────────────
     // Anything that fails here (timeout, reset, garbage body) could still
     // have reached the matching engine, so it must be reported as uncertain.
@@ -101,6 +106,7 @@ export class LiveOrderExecutor {
         isBuy: params.isBuy,
         sizeUsd: params.sizeUsd,
         reduceOnly: params.reduceOnly,
+        cloid,
       })
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
@@ -114,6 +120,7 @@ export class LiveOrderExecutor {
         ok: false,
         rejected: false,
         uncertainty: true,
+        cloid,
         reason: `Order request failed before a confirmed response (${message.slice(0, 200)}). It may or may not have reached the exchange.`,
       }
     }
@@ -136,13 +143,14 @@ export class LiveOrderExecutor {
         const avgPx = parseFloat(first.filled.avgPx ?? "0")
         const totalSz = parseFloat(first.filled.totalSz ?? "0")
         if (avgPx > 0 && totalSz > 0) {
-          return { ok: true, avgPx, totalSz, oid: first.filled.oid ?? null }
+          return { ok: true, avgPx, totalSz, oid: first.filled.oid ?? null, cloid }
         }
         // Filled with unusable numbers — conservative: uncertain.
         return {
           ok: false,
           rejected: false,
           uncertainty: true,
+          cloid,
           reason: "Exchange reported a fill with unparseable price/size.",
         }
       }
@@ -157,6 +165,7 @@ export class LiveOrderExecutor {
           ok: false,
           rejected: false,
           uncertainty: true,
+          cloid,
           reason: "Order unexpectedly rested on the book instead of filling immediately.",
         }
       }
@@ -166,6 +175,7 @@ export class LiveOrderExecutor {
       ok: false,
       rejected: false,
       uncertainty: true,
+      cloid,
       reason: "Unrecognised exchange response — assuming the order may have been placed.",
     }
   }
