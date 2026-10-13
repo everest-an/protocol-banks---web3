@@ -1984,6 +1984,14 @@ model TradingAccount {
   /// Opt-in: publish this account's address on the public track record so
   /// anyone can verify the live results on-chain (default: anonymized only).
   public_track_record Boolean   @default(false)
+  /// Telegram binding: the user's private chat that receives this account's
+  /// trading progress. Linked with a one-time code the signed-in cockpit
+  /// generates (t.me/ProtocolTraderBot?start=<code>) — ownership is proven by
+  /// the SIWE session that created the code, so nobody can bind someone
+  /// else's wallet.
+  telegram_chat_id        String?   @unique
+  telegram_link_code      String?   @unique
+  telegram_link_expires_at DateTime?
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
 
