@@ -36,7 +36,12 @@ export function useUnifiedWallet() {
 
   const { isAuthenticated, user } = useAuth()
 
-  const authWalletAddress = user?.walletAddress
+  // The auth session exposes the wallet under `walletAddress`, but some login
+  // paths (SIWE restore/embedded flows) only populate `address` — reading just
+  // one of them left authenticated users with no address, so the trading
+  // cockpit fell back to the shared guest demo account (the "$520 while logged
+  // in" bug). Accept either.
+  const authWalletAddress = user?.walletAddress || user?.address
 
   // Aggregated connection state
   const isConnected = isWeb3Connected || isAuthenticated
