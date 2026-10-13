@@ -115,7 +115,11 @@ export function WalletOnchainActivity({ wallet, limit = 25 }: { wallet?: string 
           <Loader2 className="h-4 w-4 animate-spin" /> Loading your wallet history…
         </div>
       ) : error ? (
-        <div className="text-sm text-muted-foreground py-6 text-center">{error}</div>
+        <div className="text-sm text-muted-foreground py-6 text-center px-4">
+          {/401|authenticat|forbidden|Unauthorized/i.test(error)
+            ? "Connect and complete the wallet sign-in (one free signature — no transaction, no gas) to load your on-chain history."
+            : error}
+        </div>
       ) : rows.length === 0 ? (
         <div className="text-sm text-muted-foreground py-6 text-center">
           No on-chain activity found for this wallet yet.
