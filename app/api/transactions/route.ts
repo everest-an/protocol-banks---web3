@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security/security"
 import { addSecurityHeaders, validateOrigin } from "@/lib/security/security-middleware"
-import { withAuth } from "@/lib/middleware/api-auth"
 
 // Etherscan V2: one host + one key serves every chain (selected with
 // `chainid`). The route used to query a single chain's ERC-20 transfers and
@@ -54,7 +53,14 @@ async function explorerList(chainId: string, action: "txlist" | "tokentx", addre
   }
 }
 
-export const GET = withAuth(async (request: NextRequest, callerAddress: string) => {
+/**
+ * PUBLIC endpoint. On-chain history is public blockchain data — every explorer
+ * shows it for any address — so it loads without a wallet sign-in. The old
+ * auth requirement was inherited friction, not a privacy control (it also
+ * silently 401'd whenever a visitor had merely connected, which is why the
+ * dashboard looked empty).
+ */
+export async function GET(request: NextRequest) {
   const originValidation = validateOrigin(request)
   if (!originValidation.valid) {
     return addSecurityHeaders(NextResponse.json({ error: originValidation.error }, { status: 403 }))
@@ -71,11 +77,6 @@ export const GET = withAuth(async (request: NextRequest, callerAddress: string) 
   const addressValidation = validateAndChecksumAddress(address)
   if (!addressValidation.valid) {
     return addSecurityHeaders(NextResponse.json({ error: addressValidation.error }, { status: 400 }))
-  }
-
-  // Verify caller owns the queried address
-  if (callerAddress.toLowerCase() !== addressValidation.checksummed?.toLowerCase()) {
-    return addSecurityHeaders(NextResponse.json({ error: "Forbidden: Can only query your own transactions" }, { status: 403 }))
   }
 
   const apiKey = process.env.ETHERSCAN_API_KEY
@@ -151,4 +152,4 @@ export const GET = withAuth(async (request: NextRequest, callerAddress: string) 
     console.error("Indexer fetch error:", error)
     return addSecurityHeaders(NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 }))
   }
-}, { component: 'transactions' })
+}

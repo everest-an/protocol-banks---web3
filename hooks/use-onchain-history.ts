@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { authHeaders } from "@/lib/authenticated-fetch"
 
 export interface OnchainTx {
   id: string
@@ -38,7 +37,8 @@ export function useOnchainHistory(wallet?: string | null) {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetch(`/api/transactions?address=${wallet}&chainId=all`, { headers: authHeaders(wallet) })
+    // Public endpoint: on-chain data needs no wallet sign-in.
+    fetch(`/api/transactions?address=${wallet}&chainId=all`)
       .then(async (r) => {
         const d = await r.json()
         if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`)
