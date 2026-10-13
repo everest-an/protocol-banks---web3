@@ -144,6 +144,50 @@ export async function POST(req: NextRequest) {
 
   if (!chatId || !text) return NextResponse.json({ ok: true })
 
+  // ── Account binding (works in any DM) ────────────────────────────────
+  // The cockpit generates a one-time code (Settings → Telegram); sending
+  // /start <code> links THIS chat to the wallet that created it — ownership
+  // is proven by the SIWE session that generated the code, so nobody can
+  // bind someone else's wallet.
+  const startMatch = /^\/start(?:@[\w]+)?\s+([A-Za-z0-9]{8,32})$/.exec(text)
+  if (startMatch) {
+    const code = startMatch[1]
+    const row = await prisma.tradingAccount.findFirst({
+      where: { telegram_link_code: code, telegram_link_expires_at: { gt: new Date() } },
+      select: { wallet_address: true },
+    })
+    if (!row) {
+      await send(chatId, "这个绑定码无效或已过期 — 请在 Protocol Bank 的 Settings → Telegram 里重新生成。")
+      return NextResponse.json({ ok: true })
+    }
+    await prisma.tradingAccount.update({
+      where: { wallet_address: row.wallet_address },
+      data: { telegram_chat_id: chatId, telegram_link_code: null, telegram_link_expires_at: null },
+    })
+    await send(
+      chatId,
+      `✅ 绑定成功：${row.wallet_address.slice(0, 6)}…${row.wallet_address.slice(-4)}\n交易进展会推送到这里；直接发消息问我账户情况即可；发 /unbind 可解绑。`,
+    )
+    return NextResponse.json({ ok: true })
+  }
+
+  if (/^\/unbind\b/i.test(text) && !isGroup) {
+    const row = await prisma.tradingAccount.findFirst({
+      where: { telegram_chat_id: chatId },
+      select: { wallet_address: true },
+    })
+    if (row) {
+      await prisma.tradingAccount.update({ where: { wallet_address: row.wallet_address }, data: { telegram_chat_id: null } })
+      await send(chatId, "已解绑。交易进展不会再推送到这里。")
+    } else {
+      await send(chatId, "这个聊天还没有绑定任何账户。")
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // Which wallet does THIS chat get to see?
+  let walletForChat = ""
+
   if (isGroup) {
     // Privacy mode means the bot only sees @mentions and commands here. Answer
     // when mentioned (any group member may ask — the data is read-only), and
@@ -154,8 +198,25 @@ export async function POST(req: NextRequest) {
     if (!mentioned) return NextResponse.json({ ok: true })
     text = text.replace(new RegExp('@' + BOT_USERNAME, 'gi'), '').trim() || '简要介绍一下当前状态'
     console.log('[telegram] group message', chatId, text.slice(0, 40))
+    // Groups still answer about the operator's pinned account.
+    walletForChat = (process.env.TG_ACCOUNT_WALLET || '').toLowerCase()
   } else if (owner && chatId !== owner) {
-    return NextResponse.json({ ok: true }) // strangers in DM are ignored silently
+    // A non-owner DM: answer only if this chat is BOUND to a wallet.
+    const bound = await prisma.tradingAccount.findFirst({
+      where: { telegram_chat_id: chatId },
+      select: { wallet_address: true },
+    })
+    if (!bound) {
+      await send(
+        chatId,
+        "你好！我是 Protocol Bank 的交易助手。\n\n请先在 protocolbanks.com 连接你的钱包 → Settings → Telegram，生成绑定码，然后把 /start 绑定码 发给我 —— 绑定后我就能回答你账户的问题，并把交易进展推送到这里。",
+      )
+      return NextResponse.json({ ok: true })
+    }
+    walletForChat = bound.wallet_address
+  } else {
+    // Owner DM keeps the operator account.
+    walletForChat = (process.env.TG_ACCOUNT_WALLET || '').toLowerCase()
   }
 
   // Ops command: report the chat id (used to wire broadcast targets like the
@@ -170,7 +231,9 @@ export async function POST(req: NextRequest) {
     // accounts — multi-tenant support requires a chat_id -> wallet binding
     // (planned), and until that exists this operator bot only ever reports the
     // configured wallet.
-    const account = (process.env.TG_ACCOUNT_WALLET || '').toLowerCase()
+    // Per-chat wallet: the owner's pinned account, a bound customer's own
+    // wallet, or the operator account for groups. Never enumerates accounts.
+    const account = walletForChat
     if (!account) {
       await send(chatId, '未配置查询账户（TG_ACCOUNT_WALLET），请联系管理员。')
       return NextResponse.json({ ok: true })

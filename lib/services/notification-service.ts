@@ -603,7 +603,7 @@ export class NotificationService {
       tag: `trade-open-${symbol}-${Date.now()}`,
       data: { type: 'trade_opened', symbol, side, entryPrice, reason },
     });
-    this.sendTelegram(`AI opened ${symbol} ${side.toUpperCase()}`, `Entry $${entryPrice.toFixed(2)} - ${reason}`);
+    this.sendTelegram(ownerAddress, `AI opened ${symbol} ${side.toUpperCase()}`, `Entry $${entryPrice.toFixed(2)} - ${reason}`);
   }
 
   /**
@@ -623,7 +623,7 @@ export class NotificationService {
       tag: `trade-close-${symbol}-${Date.now()}`,
       data: { type: 'trade_closed', symbol, side, pnl, reason },
     });
-    this.sendTelegram(`AI closed ${symbol} ${side.toUpperCase()}`, `${sign}$${Math.abs(pnl).toFixed(2)} - ${reason}`);
+    this.sendTelegram(ownerAddress, `AI closed ${symbol} ${side.toUpperCase()}`, `${sign}$${Math.abs(pnl).toFixed(2)} - ${reason}`);
   }
 
   /**
@@ -640,29 +640,41 @@ export class NotificationService {
     // one position at this size), so it would spam the operator channel every
     // dedup window. Telegram only carries ACTIONABLE guards.
     if (!/insufficient free funds/i.test(message)) {
-      this.sendTelegram('Risk guardrail', message);
+      this.sendTelegram(ownerAddress, 'Risk guardrail', message);
     }
   }
 
   /**
-   * Optional Telegram sink for trade notifications (TG_TOKEN + TG_CHAT_ID).
-   * Fire-and-forget: a chat outage must never affect trading, and the web-push
-   * path above stays the per-user product channel. Telegram gives the
-   * operator a channel that works without a browser subscription.
+   * Optional Telegram sink for trade notifications. Routes by BINDING: the
+   * notification goes to the chat that is linked to the owning wallet (see
+   * /settings/telegram) — a customer never receives another account's trades.
+   * Fire-and-forget: a chat outage must never affect trading.
    */
-  private sendTelegram(title: string, body: string): void {
-    const token = process.env.TG_TOKEN;
-    const chat = process.env.TG_CHAT_ID;
-    if (!token || !chat) return;
-    void fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chat,
-        text: `[Protocol Bank] ${title}\n${body}`,
-        disable_web_page_preview: true,
-      }),
-    }).catch(() => {});
+  private sendTelegram(walletAddress: string, title: string, body: string): void {
+    const token = process.env.TG_TOKEN
+    if (!token || !walletAddress) return
+    void (async () => {
+      try {
+        const { prisma } = await import("@/lib/prisma")
+        const row = await prisma.tradingAccount.findUnique({
+          where: { wallet_address: walletAddress.toLowerCase() },
+          select: { telegram_chat_id: true },
+        })
+        const chat = row?.telegram_chat_id
+        if (!chat) return
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chat,
+            text: `[Protocol Bank] ${title}\n${body}`,
+            disable_web_page_preview: true,
+          }),
+        })
+      } catch {
+        // swallow
+      }
+    })()
   }
 
   // ============================================

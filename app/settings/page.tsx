@@ -10,7 +10,8 @@ import {
   Settings,
   Bell,
   Volume2,
-  Brain
+  Brain,
+  Send
 } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -56,6 +57,14 @@ const settingGroups = [
         icon: Brain,
         color: "text-emerald-500",
         bg: "bg-emerald-500/10",
+      },
+      {
+        title: "Telegram",
+        description: "Bind your wallet — trade progress pushed to your chat, answers about YOUR account",
+        href: "/settings/telegram",
+        icon: Send,
+        color: "text-sky-500",
+        bg: "bg-sky-500/10",
       },
       {
         title: "Multi-sig Wallets",

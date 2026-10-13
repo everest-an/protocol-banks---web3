@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { validateAndChecksumAddress, sanitizeTextInput } from "@/lib/security/security"
+import { validateAndChecksumAddress, sanitizeTextInput, checkRateLimit } from "@/lib/security/security"
 import { addSecurityHeaders, validateOrigin } from "@/lib/security/security-middleware"
 
 // Etherscan V2: one host + one key serves every chain (selected with
@@ -69,6 +69,14 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const address = searchParams.get("address")
   const chainParam = searchParams.get("chainId")
+
+  // Abuse guard: this public endpoint fans out to 6 chains × 2 queries
+  // against a metered Etherscan key.
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+  const rate = checkRateLimit({ maxRequests: 12, windowMs: 60_000, identifier: `tx-history:${ip}` })
+  if (!rate.allowed) {
+    return addSecurityHeaders(NextResponse.json({ error: "Too many requests - please retry shortly." }, { status: 429 }))
+  }
 
   if (!address) {
     return addSecurityHeaders(NextResponse.json({ error: "Address is required" }, { status: 400 }))
