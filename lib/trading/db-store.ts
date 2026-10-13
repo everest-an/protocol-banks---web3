@@ -28,8 +28,12 @@ export class DbTradingStore {
 
   /** Load state from TradingAccount.state_json, seeding on first run. */
   async load(): Promise<TradingState> {
-    if (this.state) return this.state
-
+    // Always re-read the DB. The old `if (this.state) return this.state`
+    // cached the first read for the whole lifetime of a warm serverless
+    // instance — and every subsequent tick re-persisted that stale copy,
+    // clobbering operations fixes, other instances' writes, and the previous
+    // tick's reconciliation (seen on 2026-10-13: a warm instance kept
+    // restoring a $10 dust allocation that had been corrected in the DB).
     if (!this.dbUnavailable) {
       try {
         const row = await prisma.tradingAccount.findUnique({
@@ -52,7 +56,7 @@ export class DbTradingStore {
     }
 
     // DB unavailable — use the shared file store
-    return this.fileFallback.get()
+    return this.state ?? this.fileFallback.get()
   }
 
   /** Persist state to TradingAccount.state_json (upsert). */
