@@ -39,7 +39,7 @@
     },
     {
       "path": "/api/cron/x-post",
-      "schedule": "0 1 * * *"
+      "schedule": "30 8 * * *"
     }
   ]
 }
