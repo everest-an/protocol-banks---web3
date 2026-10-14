@@ -333,11 +333,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, tg: 'sent' })
   }
 
-  const [x, bsky] = await Promise.all([postToX(text), postToBluesky(text)])
+  // Animated card: draw the live account's cumulative PnL as a motion graphic
+  // and attach it. Any failure degrades to a text-only post — the daily post
+  // must never be lost to the card.
+  let mediaId: string | null = null
+  try {
+    const pnl = await livePnl()
+    const gif = renderTradingGif({
+      pnl: pnl ?? 0,
+      headline: text.split('\n')[0],
+      sub: pnl !== null ? 'LIVE ACCOUNT · SINCE LAUNCH' : 'PROTOCOL BANK · AI TRADING',
+      paper: pnl === null,
+    })
+    if (gif.length > 0 && gif.length < 15 * 1024 * 1024) mediaId = await uploadMedia(gif)
+  } catch {
+    mediaId = null
+  }
+
+  const [x, bsky] = await Promise.all([postToX(text, mediaId), postToBluesky(text)])
   const xLine = x.posted ? `https://x.com/0xPrococolBank/status/${x.posted}` : `X failed: ${x.error}`
   const bLine = bsky.posted || `Bluesky failed: ${bsky.error}`
   await notifyTelegram(`Protocol Bank daily post\nX: ${xLine}\nBluesky: ${bLine}\n\n${text}`)
-  return NextResponse.json({ ok: true, attempts, issues, post: text, x, bluesky: bsky })
+  return NextResponse.json({ ok: true, attempts, issues, post: text, media: mediaId ? 'attached' : 'none', x, bluesky: bsky })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'poster failed'
     await notifyTelegram(`Protocol Bank x-post FAILED: ${msg}`)

@@ -1,126 +1,25 @@
 /**
- * Procedural animated-GIF generator for the daily X post.
+ * Daily animated GIF for the X post — canvas renderer (brand font Aeonik Bold).
  *
- * Runs anywhere (pure JS, no canvas/ffmpeg/chromium — it draws into RGBA
- * buffers and encodes with gifenc), so it works inside the Vercel cron. The
- * animation: a glowing equity curve drawing itself over a dark grid, live
- * ticker dots, and the day's number popping in — a self-contained motion
- * graphic, not a screenshot.
+ * Design language taken from high-engagement crypto/fintech motion graphics:
+ * dark UI, one bold kinetic headline revealing word-by-word, a glowing equity
+ * curve drawing itself, and an odometer-style count-up of the day's number.
+ * Runs in the Vercel cron: @napi-rs/canvas ships prebuilt binaries and the
+ * brand font is embedded as base64 (no filesystem dependency).
  */
-
+import { createCanvas, GlobalFonts } from "@napi-rs/canvas"
 import { GIFEncoder, quantize, applyPalette } from "gifenc"
+import { AEONIK_BOLD_B64 } from "./aeonik-bold"
 
-// 5x7 bitmap font — digits + the symbols the number needs.
-const GLYPHS: Record<string, string[]> = {
-  "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
-  "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
-  "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
-  "3": ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
-  "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
-  "5": ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
-  "6": ["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
-  "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
-  "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
-  "9": ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
-  "-": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
-  "+": ["00000", "00100", "00100", "11111", "00100", "00100", "00000"],
-  "$": ["00100", "01111", "10100", "01110", "00101", "11110", "00100"],
-  "%": ["11001", "11010", "00010", "00100", "01000", "01011", "10011"],
-  ".": ["00000", "00000", "00000", "00000", "00000", "01100", "01100"],
-  ",": ["00000", "00000", "00000", "00000", "01100", "00100", "01000"],
-  "K": ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
-  " ": ["00000", "00000", "00000", "00000", "00000", "00000", "00000"],
+const FONT = "Aeonik"
+let fontReady = false
+function ensureFont(): void {
+  if (fontReady) return
+  GlobalFonts.register(Buffer.from(AEONIK_BOLD_B64, "base64"), FONT)
+  fontReady = true
 }
 
-interface Frame {
-  data: Uint8ClampedArray
-  width: number
-  height: number
-}
-
-function blendPixel(f: Frame, x: number, y: number, r: number, g: number, b: number, a: number): void {
-  if (x < 0 || y < 0 || x >= f.width || y >= f.height || a <= 0) return
-  const i = (y * f.width + x) * 4
-  const inv = 1 - a
-  f.data[i] = f.data[i] * inv + r * a
-  f.data[i + 1] = f.data[i + 1] * inv + g * a
-  f.data[i + 2] = f.data[i + 2] * inv + b * a
-  f.data[i + 3] = 255
-}
-
-function fill(f: Frame, r: number, g: number, b: number): void {
-  for (let i = 0; i < f.data.length; i += 4) {
-    f.data[i] = r
-    f.data[i + 1] = g
-    f.data[i + 2] = b
-    f.data[i + 3] = 255
-  }
-}
-
-function drawDot(f: Frame, cx: number, cy: number, radius: number, r: number, g: number, b: number, a = 1): void {
-  const r2 = radius * radius
-  for (let y = Math.floor(cy - radius); y <= Math.ceil(cy + radius); y++) {
-    for (let x = Math.floor(cx - radius); x <= Math.ceil(cx + radius); x++) {
-      const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy)
-      if (d2 <= r2) {
-        const falloff = 1 - Math.sqrt(d2) / (radius + 0.0001)
-        blendPixel(f, x, y, r, g, b, a * Math.min(1, 0.25 + falloff))
-      }
-    }
-  }
-}
-
-function drawLine(f: Frame, x0: number, y0: number, x1: number, y1: number, r: number, g: number, b: number, a: number, thickness = 1): void {
-  // Bounding-box + distance-to-segment: orders of magnitude faster than
-  // stamping a dot per line pixel (the first version timed out the render).
-  const t2 = Math.max(1, thickness)
-  const half = t2 / 2
-  const minX = Math.max(0, Math.floor(Math.min(x0, x1) - half - 1))
-  const maxX = Math.min(f.width - 1, Math.ceil(Math.max(x0, x1) + half + 1))
-  const minY = Math.max(0, Math.floor(Math.min(y0, y1) - half - 1))
-  const maxY = Math.min(f.height - 1, Math.ceil(Math.max(y0, y1) + half + 1))
-  const dx = x1 - x0
-  const dy = y1 - y0
-  const len2 = dx * dx + dy * dy || 1
-  const glow = t2 > 3
-  for (let y = minY; y <= maxY; y++) {
-    for (let x = minX; x <= maxX; x++) {
-      const t = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2))
-      const px = x0 + t * dx
-      const py = y0 + t * dy
-      const dist = Math.hypot(x - px, y - py)
-      if (dist > half) continue
-      const alpha = glow ? a * (0.25 + 0.75 * (1 - dist / half)) : a
-      blendPixel(f, x, y, r, g, b, alpha)
-    }
-  }
-}
-
-function drawText(f: Frame, text: string, x: number, y: number, scale: number, r: number, g: number, b: number, alpha = 1): number {
-  let cursor = x
-  for (const ch of text) {
-    const glyph = GLYPHS[ch.toUpperCase()] ?? GLYPHS[" "]
-    for (let gy = 0; gy < 7; gy++) {
-      for (let gx = 0; gx < 5; gx++) {
-        if (glyph[gy][gx] === "1") {
-          for (let sy = 0; sy < scale; sy++) {
-            for (let sx = 0; sx < scale; sx++) {
-              blendPixel(f, cursor + gx * scale + sx, y + gy * scale + sy, r, g, b, alpha)
-            }
-          }
-        }
-      }
-    }
-    cursor += 6 * scale
-  }
-  return cursor
-}
-
-function measureText(text: string, scale: number): number {
-  return text.length * 6 * scale - scale
-}
-
-/** Deterministic pseudo-random walk for the curve (seeded by the number). */
+/** Deterministic pseudo-random walk seeded by the number. */
 function buildCurve(pnl: number, points: number, seed: number): number[] {
   const vals: number[] = [0]
   let s = seed % 2147483647
@@ -128,7 +27,7 @@ function buildCurve(pnl: number, points: number, seed: number): number[] {
     s = (s * 48271) % 2147483647
     return s / 2147483647
   }
-  const drift = Math.max(-1, Math.min(1, pnl / 25)) // ends where the number does
+  const drift = Math.max(-1, Math.min(1, pnl / 25))
   for (let i = 1; i < points; i++) {
     const progress = i / (points - 1)
     const noise = (rand() - 0.5) * 0.9
@@ -140,98 +39,194 @@ function buildCurve(pnl: number, points: number, seed: number): number[] {
   return vals
 }
 
+type Ctx = ReturnType<ReturnType<typeof createCanvas>["getContext"]>
+
+function wrapText(ctx: Ctx, text: string, maxWidth: number, maxLines = 2): string[] {
+  const words = text.split(/\s+/)
+  const lines: string[] = []
+  let line = ""
+  for (const w of words) {
+    const probe = line ? `${line} ${w}` : w
+    if (ctx.measureText(probe).width > maxWidth && line) {
+      lines.push(line)
+      line = w
+      if (lines.length === maxLines - 1 && words.indexOf(w) < words.length - 1) {
+        let last = words.slice(words.indexOf(w)).join(" ")
+        while (last.length > 4 && ctx.measureText(last + "…").width > maxWidth) last = last.slice(0, -1)
+        lines.push(last.trimEnd() + "…")
+        return lines
+      }
+    } else {
+      line = probe
+    }
+  }
+  if (line) lines.push(line)
+  return lines.slice(0, maxLines)
+}
+
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
+
 export interface TradingGifOptions {
-  /** The number that pops in (e.g. cumulative PnL in USD). */
+  /** The number that counts up (e.g. cumulative PnL in USD). */
   pnl: number
-  /** Optional line under/above, e.g. "$19.60" or "3 trades". Rendered below the big number. */
+  /** Bold headline revealed word-by-word (usually the post's hook line). */
+  headline?: string
+  /** Small line under the number. */
   sub?: string
+  /** Rendered as PAPER instead of LIVE in the corner tag. */
+  paper?: boolean
   width?: number
   height?: number
   frames?: number
 }
 
-/**
- * Render the animated card. ~1.5s loop, dark theme, drawing equity curve,
- * pulsing live dot and the number popping in.
- */
 export function renderTradingGif(opts: TradingGifOptions): Uint8Array {
-  const width = opts.width ?? 960
-  const height = opts.height ?? 600
-  const frames = opts.frames ?? 20
+  ensureFont()
+  const W = opts.width ?? 960
+  const H = opts.height ?? 600
+  const N = opts.frames ?? 30
   const up = opts.pnl >= 0
-  const accent: [number, number, number] = up ? [52, 211, 153] : [248, 113, 113]
-  const number = `${up ? "+" : "-"}$${Math.abs(opts.pnl).toFixed(2)}`
-  const curve = buildCurve(opts.pnl, 80, Math.round(Math.abs(opts.pnl) * 1000) + 7)
+  const accent = up ? "#34D399" : "#F87171"
+  const accentSoft = up ? "rgba(52,211,153," : "rgba(248,113,113,"
+  const headline = (opts.headline || "AI trading, minus the withdrawal risk").slice(0, 96)
+  const curve = buildCurve(opts.pnl, 90, Math.round(Math.abs(opts.pnl) * 1000) + 11)
 
-  const pad = 64
-  const plotTop = 150
-  const plotBottom = height - 120
-  const plotLeft = pad
-  const plotRight = width - pad
-  const mid = (plotTop + plotBottom) / 2
-  const amplitude = (plotBottom - plotTop) / 2
+  const canvas = createCanvas(W, H)
+  const ctx = canvas.getContext("2d")
+  ctx.font = `700 44px "${FONT}"`
+  const headlineLines = wrapText(ctx, headline, W - 2 * 72, 2)
 
-  const pointAt = (i: number): [number, number] => {
-    const x = plotLeft + ((plotRight - plotLeft) * i) / (curve.length - 1)
-    const y = mid - curve[i] * amplitude * 0.85
-    return [x, y]
-  }
+  const plot = { left: 72, right: W - 72, top: H - 250, bottom: H - 64 }
+  const mid = (plot.top + plot.bottom) / 2
+  const amp = (plot.bottom - plot.top) / 2
 
   const encoder = GIFEncoder()
-  for (let f = 0; f < frames; f++) {
-    const frame: Frame = { data: new Uint8ClampedArray(width * height * 4), width, height }
-    const progress = (f + 1) / frames
+  for (let f = 0; f < N; f++) {
+    const p = f / (N - 1)
+    ctx.clearRect(0, 0, W, H)
 
-    // Background + grid
-    fill(frame, 10, 13, 20)
-    for (let x = plotLeft; x <= plotRight; x += 64) drawLine(frame, x, plotTop - 20, x, plotBottom + 20, 255, 255, 255, 0.04)
-    for (let y = plotTop - 20; y <= plotBottom + 20; y += 64) drawLine(frame, plotLeft, y, plotRight, y, 255, 255, 255, 0.04)
-    drawLine(frame, plotLeft, mid, plotRight, mid, 255, 255, 255, 0.08)
-
-    // Curve drawing itself
-    const drawn = Math.max(2, Math.floor(curve.length * Math.min(1, progress * 1.25)))
-    for (let i = 1; i < drawn; i++) {
-      const [x0, y0] = pointAt(i - 1)
-      const [x1, y1] = pointAt(i)
-      drawLine(frame, x0, y0, x1, y1, accent[0], accent[1], accent[2], 0.18, 7) // glow
-      drawLine(frame, x0, y0, x1, y1, accent[0], accent[1], accent[2], 0.95, 2) // core
+    // Background: near-black + top glow + faint grid
+    ctx.fillStyle = "#0A0D14"
+    ctx.fillRect(0, 0, W, H)
+    const glow = ctx.createRadialGradient(W * 0.5, -80, 40, W * 0.5, -80, 620)
+    glow.addColorStop(0, accentSoft + "0.10)")
+    glow.addColorStop(1, "rgba(10,13,20,0)")
+    ctx.fillStyle = glow
+    ctx.fillRect(0, 0, W, H)
+    ctx.strokeStyle = "rgba(255,255,255,0.035)"
+    ctx.lineWidth = 1
+    for (let x = plot.left; x <= plot.right; x += 80) {
+      ctx.beginPath()
+      ctx.moveTo(x, plot.top - 40)
+      ctx.lineTo(x, plot.bottom + 20)
+      ctx.stroke()
     }
-    // Head dot with pulse
-    const [hx, hy] = pointAt(drawn - 1)
-    const pulse = 5 + Math.sin(f * 0.9) * 1.6
-    drawDot(frame, hx, hy, pulse + 4, accent[0], accent[1], accent[2], 0.25)
-    drawDot(frame, hx, hy, pulse, accent[0], accent[1], accent[2], 1)
+    for (let y = plot.top - 40; y <= plot.bottom + 20; y += 60) {
+      ctx.beginPath()
+      ctx.moveTo(plot.left, y)
+      ctx.lineTo(plot.right, y)
+      ctx.stroke()
+    }
 
-    // Live indicator (blinking)
-    if (f % 10 < 6) drawDot(frame, pad + 6, 56, 5, 52, 211, 153, 1)
-    drawLine(frame, pad + 20, 52, pad + 20, 60, 255, 255, 255, 0.6, 2)
-    drawLine(frame, pad + 20, 52, pad + 26, 52, 255, 255, 255, 0.6, 2)
-    drawLine(frame, pad + 20, 60, pad + 26, 60, 255, 255, 255, 0.6, 2)
+    // Corner tag: pulsing live dot + PROTOCOL BANK · LIVE/PAPER
+    if (Math.sin(f * 0.7) > -0.2) {
+      ctx.beginPath()
+      ctx.arc(74, 44, 5, 0, Math.PI * 2)
+      ctx.fillStyle = accent
+      ctx.shadowColor = accent
+      ctx.shadowBlur = 12
+      ctx.fill()
+      ctx.shadowBlur = 0
+    }
+    ctx.font = `700 17px "${FONT}"`
+    ctx.fillStyle = "rgba(255,255,255,0.55)"
+    ctx.fillText("PROTOCOL BANK · " + (opts.paper ? "PAPER" : "LIVE"), 92, 50)
 
-    // The number pops in near the end with a tiny overshoot (mirrors the curve)
-    if (progress > 0.55) {
-      const t = Math.min(1, (progress - 0.55) / 0.25)
-      const scale = t < 0.8 ? 9 + t * 3 : 11.4 - (t - 0.8) * 0.5
-      const s = Math.max(6, Math.round(scale * 0.75))
-      const w = measureText(number, s)
-      const x = plotLeft
-      const y = 74
-      for (let gy = 0; gy < 8; gy++) {
-        for (let gx = 0; gx < 6; gx++) {
-          // cheap glow behind the glyphs
-          drawDot(frame, x + gx * s * 2, y + gy * s * 2, s, accent[0], accent[1], accent[2], 0.05 * t)
-        }
+    // Kinetic headline: word-by-word reveal (frames 2..14)
+    const words = headlineLines.join(" ").split(" ")
+    const perWord = 12 / Math.max(1, words.length)
+    const revealed = Math.max(0, Math.min(words.length, Math.floor((f - 1.5) / perWord) + 1))
+    ctx.font = `700 44px "${FONT}"`
+    ctx.fillStyle = "#F5F6F7"
+    let drawn = 0
+    headlineLines.forEach((line, li) => {
+      let x = 72
+      const y = 112 + li * 56
+      for (const w of line.split(" ")) {
+        if (drawn < revealed) ctx.fillText(w, x, y)
+        x += ctx.measureText(w + " ").width
+        drawn++
       }
-      drawText(frame, number, x, y, s, 255, 255, 255, Math.min(1, t * 1.4))
+    })
+
+    // Chart: gradient area + glowing line drawing itself
+    const drawnPts = Math.max(2, Math.floor(curve.length * Math.min(1, (p - 0.18) / 0.55)))
+    const ptAt = (i: number): [number, number] => [
+      plot.left + ((plot.right - plot.left) * i) / (curve.length - 1),
+      mid - curve[i] * amp * 0.8,
+    ]
+    ctx.beginPath()
+    ctx.moveTo(plot.left, plot.bottom)
+    for (let i = 0; i < drawnPts; i++) {
+      const [x, y] = ptAt(i)
+      ctx.lineTo(x, y)
+    }
+    ctx.lineTo(ptAt(drawnPts - 1)[0], plot.bottom)
+    ctx.closePath()
+    const area = ctx.createLinearGradient(0, plot.top, 0, plot.bottom)
+    area.addColorStop(0, accentSoft + "0.22)")
+    area.addColorStop(1, accentSoft + "0)")
+    ctx.fillStyle = area
+    ctx.fill()
+    ctx.beginPath()
+    for (let i = 0; i < drawnPts; i++) {
+      const [x, y] = ptAt(i)
+      if (i === 0) ctx.moveTo(x, y)
+      else ctx.lineTo(x, y)
+    }
+    ctx.strokeStyle = accent
+    ctx.lineWidth = 3.5
+    ctx.lineJoin = "round"
+    ctx.shadowColor = accent
+    ctx.shadowBlur = 16
+    ctx.stroke()
+    ctx.shadowBlur = 0
+    const [hx, hy] = ptAt(drawnPts - 1)
+    ctx.beginPath()
+    ctx.arc(hx, hy, 12 + Math.sin(f * 0.8) * 2.5, 0, Math.PI * 2)
+    ctx.fillStyle = accentSoft + "0.18)"
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(hx, hy, 5.5, 0, Math.PI * 2)
+    ctx.fillStyle = accent
+    ctx.shadowColor = accent
+    ctx.shadowBlur = 10
+    ctx.fill()
+    ctx.shadowBlur = 0
+
+    // Odometer count-up of the number (frames 15..27)
+    if (f >= 15) {
+      const t = Math.min(1, (f - 15) / 12)
+      const shown = Math.abs(opts.pnl) * easeOutCubic(t)
+      const text = `${up ? "+" : "−"}$${shown.toFixed(2)}`
+      ctx.font = `700 62px "${FONT}"`
+      ctx.fillStyle = accent
+      ctx.shadowColor = accentSoft + "0.5)"
+      ctx.shadowBlur = 18
+      ctx.fillText(text, W - 72 - ctx.measureText(text).width, 132)
+      ctx.shadowBlur = 0
       if (opts.sub) {
-        drawText(frame, opts.sub.slice(0, 24), x, y + 7 * s + 16, 3, 160, 170, 190, Math.min(1, t * 1.2))
+        ctx.font = `700 19px "${FONT}"`
+        ctx.fillStyle = "rgba(255,255,255,0.45)"
+        const sw = ctx.measureText(opts.sub).width
+        ctx.fillText(opts.sub.slice(0, 34), W - 72 - sw, 164)
       }
-      void w
     }
 
-    const palette = quantize(frame.data, 128, { format: "rgb565" })
-    const indexed = applyPalette(frame.data, palette)
-    encoder.writeFrame(indexed, width, height, { palette, delay: 70 })
+    const rgba = ctx.getImageData(0, 0, W, H).data
+    const palette = quantize(rgba, 128, { format: "rgb565" })
+    const indexed = applyPalette(rgba, palette)
+    encoder.writeFrame(indexed, W, H, { palette, delay: 60 })
   }
   encoder.finish()
   return encoder.bytes()
