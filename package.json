@@ -78,6 +78,7 @@
     "embla-carousel-react": "8.5.1",
     "ethers": "6.15.0",
     "framer-motion": "12.23.26",
+    "gifenc": "^1.0.3",
     "input-otp": "1.4.1",
     "ioredis": "^5.9.2",
     "jose": "6.1.3",
