@@ -203,6 +203,10 @@ export class TradingAgent {
         s.account.maxLoss = Number(venueValue.toFixed(2))
       })
       for (const n of notes) this.log("info", n)
+      // Close the loop on UNCERTAIN orders: the first alert said "pending",
+      // this says how it ended (position adopted, or order never arrived).
+      const verified = notes.filter((n) => n.startsWith("Verified:"))
+      if (verified.length) this.notifyOwner("guard", { message: verified.join("\n") })
     } catch {
       /* venue unreachable - next tick retries */
     }
@@ -394,6 +398,19 @@ export class TradingAgent {
     })()
   }
 
+  /**
+   * True when the exact same guard notice was already logged recently. An
+   * UNCERTAIN submission repeats every tick while the venue is flaky — the
+   * first alert deserves a push, the next eleven do not. Throttling on the
+   * full message (not just the coin) keeps a DIFFERENT cause alerting at once.
+   */
+  private recentlyAlerted(text: string, withinMs = 15 * 60_000): boolean {
+    const cutoff = Date.now() - withinMs
+    return this.state().activity.some(
+      (a) => a.type === "guard" && a.text === text && new Date(a.time).getTime() >= cutoff,
+    )
+  }
+
   private noteGuard(text: string): void {
     // Don't spam identical guards: scan a window, not just the last entry — a
     // [scan] line lands between ticks, so the old activity[0] check never
@@ -491,19 +508,24 @@ export class TradingAgent {
       })
 
       if (!result.ok) {
-        if (!result.rejected) {
+        if (result.preSubmit) {
+          // Nothing was submitted — the position is still open on the venue
+          // and in the book; the next tick simply tries the close again.
+          this.log("guard", `Close not placed for ${p.symbol}: ${result.reason}`)
+        } else if (!result.rejected) {
           // Same policy as entries: never halt, never retry — the venue
           // reconciliation confirms within a tick. The position stays in the
           // book until the exchange shows it gone.
+          const note = `Close order status UNCERTAIN for ${p.symbol} ${p.side}: ${result.reason} Verification pending — reconciliation confirms within a tick.`
+          const firstAlert = !this.recentlyAlerted(note)
           this.store.mutate((s) => {
             s.verifying = [
               ...(s.verifying ?? []).filter((v) => !(v.coin === p.symbol && v.kind === "exit")),
               { coin: p.symbol, side: p.side, kind: "exit", at: new Date().toISOString(), cloid: result.cloid },
             ]
           })
-          const note = `Close order status UNCERTAIN for ${p.symbol} ${p.side}: ${result.reason} Verification pending — reconciliation confirms within a tick.`
           this.log("guard", note)
-          this.notifyOwner("guard", { message: note })
+          if (firstAlert) this.notifyOwner("guard", { message: note })
         } else {
           this.log("guard", `Close rejected for ${p.symbol}: ${result.reason}`)
         }
@@ -748,6 +770,15 @@ export class TradingAgent {
       })
 
       if (!result.ok) {
+        // The venue never saw this order (market data down, lookup or sizing
+        // failure). Nothing is on the exchange and nothing is uncertain, so
+        // there is nothing to verify and nothing to alert the owner about —
+        // log it and let the next tick try again.
+        if (result.preSubmit) {
+          const note = `Order not placed for ${sig.coin} ${sig.side}: ${result.reason}`
+          this.log("guard", note)
+          return { ok: false, note }
+        }
         if (result.rejected) {
           return { ok: false, note: `Order rejected by exchange: ${result.reason}` }
         }
@@ -756,15 +787,19 @@ export class TradingAgent {
         // per-tick venue reconciliation resolve it (adopts the position if
         // the order landed, releases it otherwise). No new entries are placed
         // while any verification is pending; exits keep running.
+        const note = `Order status UNCERTAIN for ${sig.coin} ${sig.side}: ${result.reason} Verification pending — the next tick reconciles with the exchange automatically.`
+        // One push per incident, not per tick: while the venue stays flaky the
+        // same notice would otherwise repeat every two minutes. The resolution
+        // (adopted / released) is reported separately by the reconciliation.
+        const firstAlert = !this.recentlyAlerted(note)
         this.store.mutate((s) => {
           s.verifying = [
             ...(s.verifying ?? []).filter((v) => !(v.coin === sig.coin && v.kind === "entry")),
             { coin: sig.coin, side: sig.side, kind: "entry", at: new Date().toISOString(), cloid: result.cloid },
           ]
         })
-        const note = `Order status UNCERTAIN for ${sig.coin} ${sig.side}: ${result.reason} Verification pending — the next tick reconciles with the exchange automatically.`
         this.log("guard", note)
-        this.notifyOwner("guard", { message: note })
+        if (firstAlert) this.notifyOwner("guard", { message: note })
         return { ok: false, note, uncertain: true }
       }
 

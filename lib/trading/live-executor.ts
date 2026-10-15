@@ -5,13 +5,19 @@
  * Responsibilities:
  *   1. Decrypt the user's agent key (trading-only) and sign L1 actions.
  *   2. Place / close real orders and translate Hyperliquid's response into a
- *      three-state result the engine can act on safely:
+ *      four-state result the engine can act on safely:
  *        - ok        → filled (real avgPx + size)
  *        - rejected  → the exchange definitively did NOT accept the order
  *        - uncertain → the request may or may not have landed (timeout,
  *                      connection reset, unparseable body). The engine must
  *                      NEVER retry an uncertain order — that is how duplicate
  *                      positions get opened. Treat it as "possibly spent".
+ *        - preSubmit → the order was never submitted (market lookup/data
+ *                      failure, sizing or signing error). Nothing is on the
+ *                      venue and nothing is uncertain; a later tick may try
+ *                      again. Reporting these as "uncertain" produced seven
+ *                      false "may have reached the exchange" alerts in one
+ *                      afternoon (2026-10-15).
  *
  * This mirrors MoneySwitch's "unknown payments count as spent" rule: we
  * over-count rather than risk double-spending the user's funds.
@@ -19,12 +25,19 @@
 
 import { randomBytes } from "node:crypto"
 import { getAgentWallet, loadAgentKeyRecord } from "./keys"
-import { placeMarketOrder, coinToIndex } from "./exchange"
+import { placeMarketOrder, coinToIndex, PreSubmitError } from "./exchange"
 
 export type OrderResult =
   | { ok: true; avgPx: number; totalSz: number; oid: number | null; cloid?: string }
-  | { ok: false; rejected: true; reason: string }
-  | { ok: false; rejected: false; uncertainty: true; reason: string; cloid?: string }
+  | { ok: false; rejected: true; preSubmit?: false; reason: string }
+  | { ok: false; rejected: false; uncertainty: true; preSubmit?: false; reason: string; cloid?: string }
+  /** Never submitted: nothing on the venue, nothing to verify. */
+  | { ok: false; rejected: false; uncertainty: false; preSubmit: true; reason: string }
+
+/** Build the pre-submit result — nothing reached the venue. */
+function preSubmit(reason: string): OrderResult {
+  return { ok: false, rejected: false, uncertainty: false, preSubmit: true, reason }
+}
 
 export interface LiveExecutorContext {
   /** The user's wallet address (owner of the TradingAccount). */
@@ -85,9 +98,20 @@ export class LiveOrderExecutor {
       return { ok: false, rejected: true, reason: "No approved agent key on file for this account." }
     }
 
-    const coinIndex = await this.resolveCoinIndex(params.coin)
+    // ── Pre-flight: nothing has been submitted yet, so a failure here is
+    //    never an uncertain submission. ────────────────────────────────────
+    let coinIndex: number | null
+    try {
+      coinIndex = await this.resolveCoinIndex(params.coin)
+    } catch (e) {
+      return preSubmit(
+        `${e instanceof Error ? e.message : String(e)} — no order was submitted; the agent will retry on a later tick.`,
+      )
+    }
     if (coinIndex === null) {
-      return { ok: false, rejected: true, reason: `Unknown market "${params.coin}" on Hyperliquid.` }
+      return preSubmit(
+        `Unknown market "${params.coin}" on Hyperliquid (not in the venue's perp universe) — no order was submitted.`,
+      )
     }
 
     // Client order id for this submission: if the response is lost, the exact
@@ -110,6 +134,11 @@ export class LiveOrderExecutor {
       })
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
+      // A pre-submit failure never touched the venue: say so, instead of the
+      // misleading "it may or may not have reached the exchange".
+      if (e instanceof PreSubmitError) {
+        return preSubmit(`${message.slice(0, 300)} — no order was submitted; the agent will retry on a later tick.`)
+      }
       // A Hyperliquid *exchange error response* (HTTP non-2xx with a JSON
       // error body) is a definitive rejection — the request DID land.
       const match = /Hyperliquid exchange error (\d+):/.exec(message)

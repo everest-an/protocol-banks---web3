@@ -283,30 +283,74 @@ export interface AssetContext {
   midPx: number
 }
 
-/** Universe index, size decimals and mid price for a perp — one info call. */
+/**
+ * A failure that happened BEFORE anything was submitted. The order
+ * definitively never reached the matching engine, so callers must not report
+ * it as an uncertain submission — and retrying on a later tick is safe.
+ */
+export class PreSubmitError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "PreSubmitError"
+  }
+}
+
+/**
+ * The venue's market-data request itself failed (timeout, connection reset,
+ * non-2xx, unparseable body) or the market has no usable price. This says
+ * nothing about whether the market exists: conflating the two turned a
+ * transient network failure into seven "Unknown market ZEC" alerts
+ * (2026-10-15), and the message claimed the order might have reached the
+ * exchange when nothing had been submitted at all.
+ */
+export class MarketDataUnavailableError extends PreSubmitError {
+  constructor(coin: string, cause: unknown) {
+    super(`Market data unavailable for "${coin}" (${cause instanceof Error ? cause.message : String(cause)})`)
+    this.name = "MarketDataUnavailableError"
+  }
+}
+
+/**
+ * Universe index, size decimals and mid price for a perp — one info call.
+ * Throws MarketDataUnavailableError when the request itself fails; returns
+ * null only when the coin is genuinely absent from the venue's universe.
+ */
 export async function getAssetContext(coin: string): Promise<AssetContext | null> {
+  let res: Response
   try {
-    const res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
+    res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "metaAndAssetCtxs" }),
       signal: AbortSignal.timeout(10_000),
     })
-    if (!res.ok) return null
-    const body = (await res.json()) as [
-      { universe?: { name: string; szDecimals: number }[] },
-      { midPx?: string; markPx?: string }[],
-    ]
-    const universe = body?.[0]?.universe ?? []
-    const index = universe.findIndex((a) => a.name === coin)
-    if (index < 0) return null
-    const ctx = body?.[1]?.[index]
-    const midPx = Number(ctx?.midPx ?? ctx?.markPx ?? 0)
-    if (!Number.isFinite(midPx) || midPx <= 0) return null
-    return { coin, index, szDecimals: universe[index].szDecimals, midPx }
-  } catch {
-    return null
+  } catch (e) {
+    throw new MarketDataUnavailableError(coin, e)
   }
+  if (!res.ok) throw new MarketDataUnavailableError(coin, new Error(`HTTP ${res.status}`))
+
+  type MetaAndCtxs = [
+    { universe?: { name: string; szDecimals: number }[] },
+    { midPx?: string; markPx?: string }[],
+  ]
+  let body: MetaAndCtxs
+  try {
+    body = (await res.json()) as MetaAndCtxs
+  } catch (e) {
+    throw new MarketDataUnavailableError(coin, e)
+  }
+
+  const universe = body?.[0]?.universe ?? []
+  const index = universe.findIndex((a) => a.name === coin)
+  if (index < 0) return null
+  const ctx = body?.[1]?.[index]
+  const midPx = Number(ctx?.midPx ?? ctx?.markPx ?? 0)
+  // Listed but unpriceable (empty book with no mark) is a data problem, not an
+  // unknown market — it must stay distinguishable.
+  if (!Number.isFinite(midPx) || midPx <= 0) {
+    throw new MarketDataUnavailableError(coin, new Error("no mid or mark price"))
+  }
+  return { coin, index, szDecimals: universe[index].szDecimals, midPx }
 }
 
 /** Hyperliquid rejects orders below this notional value. */
@@ -330,7 +374,9 @@ export async function placeMarketOrder(params: {
   cloid?: string
 }): Promise<unknown> {
   const meta = await getAssetContext(params.coin)
-  if (!meta) throw new Error(`Unknown market "${params.coin}" on Hyperliquid`)
+  if (!meta) {
+    throw new PreSubmitError(`Unknown market "${params.coin}" on Hyperliquid (not in the venue's perp universe)`)
+  }
 
   const slippage = params.slippage ?? 0.05
   const px = aggressivePrice(meta.midPx, params.isBuy, slippage, meta.szDecimals)
@@ -340,12 +386,14 @@ export async function placeMarketOrder(params: {
   const rawSize = params.sizeCoins ?? params.sizeUsd / meta.midPx
   const size = floorSizeToVenue(rawSize, meta.szDecimals)
   if (!(size > 0)) {
-    throw new Error(
+    throw new PreSubmitError(
       `order size rounds to zero: $${params.sizeUsd} at ${meta.midPx} with szDecimals=${meta.szDecimals}`,
     )
   }
   if (!params.reduceOnly && params.sizeUsd < MIN_ORDER_VALUE_USD) {
-    throw new Error(`order value $${params.sizeUsd} is below Hyperliquid's $${MIN_ORDER_VALUE_USD} minimum`)
+    throw new PreSubmitError(
+      `order value $${params.sizeUsd} is below Hyperliquid's $${MIN_ORDER_VALUE_USD} minimum`,
+    )
   }
 
   const action: L1Action = {
@@ -366,10 +414,18 @@ export async function placeMarketOrder(params: {
     grouping: "na",
   }
   const nonce = Date.now()
-  const signature = signL1Action(params.agentWallet, action, {
-    vaultAddress: params.vaultAddress,
-    nonce,
-  })
+  // Signing is still pre-submit: if it fails, nothing was sent.
+  let signature: SignedSignature
+  try {
+    signature = signL1Action(params.agentWallet, action, {
+      vaultAddress: params.vaultAddress,
+      nonce,
+    })
+  } catch (e) {
+    throw new PreSubmitError(`order signing failed: ${e instanceof Error ? e.message : String(e)}`)
+  }
+  // ── From here on the request can reach the matching engine: this is the only
+  //    zone whose failure is genuinely UNCERTAIN. ─────────────────────────
   return submitExchange({
     action,
     nonce,
@@ -440,20 +496,28 @@ export async function getOrderStatus(
   }
 }
 
-/** Map a coin name to its index in the Hyperliquid universe (needed for orders). */
+/** Map a coin name to its index in the Hyperliquid universe (needed for orders).
+ *  Throws MarketDataUnavailableError when the request itself fails; returns
+ *  null only when the coin is genuinely absent from the universe. */
 export async function coinToIndex(coin: string): Promise<number | null> {
+  let res: Response
   try {
-    const res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
+    res = await fetch(getHyperliquidNetworkConfig().infoUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "meta" }),
       signal: AbortSignal.timeout(10_000),
     })
-    if (!res.ok) return null
-    const meta = (await res.json()) as { universe: { name: string }[] }
-    const idx = meta.universe.findIndex((u) => u.name === coin)
-    return idx >= 0 ? idx : null
-  } catch {
-    return null
+  } catch (e) {
+    throw new MarketDataUnavailableError(coin, e)
   }
+  if (!res.ok) throw new MarketDataUnavailableError(coin, new Error(`HTTP ${res.status}`))
+  let meta: { universe: { name: string }[] }
+  try {
+    meta = (await res.json()) as { universe: { name: string }[] }
+  } catch (e) {
+    throw new MarketDataUnavailableError(coin, e)
+  }
+  const idx = meta.universe.findIndex((u) => u.name === coin)
+  return idx >= 0 ? idx : null
 }

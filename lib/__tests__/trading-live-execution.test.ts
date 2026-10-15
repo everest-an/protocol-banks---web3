@@ -9,6 +9,7 @@
 import { seedState, type TradingStore } from "@/lib/trading/store"
 import { TradingAgent } from "@/lib/trading/agent"
 import { LiveOrderExecutor, resolveVaultAddress, type OrderResult } from "@/lib/trading/live-executor"
+import { notificationService } from "@/lib/services/notification-service"
 import { DEFAULT_RISK } from "@/lib/trading/risk"
 import type { TradingState, PendingTrade, Position } from "@/lib/trading/types"
 import type { AssetCtx } from "@/lib/trading/hyperliquid"
@@ -19,12 +20,19 @@ jest.mock("@/lib/trading/keys", () => ({
   getAgentWallet: jest.fn(),
   loadAgentKeyRecord: jest.fn(),
 }))
-jest.mock("@/lib/trading/exchange", () => ({
-  placeMarketOrder: jest.fn(),
-  coinToIndex: jest.fn(),
-  getUserState: jest.fn(),
-  getOrderStatus: jest.fn(),
-}))
+jest.mock("@/lib/trading/exchange", () => {
+  // The real error classes: live-executor narrows pre-submit failures with
+  // `instanceof PreSubmitError`, so the mock must keep the real hierarchy.
+  const actual = jest.requireActual("@/lib/trading/exchange")
+  return {
+    placeMarketOrder: jest.fn(),
+    coinToIndex: jest.fn(),
+    getUserState: jest.fn(),
+    getOrderStatus: jest.fn(),
+    PreSubmitError: actual.PreSubmitError,
+    MarketDataUnavailableError: actual.MarketDataUnavailableError,
+  }
+})
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const keys = require("@/lib/trading/keys") as {
@@ -37,6 +45,8 @@ const exchange = require("@/lib/trading/exchange") as {
   coinToIndex: jest.Mock
   getUserState: jest.Mock
   getOrderStatus: jest.Mock
+  PreSubmitError: new (message: string) => Error
+  MarketDataUnavailableError: new (coin: string, cause: unknown) => Error
 }
 
 const WALLET = "0x1111111111111111111111111111111111111111"
@@ -122,6 +132,65 @@ describe("LiveOrderExecutor — response translation", () => {
     const r = await executor.placeOrder({ coin: "BTC", isBuy: true, sizeUsd: 60 })
     expect(r.ok).toBe(false)
     expect(r.rejected).toBe(true)
+  })
+})
+
+/**
+ * Regression (2026-10-15): a Hyperliquid market-data outage was reported as
+ * `Unknown market "ZEC"` and classified as an UNCERTAIN submission, so the
+ * owner got seven "it may or may not have reached the exchange" alerts for
+ * orders that were never submitted. Nothing had reached the venue: the honest
+ * answer is preSubmit, and the engine must not queue verification for it.
+ */
+describe("LiveOrderExecutor — pre-submit failures never look like submissions", () => {
+  let executor: LiveOrderExecutor
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    keys.getAgentWallet.mockReturnValue({ fake: "wallet" })
+    keys.loadAgentKeyRecord.mockReturnValue({ approved: true })
+    exchange.coinToIndex.mockResolvedValue(3)
+    executor = new LiveOrderExecutor({ walletAddress: WALLET, vaultAddress: WALLET })
+  })
+
+  it("reports a market-data outage as preSubmit, not as 'may have reached the exchange'", async () => {
+    exchange.coinToIndex.mockRejectedValue(new exchange.MarketDataUnavailableError("ZEC", new Error("fetch failed")))
+    const r = await executor.placeOrder({ coin: "ZEC", isBuy: false, sizeUsd: 12 })
+
+    expect(r.ok).toBe(false)
+    expect("preSubmit" in r && r.preSubmit).toBe(true)
+    expect(r.reason).toMatch(/Market data unavailable/)
+    expect(r.reason).toMatch(/no order was submitted/)
+    // Nothing was submitted, so the order path must not even be entered.
+    expect(exchange.placeMarketOrder).not.toHaveBeenCalled()
+  })
+
+  it("reports a market missing from the universe as preSubmit, not as an exchange rejection", async () => {
+    exchange.coinToIndex.mockResolvedValue(null)
+    const r = await executor.placeOrder({ coin: "NOPE", isBuy: false, sizeUsd: 12 })
+
+    expect(r.ok).toBe(false)
+    expect("preSubmit" in r && r.preSubmit).toBe(true)
+    expect(r.reason).toMatch(/Unknown market "NOPE"/)
+  })
+
+  it("keeps a pre-submit failure thrown inside the order path as preSubmit", async () => {
+    exchange.placeMarketOrder.mockRejectedValue(
+      new exchange.PreSubmitError("order value $9 is below Hyperliquid's $10 minimum"),
+    )
+    const r = await executor.placeOrder({ coin: "BTC", isBuy: true, sizeUsd: 9 })
+
+    expect(r.ok).toBe(false)
+    expect("preSubmit" in r && r.preSubmit).toBe(true)
+    expect(r.reason).toMatch(/\$10 minimum/)
+  })
+
+  it("still treats a genuine round-trip failure as UNCERTAIN", async () => {
+    exchange.placeMarketOrder.mockRejectedValue(new Error("The operation was aborted due to timeout"))
+    const r = await executor.placeOrder({ coin: "BTC", isBuy: true, sizeUsd: 60 })
+
+    expect(r.ok).toBe(false)
+    expect("uncertainty" in r && r.uncertainty).toBe(true)
   })
 })
 
@@ -458,5 +527,73 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
     expect(traded).toBe(true)
     expect(store.get().positions).toHaveLength(0)
     expect(store.get().activity.some((a) => a.text.includes("circuit breaker"))).toBe(true)
+  })
+})
+
+// ── Pre-submit failures & alert hygiene ──────────────────────────────
+
+/** Let the fire-and-forget notification promises settle. */
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+describe("TradingAgent — pre-submit failures and alert throttling", () => {
+  it("a pre-submit failure queues no verification and alerts nobody", async () => {
+    const guard = jest.spyOn(notificationService, "notifyTradeGuard").mockImplementation(async () => {})
+    const executor = fakeExecutor({
+      ok: false,
+      rejected: false,
+      uncertainty: false,
+      preSubmit: true,
+      reason: 'Market data unavailable for "BTC" (fetch failed) — no order was submitted.',
+    })
+    const store = stubStore({ ...seedState({ demoHistory: false }), pendingTrade: PENDING, approvalMode: "manual" })
+    const agent = new TradingAgent(store, { ...DEFAULT_RISK, approvalMode: "manual" }, WALLET, {
+      mode: "live",
+      executor,
+    })
+
+    const result = await agent.approvePendingTrade()
+    await flush()
+
+    expect(result.ok).toBe(false)
+    // Nothing was submitted → nothing is uncertain → nothing to verify.
+    expect(store.get().verifying ?? []).toHaveLength(0)
+    expect(store.get().positions).toHaveLength(0)
+    expect(store.get().agent.status).toBe("running")
+    expect(store.get().activity.some((a) => a.text.includes("Order not placed"))).toBe(true)
+    // ...and the owner is not woken up for it.
+    expect(guard).not.toHaveBeenCalled()
+    guard.mockRestore()
+  })
+
+  it("notifies the owner once for repeated identical UNCERTAIN notices", async () => {
+    const guard = jest.spyOn(notificationService, "notifyTradeGuard").mockImplementation(async () => {})
+    const executor = fakeExecutor({ ok: false, rejected: false, uncertainty: true, reason: "timeout" })
+    const store = stubStore({ ...seedState({ demoHistory: false }), pendingTrade: PENDING, approvalMode: "manual" })
+    const agent = new TradingAgent(store, { ...DEFAULT_RISK, approvalMode: "manual" }, WALLET, {
+      mode: "live",
+      executor,
+    })
+
+    await agent.approvePendingTrade()
+    await flush()
+    const afterFirst = guard.mock.calls.length
+
+    // The same failure repeats on the next attempt (as it did every tick on
+    // 2026-10-15): still logged, but the push must not fire again.
+    store.mutate((s) => {
+      s.pendingTrade = { ...PENDING }
+    })
+    await agent.approvePendingTrade()
+    await flush()
+
+    expect(afterFirst).toBe(1)
+    expect(guard).toHaveBeenCalledTimes(1)
+    // Still fully audible in the activity feed (one guard entry per attempt) —
+    // only the Telegram push is throttled.
+    const guardEntries = store
+      .get()
+      .activity.filter((a) => a.type === "guard" && a.text.startsWith("Order status UNCERTAIN"))
+    expect(guardEntries).toHaveLength(2)
+    guard.mockRestore()
   })
 })
