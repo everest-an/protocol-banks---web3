@@ -58,6 +58,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "*.config.js",
     "*.config.mjs",
+    // Vendored assets of the HyperFrames motion projects (minified GSAP + brand
+    // font) — third-party files we ship for offline renders, not code we author.
+    "docs/growth/motion/**/assets/**",
   ]),
 ])
 
