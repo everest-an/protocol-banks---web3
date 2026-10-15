@@ -339,7 +339,7 @@ export async function GET(req: NextRequest) {
   let mediaId: string | null = null
   try {
     const pnl = await livePnl()
-    const gif = renderTradingGif({
+    const gif = await renderTradingGif({
       pnl: pnl ?? 0,
       headline: text.split('\n')[0],
       sub: pnl !== null ? 'LIVE ACCOUNT · SINCE LAUNCH' : 'PROTOCOL BANK · AI TRADING',

@@ -7,16 +7,25 @@
  * Runs in the Vercel cron: @napi-rs/canvas ships prebuilt binaries and the
  * brand font is embedded as base64 (no filesystem dependency).
  */
-import { createCanvas, GlobalFonts } from "@napi-rs/canvas"
 import { GIFEncoder, quantize, applyPalette } from "gifenc"
 import { AEONIK_BOLD_B64 } from "./aeonik-bold"
 
 const FONT = "Aeonik"
+
+// @napi-rs/canvas is a native module (prebuilt skia binary): bundlers cannot
+// parse the .node file, so it is listed in next.config serverExternalPackages
+// and loaded lazily here. A platform/ABI mismatch then fails only the card,
+// never the route import — the caller already degrades to a text-only post.
+type NapiCanvas = typeof import("@napi-rs/canvas")
+let napi: NapiCanvas | null = null
 let fontReady = false
-function ensureFont(): void {
-  if (fontReady) return
-  GlobalFonts.register(Buffer.from(AEONIK_BOLD_B64, "base64"), FONT)
-  fontReady = true
+async function ensureCanvas(): Promise<NapiCanvas> {
+  if (!napi) napi = await import("@napi-rs/canvas")
+  if (!fontReady) {
+    napi.GlobalFonts.register(Buffer.from(AEONIK_BOLD_B64, "base64"), FONT)
+    fontReady = true
+  }
+  return napi
 }
 
 /** Deterministic pseudo-random walk seeded by the number. */
@@ -39,7 +48,7 @@ function buildCurve(pnl: number, points: number, seed: number): number[] {
   return vals
 }
 
-type Ctx = ReturnType<ReturnType<typeof createCanvas>["getContext"]>
+type Ctx = ReturnType<ReturnType<NapiCanvas["createCanvas"]>["getContext"]>
 
 function wrapText(ctx: Ctx, text: string, maxWidth: number, maxLines = 2): string[] {
   const words = text.split(/\s+/)
@@ -80,8 +89,8 @@ export interface TradingGifOptions {
   frames?: number
 }
 
-export function renderTradingGif(opts: TradingGifOptions): Uint8Array {
-  ensureFont()
+export async function renderTradingGif(opts: TradingGifOptions): Promise<Uint8Array> {
+  const { createCanvas } = await ensureCanvas()
   const W = opts.width ?? 960
   const H = opts.height ?? 600
   const N = opts.frames ?? 30
