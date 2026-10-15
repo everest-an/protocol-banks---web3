@@ -1,0 +1,441 @@
+<!doctype html>
+<html
+  lang="en"
+  data-resolution="landscape"
+  data-composition-variables='[
+    {"id":"pnl","type":"number","label":"Live PnL (USD)","default":0,"step":0.01,"unit":"USD"},
+    {"id":"accent","type":"color","label":"Accent","default":"#34D399"},
+    {"id":"label","type":"string","label":"Number label","default":"LIVE ACCOUNT · SINCE LAUNCH"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Protocol Bank — milestone motion graphic</title>
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Aeonik";
+        src: url("assets/Aeonik-Bold.otf") format("opentype");
+        font-weight: 700;
+        font-style: normal;
+        font-display: block;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0a0d14;
+      }
+
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        color: #f5f6f7;
+        font-family: "Aeonik", ui-sans-serif, system-ui, sans-serif;
+        font-weight: 700;
+      }
+
+      /* ---------- persistent background (untimed: needs its own layout) ---------- */
+      #bg {
+        position: absolute;
+        inset: 0;
+        background: #0a0d14;
+      }
+      #bg-glow {
+        position: absolute;
+        left: 50%;
+        top: -420px;
+        width: 1500px;
+        height: 1000px;
+        transform: translateX(-50%);
+        background: radial-gradient(closest-side, var(--accent, #34d399) 0%, rgba(10, 13, 20, 0) 72%);
+        opacity: 0.17;
+      }
+      #bg-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+        background-size: 80px 80px;
+        -webkit-mask-image: radial-gradient(ellipse at 50% 42%, #000 25%, transparent 72%);
+        mask-image: radial-gradient(ellipse at 50% 42%, #000 25%, transparent 72%);
+      }
+      #bg-vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, 0.55) 100%);
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 140px;
+      }
+
+      /* ---------- scene 1 — brand sting ---------- */
+      #s1 .inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      #s1 .brandrow {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+      }
+      #s1 .dot {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--accent, #34d399);
+        box-shadow: 0 0 34px var(--accent, #34d399);
+        opacity: 0;
+      }
+      #s1 .wordmark {
+        font-size: 104px;
+        letter-spacing: 0.02em;
+        line-height: 1;
+        opacity: 0;
+      }
+      #s1 .tagline {
+        margin-top: 40px;
+        font-size: 25px;
+        letter-spacing: 0.36em;
+        color: rgba(245, 246, 247, 0.5);
+        opacity: 0;
+      }
+
+      /* ---------- scene 2 — kinetic headline ---------- */
+      #s2 .inner {
+        max-width: 1500px;
+        text-align: center;
+      }
+      #s2 .line {
+        font-size: 92px;
+        line-height: 1.14;
+        letter-spacing: -0.01em;
+      }
+      #s2 .w {
+        display: inline-block;
+        opacity: 0;
+      }
+      #s2 .accent {
+        color: var(--accent, #34d399);
+      }
+      #s2 .sub {
+        margin-top: 46px;
+        font-size: 30px;
+        font-weight: 400;
+        color: rgba(245, 246, 247, 0.55);
+        opacity: 0;
+      }
+
+      /* ---------- scene 3 — the number + the curve ---------- */
+      #s3 .inner {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 90px;
+      }
+      #s3 .left {
+        flex: 0 0 46%;
+      }
+      #s3 .label {
+        font-size: 24px;
+        letter-spacing: 0.3em;
+        color: rgba(245, 246, 247, 0.5);
+        opacity: 0;
+      }
+      #s3 .pnl {
+        margin-top: 26px;
+        font-size: 128px;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--accent, #34d399);
+        opacity: 0;
+      }
+      #s3 .foot {
+        margin-top: 40px;
+        font-size: 26px;
+        font-weight: 400;
+        color: rgba(245, 246, 247, 0.42);
+        opacity: 0;
+      }
+      #s3 .right {
+        flex: 1 1 auto;
+        display: flex;
+        justify-content: flex-end;
+      }
+      #curve {
+        width: 620px;
+        height: 306px;
+      }
+      #curve .area {
+        fill: var(--accent, #34d399);
+        opacity: 0;
+      }
+      #curve .line {
+        fill: none;
+        stroke: var(--accent, #34d399);
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.55));
+      }
+      #curve .head {
+        fill: var(--accent, #34d399);
+        opacity: 0;
+      }
+      #curve .ring {
+        fill: none;
+        stroke: var(--accent, #34d399);
+        stroke-width: 2;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="10.5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="bg">
+        <div id="bg-glow" data-layout-ignore></div>
+        <div id="bg-grid" data-layout-ignore></div>
+        <div id="bg-vignette" data-layout-ignore></div>
+      </div>
+
+      <!-- scene 1 · 0.0 - 3.2 — brand sting -->
+      <section id="s1" class="clip scene" data-start="0" data-duration="3.2" data-track-index="0">
+        <div class="inner">
+          <div class="brandrow">
+            <div class="dot"></div>
+            <h1 class="wordmark">PROTOCOL BANK</h1>
+          </div>
+          <p class="tagline">AI AUTOMATED TRADING · NON-CUSTODIAL</p>
+        </div>
+      </section>
+
+      <!-- scene 2 · 3.2 - 6.5 — kinetic headline -->
+      <section id="s2" class="clip scene" data-start="3.2" data-duration="3.3" data-track-index="1">
+        <div class="inner">
+          <h2 class="line">
+            <span class="w">An</span> <span class="w">AI</span> <span class="w">trades</span>
+            <span class="w">your</span> <span class="w">budget.</span>
+          </h2>
+          <h2 class="line">
+            <span class="w">It</span> <span class="w">can</span> <span class="w accent">never</span>
+            <span class="w">withdraw</span> <span class="w">it.</span>
+          </h2>
+          <p class="sub">
+            Hyperliquid agent wallets hold trading-only keys. The worst case is the budget you set —
+            revoke anytime.
+          </p>
+        </div>
+      </section>
+
+      <!-- scene 3 · 6.5 - 10.5 — the number + the curve -->
+      <section id="s3" class="clip scene" data-start="6.5" data-duration="4" data-track-index="2">
+        <div class="inner">
+          <div class="left">
+            <div class="label" data-var-text="label">LIVE ACCOUNT · SINCE LAUNCH</div>
+            <div class="pnl" id="pnl-value">+$0.00</div>
+            <p class="foot">Every live account is public — real PnL, no simulated track record.</p>
+          </div>
+          <div class="right">
+            <svg id="curve" viewBox="0 0 620 306" aria-hidden="true">
+              <path
+                class="area"
+                d="M6,262 C70,252 104,236 148,222 C192,208 226,196 268,178 C310,160 344,140 388,112 C432,84 466,64 522,44 C540,32 572,24 596,20 L596,300 L6,300 Z"
+              />
+              <path
+                class="line"
+                pathLength="1"
+                d="M6,262 C70,252 104,236 148,222 C192,208 226,196 268,178 C310,160 344,140 388,112 C432,84 466,64 522,44 C540,32 572,24 596,20"
+              />
+              <circle class="ring" cx="596" cy="20" r="16" />
+              <circle class="head" cx="596" cy="20" r="8" />
+            </svg>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      (function () {
+        var DUR = 10.5;
+
+        // ---- variables: rendered value wins, declared default is the fallback ----
+        function declaredDefault(id) {
+          var decl = [];
+          try {
+            decl = JSON.parse(
+              document.documentElement.getAttribute("data-composition-variables") || "[]"
+            );
+          } catch (e) {
+            decl = [];
+          }
+          for (var i = 0; i < decl.length; i++) if (decl[i].id === id) return decl[i].default;
+          return null;
+        }
+        var hf = window.__hyperframes;
+        var vars = hf && typeof hf.getVariables === "function" ? hf.getVariables() : {};
+        var raw = typeof vars.pnl === "number" ? vars.pnl : declaredDefault("pnl");
+        var pnl = typeof raw === "number" && isFinite(raw) ? raw : 0;
+
+        var up = pnl >= 0;
+        var accent = up ? "#34D399" : "#F87171";
+
+        var root = document.getElementById("root");
+        root.style.setProperty("--accent", accent);
+
+        var nf = new Intl.NumberFormat("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+        function fmt(v) {
+          return (v < 0 ? "\u2212" : "+") + "$" + nf.format(Math.abs(v));
+        }
+
+        var pnlEl = document.getElementById("pnl-value");
+        pnlEl.textContent = fmt(0);
+
+        var line = document.querySelector("#curve .line");
+        var area = document.querySelector("#curve .area");
+        var head = document.querySelector("#curve .head");
+        var ring = document.querySelector("#curve .ring");
+        line.style.filter =
+          "drop-shadow(0 0 10px " + (up ? "rgba(52,211,153,0.55)" : "rgba(248,113,113,0.55)") + ")";
+
+        function build() {
+          var tl = gsap.timeline({ paused: true });
+
+          // scene 1 — brand sting
+          tl.fromTo(
+            "#s1 .dot",
+            { scale: 0, opacity: 0 },
+            { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(2.2)" },
+            0.2
+          );
+          tl.fromTo(
+            "#s1 .wordmark",
+            { opacity: 0, y: 30 },
+            { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" },
+            0.32
+          );
+          tl.fromTo(
+            "#s1 .tagline",
+            { opacity: 0, y: 18 },
+            { opacity: 1, y: 0, duration: 0.9, ease: "power2.out" },
+            1.0
+          );
+          tl.fromTo("#s1 .brandrow", { scale: 1 }, { scale: 1.015, duration: 1.4, ease: "sine.inOut" }, 1.3);
+          tl.to("#s1 .inner", { opacity: 0, duration: 0.35, ease: "power2.in" }, 2.82);
+
+          // scene 2 — kinetic headline, word by word
+          tl.fromTo(
+            "#s2 .line:nth-of-type(1) .w",
+            { opacity: 0, y: 38 },
+            { opacity: 1, y: 0, duration: 0.5, stagger: 0.075, ease: "power3.out" },
+            3.42
+          );
+          tl.fromTo(
+            "#s2 .line:nth-of-type(2) .w",
+            { opacity: 0, y: 38 },
+            { opacity: 1, y: 0, duration: 0.5, stagger: 0.075, ease: "power3.out" },
+            3.96
+          );
+          tl.fromTo(
+            "#s2 .sub",
+            { opacity: 0, y: 16 },
+            { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
+            4.5
+          );
+          tl.to("#s2 .inner", { opacity: 0, duration: 0.35, ease: "power2.in" }, 6.12);
+
+          // scene 3 — the number counts up, the curve draws itself
+          tl.fromTo(
+            "#s3 .label",
+            { opacity: 0, x: -24 },
+            { opacity: 1, x: 0, duration: 0.55, ease: "power2.out" },
+            6.78
+          );
+          var counter = { v: 0 };
+          tl.to(
+            counter,
+            {
+              v: pnl,
+              duration: 1.15,
+              ease: "power2.out",
+              onUpdate: function () {
+                pnlEl.textContent = fmt(counter.v);
+              },
+            },
+            7.05
+          );
+          tl.fromTo(
+            "#s3 .pnl",
+            { opacity: 0, y: 22 },
+            { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+            7.05
+          );
+          tl.fromTo(line, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.5, ease: "power2.inOut" }, 6.7);
+          tl.fromTo(area, { opacity: 0 }, { opacity: 0.16, duration: 1.0, ease: "power2.out" }, 7.6);
+          tl.fromTo(
+            [ring, head],
+            { opacity: 0, transformOrigin: "596px 20px" },
+            {
+              opacity: function (i) {
+                return i === 0 ? 0.35 : 1;
+              },
+              duration: 0.5,
+              ease: "power2.out",
+            },
+            8.05
+          );
+          tl.fromTo(
+            "#s3 .foot",
+            { opacity: 0, y: 14 },
+            { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
+            8.6
+          );
+
+          tl.set({}, {}, DUR);
+          return tl;
+        }
+
+        window.__timelines = window.__timelines || {};
+
+        var fontsReady =
+          document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+        fontsReady.then(function () {
+          window.__timelines["main"] = build();
+          window.__timelines["main"].seek(0);
+        });
+      })();
+    </script>
+  </body>
+</html>
