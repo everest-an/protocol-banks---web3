@@ -1,0 +1,108 @@
+{
+  "ranAt": "2026-10-15T09:59:24.709Z",
+  "wallet": "0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C",
+  "incumbentModel": "deepseek/deepseek-v4-flash",
+  "candidateModel": "velvetflash",
+  "rows": [
+    {
+      "coin": "ZEC",
+      "side": "short",
+      "z": -1.75,
+      "score": -0.78,
+      "incumbent": {
+        "action": null,
+        "sizeFactor": null,
+        "ms": 1257,
+        "error": "HTTP 402 Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://op",
+        "raw": ""
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 1,
+        "ms": 802,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":1.0,\"reason\":\"Momentum_z=-1.75 indicates strong short bias; crowded market may contradict recent price action. Skip to avoid risk.\"}"
+      }
+    },
+    {
+      "coin": "ETH",
+      "side": "short",
+      "z": -1.54,
+      "score": -0.68,
+      "incumbent": {
+        "action": null,
+        "sizeFactor": null,
+        "ms": 421,
+        "error": "HTTP 402 Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://op",
+        "raw": ""
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 1,
+        "ms": 581,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":1.0,\"reason\":\"Momentum_z=-1.54 indicates strong short bias; crowded ETH futures may contradict recent price action. Skip to avoid risk.\"}"
+      }
+    },
+    {
+      "coin": "ENA",
+      "side": "short",
+      "z": -1.77,
+      "score": -0.68,
+      "incumbent": {
+        "action": null,
+        "sizeFactor": null,
+        "ms": 416,
+        "error": "HTTP 402 Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://op",
+        "raw": ""
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 1,
+        "ms": 650,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":1.0,\"reason\":\"Momentum_z=-1.77 indicates strong short bias; composite_score=-0.68 suggests poor setup. Recent price action contradicts the signal, and crowded conditions may reduce effectiveness.\"}"
+      }
+    },
+    {
+      "coin": "LIT",
+      "side": "short",
+      "z": -1.54,
+      "score": -0.67,
+      "incumbent": {
+        "action": null,
+        "sizeFactor": null,
+        "ms": 402,
+        "error": "HTTP 402 Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://op",
+        "raw": ""
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 1,
+        "ms": 527,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":1.0,\"reason\":\"Momentum_z=-1.54 indicates strong short bias; crowded market may contradict recent price action. Skip to avoid risk.\"}"
+      }
+    },
+    {
+      "coin": "PUMP",
+      "side": "short",
+      "z": -1.71,
+      "score": -0.61,
+      "incumbent": {
+        "action": null,
+        "sizeFactor": null,
+        "ms": 381,
+        "error": "HTTP 402 Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://op",
+        "raw": ""
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 1,
+        "ms": 530,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":1.0,\"reason\":\"Momentum_z=-1.71 indicates strong short momentum; crowded short interest may contradict recent price action. Skip to avoid risk.\"}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "ranAt": "2026-10-15T15:54:57.667Z",
+  "wallet": "0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C",
+  "incumbent": "deepseek",
+  "incumbentModel": "deepseek-flash",
+  "candidateModel": "velvetflash",
+  "rows": [
+    {
+      "coin": "PUMP",
+      "side": "short",
+      "z": -0.46,
+      "score": -0.39,
+      "signal": {
+        "coin": "PUMP",
+        "side": "short",
+        "momentumZ": -0.45921095419037933,
+        "funding": 0.0000125,
+        "volumeUsd": 144493093.0960472,
+        "markPx": 0.004524,
+        "score": -0.38776328625711376
+      },
+      "prompt": "{\"task\":\"review_entry_signal\",\"signal\":{\"coin\":\"PUMP\",\"side\":\"short\",\"momentum_z\":-0.46,\"funding_per_hour\":\"0.0013%\",\"volume_usd_24h\":144493093,\"mark_price\":0.004524,\"composite_score\":-0.39},\"account\":{\"equity_usd\":19.06,\"open_positions\":[\"PUMP\"]},\"constraints\":{\"max_positions\":3,\"take_profit_pct\":2.5,\"stop_loss_pct\":2.5,\"daily_loss_circuit_breaker_pct\":5,\"note\":\"sizing and stops are enforced by the platform and cannot be changed by you\"}}",
+      "incumbent": {
+        "action": "skip",
+        "sizeFactor": 0,
+        "ms": 1685,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":0.0,\"reason\":\"Weak momentum (z=-0.46) and already holding PUMP; adding would concentrate exposure on a marginal signal.\"}"
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 0,
+        "ms": 8480,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":0.0,\"reason\":\"Momentum_z and composite_score both negative; crowded short setup contradicts recent price action\"}"
+      }
+    },
+    {
+      "coin": "HYPE",
+      "side": "long",
+      "z": 0.38,
+      "score": 0.33,
+      "signal": {
+        "coin": "HYPE",
+        "side": "long",
+        "momentumZ": 0.38347603775497957,
+        "funding": -0.0000105724,
+        "volumeUsd": 624519619.5442309,
+        "markPx": 81.661,
+        "score": 0.3264908113264939
+      },
+      "prompt": "{\"task\":\"review_entry_signal\",\"signal\":{\"coin\":\"HYPE\",\"side\":\"long\",\"momentum_z\":0.38,\"funding_per_hour\":\"-0.0011%\",\"volume_usd_24h\":624519620,\"mark_price\":81.661,\"composite_score\":0.33},\"account\":{\"equity_usd\":19.06,\"open_positions\":[\"PUMP\"]},\"constraints\":{\"max_positions\":3,\"take_profit_pct\":2.5,\"stop_loss_pct\":2.5,\"daily_loss_circuit_breaker_pct\":5,\"note\":\"sizing and stops are enforced by the platform and cannot be changed by you\"}}",
+      "incumbent": {
+        "action": "skip",
+        "sizeFactor": 0,
+        "ms": 2830,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":0.0,\"reason\":\"Weak momentum z 0.38 and modest composite 0.33; setup lacks conviction despite decent volume.\"}"
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 0,
+        "ms": 567,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":0.0,\"reason\":\"HYPE's composite score and momentum_z are below 0.5; crowded volume and negative funding rate suggest weak trend. Recent price action may contradict the signal.\"}"
+      }
+    },
+    {
+      "coin": "LIT",
+      "side": "long",
+      "z": -0.57,
+      "score": 0.23,
+      "signal": {
+        "coin": "LIT",
+        "side": "long",
+        "momentumZ": -0.5747969481615387,
+        "funding": -0.0000337752,
+        "volumeUsd": 47828922.92449998,
+        "markPx": 3.0649,
+        "score": 0.22756091555153843
+      },
+      "prompt": "{\"task\":\"review_entry_signal\",\"signal\":{\"coin\":\"LIT\",\"side\":\"long\",\"momentum_z\":-0.57,\"funding_per_hour\":\"-0.0034%\",\"volume_usd_24h\":47828923,\"mark_price\":3.0649,\"composite_score\":0.23},\"account\":{\"equity_usd\":19.06,\"open_positions\":[\"PUMP\"]},\"constraints\":{\"max_positions\":3,\"take_profit_pct\":2.5,\"stop_loss_pct\":2.5,\"daily_loss_circuit_breaker_pct\":5,\"note\":\"sizing and stops are enforced by the platform and cannot be changed by you\"}}",
+      "incumbent": {
+        "action": "skip",
+        "sizeFactor": 0,
+        "ms": 2144,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":0.0,\"reason\":\"Long signal contradicts negative momentum z (-0.57); composite 0.23 weak and setup unclear.\"}"
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 1,
+        "ms": 553,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":1.0,\"reason\":\"Momentum_z=-0.57 indicates negative momentum; composite_score=0.23 suggests low confidence. Recent price action contradicts the entry signal.\"}"
+      }
+    },
+    {
+      "coin": "ETH",
+      "side": "short",
+      "z": 0.13,
+      "score": -0.21,
+      "signal": {
+        "coin": "ETH",
+        "side": "short",
+        "momentumZ": 0.12573521229556037,
+        "funding": 0.0000125,
+        "volumeUsd": 1872867574.1357994,
+        "markPx": 2440.1,
+        "score": -0.2122794363113319
+      },
+      "prompt": "{\"task\":\"review_entry_signal\",\"signal\":{\"coin\":\"ETH\",\"side\":\"short\",\"momentum_z\":0.13,\"funding_per_hour\":\"0.0013%\",\"volume_usd_24h\":1872867574,\"mark_price\":2440.1,\"composite_score\":-0.21},\"account\":{\"equity_usd\":19.06,\"open_positions\":[\"PUMP\"]},\"constraints\":{\"max_positions\":3,\"take_profit_pct\":2.5,\"stop_loss_pct\":2.5,\"daily_loss_circuit_breaker_pct\":5,\"note\":\"sizing and stops are enforced by the platform and cannot be changed by you\"}}",
+      "incumbent": {
+        "action": "skip",
+        "sizeFactor": 0,
+        "ms": 2399,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":0.0,\"reason\":\"Weak edge: momentum +0.13 contradicts short, composite only -0.21; tiny equity and existing PUMP position.\"}"
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 0,
+        "ms": 767,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":0.0,\"reason\":\"Negative composite score (-0.21) and weak momentum (z=0.13) suggest a crowded, weak setup; contradicts recent price action. Skip to avoid risk.\"}"
+      }
+    }
+  ]
+}

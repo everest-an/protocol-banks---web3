@@ -49,7 +49,9 @@ const DEEPSEEK_BASE = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com
 const DEFAULT_OPENROUTER_MODEL = process.env.LLM_DEFAULT_MODEL || "deepseek/deepseek-v4-flash"
 const DEFAULT_DEEPSEEK_MODEL = process.env.LLM_FALLBACK_MODEL || "deepseek-flash"
 
-const SYSTEM_PROMPT =
+/** Exported so evaluation harnesses can hit candidate models with the exact
+ *  production prompt (see scripts/llm-advisor-ab.ts). */
+export const ADVISOR_SYSTEM_PROMPT =
   "You are a conservative trading risk reviewer for a perpetual futures agent. " +
   "You receive one entry signal and must decide whether the agent should take it. " +
   "You cannot increase size or leverage. Reply with a single JSON object: " +
@@ -131,7 +133,7 @@ async function callChannel(channel: LlmChannel, prompt: string, timeoutMs = 25_0
       body: JSON.stringify({
         model: channel.model,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: ADVISOR_SYSTEM_PROMPT },
           { role: "user", content: prompt },
         ],
         // Reasoning models spend most of the budget on hidden reasoning before
