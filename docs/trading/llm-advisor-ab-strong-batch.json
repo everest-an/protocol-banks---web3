@@ -1,0 +1,42 @@
+{
+  "ranAt": "2026-10-15T17:59:01.376Z",
+  "wallet": "0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C",
+  "incumbent": "deepseek",
+  "incumbentModel": "deepseek-flash",
+  "candidateModel": "velvetflash",
+  "universe": 30,
+  "minScore": 0.45,
+  "gate": true,
+  "rows": [
+    {
+      "coin": "ARB",
+      "side": "long",
+      "z": 0.68,
+      "score": 0.6,
+      "signal": {
+        "coin": "ARB",
+        "side": "long",
+        "momentumZ": 0.6810858751209998,
+        "funding": -0.0000235951,
+        "volumeUsd": 17311514.019086003,
+        "markPx": 0.19323,
+        "score": 0.6043257625363
+      },
+      "prompt": "{\"task\":\"review_entry_signal\",\"signal\":{\"coin\":\"ARB\",\"side\":\"long\",\"momentum_z\":0.68,\"funding_per_hour\":\"-0.0024%\",\"volume_usd_24h\":17311514,\"mark_price\":0.19323,\"composite_score\":0.6},\"account\":{\"equity_usd\":19.22,\"open_positions\":[\"HYPE\",\"PUMP\"]},\"constraints\":{\"max_positions\":3,\"take_profit_pct\":2.5,\"stop_loss_pct\":2.5,\"daily_loss_circuit_breaker_pct\":5,\"note\":\"sizing and stops are enforced by the platform and cannot be changed by you\"}}",
+      "incumbent": {
+        "action": "proceed",
+        "sizeFactor": 0.5,
+        "ms": 2918,
+        "error": null,
+        "raw": "{\"action\":\"proceed\",\"sizeFactor\":0.5,\"reason\":\"Moderate long signal with supportive negative funding, but weak momentum and already two open positions; reduced size.\"}"
+      },
+      "candidate": {
+        "action": "proceed",
+        "sizeFactor": 1,
+        "ms": 768,
+        "error": null,
+        "raw": "{\"action\":\"proceed\",\"sizeFactor\":1.0,\"reason\":\"Clear long setup with positive momentum and composite score; crowded but not yet capped.\"}"
+      }
+    }
+  ]
+}

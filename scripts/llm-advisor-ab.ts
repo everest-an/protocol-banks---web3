@@ -27,7 +27,7 @@ import { getUserState } from "../lib/trading/exchange"
 const WALLET = process.env.AB_WALLET || "0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C"
 const CANDIDATE_MODEL = process.env.AB_CANDIDATE_MODEL || "hf.co/mradermacher/VelvetFlash-GGUF:Q4_K_M"
 const INCUMBENT_MODEL = process.env.AB_INCUMBENT_MODEL || "deepseek/deepseek-v4-flash"
-const UNIVERSE_SIZE = 12
+const UNIVERSE_SIZE = Number(process.env.AB_UNIVERSE || 12)
 /** Production entry bar is DEFAULT_RISK.entryThreshold (0.45). For an A/B we
  *  need a batch to compare on; AB_MIN_SCORE widens the bar so a quiet market
  *  still yields real (just lower-conviction) signals. Inputs stay real. */
@@ -132,7 +132,9 @@ async function callOllama(prompt: string): Promise<ModelCall> {
         ],
         stream: false,
         think: false, // the model card's recommendation for short answers
-        options: { temperature: 0, num_predict: 600, num_ctx: 8192 },
+        // 2048 is plenty for this prompt (~500 tokens) and is what fits an 8 GB
+        // laptop GPU: at 8192 the KV cache alone wants ~1.2 GB and CUDA OOMs.
+        options: { temperature: 0, num_predict: 600, num_ctx: 2048 },
       }),
       signal: AbortSignal.timeout(120_000),
     })
@@ -277,15 +279,26 @@ async function main() {
   console.log(`mean latency : incumbent ${mean(rows.map((r) => r.incumbent.ms))}ms · candidate ${mean(rows.map((r) => r.candidate.ms))}ms`)
 
   fs.mkdirSync("docs/trading", { recursive: true })
+  const outPath = process.env.AB_OUT || "docs/trading/llm-advisor-ab.json"
   fs.writeFileSync(
-    "docs/trading/llm-advisor-ab.json",
+    outPath,
     JSON.stringify(
-      { ranAt: new Date().toISOString(), wallet: WALLET, incumbent: process.env.AB_INCUMBENT || "deepseek", incumbentModel: (process.env.AB_INCUMBENT || "deepseek") === "openrouter" ? INCUMBENT_MODEL : process.env.AB_DEEPSEEK_MODEL || "deepseek-flash", candidateModel: CANDIDATE_MODEL, rows },
+      {
+        ranAt: new Date().toISOString(),
+        wallet: WALLET,
+        incumbent: process.env.AB_INCUMBENT || "deepseek",
+        incumbentModel: (process.env.AB_INCUMBENT || "deepseek") === "openrouter" ? INCUMBENT_MODEL : process.env.AB_DEEPSEEK_MODEL || "deepseek-flash",
+        candidateModel: CANDIDATE_MODEL,
+        universe: UNIVERSE_SIZE,
+        minScore: MIN_SCORE,
+        gate: APPLY_GATE,
+        rows,
+      },
       null,
       2,
     ),
   )
-  console.log("\nsaved docs/trading/llm-advisor-ab.json")
+  console.log(`\nsaved ${outPath}`)
 }
 
 main().catch((e) => {
