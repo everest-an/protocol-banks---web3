@@ -1,0 +1,72 @@
+{
+  "ranAt": "2026-10-16T07:28:54.539Z",
+  "wallet": "0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C",
+  "incumbent": "deepseek",
+  "incumbentModel": "deepseek-flash",
+  "candidateModel": "velvetflash",
+  "universe": 30,
+  "minScore": 0.45,
+  "gate": true,
+  "rows": [
+    {
+      "coin": "ARB",
+      "side": "long",
+      "z": 1.58,
+      "score": 0.88,
+      "signal": {
+        "coin": "ARB",
+        "side": "long",
+        "momentumZ": 1.5846014885507587,
+        "funding": -0.000039162,
+        "volumeUsd": 17896768.028920993,
+        "markPx": 0.19743,
+        "score": 0.8753804465652276
+      },
+      "prompt": "{\"task\":\"review_entry_signal\",\"signal\":{\"coin\":\"ARB\",\"side\":\"long\",\"momentum_z\":1.58,\"funding_per_hour\":\"-0.0039%\",\"volume_usd_24h\":17896768,\"mark_price\":0.19743,\"composite_score\":0.88},\"account\":{\"equity_usd\":19.34,\"open_positions\":[\"PUMP\"]},\"constraints\":{\"max_positions\":3,\"take_profit_pct\":2.5,\"stop_loss_pct\":2.5,\"daily_loss_circuit_breaker_pct\":5,\"note\":\"sizing and stops are enforced by the platform and cannot be changed by you\"}}",
+      "incumbent": {
+        "action": "proceed",
+        "sizeFactor": 0.5,
+        "ms": 6774,
+        "error": null,
+        "raw": "{\"action\":\"proceed\",\"sizeFactor\":0.5,\"reason\":\"Positive momentum z=1.58, negative funding favors longs, composite 0.88; reduce size due to small equity and existing PUMP exposure.\"}"
+      },
+      "candidate": {
+        "action": "proceed",
+        "sizeFactor": 1,
+        "ms": 5628,
+        "error": null,
+        "raw": "{\"action\":\"proceed\",\"sizeFactor\":1.0,\"reason\":\"Strong momentum and composite score indicate a favorable setup\"}"
+      }
+    },
+    {
+      "coin": "INJ",
+      "side": "long",
+      "z": 2.57,
+      "score": 0.52,
+      "signal": {
+        "coin": "INJ",
+        "side": "long",
+        "momentumZ": 2.572182116819315,
+        "funding": 0.0000125,
+        "volumeUsd": 22945924.76937002,
+        "markPx": 9.3022,
+        "score": 0.5216546350457945
+      },
+      "prompt": "{\"task\":\"review_entry_signal\",\"signal\":{\"coin\":\"INJ\",\"side\":\"long\",\"momentum_z\":2.57,\"funding_per_hour\":\"0.0013%\",\"volume_usd_24h\":22945925,\"mark_price\":9.3022,\"composite_score\":0.52},\"account\":{\"equity_usd\":19.34,\"open_positions\":[\"PUMP\"]},\"constraints\":{\"max_positions\":3,\"take_profit_pct\":2.5,\"stop_loss_pct\":2.5,\"daily_loss_circuit_breaker_pct\":5,\"note\":\"sizing and stops are enforced by the platform and cannot be changed by you\"}}",
+      "incumbent": {
+        "action": "proceed",
+        "sizeFactor": 0.6,
+        "ms": 1601,
+        "error": null,
+        "raw": "{\"action\":\"proceed\",\"sizeFactor\":0.6,\"reason\":\"Momentum z=2.57 with neutral funding and no crowding; composite 0.52 modest, so trim size. Room under max positions.\"}"
+      },
+      "candidate": {
+        "action": "skip",
+        "sizeFactor": 0,
+        "ms": 398,
+        "error": null,
+        "raw": "{\"action\":\"skip\",\"sizeFactor\":0.0,\"reason\":\"Crowded signal with low funding rate; recent price action contradicts momentum_z.\"}"
+      }
+    }
+  ]
+}

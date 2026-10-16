@@ -26,6 +26,9 @@ import { getUserState } from "../lib/trading/exchange"
 
 const WALLET = process.env.AB_WALLET || "0xBf0D7119F553eB5f85C9806f0849f9c86a9B768C"
 const CANDIDATE_MODEL = process.env.AB_CANDIDATE_MODEL || "hf.co/mradermacher/VelvetFlash-GGUF:Q4_K_M"
+/** Ollama's native endpoint; override when the model lives in a second server
+ *  (e.g. AB_CANDIDATE_URL=http://localhost:11435/api/chat). */
+const CANDIDATE_URL = process.env.AB_CANDIDATE_URL || "http://localhost:11434/api/chat"
 const INCUMBENT_MODEL = process.env.AB_INCUMBENT_MODEL || "deepseek/deepseek-v4-flash"
 const UNIVERSE_SIZE = Number(process.env.AB_UNIVERSE || 12)
 /** Production entry bar is DEFAULT_RISK.entryThreshold (0.45). For an A/B we
@@ -121,7 +124,7 @@ async function callIncumbent(prompt: string): Promise<ModelCall> {
 async function callOllama(prompt: string): Promise<ModelCall> {
   const t0 = Date.now()
   try {
-    const res = await fetch("http://localhost:11434/api/chat", {
+    const res = await fetch(CANDIDATE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
