@@ -6,7 +6,7 @@
  * thing that can reach the UI is a whitelisted action with validated
  * arguments and a deterministic confirmation.
  */
-import { buildRouterPrompt, buildSkillDoc, parseRoute, parseRouteAny, validateRoute } from "@/lib/trading/nl-router"
+import { buildRouterPrompt, buildSkillDoc, parseRoute, parseRouteAny, toAgentAction, validateRoute } from "@/lib/trading/nl-router"
 
 describe("nl router", () => {
   describe("skill doc and prompt", () => {
@@ -170,6 +170,33 @@ describe("nl router", () => {
     it("rejects an unparseable proposal", () => {
       const r = validateRoute(null)
       expect(r.ok).toBe(false)
+    })
+  })
+
+  describe("toAgentAction — the only bridge to execution", () => {
+    it("maps every mutating route to the existing actions endpoint payload", () => {
+      const cases: Array<[string, Record<string, unknown>, { action: string; mode?: string }]> = [
+        ["pause_agent", {}, { action: "pause" }],
+        ["resume_agent", {}, { action: "resume" }],
+        ["stop_agent", {}, { action: "stop" }],
+        ["reset_agent", {}, { action: "reset" }],
+        ["approve_pending_trade", {}, { action: "approve" }],
+        ["reject_pending_trade", {}, { action: "reject" }],
+        ["set_approval_mode", { mode: "manual" }, { action: "set_approval", mode: "manual" }],
+      ]
+      for (const [action, args, expected] of cases) {
+        const verdict = validateRoute({ action, args })
+        expect(verdict.ok).toBe(true)
+        if (verdict.ok) expect(toAgentAction(verdict.route)).toEqual(expected)
+      }
+    })
+
+    it("maps read-only, clarify and unsupported routes to no call at all", () => {
+      for (const action of ["list_positions", "get_status", "clarify", "unsupported"]) {
+        const verdict = validateRoute({ action })
+        expect(verdict.ok).toBe(true)
+        if (verdict.ok) expect(toAgentAction(verdict.route)).toBeNull()
+      }
     })
   })
 })

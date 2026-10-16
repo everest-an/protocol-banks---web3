@@ -150,7 +150,12 @@ export function parseProposal(raw: string): AdvisorProposal | null {
   return { action, sizeFactor, reason }
 }
 
-async function callChannel(channel: LlmChannel, prompt: string, timeoutMs = 25_000): Promise<string> {
+async function callChannel(
+  channel: LlmChannel,
+  system: string,
+  user: string,
+  timeoutMs = 25_000,
+): Promise<string> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -164,8 +169,8 @@ async function callChannel(channel: LlmChannel, prompt: string, timeoutMs = 25_0
       body: JSON.stringify({
         model: channel.model,
         messages: [
-          { role: "system", content: ADVISOR_SYSTEM_PROMPT },
-          { role: "user", content: prompt },
+          { role: "system", content: system },
+          { role: "user", content: user },
         ],
         // Reasoning models spend most of the budget on hidden reasoning before
         // emitting the JSON, so keep this generous (cost is still ~$0.00001).
@@ -292,10 +297,39 @@ export async function adviseOnSignal(
     // it on every consultation only adds latency to the working channel.
     if (isChannelUnhealthy(channel)) continue
     try {
-      const raw = await callChannel(channel, prompt)
+      const raw = await callChannel(channel, ADVISOR_SYSTEM_PROMPT, prompt)
       const proposal = parseProposal(raw)
       if (proposal) return proposal
       console.warn(`[llm-advisor] unparseable answer from ${channel.provider}`)
+    } catch (error) {
+      if (error instanceof ChannelHttpError && [401, 402, 403, 429].includes(error.status)) {
+        markChannelUnhealthy(channel)
+      }
+      console.warn(
+        `[llm-advisor] channel ${channel.provider} failed:`,
+        error instanceof Error ? error.message : error,
+      )
+    }
+  }
+  return null
+}
+
+/**
+ * One completion from the platform channels, with the same health handling as
+ * the advisor. Used by callers that are not the entry advisor — the
+ * natural-language router (lib/trading/nl-router.ts) is the first one.
+ * Returns null when no healthy channel answers; never throws.
+ */
+export async function completeWithPlatform(
+  system: string,
+  user: string,
+  timeoutMs = 20_000,
+): Promise<{ raw: string; provider: string } | null> {
+  for (const channel of platformChannels()) {
+    if (isChannelUnhealthy(channel)) continue
+    try {
+      const raw = await callChannel(channel, system, user, timeoutMs)
+      if (raw.trim()) return { raw, provider: channel.provider }
     } catch (error) {
       if (error instanceof ChannelHttpError && [401, 402, 403, 429].includes(error.status)) {
         markChannelUnhealthy(channel)

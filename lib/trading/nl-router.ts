@@ -73,6 +73,33 @@ const ACTIONS: Record<RouteActionId, ActionSpec> = {
   get_status: { readOnly: true, description: "Report the agent status, equity and today's PnL.", args: {} },
 }
 
+/**
+ * The payload for POST /api/trading/actions. The router itself never executes
+ * anything — this mapping exists so the UI can confirm and then use the same
+ * endpoint the buttons use, with the same server-side checks.
+ * Returns null for read-only / clarify / unsupported outcomes, which need no call.
+ */
+export function toAgentAction(route: ValidatedRoute): { action: string; mode?: string } | null {
+  switch (route.action) {
+    case "pause_agent":
+      return { action: "pause" }
+    case "resume_agent":
+      return { action: "resume" }
+    case "stop_agent":
+      return { action: "stop" }
+    case "reset_agent":
+      return { action: "reset" }
+    case "approve_pending_trade":
+      return { action: "approve" }
+    case "reject_pending_trade":
+      return { action: "reject" }
+    case "set_approval_mode":
+      return { action: "set_approval", mode: String(route.args.mode) }
+    default:
+      return null
+  }
+}
+
 export interface RouteProposal {
   action: string
   args?: Record<string, unknown>

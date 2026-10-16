@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { TradingLiveSetup } from "@/components/trading-live-setup"
+import { TradingCommandBar } from "@/components/trading-command-bar"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { createAuthenticatedFetch } from "@/lib/authenticated-fetch"
 
@@ -722,6 +723,15 @@ export default function TradingPage() {
                       <Shield className="h-3 w-3 inline mr-1" />
                       The AI can trade, but it can never withdraw your funds. Revoke its access anytime.
                     </p>
+                    {/* Natural-language control: the model proposes, the user confirms,
+                        and execution goes through the same endpoint as the buttons. */}
+                    <TradingCommandBar
+                      walletAddress={walletAddress}
+                      authFetch={authFetch}
+                      onRefresh={async () => {
+                        await mutate()
+                      }}
+                    />
                     {data?.mode === "paper" && (
                       <button
                         onClick={handleReset}
