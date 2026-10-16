@@ -49,6 +49,37 @@ const DEEPSEEK_BASE = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com
 const DEFAULT_OPENROUTER_MODEL = process.env.LLM_DEFAULT_MODEL || "deepseek/deepseek-v4-flash"
 const DEFAULT_DEEPSEEK_MODEL = process.env.LLM_FALLBACK_MODEL || "deepseek-flash"
 
+/**
+ * A channel that just refused on auth/billing/rate grounds is skipped for a
+ * cooldown instead of burning an HTTP round-trip on every consultation.
+ * OpenRouter's platform key ran out of credits on 2026-10-15 and 402'd every
+ * call for the rest of the day; without this, each consultation paid a dead
+ * request before reaching the working channel.
+ */
+const CHANNEL_COOLDOWN_MS = 10 * 60_000
+const channelUnhealthyUntil = new Map<string, number>()
+const channelKey = (c: LlmChannel) => `${c.provider}:${c.model}`
+const isChannelUnhealthy = (c: LlmChannel) => (channelUnhealthyUntil.get(channelKey(c)) ?? 0) > Date.now()
+const markChannelUnhealthy = (c: LlmChannel) =>
+  channelUnhealthyUntil.set(channelKey(c), Date.now() + CHANNEL_COOLDOWN_MS)
+
+/** Test/ops hook: clear the cooldown state. */
+export function resetChannelHealth(): void {
+  channelUnhealthyUntil.clear()
+}
+
+/** An HTTP failure from a channel, carrying the status so auth/billing errors
+ *  can be told apart from per-request failures. */
+export class ChannelHttpError extends Error {
+  constructor(
+    public readonly status: number,
+    provider: string,
+  ) {
+    super(`[${provider}] HTTP ${status}`)
+    this.name = "ChannelHttpError"
+  }
+}
+
 /** Exported so evaluation harnesses can hit candidate models with the exact
  *  production prompt (see scripts/llm-advisor-ab.ts). */
 export const ADVISOR_SYSTEM_PROMPT =
@@ -142,7 +173,7 @@ async function callChannel(channel: LlmChannel, prompt: string, timeoutMs = 25_0
         temperature: 0.2,
       }),
     })
-    if (!res.ok) throw new Error(`[${channel.provider}] HTTP ${res.status}`)
+    if (!res.ok) throw new ChannelHttpError(res.status, channel.provider)
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
     const content = data.choices?.[0]?.message?.content
     if (!content) throw new Error(`[${channel.provider}] empty completion`)
@@ -189,24 +220,41 @@ async function resolveUserChannel(wallet: string): Promise<LlmChannel | null> {
   }
 }
 
-/** Platform channels: OpenRouter first (≈free), DeepSeek direct as the backup. */
+/**
+ * Platform channels in the order they are tried. Override with
+ * `LLM_PLATFORM_ORDER="deepseek,openrouter"` when a channel is unusable
+ * (a dead billing state should not need a code change).
+ */
 function platformChannels(): LlmChannel[] {
-  const channels: LlmChannel[] = []
-  if (process.env.OPENROUTER_API_KEY) {
-    channels.push({
-      provider: "openrouter",
-      baseUrl: OPENROUTER_BASE,
-      apiKey: process.env.OPENROUTER_API_KEY,
-      model: DEFAULT_OPENROUTER_MODEL,
-    })
+  const build = (provider: "openrouter" | "deepseek"): LlmChannel | null => {
+    if (provider === "openrouter") {
+      return process.env.OPENROUTER_API_KEY
+        ? {
+            provider,
+            baseUrl: OPENROUTER_BASE,
+            apiKey: process.env.OPENROUTER_API_KEY,
+            model: DEFAULT_OPENROUTER_MODEL,
+          }
+        : null
+    }
+    return process.env.DEEPSEEK_API_KEY
+      ? {
+          provider,
+          baseUrl: DEEPSEEK_BASE,
+          apiKey: process.env.DEEPSEEK_API_KEY,
+          model: DEFAULT_DEEPSEEK_MODEL,
+        }
+      : null
   }
-  if (process.env.DEEPSEEK_API_KEY) {
-    channels.push({
-      provider: "deepseek",
-      baseUrl: DEEPSEEK_BASE,
-      apiKey: process.env.DEEPSEEK_API_KEY,
-      model: DEFAULT_DEEPSEEK_MODEL,
-    })
+  const order = (process.env.LLM_PLATFORM_ORDER || "openrouter,deepseek")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((s): s is "openrouter" | "deepseek" => s === "openrouter" || s === "deepseek")
+
+  const channels: LlmChannel[] = []
+  for (const provider of order) {
+    const channel = build(provider)
+    if (channel && !channels.some((c) => c.provider === channel.provider)) channels.push(channel)
   }
   return channels
 }
@@ -240,12 +288,18 @@ export async function adviseOnSignal(
 
   const prompt = buildPrompt(req)
   for (const channel of channels) {
+    // Skip a channel that just refused on auth/billing/rate grounds: retrying
+    // it on every consultation only adds latency to the working channel.
+    if (isChannelUnhealthy(channel)) continue
     try {
       const raw = await callChannel(channel, prompt)
       const proposal = parseProposal(raw)
       if (proposal) return proposal
       console.warn(`[llm-advisor] unparseable answer from ${channel.provider}`)
     } catch (error) {
+      if (error instanceof ChannelHttpError && [401, 402, 403, 429].includes(error.status)) {
+        markChannelUnhealthy(channel)
+      }
       console.warn(
         `[llm-advisor] channel ${channel.provider} failed:`,
         error instanceof Error ? error.message : error,
