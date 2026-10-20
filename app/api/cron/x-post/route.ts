@@ -14,6 +14,7 @@ import crypto from 'node:crypto'
 import { verifyCronAuth } from '@/lib/cron-auth'
 import { renderTradingGif } from '@/lib/media/trading-gif'
 import { validatePost, type RecentPost } from '@/lib/social/x-post-validation'
+import { renderScanCard, type ScanRow } from '@/lib/media/scan-card'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -150,6 +151,81 @@ async function llm(system: string, user: string): Promise<string> {
 }
 
 // Validation lives in lib/social/x-post-validation.ts (shared with its tests).
+
+async function scanSnapshot(): Promise<{ png: Uint8Array; summary: string } | null> {
+  try {
+    const [{ HyperliquidClient }, { momentumZ, combineSignal }, { DEFAULT_RISK, passesUniverseFilters }, { getUserState }, { prisma }] =
+      await Promise.all([
+        import('@/lib/trading/hyperliquid'),
+        import('@/lib/trading/strategies'),
+        import('@/lib/trading/risk'),
+        import('@/lib/trading/exchange'),
+        import('@/lib/prisma'),
+      ])
+
+    const account = await prisma.tradingAccount.findFirst({
+      where: { status: 'live' },
+      select: { wallet_address: true },
+    })
+    const wallet = account?.wallet_address
+    if (!wallet) return null
+
+    const client = new HyperliquidClient()
+    const { universe, ctxs } = await client.metaAndAssetCtxs()
+    const ranked = universe
+      .map((u, i) => ({ coin: u.name, ctx: ctxs[i] }))
+      .filter((x) => x.ctx)
+      .map((x) => ({ coin: x.coin, ctx: x.ctx, volumeUsd: parseFloat(x.ctx.dayNtlVlm) || 0 }))
+      .sort((a, b) => b.volumeUsd - a.volumeUsd)
+      .slice(0, 12)
+
+    const state = await getUserState(wallet).catch(() => null)
+    const held = new Map(
+      (state?.assetPositions ?? []).map((p) => [p.position.coin, Number(p.position.szi) > 0 ? 'long' : 'short']),
+    )
+
+    const computed = await Promise.all(
+      ranked.map(async ({ coin, ctx, volumeUsd }): Promise<ScanRow | null> => {
+        const markPx = parseFloat(ctx.markPx)
+        if (!passesUniverseFilters(volumeUsd, markPx, DEFAULT_RISK)) return null
+        const candles = await client.candles(coin, '1h', 5).catch(() => [])
+        if (candles.length < 20) return null
+        const z = momentumZ(candles.map((c) => c.c))
+        const funding = parseFloat(ctx.funding) || 0
+        const { score, side } = combineSignal(z, funding)
+        const decision = held.has(coin)
+          ? 'HOLD'
+          : Math.abs(score) >= DEFAULT_RISK.entryThreshold
+            ? 'SIGNAL'
+            : 'WATCH'
+        return { coin, side, z, funding, score, decision }
+      }),
+    )
+    const rows = computed
+      .filter((r): r is ScanRow => r !== null)
+      .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
+    if (rows.length < 3) return null
+
+    const signals = rows.filter((r) => r.decision === 'SIGNAL').length
+    const shortBiased = rows.filter((r) => r.side === 'short').length
+    const equityUsd = Number(state?.marginSummary?.accountValue ?? 0)
+    const png = renderScanCard({
+      rows: rows.slice(0, 5),
+      equityUsd,
+      openPositions: held.size,
+      marketsScanned: ranked.length,
+      signals,
+      shortBiased,
+      entryThreshold: DEFAULT_RISK.entryThreshold,
+    })
+    return {
+      png,
+      summary: `${ranked.length} markets scanned, ${shortBiased}/${rows.length} short-biased, ${signals} signal${signals === 1 ? '' : 's'} above the entry bar, ${held.size} position${held.size === 1 ? '' : 's'} open, account value $${equityUsd.toFixed(2)}`,
+    }
+  } catch {
+    return null
+  }
+}
 
 // ---------- X API (OAuth 1.0a user context) ----------
 function oauth1(method: string, url: string, params: Record<string, string>): string {
@@ -310,6 +386,7 @@ export async function GET(req: NextRequest) {
   // What we already said, so we do not say it again (this is the fix for the
   // 2026-10-07..20 stretch of thirteen near-identical posts).
   const recent = await recentPosts(8)
+  const scan = await scanSnapshot()
   const dayIndex = Math.floor(Date.now() / 86_400_000)
   const angle = ANGLES[dayIndex % ANGLES.length]
   const avoid = recent.length
@@ -323,7 +400,7 @@ export async function GET(req: NextRequest) {
     'You follow the X ranking playbook: hook in the first 8 words, name the topic in the first 10 words, write to be DM-forwarded and to earn a follow (not a like), be specific, never use AI-tells.',
   ].join('\n')
 
-  const user = `My GitHub activity (last 7 days):\n${activity.map((a) => '- ' + a).join('\n')}${avoid}\n\nANGLE FOR THIS POST (must differ from every recent post above): ${angle}.\n\nWrite ONE X post that would earn shares and follows from crypto traders and developers building AI agents (Hyperliquid perp DEX, non-custodial tooling).\n\nFORMAT (proven; the ENTIRE post MUST be <= 280 chars INCLUDING newlines and hashtags - count characters before you answer):\n- Line 1 = HOOK: a specific claim, pain, or surprising number within the FIRST 8 words. Do NOT start with "We", "I", or the product name. Name the topic (AI trading / Hyperliquid / non-custodial / MCP) within the first 10 words. <= 8 words / ~60 chars.\n- Then 1-2 short lines (~70 chars each) that give the reader something useful. Translate the work into what a developer building agents CARES ABOUT - never describe our commits, PRs or workflows.\n- 1 short line of PROOF: a real number from the data above (~45 chars).\n- 1 short line CTA: a question OR "repo in bio" (~35 chars).\n- LAST line: EXACTLY 2 hashtags (X rewards 1-2; more looks spammy).\n\nBANNED phrases (AI-tells + reach killers): "It\'s not X, it\'s Y" / "Not because X. Because Y." / negation lists ("no X, no Y") / colon reveals ("The result? ...") / trailing pile-ons / engagement-bait / raw changelogs ("N commits", "we shipped").\nHARD RULES: <= 280 chars total; use specific nouns (Hyperliquid, MCP, MetaMask, USDC, agent wallet); grounded ONLY in the data above (never invent); NO URLs; <=1 emoji.\n\nHOOK LAB - write 3 candidate posts, all opening with a BOLD SPECIFIC CLAIM (62% of viral crypto posts do; listicles 3% and question hooks 4% flop). Use three flavours: (a) a bold claim about AI trading backed by one real number; (b) an honest build-log line ("Day N of an AI agent running real money - here is what changed"); (c) a surprising specific number as the literal first words. Data from 900+ viral CT posts: storytelling / build-in-public wins (457 avg likes vs 95 for promo), metric posts get the most reposts, hashtags beyond 2 hurt, links kill reach. Write like an operator, not a marketer - admit a real trade-off or loss when it fits. The hook must win attention in the FIRST 6 words.\nReturn STRICT JSON only:\n{"posts":["<candidate 1: full post incl. newlines and the 2-hashtag last line>","<candidate 2>","<candidate 3>"]}`
+  const user = `My GitHub activity (last 7 days):\n${activity.map((a) => '- ' + a).join('\n')}${avoid}\n\nANGLE FOR THIS POST (must differ from every recent post above): ${angle}.\n\nThe post carries one image — today's agent scan: ${scan ? scan.summary : 'unavailable'}. Reference it only if it fits the angle; never invent numbers beyond it.\n\nWrite ONE X post that would earn shares and follows from crypto traders and developers building AI agents (Hyperliquid perp DEX, non-custodial tooling).\n\nFORMAT (proven; the ENTIRE post MUST be <= 280 chars INCLUDING newlines and hashtags - count characters before you answer):\n- Line 1 = HOOK: a specific claim, pain, or surprising number within the FIRST 8 words. Do NOT start with "We", "I", or the product name. Name the topic (AI trading / Hyperliquid / non-custodial / MCP) within the first 10 words. <= 8 words / ~60 chars.\n- Then 1-2 short lines (~70 chars each) that give the reader something useful. Translate the work into what a developer building agents CARES ABOUT - never describe our commits, PRs or workflows.\n- 1 short line of PROOF: a real number from the data above (~45 chars).\n- 1 short line CTA: a question OR "repo in bio" (~35 chars).\n- LAST line: EXACTLY 2 hashtags (X rewards 1-2; more looks spammy).\n\nBANNED phrases (AI-tells + reach killers): "It\'s not X, it\'s Y" / "Not because X. Because Y." / negation lists ("no X, no Y") / colon reveals ("The result? ...") / trailing pile-ons / engagement-bait / raw changelogs ("N commits", "we shipped").\nHARD RULES: <= 280 chars total; use specific nouns (Hyperliquid, MCP, MetaMask, USDC, agent wallet); grounded ONLY in the data above (never invent); NO URLs; <=1 emoji.\n\nHOOK LAB - write 3 candidate posts, all opening with a BOLD SPECIFIC CLAIM (62% of viral crypto posts do; listicles 3% and question hooks 4% flop). Use three flavours: (a) a bold claim about AI trading backed by one real number; (b) an honest build-log line ("Day N of an AI agent running real money - here is what changed"); (c) a surprising specific number as the literal first words. Data from 900+ viral CT posts: storytelling / build-in-public wins (457 avg likes vs 95 for promo), metric posts get the most reposts, hashtags beyond 2 hurt, links kill reach. Write like an operator, not a marketer - admit a real trade-off or loss when it fits. The hook must win attention in the FIRST 6 words.\nReturn STRICT JSON only:\n{"posts":["<candidate 1: full post incl. newlines and the 2-hashtag last line>","<candidate 2>","<candidate 3>"]}`
 
   let chosen = ''
   let issues: string[] = []
@@ -367,21 +444,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, tg: 'sent' })
   }
 
-  // Animated card: draw the live account's cumulative PnL as a motion graphic
-  // and attach it. Any failure degrades to a text-only post — the daily post
-  // must never be lost to the card.
+  // Media preference: scan card → PnL GIF → text-only; the post is never lost to its image.
   let mediaId: string | null = null
-  try {
-    const pnl = await livePnl()
-    const gif = await renderTradingGif({
-      pnl: pnl ?? 0,
-      headline: text.split('\n')[0],
-      sub: pnl !== null ? 'LIVE ACCOUNT · SINCE LAUNCH' : 'PROTOCOL BANK · AI TRADING',
-      paper: pnl === null,
-    })
-    if (gif.length > 0 && gif.length < 15 * 1024 * 1024) mediaId = await uploadMedia(gif)
-  } catch {
-    mediaId = null
+  if (scan) {
+    try {
+      if (scan.png.length > 0 && scan.png.length < 15 * 1024 * 1024) mediaId = await uploadMedia(scan.png)
+    } catch {
+      mediaId = null
+    }
+  }
+  if (!mediaId) {
+    try {
+      const pnl = await livePnl()
+      const gif = await renderTradingGif({
+        pnl: pnl ?? 0,
+        headline: text.split('\n')[0],
+        sub: pnl !== null ? 'LIVE ACCOUNT · SINCE LAUNCH' : 'PROTOCOL BANK · AI TRADING',
+        paper: pnl === null,
+      })
+      if (gif.length > 0 && gif.length < 15 * 1024 * 1024) mediaId = await uploadMedia(gif)
+    } catch {
+      mediaId = null
+    }
   }
 
   const [x, bsky] = await Promise.all([postToX(text, mediaId), postToBluesky(text)])
