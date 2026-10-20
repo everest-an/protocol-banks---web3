@@ -3,7 +3,7 @@
  * publishing variations of one template (2026-10-07..20, 0-1 like each): the
  * generator needs to refuse internal jargon, star-count filler and repeats.
  */
-import { validatePost, type RecentPost } from "@/app/api/cron/x-post/route"
+import { validatePost, type RecentPost } from "@/lib/social/x-post-validation"
 
 const GOOD = [
   "Every AI trading agent eventually loses an order.",
