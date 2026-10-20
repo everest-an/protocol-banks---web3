@@ -45,12 +45,60 @@ async function recentActivity(): Promise<string[]> {
   }
 }
 
-async function repoStats(): Promise<string[]> {
+/** One angle per day, rotating. The feed turned into slop (2026-10-07..20:
+ *  thirteen near-identical posts, 0-1 like each) because every day mined the
+ *  same two themes — non-custody and the repo's star count. */
+const ANGLES = [
+  'an execution or risk lesson for people building trading agents: a concrete failure, and the mechanism that now handles it',
+  'a market-structure observation (funding, liquidations, order flow on perp venues) that a trader could act on',
+  'a build-log beat with ONE honest number from the live account, and what changed because of it',
+  'a contrarian take on custody or agent permissions, argued from mechanics rather than marketing',
+  'one specific user flow, described without adjectives',
+  'a failure post-mortem: what broke, what it cost, what we changed',
+]
+
+export interface RecentPost {
+  id: string
+  text: string
+  hook: string
+  cta: string
+  at: string
+}
+
+/** Last few posts, so the generator can be told what NOT to repeat. Best
+ *  effort: a failure here must never block the daily post. */
+async function recentPosts(limit = 8): Promise<RecentPost[]> {
+  const userId = (process.env.X_ACCESS_TOKEN || '').split('-')[0]
+  if (!/^\d{5,}$/.test(userId)) return []
+  const base = `https://api.x.com/2/users/${userId}/tweets`
+  const params: Record<string, string> = {
+    max_results: String(Math.max(5, Math.min(100, limit))),
+    'tweet.fields': 'created_at',
+    exclude: 'retweets,replies',
+  }
   try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}`, { headers: GH_HEADERS, cache: 'no-store' })
-    if (!r.ok) return []
-    const d = (await r.json()) as { full_name: string; stargazers_count: number; forks_count: number; pushed_at?: string }
-    return [`${d.full_name}: ${d.stargazers_count}★, ${d.forks_count} forks, updated ${(d.pushed_at || '').slice(0, 10)}`]
+    const qs = Object.keys(params)
+      .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
+      .join('&')
+    const res = await fetch(`${base}?${qs}`, {
+      headers: { Authorization: oauth1('GET', base, params) },
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    const body = (await res.json()) as { data?: { id: string; text: string; created_at?: string }[] }
+    return (body.data ?? []).slice(0, limit).map((t) => {
+      const lines = t.text
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      return {
+        id: t.id,
+        text: t.text,
+        hook: lines[0] ?? '',
+        cta: lines.length >= 2 ? lines[lines.length - 2] : '',
+        at: t.created_at ?? '',
+      }
+    })
   } catch {
     return []
   }
@@ -108,8 +156,43 @@ async function llm(system: string, user: string): Promise<string> {
   throw new Error('all LLM providers failed: ' + last)
 }
 
-// Enforced, not just prompted — same checks as the local poster.
-function validatePost(p: string): string[] {
+/** Internal terms, filler stats and links that made the feed unreadable:
+ *  a reader cannot care about our A/B numbers, model names or star counts. */
+const BANNED_PATTERNS: Array<{ re: RegExp; why: string }> = [
+  {
+    re: /\b(a\/b|ab harness|6\/7|nl routing|whitelist validator|confirmation gate|velvetflash|deepseek|4b)\b/i,
+    why: 'names internal tooling or a model A/B the reader cannot know',
+  },
+  { re: /[★⭐]|\b\d+\s+stars?\b|\b\d+\s+forks?\b/i, why: 'repo star/fork filler instead of substance' },
+  { re: /https?:\/\//i, why: 'a link in the post kills reach' },
+]
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+
+/** True when a hook reuses a recent hook's wording. */
+function repeatsRecentHook(hook: string, recent: RecentPost[]): boolean {
+  const words = new Set(norm(hook).split(' ').filter(Boolean))
+  if (!words.size) return false
+  const prefix = norm(hook).split(' ').slice(0, 4).join(' ')
+  return recent.some((r) => {
+    const old = new Set(norm(r.hook).split(' ').filter(Boolean))
+    if (!old.size) return false
+    if (prefix && prefix === norm(r.hook).split(' ').slice(0, 4).join(' ')) return true
+    const shared = [...words].filter((w) => old.has(w)).length
+    return shared / Math.max(words.size, old.size) > 0.8
+  })
+}
+
+function lastCta(text: string): string {
+  const lines = text
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  return lines.length >= 2 ? lines[lines.length - 2] : ''
+}
+
+/** Enforced, not just prompted — same checks as the local poster. */
+export function validatePost(p: string, recent: RecentPost[] = []): string[] {
   const t = String(p || '').trim()
   const issues: string[] = []
   if (t.length > 280) issues.push(`too long (${t.length} chars)`)
@@ -121,6 +204,12 @@ function validatePost(p: string): string[] {
   if (/\b\d+\s+commits?\b|we shipped|we built/i.test(t)) issues.push('reads like a changelog')
   if (/it'?s not .+,\s*it'?s|not because .+because|the result\?/i.test(t)) issues.push('contains an AI-tell')
   if (!/\d/.test(t)) issues.push('missing a concrete number/proof')
+  for (const { re, why } of BANNED_PATTERNS) if (re.test(t)) issues.push(why)
+  if (recent.length) {
+    if (repeatsRecentHook(firstLine, recent)) issues.push('hook repeats one of the last 8 posts')
+    const cta = norm(lastCta(t))
+    if (cta && recent.some((r) => norm(r.cta) === cta)) issues.push('CTA repeats a recent post — write a new closing line')
+  }
   return issues
 }
 
@@ -280,7 +369,14 @@ export async function GET(req: NextRequest) {
   try {
     const activity = await recentActivity()
   if (!activity.length) return NextResponse.json({ ok: true, skipped: 'no public activity in the last 7 days' })
-  const stats = await repoStats()
+  // What we already said, so we do not say it again (this is the fix for the
+  // 2026-10-07..20 stretch of thirteen near-identical posts).
+  const recent = await recentPosts(8)
+  const dayIndex = Math.floor(Date.now() / 86_400_000)
+  const angle = ANGLES[dayIndex % ANGLES.length]
+  const avoid = recent.length
+    ? `\n\nRECENT POSTS — the reader has already seen these. Do NOT reuse their theme, hook, stats, structure or closing line:\n${recent.map((r, i) => `${i + 1}. ${r.hook}`).join('\n')}`
+    : ''
 
   const system = [
     `You are the social lead for Protocol Bank (@0xPrococolBank), writing for technical builders on X.`,
@@ -289,7 +385,7 @@ export async function GET(req: NextRequest) {
     'You follow the X ranking playbook: hook in the first 8 words, name the topic in the first 10 words, write to be DM-forwarded and to earn a follow (not a like), be specific, never use AI-tells.',
   ].join('\n')
 
-  const user = `My GitHub activity (last 7 days):\n${activity.map((a) => '- ' + a).join('\n')}\n\nRepo stats:\n${stats.map((s) => '- ' + s).join('\n')}\n\nWrite ONE X post that would earn shares and follows from crypto traders and developers building AI agents (Hyperliquid perp DEX, non-custodial tooling).\n\nFORMAT (proven; the ENTIRE post MUST be <= 280 chars INCLUDING newlines and hashtags - count characters before you answer):\n- Line 1 = HOOK: a specific claim, pain, or surprising number within the FIRST 8 words. Do NOT start with "We", "I", or the product name. Name the topic (AI trading / Hyperliquid / non-custodial / MCP) within the first 10 words. <= 8 words / ~60 chars.\n- Then 1-2 short lines (~70 chars each) that give the reader something useful. Translate the work into what a developer building agents CARES ABOUT - never describe our commits, PRs or workflows.\n- 1 short line of PROOF: a real number from the data above (~45 chars).\n- 1 short line CTA: a question OR "repo in bio" (~35 chars).\n- LAST line: EXACTLY 2 hashtags (X rewards 1-2; more looks spammy).\n\nBANNED phrases (AI-tells + reach killers): "It\'s not X, it\'s Y" / "Not because X. Because Y." / negation lists ("no X, no Y") / colon reveals ("The result? ...") / trailing pile-ons / engagement-bait / raw changelogs ("N commits", "we shipped").\nHARD RULES: <= 280 chars total; use specific nouns (Hyperliquid, MCP, MetaMask, USDC, agent wallet); grounded ONLY in the data above (never invent); NO URLs; <=1 emoji.\n\nHOOK LAB - write 3 candidate posts, all opening with a BOLD SPECIFIC CLAIM (62% of viral crypto posts do; listicles 3% and question hooks 4% flop). Use three flavours: (a) a bold claim about AI trading backed by one real number; (b) an honest build-log line ("Day N of an AI agent running real money - here is what changed"); (c) a surprising specific number as the literal first words. Data from 900+ viral CT posts: storytelling / build-in-public wins (457 avg likes vs 95 for promo), metric posts get the most reposts, hashtags beyond 2 hurt, links kill reach. Write like an operator, not a marketer - admit a real trade-off or loss when it fits. The hook must win attention in the FIRST 6 words.\nReturn STRICT JSON only:\n{"posts":["<candidate 1: full post incl. newlines and the 2-hashtag last line>","<candidate 2>","<candidate 3>"]}`
+  const user = `My GitHub activity (last 7 days):\n${activity.map((a) => '- ' + a).join('\n')}${avoid}\n\nANGLE FOR THIS POST (must differ from every recent post above): ${angle}.\n\nWrite ONE X post that would earn shares and follows from crypto traders and developers building AI agents (Hyperliquid perp DEX, non-custodial tooling).\n\nFORMAT (proven; the ENTIRE post MUST be <= 280 chars INCLUDING newlines and hashtags - count characters before you answer):\n- Line 1 = HOOK: a specific claim, pain, or surprising number within the FIRST 8 words. Do NOT start with "We", "I", or the product name. Name the topic (AI trading / Hyperliquid / non-custodial / MCP) within the first 10 words. <= 8 words / ~60 chars.\n- Then 1-2 short lines (~70 chars each) that give the reader something useful. Translate the work into what a developer building agents CARES ABOUT - never describe our commits, PRs or workflows.\n- 1 short line of PROOF: a real number from the data above (~45 chars).\n- 1 short line CTA: a question OR "repo in bio" (~35 chars).\n- LAST line: EXACTLY 2 hashtags (X rewards 1-2; more looks spammy).\n\nBANNED phrases (AI-tells + reach killers): "It\'s not X, it\'s Y" / "Not because X. Because Y." / negation lists ("no X, no Y") / colon reveals ("The result? ...") / trailing pile-ons / engagement-bait / raw changelogs ("N commits", "we shipped").\nHARD RULES: <= 280 chars total; use specific nouns (Hyperliquid, MCP, MetaMask, USDC, agent wallet); grounded ONLY in the data above (never invent); NO URLs; <=1 emoji.\n\nHOOK LAB - write 3 candidate posts, all opening with a BOLD SPECIFIC CLAIM (62% of viral crypto posts do; listicles 3% and question hooks 4% flop). Use three flavours: (a) a bold claim about AI trading backed by one real number; (b) an honest build-log line ("Day N of an AI agent running real money - here is what changed"); (c) a surprising specific number as the literal first words. Data from 900+ viral CT posts: storytelling / build-in-public wins (457 avg likes vs 95 for promo), metric posts get the most reposts, hashtags beyond 2 hurt, links kill reach. Write like an operator, not a marketer - admit a real trade-off or loss when it fits. The hook must win attention in the FIRST 6 words.\nReturn STRICT JSON only:\n{"posts":["<candidate 1: full post incl. newlines and the 2-hashtag last line>","<candidate 2>","<candidate 3>"]}`
 
   let chosen = ''
   let issues: string[] = []
@@ -312,7 +408,7 @@ export async function GET(req: NextRequest) {
       issues = ['no candidates returned']
       continue
     }
-    const passing = normalized.filter((c) => validatePost(c).length === 0)
+    const passing = normalized.filter((c) => validatePost(c, recent).length === 0)
     if (passing.length) {
       // Prefer the punchiest passing hook (shortest first line).
       chosen = passing.sort((a, b) => a.split('\n')[0].length - b.split('\n')[0].length)[0]
@@ -320,7 +416,7 @@ export async function GET(req: NextRequest) {
       break
     }
     chosen = normalized[0]
-    issues = validatePost(chosen)
+    issues = validatePost(chosen, recent)
   }
 
   const text = chosen.trim()
