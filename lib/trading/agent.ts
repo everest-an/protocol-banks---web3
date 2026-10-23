@@ -926,15 +926,25 @@ export function getAgent(): TradingAgent {
 /** Per-wallet agent instances — paper state is isolated per connected user. */
 const walletAgents = new Map<string, TradingAgent>()
 
-export function getAgentForWallet(walletAddress: string | null | undefined): TradingAgent {
+export function getAgentForWallet(
+  walletAddress: string | null | undefined,
+  risk: RiskConfig = DEFAULT_RISK,
+): TradingAgent {
   if (!walletAddress) return getAgent() // guests share the demo account
   const key = walletAddress.toLowerCase()
   let agent = walletAgents.get(key)
   if (!agent) {
-    agent = new TradingAgent(getStoreForWallet(key))
+    agent = new TradingAgent(getStoreForWallet(key), risk)
     walletAgents.set(key, agent)
   }
   return agent
+}
+
+/** Drop the cached instance so the next resolution picks up new config (e.g. a
+ *  strategy change). The store is shared, so the ledger survives. */
+export function invalidateAgentForWallet(walletAddress: string | null | undefined): void {
+  if (!walletAddress) return
+  walletAgents.delete(walletAddress.toLowerCase())
 }
 
 /**
@@ -959,12 +969,26 @@ export async function resolveAgentForWallet(
   const existing = walletAgents.get(key)
   if (existing?.isLive()) return existing
 
+  let risk: RiskConfig = DEFAULT_RISK
   try {
     const { prisma } = await import("@/lib/prisma")
     const row = await prisma.tradingAccount.findUnique({
       where: { wallet_address: key },
-      select: { status: true, agent_approved: true, hyperliquid_address: true, budget_usd: true, state_json: true },
+      select: {
+        status: true,
+        agent_approved: true,
+        hyperliquid_address: true,
+        budget_usd: true,
+        state_json: true,
+        risk_config: true,
+      },
     })
+
+    if (row?.risk_config) {
+      const { resolveStrategyProfile } = await import("./strategy-profile")
+      const resolved = resolveStrategyProfile(row.risk_config)
+      if (resolved.ok) risk = resolved.config
+    }
 
     if (row && row.status === "live" && row.agent_approved) {
       // Serverless runtimes have no persistent disk: hydrate the agent-key
@@ -981,7 +1005,7 @@ export async function resolveAgentForWallet(
         vaultAddress: resolveVaultAddress(row.hyperliquid_address, key),
       })
       const store = getStoreForWallet(key)
-      const agent = new TradingAgent(store, DEFAULT_RISK, key, { mode: "live", executor })
+      const agent = new TradingAgent(store, risk, key, { mode: "live", executor })
 
       // ── Promotion is one-way, decided by the DURABLE ledger ─────────────
       // In a cold serverless instance the in-memory store is still a fresh
@@ -1010,5 +1034,5 @@ export async function resolveAgentForWallet(
     /* DB unavailable or account not live — stay on the paper agent */
   }
 
-  return getAgentForWallet(key)
+  return getAgentForWallet(key, risk)
 }

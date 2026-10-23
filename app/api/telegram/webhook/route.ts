@@ -13,12 +13,57 @@
 // and only the configured owner chat is answered.
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+import { PRESETS, resolveStrategyProfile } from '@/lib/trading/strategy-profile'
+import type { RiskConfig } from '@/lib/trading/risk'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const HL_INFO = 'https://api.hyperliquid.xyz/info'
 const BOT_USERNAME = process.env.TG_BOT_USERNAME || 'ProtocolTraderBot'
+
+const TUNABLE: Array<keyof RiskConfig> = [
+  'entryThreshold',
+  'exitFadeThreshold',
+  'takeProfitPct',
+  'stopLossPct',
+  'dailyLossStopPct',
+  'dailyLossKillPct',
+  'positionPct',
+  'maxPositions',
+  'leverage',
+  'approvalMode',
+  'minVolumeUsd',
+  'minNotionalUsd',
+  'slippageRate',
+]
+
+const pct = (v: number) => `${(v * 100).toFixed(v < 0.1 ? 1 : 0)}%`
+
+function formatStrategy(label: string, cfg: RiskConfig, extra = ''): string {
+  return [
+    `策略：${label}`,
+    `入场 |score| ≥ ${cfg.entryThreshold.toFixed(2)} · 衰减 < ${cfg.exitFadeThreshold.toFixed(2)}`,
+    `止盈 ${pct(cfg.takeProfitPct)} · 止损 ${pct(cfg.stopLossPct)}`,
+    `日内熔断 ${pct(cfg.dailyLossStopPct)} · 全平 ${pct(cfg.dailyLossKillPct)}`,
+    `单仓 ${pct(cfg.positionPct)} × 最多 ${cfg.maxPositions} · ${cfg.leverage}x`,
+    `入场模式：${cfg.approvalMode === 'manual' ? '手动确认' : '自动'}`,
+    extra,
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+function diffConfig(a: RiskConfig, b: RiskConfig): string[] {
+  return TUNABLE.filter((k) => a[k] !== b[k]).map((k) => `· ${k}: ${String(a[k])} → ${String(b[k])}`)
+}
+
+type PendingStrategy = { preset?: string; overrides?: Prisma.JsonObject; requestedAt?: string }
+
+function asObject(v: unknown): Prisma.JsonObject {
+  return v && typeof v === 'object' && !Array.isArray(v) ? (v as Prisma.JsonObject) : {}
+}
 
 async function venueSnapshot(wallet: string): Promise<string> {
   try {
@@ -217,6 +262,160 @@ export async function POST(req: NextRequest) {
   } else {
     // Owner DM keeps the operator account.
     walletForChat = (process.env.TG_ACCOUNT_WALLET || '').toLowerCase()
+  }
+
+  // ── Strategy: readable anywhere, changed only in a private chat ──────
+  const isStrategyCommand = /^\/strategy(?:@\w+)?\b/i.test(text) || /^\/(confirm|cancel)\b/i.test(text)
+  if (isStrategyCommand && !walletForChat) {
+    await send(chatId, '这个聊天还没有绑定账户。请先在 protocolbanks.com → Settings → Telegram 绑定。')
+    return NextResponse.json({ ok: true })
+  }
+
+  const readRiskConfig = async (): Promise<Prisma.JsonObject> => {
+    const row = await prisma.tradingAccount.findUnique({
+      where: { wallet_address: walletForChat },
+      select: { risk_config: true },
+    })
+    return asObject(row?.risk_config)
+  }
+
+  if (/^\/strategy(?:@\w+)?\s*$/i.test(text)) {
+    const resolved = resolveStrategyProfile(await readRiskConfig())
+    if (!resolved.ok) {
+      await send(chatId, `当前策略配置无法解析：${resolved.errors.join('；')}\n发送 /strategy preset balanced 重置。`)
+      return NextResponse.json({ ok: true })
+    }
+    const clamped = resolved.clamped.map((c) => `${c.field} ${String(c.requested)}→${String(c.applied)}`).join('，')
+    await send(
+      chatId,
+      `${formatStrategy(resolved.preset, resolved.config, clamped ? `已夹紧：${clamped}` : '')}\n\n预设：${Object.keys(PRESETS).join(' | ')}\n修改：/strategy preset <name>\n自然语言：/strategy 我想少交易一点`,
+    )
+    return NextResponse.json({ ok: true })
+  }
+
+  const presetMatch = /^\/strategy(?:@\w+)?\s+preset\s+([a-z]+)$/i.exec(text)
+  if (presetMatch) {
+    if (isGroup) {
+      await send(chatId, '群里只能查看策略；修改请在私聊里操作。')
+      return NextResponse.json({ ok: true })
+    }
+    const name = presetMatch[1].toLowerCase()
+    if (!Object.prototype.hasOwnProperty.call(PRESETS, name)) {
+      await send(chatId, `未知预设「${name}」。可选：${Object.keys(PRESETS).join(', ')}`)
+      return NextResponse.json({ ok: true })
+    }
+    const raw = await readRiskConfig()
+    const current = resolveStrategyProfile(raw)
+    const proposed = resolveStrategyProfile({ preset: name })
+    if (!proposed.ok) {
+      await send(chatId, `无法使用该预设：${proposed.errors.join('；')}`)
+      return NextResponse.json({ ok: true })
+    }
+    const changes = current.ok ? diffConfig(current.config, proposed.config) : []
+    await prisma.tradingAccount.update({
+      where: { wallet_address: walletForChat },
+      data: { risk_config: { ...raw, pending: { preset: name, requestedAt: new Date().toISOString() } } },
+    })
+    await send(
+      chatId,
+      `拟改为 ${name}：\n${changes.length ? changes.join('\n') : '· 与当前一致'}\n\n10 分钟内发送 /confirm 生效，/cancel 取消。`,
+    )
+    return NextResponse.json({ ok: true })
+  }
+
+  const nlMatch = /^\/strategy(?:@\w+)?\s+(.+)$/i.exec(text)
+  if (nlMatch) {
+    if (isGroup) {
+      await send(chatId, '群里只能查看策略；修改请在私聊里操作。')
+      return NextResponse.json({ ok: true })
+    }
+    const request = nlMatch[1].trim().slice(0, 300)
+    const [{ interpretStrategyRequest }, { completeWithPlatform }] = await Promise.all([
+      import('@/lib/trading/strategy-nl'),
+      import('@/lib/trading/llm-advisor'),
+    ])
+    const interpreted = await interpretStrategyRequest(request, completeWithPlatform)
+    if (!interpreted.ok) {
+      await send(chatId, `没能理解这条策略：${interpreted.reason}`)
+      return NextResponse.json({ ok: true })
+    }
+    const raw = await readRiskConfig()
+    const current = resolveStrategyProfile(raw)
+    const proposed = resolveStrategyProfile({
+      preset: interpreted.intent.preset,
+      overrides: interpreted.intent.overrides,
+    })
+    if (!proposed.ok) {
+      await send(chatId, `这个策略不能被接受：${proposed.errors.join('；')}`)
+      return NextResponse.json({ ok: true })
+    }
+    const changes = current.ok ? diffConfig(current.config, proposed.config) : []
+    await prisma.tradingAccount.update({
+      where: { wallet_address: walletForChat },
+      data: {
+        risk_config: {
+          ...raw,
+          pending: {
+            preset: interpreted.intent.preset,
+            overrides: interpreted.intent.overrides,
+            requestedAt: new Date().toISOString(),
+          },
+        },
+      },
+    })
+    const clamped = proposed.clamped.map((c) => `${c.field} ${String(c.requested)}→${String(c.applied)}`).join('，')
+    await send(
+      chatId,
+      `理解为 ${interpreted.intent.preset}${interpreted.intent.note ? `（${interpreted.intent.note}）` : ''}：\n${changes.length ? changes.join('\n') : '· 与当前一致'}${clamped ? `\n已夹紧：${clamped}` : ''}\n\n10 分钟内发送 /confirm 生效，/cancel 取消。`,
+    )
+    return NextResponse.json({ ok: true })
+  }
+
+  if (/^\/confirm\b/i.test(text)) {
+    if (isGroup) {
+      await send(chatId, '请在私聊里确认策略变更。')
+      return NextResponse.json({ ok: true })
+    }
+    const raw = await readRiskConfig()
+    const pending = raw.pending as PendingStrategy | undefined
+    if (!pending?.preset || !pending.requestedAt || Date.now() - new Date(pending.requestedAt).getTime() > 10 * 60_000) {
+      await send(chatId, '没有待确认的策略变更（或已超过 10 分钟）。')
+      return NextResponse.json({ ok: true })
+    }
+    const resolved = resolveStrategyProfile({ preset: pending.preset, overrides: pending.overrides })
+    if (!resolved.ok) {
+      await send(chatId, `无法应用：${resolved.errors.join('；')}`)
+      return NextResponse.json({ ok: true })
+    }
+    await prisma.tradingAccount.update({
+      where: { wallet_address: walletForChat },
+      data: {
+        risk_config: {
+          preset: pending.preset,
+          overrides: pending.overrides ?? {},
+          appliedAt: new Date().toISOString(),
+          appliedVia: 'telegram',
+        },
+      },
+    })
+    const { invalidateAgentForWallet } = await import('@/lib/trading/agent')
+    invalidateAgentForWallet(walletForChat)
+    const clamped = resolved.clamped.map((c) => `${c.field} ${String(c.requested)}→${String(c.applied)}`).join('，')
+    await send(chatId, formatStrategy(`${pending.preset}（已生效）`, resolved.config, clamped ? `已夹紧：${clamped}` : ''))
+    return NextResponse.json({ ok: true })
+  }
+
+  if (/^\/cancel\b/i.test(text)) {
+    const raw = await readRiskConfig()
+    if (!raw.pending) {
+      await send(chatId, '没有待确认的策略变更。')
+      return NextResponse.json({ ok: true })
+    }
+    const rest = { ...raw }
+    delete rest.pending
+    await prisma.tradingAccount.update({ where: { wallet_address: walletForChat }, data: { risk_config: rest } })
+    await send(chatId, '已取消待确认的策略变更。')
+    return NextResponse.json({ ok: true })
   }
 
   // Ops command: report the chat id (used to wire broadcast targets like the
