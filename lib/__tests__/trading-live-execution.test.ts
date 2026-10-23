@@ -10,6 +10,7 @@ import { seedState, type TradingStore } from "@/lib/trading/store"
 import { TradingAgent } from "@/lib/trading/agent"
 import { LiveOrderExecutor, resolveVaultAddress, type OrderResult } from "@/lib/trading/live-executor"
 import { notificationService } from "@/lib/services/notification-service"
+import { recordTradeClosed, recordTradeOpened } from "@/lib/trading/db-store"
 import { DEFAULT_RISK } from "@/lib/trading/risk"
 import type { TradingState, PendingTrade, Position } from "@/lib/trading/types"
 import type { AssetCtx } from "@/lib/trading/hyperliquid"
@@ -19,6 +20,11 @@ import type { AssetCtx } from "@/lib/trading/hyperliquid"
 jest.mock("@/lib/trading/keys", () => ({
   getAgentWallet: jest.fn(),
   loadAgentKeyRecord: jest.fn(),
+}))
+jest.mock("@/lib/trading/db-store", () => ({
+  persistStateToDb: jest.fn().mockResolvedValue(undefined),
+  recordTradeOpened: jest.fn().mockResolvedValue(undefined),
+  recordTradeClosed: jest.fn().mockResolvedValue(undefined),
 }))
 jest.mock("@/lib/trading/exchange", () => {
   // The real error classes: live-executor narrows pre-submit failures with
@@ -249,6 +255,10 @@ describe("TradingAgent — live execution", () => {
     expect(pos.entry).toBeCloseTo(60123.5)
     expect(pos.size).toBeCloseTo(0.001)
     expect(store.get().activity.some((a) => a.text.includes("LIVE"))).toBe(true)
+    expect(recordTradeOpened).toHaveBeenCalledWith(
+      WALLET,
+      expect.objectContaining({ symbol: "BTC", side: "long", mode: "live", entryPrice: 60123.5, oid: 42 }),
+    )
   })
 
   it("records no position when the exchange rejects the order", async () => {
@@ -407,6 +417,10 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
     // 30 margin returned + 1.50 gross - 0.0246 exit fee
     expect(store.get().cash).toBeCloseTo(101.48, 2)
     expect(store.get().activity.some((a) => a.text.includes("take-profit"))).toBe(true)
+    expect(recordTradeClosed).toHaveBeenCalledWith(
+      WALLET,
+      expect.objectContaining({ symbol: "BTC", side: "long", exitPrice: 61500, pnl: expect.any(Number) }),
+    )
   })
 
   it("stop-loss closes a short by buying it back", async () => {

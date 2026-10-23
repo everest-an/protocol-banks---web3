@@ -22,7 +22,7 @@ import {
   type RiskConfig,
 } from "./risk"
 import { getStore, getStoreForWallet, promoteToLiveLedger, type TradingStore } from "./store"
-import { persistStateToDb } from "./db-store"
+import { persistStateToDb, recordTradeClosed, recordTradeOpened } from "./db-store"
 import { notificationService } from "@/lib/services/notification-service"
 import type { LiveOrderExecutor } from "./live-executor"
 import { adviseOnSignal } from "./llm-advisor"
@@ -533,6 +533,9 @@ export class TradingAgent {
       }
 
       let pnl: number | null = null
+      let closedSize = 0
+      let closedEntry = 0
+      let closedFees = 0
       this.store.mutate((s) => {
         const idx = s.positions.findIndex((x) => x.symbol === p.symbol && x.side === p.side)
         if (idx === -1) return
@@ -542,6 +545,9 @@ export class TradingAgent {
         const gross = pos.side === "long" ? exitNotional - entryNotional : entryNotional - exitNotional
         const exitFee = exitNotional * this.risk.feeRate
         const entryFee = entryNotional * this.risk.feeRate
+        closedSize = pos.size
+        closedEntry = pos.entry
+        closedFees = exitFee + entryFee
         // Two DIFFERENT numbers: the wallet gets the allocated margin back
         // plus the net result of the trade; the REPORTED PnL must not include
         // the margin. The old code returned `allocated + gross - exitFee` as
@@ -554,6 +560,18 @@ export class TradingAgent {
         s.positions.splice(idx, 1)
         this.refreshAccount(s)
       })
+      if (pnl !== null && this.ownerAddress) {
+        void recordTradeClosed(this.ownerAddress, {
+          mode: "live",
+          symbol: p.symbol,
+          side: p.side,
+          size: closedSize,
+          entryPrice: closedEntry,
+          exitPrice: result.avgPx,
+          pnl,
+          fees: closedFees,
+        })
+      }
       return pnl
     }
 
@@ -754,6 +772,7 @@ export class TradingAgent {
     // ── Deterministic fill price/size: paper marks vs live exchange fill ──
     let entryPrice: number
     let size: number
+    let oid: number | null = null
 
     if (this.mode === "live") {
       if (!this.executor) {
@@ -805,6 +824,7 @@ export class TradingAgent {
 
       entryPrice = result.avgPx
       size = result.totalSz
+      oid = result.oid
     } else {
       entryPrice = slippedPrice(sig.markPx, sig.side, this.risk)
       size = notional / entryPrice
@@ -829,6 +849,19 @@ export class TradingAgent {
       })
       this.refreshAccount(x)
     })
+
+    if (this.ownerAddress) {
+      void recordTradeOpened(this.ownerAddress, {
+        mode: this.mode,
+        symbol: sig.coin,
+        side: sig.side,
+        size,
+        entryPrice,
+        fees: fee,
+        reason: sig.reason,
+        oid,
+      })
+    }
 
     const fillLabel = this.mode === "live" ? "LIVE" : ""
     this.log(

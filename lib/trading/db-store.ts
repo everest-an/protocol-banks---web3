@@ -150,3 +150,93 @@ export async function loadStateFromDb(walletAddress: string): Promise<TradingSta
     return null
   }
 }
+
+export interface OpenedTradeInput {
+  mode: "paper" | "live"
+  symbol: string
+  side: "long" | "short"
+  size: number
+  entryPrice: number
+  fees: number
+  reason: string
+  oid?: number | null
+}
+
+export interface ClosedTradeInput {
+  mode: "paper" | "live"
+  symbol: string
+  side: "long" | "short"
+  size: number
+  entryPrice: number
+  exitPrice: number
+  pnl: number
+  fees: number
+}
+
+/** Trade history for receipts and the track record. Fire-and-forget: a write
+ *  failure must never break the trading loop. */
+export async function recordTradeOpened(walletAddress: string, trade: OpenedTradeInput): Promise<void> {
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    await prisma.tradeRecord.create({
+      data: {
+        wallet_address: walletAddress.toLowerCase(),
+        mode: trade.mode,
+        hyperliquid_oid: trade.oid != null ? BigInt(trade.oid) : null,
+        symbol: trade.symbol,
+        side: trade.side,
+        size: trade.size,
+        entry_price: trade.entryPrice,
+        fees: trade.fees,
+        reason: trade.reason.slice(0, 300),
+        status: "open",
+      },
+    })
+  } catch (e) {
+    console.warn("[trading] trade record (open) skipped:", e)
+  }
+}
+
+export async function recordTradeClosed(walletAddress: string, trade: ClosedTradeInput): Promise<void> {
+  const key = walletAddress.toLowerCase()
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    const open = await prisma.tradeRecord.findFirst({
+      where: { wallet_address: key, symbol: trade.symbol, side: trade.side, status: "open" },
+      orderBy: { opened_at: "desc" },
+      select: { id: true, fees: true },
+    })
+    if (open) {
+      await prisma.tradeRecord.update({
+        where: { id: open.id },
+        data: {
+          exit_price: trade.exitPrice,
+          pnl: trade.pnl,
+          fees: (open.fees ?? 0) + trade.fees,
+          status: "closed",
+          closed_at: new Date(),
+        },
+      })
+      return
+    }
+    // A position adopted from the venue has no open row; write the closed row
+    // so the receipt still has complete numbers.
+    await prisma.tradeRecord.create({
+      data: {
+        wallet_address: key,
+        mode: trade.mode,
+        symbol: trade.symbol,
+        side: trade.side,
+        size: trade.size,
+        entry_price: trade.entryPrice,
+        exit_price: trade.exitPrice,
+        pnl: trade.pnl,
+        fees: trade.fees,
+        status: "closed",
+        closed_at: new Date(),
+      },
+    })
+  } catch (e) {
+    console.warn("[trading] trade record (close) skipped:", e)
+  }
+}
