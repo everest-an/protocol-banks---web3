@@ -276,17 +276,26 @@ async function uploadMedia(gif: Uint8Array): Promise<string | null> {
   }
 }
 
-/** The live account's cumulative PnL for the motion graphic (null when none). */
+/** The most recently active live account's cumulative PnL (null when none).
+ *  findFirst returned an arbitrary row once several accounts were live — one of
+ *  them carried a null PnL and no positions, so the card could show the wrong
+ *  account's number. */
 async function livePnl(): Promise<number | null> {
   try {
     const { prisma } = await import('@/lib/prisma')
-    const row = await prisma.tradingAccount.findFirst({
+    const rows = await prisma.tradingAccount.findMany({
       where: { status: 'live' },
-      select: { state_json: true },
+      select: { wallet_address: true, state_json: true },
     })
-    const st = row?.state_json as { account?: { allTimePnl?: number } } | null
-    const v = st?.account?.allTimePnl
-    return typeof v === 'number' && Number.isFinite(v) ? v : null
+    let best: { at: number; pnl: number } | null = null
+    for (const row of rows) {
+      const st = row.state_json as { account?: { allTimePnl?: number }; lastTickAt?: number } | null
+      const pnl = st?.account?.allTimePnl
+      if (typeof pnl !== 'number' || !Number.isFinite(pnl)) continue
+      const at = Number(st?.lastTickAt ?? 0)
+      if (!best || at > best.at) best = { at, pnl }
+    }
+    return best ? best.pnl : null
   } catch {
     return null
   }
