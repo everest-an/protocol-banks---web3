@@ -1,0 +1,5547 @@
+{
+  "ranAt": "2026-10-24T07:58:49.446Z",
+  "risk": {
+    "maxPositions": 3,
+    "positionPct": 0.15,
+    "minNotionalUsd": 20,
+    "minVolumeUsd": 1000000,
+    "entryThreshold": 0.45,
+    "exitFadeThreshold": 0.3,
+    "takeProfitPct": 0.025,
+    "stopLossPct": 0.025,
+    "dailyLossStopPct": 0.05,
+    "dailyLossKillPct": 0.08,
+    "feeRate": 0.0004,
+    "slippageRate": 0.0005,
+    "leverage": 2,
+    "approvalMode": "auto"
+  },
+  "startEquity": 1000,
+  "result": {
+    "days": 120,
+    "coins": [
+      "BTC",
+      "ETH",
+      "SOL",
+      "XRP",
+      "DOGE",
+      "ARB",
+      "AVAX",
+      "SUI",
+      "NEAR"
+    ],
+    "benchmark": {
+      "symbol": "BTC",
+      "returnPct": 33.38
+    },
+    "finalEquity": 872.07,
+    "totalReturnPct": -12.79,
+    "maxDrawdownPct": 13.89,
+    "sharpeAnnualized": -4.35,
+    "trades": 548,
+    "winRatePct": 48.5,
+    "avgWin": 1.6,
+    "avgLoss": -1.97,
+    "profitFactor": 0.77,
+    "expectancyPerTrade": -0.233,
+    "feesPaid": 62.7,
+    "fundingNet": 0,
+    "avgHoldHours": 3.8,
+    "byReason": {
+      "take-profit": {
+        "n": 266,
+        "pnl": 426.3
+      },
+      "stop-loss": {
+        "n": 281,
+        "pnl": -553.63
+      },
+      "signal faded": {
+        "n": 1,
+        "pnl": -0.61
+      }
+    }
+  },
+  "trades": [
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.0609302,
+      "exit": 1.0736547315862501,
+      "pnl": 1.6825,
+      "margin": 75,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.07503725,
+      "exit": 1.0610684847328127,
+      "pnl": -2.0715,
+      "margin": 75.23646541884699,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.07511754,
+      "exit": 0.07414148146462501,
+      "pnl": -2.068,
+      "margin": 74.98987781109444,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.07594995599999999,
+      "exit": 0.07496308125922499,
+      "pnl": -2.0677,
+      "margin": 75.07810402554158,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.05482715,
+      "exit": 1.0411209897196876,
+      "pnl": -2.0351,
+      "margin": 74.66064971980828,
+      "reason": "stop-loss",
+      "hours": 10
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.3979973999999995,
+      "exit": 6.31486342128375,
+      "pnl": -2.0327,
+      "margin": 74.63058030097552,
+      "reason": "stop-loss",
+      "hours": 9
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.688142399999999,
+      "exit": 6.768358307909999,
+      "pnl": 1.6632,
+      "margin": 74.35556561310291,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.7544755499999996,
+      "exit": 6.666709583322188,
+      "pnl": -2.0571,
+      "margin": 74.47025109215272,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.077348655,
+      "exit": 0.07634360591409375,
+      "pnl": -2.054,
+      "margin": 74.48030314146126,
+      "reason": "stop-loss",
+      "hours": 7
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 75.65881049999999,
+      "exit": 74.67571883106562,
+      "pnl": -2.0503,
+      "margin": 74.34708738197439,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.70365015,
+      "exit": 6.616544595863438,
+      "pnl": -2.051,
+      "margin": 74.2484531044804,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 76.994478,
+      "exit": 77.9179305205125,
+      "pnl": 1.6529,
+      "margin": 73.86437956568487,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 77.77586849999999,
+      "exit": 76.76526830867813,
+      "pnl": -2.0404,
+      "margin": 73.98834932084523,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 78.4682145,
+      "exit": 77.44861813784063,
+      "pnl": -2.0362,
+      "margin": 73.8353204849954,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.7425010649999999,
+      "exit": 0.7514064371483437,
+      "pnl": 1.6489,
+      "margin": 73.68260815606615,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 82.1520555,
+      "exit": 81.08459222884689,
+      "pnl": -2.0317,
+      "margin": 73.67266376568203,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1651.2252,
+      "exit": 1671.0295822425,
+      "pnl": 1.649,
+      "margin": 73.68994152796628,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.74941452,
+      "exit": 0.73967681508075,
+      "pnl": -2.0346,
+      "margin": 73.77757391597675,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 81.5917755,
+      "exit": 80.53159236709688,
+      "pnl": -2.034,
+      "margin": 73.75766084542195,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1711.1551499999998,
+      "exit": 1688.9208277696875,
+      "pnl": -2.0343,
+      "margin": 73.76761670877447,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1702.1506499999998,
+      "exit": 1722.5658193584372,
+      "pnl": 1.6407,
+      "margin": 73.31985701809232,
+      "reason": "take-profit",
+      "hours": 9
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1720.75995,
+      "exit": 1741.3983146503124,
+      "pnl": 1.6425,
+      "margin": 73.39986787483552,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 61818.894,
+      "exit": 62560.3343599125,
+      "pnl": 1.643,
+      "margin": 73.42044853521725,
+      "reason": "take-profit",
+      "hours": 13
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1743.8715,
+      "exit": 1764.7870588031249,
+      "pnl": 1.6467,
+      "margin": 73.58380734284177,
+      "reason": "take-profit",
+      "hours": 10
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.770595105,
+      "exit": 0.7605821848544062,
+      "pnl": -2.0308,
+      "margin": 73.64169638848435,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.07805000549999999,
+      "exit": 0.07703584324103437,
+      "pnl": -2.0464,
+      "margin": 73.87089735343962,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08067031499999999,
+      "exit": 0.07962210509446875,
+      "pnl": -2.0252,
+      "margin": 73.43707178175868,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 83.5387485,
+      "exit": 82.45326688667812,
+      "pnl": -2.029,
+      "margin": 73.57550527711146,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.1399697,
+      "exit": 1.153642211589375,
+      "pnl": 1.6219,
+      "margin": 73.88086850153934,
+      "reason": "take-profit",
+      "hours": 17
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1792.9960499999997,
+      "exit": 1769.6983075753124,
+      "pnl": -2.0221,
+      "margin": 73.32461513831441,
+      "reason": "stop-loss",
+      "hours": 10
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.083831895,
+      "exit": 0.08274260431434377,
+      "pnl": -2.0179,
+      "margin": 73.17295909250788,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.085572765,
+      "exit": 0.08659910335021874,
+      "pnl": 1.6341,
+      "margin": 73.02161671430378,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08610303,
+      "exit": 0.0871357282160625,
+      "pnl": 1.6368,
+      "margin": 73.14417202443721,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08600297999999999,
+      "exit": 0.084885478778625,
+      "pnl": -2.0205,
+      "margin": 73.26693302440219,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.085312635,
+      "exit": 0.08633585341603126,
+      "pnl": 1.6362,
+      "margin": 73.11539628152404,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08710353,
+      "exit": 0.0859717285070625,
+      "pnl": -2.0197,
+      "margin": 73.23810898592595,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.085912935,
+      "exit": 0.08694335326415625,
+      "pnl": 1.6355,
+      "margin": 73.08663185931297,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08841418499999999,
+      "exit": 0.08947460263134374,
+      "pnl": 1.6383,
+      "margin": 73.2092962871518,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.089954955,
+      "exit": 0.09103385224153127,
+      "pnl": 1.641,
+      "margin": 73.3321665879591,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09046520999999999,
+      "exit": 0.0892897276775625,
+      "pnl": -2.0257,
+      "margin": 73.45524310726032,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08904449999999998,
+      "exit": 0.087887478028125,
+      "pnl": -2.0215,
+      "margin": 73.3033168858626,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.087573765,
+      "exit": 0.08862410284396875,
+      "pnl": 1.637,
+      "margin": 73.15170489086688,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08968482,
+      "exit": 0.090760477309875,
+      "pnl": 1.6397,
+      "margin": 73.27447853356456,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09257626499999999,
+      "exit": 0.09137335215665625,
+      "pnl": -2.0248,
+      "margin": 73.42271748183255,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09170583,
+      "exit": 0.0928057267985625,
+      "pnl": 1.6396,
+      "margin": 73.2693079198584,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 63785.87699999999,
+      "exit": 64550.90886226874,
+      "pnl": 1.6395,
+      "margin": 73.26458922538227,
+      "reason": "take-profit",
+      "hours": 11
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.095177565,
+      "exit": 0.09394085151478127,
+      "pnl": -2.0259,
+      "margin": 73.46230564750648,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1797.8985,
+      "exit": 1819.462045134375,
+      "pnl": 1.6442,
+      "margin": 73.47222164359697,
+      "reason": "take-profit",
+      "hours": 29
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1825.2121499999998,
+      "exit": 1801.4957996259375,
+      "pnl": -2.0258,
+      "margin": 73.45865207463183,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.099799875,
+      "exit": 0.10099684975078124,
+      "pnl": 1.6401,
+      "margin": 73.28945077559436,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.099799875,
+      "exit": 0.09850310037421876,
+      "pnl": -2.0234,
+      "margin": 73.3741581968536,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 64318.143,
+      "exit": 63482.40912939375,
+      "pnl": -2.0217,
+      "margin": 73.31006108720057,
+      "reason": "stop-loss",
+      "hours": 61
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1872.1355999999998,
+      "exit": 1894.5895263525,
+      "pnl": 1.636,
+      "margin": 73.10597737282048,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1883.3412,
+      "exit": 1905.9295235175002,
+      "pnl": 1.6411,
+      "margin": 73.33607453696207,
+      "reason": "take-profit",
+      "hours": 14
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 64728.348,
+      "exit": 65504.683623824996,
+      "pnl": 1.6365,
+      "margin": 73.1305912531614,
+      "reason": "take-profit",
+      "hours": 21
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.756528075,
+      "exit": 0.7656016835995313,
+      "pnl": 1.6357,
+      "margin": 73.09611080597924,
+      "reason": "take-profit",
+      "hours": 20
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 63973.971,
+      "exit": 64741.25881468125,
+      "pnl": 1.6475,
+      "margin": 73.62178977112026,
+      "reason": "take-profit",
+      "hours": 16
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1846.62285,
+      "exit": 1868.7707828071873,
+      "pnl": 1.6479,
+      "margin": 73.63947299300068,
+      "reason": "take-profit",
+      "hours": 12
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 76.1270445,
+      "exit": 77.04009323997188,
+      "pnl": 1.6523,
+      "margin": 73.83680702195818,
+      "reason": "take-profit",
+      "hours": 17
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 64761.364499999996,
+      "exit": 63919.87152002812,
+      "pnl": -2.036,
+      "margin": 73.82932630352784,
+      "reason": "stop-loss",
+      "hours": 33
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1872.7359,
+      "exit": 1848.402037899375,
+      "pnl": -2.0372,
+      "margin": 73.87351574028237,
+      "reason": "stop-loss",
+      "hours": 28
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.03791845,
+      "exit": 2.0623607344096873,
+      "pnl": 1.6453,
+      "margin": 73.68737688243394,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.03811855,
+      "exit": 2.011635747090938,
+      "pnl": -2.0392,
+      "margin": 73.8107732387387,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09072533999999999,
+      "exit": 0.089546477613375,
+      "pnl": -2.0349,
+      "margin": 73.79085120746021,
+      "reason": "stop-loss",
+      "hours": 7
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.13406675,
+      "exit": 1.1476684630828125,
+      "pnl": 1.6515,
+      "margin": 73.80081155087221,
+      "reason": "take-profit",
+      "hours": 8
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1943.6713499999998,
+      "exit": 1918.4157703959377,
+      "pnl": -2.0314,
+      "margin": 73.66305800096181,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.1485739999999998,
+      "exit": 1.1623497094125,
+      "pnl": 1.6459,
+      "margin": 73.55171010765467,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.1582788499999999,
+      "exit": 1.1432284641928125,
+      "pnl": -2.0274,
+      "margin": 73.51657447018063,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 66781.374,
+      "exit": 65913.6335215875,
+      "pnl": -2.0279,
+      "margin": 73.53674881065025,
+      "reason": "stop-loss",
+      "hours": 16
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.1420707499999998,
+      "exit": 1.1557684610578123,
+      "pnl": 1.6416,
+      "margin": 73.3595661936051,
+      "reason": "take-profit",
+      "hours": 18
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.478637699999999,
+      "exit": 6.556340860914375,
+      "pnl": 1.643,
+      "margin": 73.41914118461071,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.5649808499999995,
+      "exit": 6.643719589069687,
+      "pnl": 1.6457,
+      "margin": 73.54236367710651,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.07218907649999999,
+      "exit": 0.07305489423627187,
+      "pnl": 1.6462,
+      "margin": 73.64591007907734,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.66723195,
+      "exit": 6.747197063200312,
+      "pnl": 1.6485,
+      "margin": 73.66579297919465,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.073200582,
+      "exit": 0.07224943193763751,
+      "pnl": -2.0419,
+      "margin": 73.77621619574843,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.7563765,
+      "exit": 6.668585832853125,
+      "pnl": -2.033,
+      "margin": 73.72075010713556,
+      "reason": "stop-loss",
+      "hours": 16
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1880.9399999999998,
+      "exit": 1903.4995241249999,
+      "pnl": 1.6503,
+      "margin": 73.7481372224033,
+      "reason": "take-profit",
+      "hours": 15
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 74.921442,
+      "exit": 75.8200310449875,
+      "pnl": 1.6464,
+      "margin": 73.57398129428564,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1914.9569999999999,
+      "exit": 1937.92451551875,
+      "pnl": 1.6519,
+      "margin": 73.81866075697334,
+      "reason": "take-profit",
+      "hours": 7
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 75.5387505,
+      "exit": 76.44474338880939,
+      "pnl": 1.6527,
+      "margin": 73.85378645183646,
+      "reason": "take-profit",
+      "hours": 6
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1949.9744999999998,
+      "exit": 1973.3620066593749,
+      "pnl": 1.6603,
+      "margin": 74.19464847227245,
+      "reason": "take-profit",
+      "hours": 8
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1968.88395,
+      "exit": 1943.3007641746876,
+      "pnl": -2.0487,
+      "margin": 74.28940894462845,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.102551,
+      "exit": 1.0882247279437502,
+      "pnl": -2.0312,
+      "margin": 73.65585085822914,
+      "reason": "stop-loss",
+      "hours": 46
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 76.732347,
+      "exit": 75.73530606616876,
+      "pnl": -2.0458,
+      "margin": 74.18463497563755,
+      "reason": "stop-loss",
+      "hours": 16
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 1957.5783,
+      "exit": 1932.1420169643752,
+      "pnl": -2.0434,
+      "margin": 74.09606769056296,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.62691305,
+      "exit": 1.6464258383934374,
+      "pnl": 1.6481,
+      "margin": 73.61422267107557,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 74.803383,
+      "exit": 73.83140654214375,
+      "pnl": -2.0335,
+      "margin": 73.73783364460878,
+      "reason": "stop-loss",
+      "hours": 8
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.081050505,
+      "exit": 0.08202260449434375,
+      "pnl": 1.6467,
+      "margin": 73.58532294604204,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.0818409,
+      "exit": 0.080777479805625,
+      "pnl": -2.0327,
+      "margin": 73.7088243485131,
+      "reason": "stop-loss",
+      "hours": 9
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.6255111,
+      "exit": 6.5394208651443755,
+      "pnl": -2.0276,
+      "margin": 73.52531039403046,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.5516742,
+      "exit": 6.46654338336375,
+      "pnl": -2.0252,
+      "margin": 73.43868124724821,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.082541,
+      "exit": 1.06847473288125,
+      "pnl": -2.0285,
+      "margin": 73.5563736493767,
+      "reason": "stop-loss",
+      "hours": 10
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 73.5697665,
+      "exit": 72.61381934654064,
+      "pnl": -2.0279,
+      "margin": 73.53523489454801,
+      "reason": "stop-loss",
+      "hours": 12
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 6.876336449999999,
+      "exit": 6.786987053252813,
+      "pnl": -2.0117,
+      "margin": 72.94818348721579,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 74.85841049999999,
+      "exit": 75.75624356093437,
+      "pnl": 1.6292,
+      "margin": 72.80177256474074,
+      "reason": "take-profit",
+      "hours": 11
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.7024410449999999,
+      "exit": 0.6933137016715313,
+      "pnl": -2.0115,
+      "margin": 72.94161306238732,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 64945.45649999999,
+      "exit": 64726.620500000005,
+      "pnl": -0.6069,
+      "margin": 72.79730600854683,
+      "reason": "signal faded",
+      "hours": 67
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 76.506234,
+      "exit": 77.42383064403751,
+      "pnl": 1.6321,
+      "margin": 72.93176867856741,
+      "reason": "take-profit",
+      "hours": 26
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.0429211999999999,
+      "exit": 1.0293697426575,
+      "pnl": -2.0055,
+      "margin": 72.72437082879975,
+      "reason": "stop-loss",
+      "hours": 28
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.07091043749999999,
+      "exit": 0.06998904500273437,
+      "pnl": -2.0047,
+      "margin": 72.69510347758909,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.072458211,
+      "exit": 0.07151670712081876,
+      "pnl": -2.0006,
+      "margin": 72.54474943997003,
+      "reason": "stop-loss",
+      "hours": 9
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 64330.149,
+      "exit": 65101.70872456874,
+      "pnl": 1.62,
+      "margin": 72.39470637703218,
+      "reason": "take-profit",
+      "hours": 44
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 78.3781695,
+      "exit": 79.31821767044062,
+      "pnl": 1.6219,
+      "margin": 72.47659654158363,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.01680815,
+      "exit": 1.0290034927490626,
+      "pnl": 1.6226,
+      "margin": 72.50864718193316,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.0335165,
+      "exit": 1.045912238521875,
+      "pnl": 1.6282,
+      "margin": 72.75954446745129,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.07812904500000001,
+      "exit": 0.07906610523346876,
+      "pnl": 1.628,
+      "margin": 72.74972465606754,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 80.87541749999998,
+      "exit": 81.84541703864062,
+      "pnl": 1.6278,
+      "margin": 72.73990616999028,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.079769865,
+      "exit": 0.08072660481834375,
+      "pnl": 1.6364,
+      "margin": 73.12584141577979,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.06863405,
+      "exit": 1.0547484863128125,
+      "pnl": -2.0163,
+      "margin": 73.11597216803729,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.080930445,
+      "exit": 0.07987885503028126,
+      "pnl": -2.0174,
+      "margin": 73.15399089165584,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08040018,
+      "exit": 0.081364479658875,
+      "pnl": 1.6315,
+      "margin": 72.9077852722461,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 81.88092,
+      "exit": 82.86297928425,
+      "pnl": 1.636,
+      "margin": 73.10610425227333,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.70235075,
+      "exit": 1.7227683193078125,
+      "pnl": 1.6313,
+      "margin": 72.89794545390997,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08339167499999998,
+      "exit": 0.08439185390203123,
+      "pnl": 1.636,
+      "margin": 73.10594893566967,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08462229,
+      "exit": 0.0856372285906875,
+      "pnl": 1.6433,
+      "margin": 73.43614995798062,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.7056926699999999,
+      "exit": 0.7141565714608125,
+      "pnl": 1.6431,
+      "margin": 73.42623883021567,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 83.77086449999999,
+      "exit": 84.77559130609687,
+      "pnl": 1.6429,
+      "margin": 73.4163290400815,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.7223009699999999,
+      "exit": 0.7129155717710626,
+      "pnl": -2.0354,
+      "margin": 73.80585317456185,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.7718854999999998,
+      "exit": 1.748862062784375,
+      "pnl": -2.0351,
+      "margin": 73.79589215071961,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08904449999999998,
+      "exit": 0.09011247747187498,
+      "pnl": 1.6512,
+      "margin": 73.78593247124223,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.089474715,
+      "exit": 0.08831210292196875,
+      "pnl": -2.0303,
+      "margin": 73.6244091064238,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08860428,
+      "exit": 0.08745297813675,
+      "pnl": -2.0255,
+      "margin": 73.44970968853207,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 85.54275,
+      "exit": 84.4312288921875,
+      "pnl": -2.0301,
+      "margin": 73.61447257073,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08804399999999998,
+      "exit": 0.086899978275,
+      "pnl": -2.0231,
+      "margin": 73.36152933064069,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 84.54225,
+      "exit": 85.5562286109375,
+      "pnl": 1.6354,
+      "margin": 73.08303905263773,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2251.7252999999996,
+      "exit": 2278.7319303168747,
+      "pnl": 1.6471,
+      "margin": 73.60453737609609,
+      "reason": "take-profit",
+      "hours": 10
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08897446499999999,
+      "exit": 0.09004160248959374,
+      "pnl": 1.6379,
+      "margin": 73.19367718530067,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 85.97796749999999,
+      "exit": 87.00916574770311,
+      "pnl": 1.6377,
+      "margin": 73.18379878227185,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 71600.7825,
+      "exit": 72459.54438510939,
+      "pnl": 1.6447,
+      "margin": 73.4981730824935,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.08974485,
+      "exit": 0.08857872785531251,
+      "pnl": -2.0266,
+      "margin": 73.48825358393144,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 87.5587575,
+      "exit": 86.42104089473438,
+      "pnl": -2.0271,
+      "margin": 73.50809391999675,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.07720158149999999,
+      "exit": 0.07812751796811561,
+      "pnl": 1.6437,
+      "margin": 73.45256699818056,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.22091015,
+      "exit": 1.2355534411115623,
+      "pnl": 1.6404,
+      "margin": 73.30444005509086,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.2284138999999998,
+      "exit": 1.243147189213125,
+      "pnl": 1.6456,
+      "margin": 73.53611913464411,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.0785422515,
+      "exit": 0.07948426762892813,
+      "pnl": 1.6454,
+      "margin": 73.52619451478729,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 72019.992,
+      "exit": 72883.78177905,
+      "pnl": 1.6439,
+      "margin": 73.46248167974097,
+      "reason": "take-profit",
+      "hours": 6
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.2622308,
+      "exit": 1.2773696806575,
+      "pnl": 1.6533,
+      "margin": 73.88239295014439,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.080288124,
+      "exit": 0.081251079687225,
+      "pnl": 1.6531,
+      "margin": 73.87242159630124,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.3162578,
+      "exit": 1.3320446669887502,
+      "pnl": 1.6603,
+      "margin": 74.19182706327206,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.23111375,
+      "exit": 7.3178419205390615,
+      "pnl": 1.6598,
+      "margin": 74.17180218296653,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.083365662,
+      "exit": 0.0822824294293875,
+      "pnl": -2.0457,
+      "margin": 74.18181394742163,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.3118556,
+      "exit": 1.2948096762975,
+      "pnl": -2.0508,
+      "margin": 74.3664851555391,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.2680321999999995,
+      "exit": 7.17359320660125,
+      "pnl": -2.0505,
+      "margin": 74.35644846739261,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.17248445,
+      "exit": 7.258509435372187,
+      "pnl": 1.6555,
+      "margin": 73.97980203117065,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 72444.204,
+      "exit": 73313.081671725,
+      "pnl": 1.6553,
+      "margin": 73.9698175307526,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 73032.49799999999,
+      "exit": 73908.43152288749,
+      "pnl": 1.6611,
+      "margin": 74.22811222102136,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.26893415,
+      "exit": 1.2841534289615626,
+      "pnl": 1.6606,
+      "margin": 74.20807754710421,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 73736.84999999999,
+      "exit": 74621.23134468749,
+      "pnl": 1.6622,
+      "margin": 74.2805980122457,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.2973483499999998,
+      "exit": 1.3129084217728122,
+      "pnl": 1.6693,
+      "margin": 74.59479018562128,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.296846599999999,
+      "exit": 7.384363153908749,
+      "pnl": 1.6608,
+      "margin": 74.21809420803466,
+      "reason": "take-profit",
+      "hours": 6
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 89.2235895,
+      "exit": 90.29371492656563,
+      "pnl": 1.6702,
+      "margin": 74.63692255214859,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 75158.56049999999,
+      "exit": 76059.99348499687,
+      "pnl": 1.6695,
+      "margin": 74.60485904530832,
+      "reason": "take-profit",
+      "hours": 6
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.399297799999999,
+      "exit": 7.48804312798875,
+      "pnl": 1.6785,
+      "margin": 75.00766136452116,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 90.53624549999999,
+      "exit": 91.62211459446563,
+      "pnl": 1.6787,
+      "margin": 75.01778595386384,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 76377.16949999999,
+      "exit": 77293.21817669061,
+      "pnl": 1.6831,
+      "margin": 75.21107336449182,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.4793378,
+      "exit": 7.56904310773875,
+      "pnl": 1.6828,
+      "margin": 75.20092268859337,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 79356.65849999999,
+      "exit": 78325.51791861562,
+      "pnl": -2.085,
+      "margin": 75.60638232242786,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.694945549999999,
+      "exit": 7.594959351259687,
+      "pnl": -2.0847,
+      "margin": 75.59617829463674,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.81462711,
+      "exit": 0.8040420489894377,
+      "pnl": -2.0844,
+      "margin": 75.58597564400695,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4209100999999997,
+      "exit": 1.4024471493881248,
+      "pnl": -2.0721,
+      "margin": 75.13731947663277,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.60089855,
+      "exit": 7.502134374465938,
+      "pnl": -2.0718,
+      "margin": 75.12717875474479,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 77974.968,
+      "exit": 76961.78075955,
+      "pnl": -2.0715,
+      "margin": 75.11703940147417,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.3850922,
+      "exit": 1.3670946582262502,
+      "pnl": -2.0681,
+      "margin": 74.99313970759549,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09577786499999999,
+      "exit": 0.09692660076834374,
+      "pnl": 1.6673,
+      "margin": 74.50600280030547,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.503549899999999,
+      "exit": 7.593545601613124,
+      "pnl": 1.6675,
+      "margin": 74.51605967540588,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09682839,
+      "exit": 0.09557022610743751,
+      "pnl": -2.0605,
+      "margin": 74.71848988598731,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.89744825,
+      "exit": 1.8727932818015627,
+      "pnl": -2.0602,
+      "margin": 74.7084056903958,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09694844999999999,
+      "exit": 0.0981112254721875,
+      "pnl": 1.6662,
+      "margin": 74.45711270299475,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.8973482,
+      "exit": 1.92010451997375,
+      "pnl": 1.6657,
+      "margin": 74.43701622028513,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.0976488,
+      "exit": 0.096379975905,
+      "pnl": -2.0612,
+      "margin": 74.74313643644498,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.59369495,
+      "exit": 7.684771828806562,
+      "pnl": 1.666,
+      "margin": 74.4470637835262,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09814905,
+      "exit": 0.09687372578156252,
+      "pnl": -2.0577,
+      "margin": 74.61760893475562,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.9019504999999999,
+      "exit": 1.877237030690625,
+      "pnl": -2.0609,
+      "margin": 74.73304891449294,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09830913,
+      "exit": 0.09703172574206251,
+      "pnl": -2.0545,
+      "margin": 74.50057212347953,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.09699847499999999,
+      "exit": 0.09573810106546875,
+      "pnl": -2.0466,
+      "margin": 74.21437818785265,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.8871431,
+      "exit": 1.9097770225556252,
+      "pnl": 1.6605,
+      "margin": 74.20436202844564,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.803871735,
+      "exit": 0.8135131716216563,
+      "pnl": 1.6554,
+      "margin": 73.97537072443103,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.9233612,
+      "exit": 1.9464295133924998,
+      "pnl": 1.6629,
+      "margin": 74.30957825905314,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.08761478549999999,
+      "exit": 0.08866561533359062,
+      "pnl": 1.6627,
+      "margin": 74.29954925120474,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.8156876399999999,
+      "exit": 0.82547079363225,
+      "pnl": 1.6624,
+      "margin": 74.2895215968965,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09236415899999999,
+      "exit": 0.09347195163200625,
+      "pnl": 1.671,
+      "margin": 74.67359912125407,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.8479737749999999,
+      "exit": 0.8581441604639062,
+      "pnl": 1.6708,
+      "margin": 74.66352098423323,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.0943881705,
+      "exit": 0.09316171420956564,
+      "pnl": -2.069,
+      "margin": 75.0276032424562,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.855397485,
+      "exit": 0.8442826639292814,
+      "pnl": -2.0688,
+      "margin": 75.01747732814752,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.091693824,
+      "exit": 0.0905023773744,
+      "pnl": -2.0569,
+      "margin": 74.58679633678669,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.97248575,
+      "exit": 1.9961432509640624,
+      "pnl": 1.6713,
+      "margin": 74.68367861862924,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.84546252,
+      "exit": 0.85560278609925,
+      "pnl": 1.6693,
+      "margin": 74.59686411745813,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.46223075,
+      "exit": 1.4797683800578125,
+      "pnl": 1.6709,
+      "margin": 74.66804004305327,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.0158074,
+      "exit": 2.03998449000375,
+      "pnl": 1.6749,
+      "margin": 74.8455777542184,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.8584990349999999,
+      "exit": 0.8687956578010312,
+      "pnl": 1.6747,
+      "margin": 74.83547640652809,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.47803865,
+      "exit": 1.4957658760584376,
+      "pnl": 1.6744,
+      "margin": 74.8253764221411,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.0862426,
+      "exit": 2.11126447218375,
+      "pnl": 1.6833,
+      "margin": 75.22237652237887,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.9084940199999999,
+      "exit": 0.919390270152375,
+      "pnl": 1.6831,
+      "margin": 75.21222432097774,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.55247585,
+      "exit": 1.5710958572259375,
+      "pnl": 1.6829,
+      "margin": 75.2020734897433,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.91451703,
+      "exit": 0.9254855186285624,
+      "pnl": 1.6918,
+      "margin": 75.60107222708452,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.1016502999999997,
+      "exit": 2.1268569682856246,
+      "pnl": 1.6916,
+      "margin": 75.59086891595726,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.104562255,
+      "exit": 0.10581634854590626,
+      "pnl": 1.6913,
+      "margin": 75.58066698189455,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.10845419999999999,
+      "exit": 0.10704497323875,
+      "pnl": -2.0954,
+      "margin": 75.98167441817615,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.9472433849999999,
+      "exit": 0.9349351412661563,
+      "pnl": -2.0951,
+      "margin": 75.97141974001853,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.131065,
+      "exit": 2.1033744741562503,
+      "pnl": -2.0948,
+      "margin": 75.96116644585813,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 100.580265,
+      "exit": 101.78659955334375,
+      "pnl": 1.6898,
+      "margin": 75.5102832560005,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 101.73084,
+      "exit": 102.95097426225001,
+      "pnl": 1.6926,
+      "margin": 75.63701540189244,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 102.01097999999999,
+      "exit": 100.68547482862499,
+      "pnl": -2.0901,
+      "margin": 75.79080137682347,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 80530.245,
+      "exit": 79483.85512903126,
+      "pnl": -2.0856,
+      "margin": 75.62680723978377,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 104.81238,
+      "exit": 103.45047413737501,
+      "pnl": -2.0807,
+      "margin": 75.4507858009033,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 104.51222999999999,
+      "exit": 105.76572355856248,
+      "pnl": 1.6849,
+      "margin": 75.29473223272599,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 106.17305999999999,
+      "exit": 107.446473138375,
+      "pnl": 1.6878,
+      "margin": 75.42110261009383,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 106.82338499999999,
+      "exit": 108.10459797384375,
+      "pnl": 1.6906,
+      "margin": 75.54768508028411,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.46143035,
+      "exit": 1.4424408893896876,
+      "pnl": -2.0828,
+      "margin": 75.52729424464934,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 108.99446999999999,
+      "exit": 107.5782231054375,
+      "pnl": -2.0879,
+      "margin": 75.71135697554622,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 108.43418999999999,
+      "exit": 109.73472256631248,
+      "pnl": 1.686,
+      "margin": 75.34314817221964,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 109.39466999999999,
+      "exit": 110.70672232331249,
+      "pnl": 1.688,
+      "margin": 75.43174919191706,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 80226.093,
+      "exit": 81188.30470291874,
+      "pnl": 1.6904,
+      "margin": 75.53748897442067,
+      "reason": "take-profit",
+      "hours": 11
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 109.23459,
+      "exit": 107.81522304618751,
+      "pnl": -2.0853,
+      "margin": 75.61625532418915,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.8995492999999999,
+      "exit": 1.874867031283125,
+      "pnl": -2.0844,
+      "margin": 75.58510966208142,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 78304.13249999999,
+      "exit": 79243.29268917187,
+      "pnl": 1.6912,
+      "margin": 75.57490850530215,
+      "reason": "take-profit",
+      "hours": 10
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2462.0304,
+      "exit": 2491.5593771100002,
+      "pnl": 1.691,
+      "margin": 75.56470872529668,
+      "reason": "take-profit",
+      "hours": 10
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.87703805,
+      "exit": 1.8995507751121874,
+      "pnl": 1.6858,
+      "margin": 75.33288111665767,
+      "reason": "take-profit",
+      "hours": 8
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2531.6652,
+      "exit": 2498.7693753075,
+      "pnl": -2.0898,
+      "margin": 75.77943280523519,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 79357.659,
+      "exit": 78326.50541836876,
+      "pnl": -2.0895,
+      "margin": 75.76920542211506,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.10675335,
+      "exit": 0.10536622365843751,
+      "pnl": -2.0819,
+      "margin": 75.49543132497173,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.107283615,
+      "exit": 0.10857034785740625,
+      "pnl": 1.6859,
+      "margin": 75.33928541722156,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.109524735,
+      "exit": 0.10810159797459376,
+      "pnl": -2.0811,
+      "margin": 75.46573057010914,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.11723859,
+      "exit": 0.11571522107118752,
+      "pnl": -2.0768,
+      "margin": 75.30964609192162,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.114667305,
+      "exit": 0.11317734670565627,
+      "pnl": -2.0725,
+      "margin": 75.1538844405874,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.11259627,
+      "exit": 0.11113322221668752,
+      "pnl": -2.0682,
+      "margin": 74.99844494840922,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.9637814,
+      "exit": 1.98733450316625,
+      "pnl": 1.6781,
+      "margin": 74.98832296937734,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.11167580999999999,
+      "exit": 0.1102247224438125,
+      "pnl": -2.0674,
+      "margin": 74.96918306663464,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.111045495,
+      "exit": 0.11237734690565625,
+      "pnl": 1.672,
+      "margin": 74.71543389642574,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 1.98028965,
+      "exit": 1.9545582613603127,
+      "pnl": -2.0672,
+      "margin": 74.95906503686004,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.11193593999999998,
+      "exit": 0.110481472379625,
+      "pnl": -2.0672,
+      "margin": 74.95893205055783,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.11149571999999999,
+      "exit": 0.11283297179175,
+      "pnl": 1.6701,
+      "margin": 74.62945087924757,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.11304649499999998,
+      "exit": 0.11157759710559374,
+      "pnl": -2.0615,
+      "margin": 74.75470468639593,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.106923435,
+      "exit": 0.10820584794853125,
+      "pnl": 1.6694,
+      "margin": 74.60009081086737,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.10998496499999999,
+      "exit": 0.11130409717396875,
+      "pnl": 1.6722,
+      "margin": 74.72529534175415,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.112646295,
+      "exit": 0.11399734650065624,
+      "pnl": 1.675,
+      "margin": 74.85071000877326,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.113666805,
+      "exit": 0.11218984695253126,
+      "pnl": -2.0676,
+      "margin": 74.97633516460517,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.10953473999999999,
+      "exit": 0.11084847228787499,
+      "pnl": 1.6743,
+      "margin": 74.82126289455397,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.10979487,
+      "exit": 0.1111117222220625,
+      "pnl": 1.6772,
+      "margin": 74.94683862803154,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.01630765,
+      "exit": 2.0404907398771877,
+      "pnl": 1.6769,
+      "margin": 74.93672361391866,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.10993494,
+      "exit": 0.108506472873375,
+      "pnl": -2.0738,
+      "margin": 75.19839463679995,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.0196093,
+      "exit": 1.9933670016581253,
+      "pnl": -2.0695,
+      "margin": 75.04286308494517,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.10983488999999999,
+      "exit": 0.1084077228980625,
+      "pnl": -2.0692,
+      "margin": 75.03273511112971,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.108824385,
+      "exit": 0.10741034814740626,
+      "pnl": -2.0609,
+      "margin": 74.73246429524085,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.12434213999999999,
+      "exit": 0.122726469318375,
+      "pnl": -2.0566,
+      "margin": 74.57789641913246,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.755827725,
+      "exit": 0.7648929337767187,
+      "pnl": 1.6654,
+      "margin": 74.42364823311524,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.776998305,
+      "exit": 0.7669021832744064,
+      "pnl": -2.0558,
+      "margin": 74.54855663285879,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.13227610499999998,
+      "exit": 0.13055734236065625,
+      "pnl": -2.0556,
+      "margin": 74.53849537188715,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.13518755999999998,
+      "exit": 0.13343096664225002,
+      "pnl": -2.0473,
+      "margin": 74.24020243631315,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.137458695,
+      "exit": 0.13567259108184376,
+      "pnl": -2.0431,
+      "margin": 74.0866526969776,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.771575595,
+      "exit": 0.7615499346124688,
+      "pnl": -2.0389,
+      "margin": 73.93342054193837,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.13832913,
+      "exit": 0.1365317158670625,
+      "pnl": -2.0355,
+      "margin": 73.81133131359147,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.13554773999999997,
+      "exit": 0.13378646655337498,
+      "pnl": -2.0304,
+      "margin": 73.62784260180446,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.13598796000000002,
+      "exit": 0.13422096644475004,
+      "pnl": -2.0272,
+      "margin": 73.50972340725785,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.766232925,
+      "exit": 0.7754229311442188,
+      "pnl": 1.6474,
+      "margin": 73.61790560271747,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.38719325,
+      "exit": 1.4038308990421875,
+      "pnl": 1.6436,
+      "margin": 73.44619363797808,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.13284639,
+      "exit": 0.1344397163900625,
+      "pnl": 1.6418,
+      "margin": 73.36589800320709,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.785802705,
+      "exit": 0.7755921811019063,
+      "pnl": -2.0317,
+      "margin": 73.67358723668151,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4509250999999999,
+      "exit": 1.4683271329181249,
+      "pnl": 1.6491,
+      "margin": 73.6934776090693,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.464830549999999,
+      "exit": 7.554361861409062,
+      "pnl": 1.6489,
+      "margin": 73.68353175171643,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.789784695,
+      "exit": 0.7795224301193439,
+      "pnl": -2.0304,
+      "margin": 73.62642763671504,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4721357,
+      "exit": 1.453007136748125,
+      "pnl": -2.0343,
+      "margin": 73.76687700687228,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4561277,
+      "exit": 1.437207140698125,
+      "pnl": -2.0237,
+      "margin": 73.38344987495131,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 81738.849,
+      "exit": 80676.75483080627,
+      "pnl": -2.0346,
+      "margin": 73.77683411422903,
+      "reason": "stop-loss",
+      "hours": 7
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2507.8532999999998,
+      "exit": 2537.931865516875,
+      "pnl": 1.6382,
+      "margin": 73.20409885927674,
+      "reason": "take-profit",
+      "hours": 8
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.0237113499999997,
+      "exit": 1.9974157506459373,
+      "pnl": -2.0207,
+      "margin": 73.27567888812749,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.5073517999999995,
+      "exit": 7.40980314754875,
+      "pnl": -2.024,
+      "margin": 73.39335522703158,
+      "reason": "stop-loss",
+      "hours": 14
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 81081.5205,
+      "exit": 80027.96749300313,
+      "pnl": -2.0175,
+      "margin": 73.15792105679267,
+      "reason": "stop-loss",
+      "hours": 8
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2527.76325,
+      "exit": 2494.9181262703128,
+      "pnl": -2.0172,
+      "margin": 73.14817073145733,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.08775385499999999,
+      "exit": 0.08880635279840625,
+      "pnl": 1.6268,
+      "margin": 72.69749520661645,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.800550075,
+      "exit": 0.8101516724620312,
+      "pnl": 1.6268,
+      "margin": 72.69613494274267,
+      "reason": "take-profit",
+      "hours": 6
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 104.24209499999999,
+      "exit": 102.88759927809376,
+      "pnl": -2.0118,
+      "margin": 72.95060323922311,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.80382171,
+      "exit": 0.7933770516556875,
+      "pnl": -2.0125,
+      "margin": 72.97717455304053,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.17746869,
+      "exit": 0.17959720510068752,
+      "pnl": 1.6267,
+      "margin": 72.6938058874416,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.5491727,
+      "exit": 7.639715590070625,
+      "pnl": 1.6266,
+      "margin": 72.68632368926811,
+      "reason": "take-profit",
+      "hours": 13
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.193566735,
+      "exit": 0.19105157723709376,
+      "pnl": -2.0094,
+      "margin": 72.86549347324934,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.1932966,
+      "exit": 0.19078495230375003,
+      "pnl": -2.0074,
+      "margin": 72.7928869716754,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.18903446999999998,
+      "exit": 0.18657820335543748,
+      "pnl": -2.0019,
+      "margin": 72.59190340829593,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19837914,
+      "exit": 0.195801451049625,
+      "pnl": -1.9998,
+      "margin": 72.51796045262812,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2490.2445,
+      "exit": 2520.111869971875,
+      "pnl": 1.6304,
+      "margin": 72.85565936272091,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.194097,
+      "exit": 0.19157495210625,
+      "pnl": -1.9923,
+      "margin": 72.24461866080587,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.194267085,
+      "exit": 0.19174282706428128,
+      "pnl": -1.9917,
+      "margin": 72.22469969049045,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.70354985,
+      "exit": 7.6034518491365635,
+      "pnl": -2.0071,
+      "margin": 72.7830626603033,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.1946973,
+      "exit": 0.192167451958125,
+      "pnl": -1.9854,
+      "margin": 71.99401475351976,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.201850875,
+      "exit": 0.19922807519296876,
+      "pnl": -1.9779,
+      "margin": 71.72414178506251,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19601796,
+      "exit": 0.19347095163225,
+      "pnl": -1.9737,
+      "margin": 71.56933347820944,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19417704,
+      "exit": 0.19165395208650002,
+      "pnl": -1.9701,
+      "margin": 71.43897199804617,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19583787,
+      "exit": 0.1932932016766875,
+      "pnl": -1.9663,
+      "margin": 71.30241764962493,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19410700499999997,
+      "exit": 0.19158482710378125,
+      "pnl": -1.9622,
+      "margin": 71.15408241456412,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19003497,
+      "exit": 0.1923142019214375,
+      "pnl": 1.5889,
+      "margin": 71.00260731596975,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2514.2565,
+      "exit": 2481.5868796031255,
+      "pnl": -1.9915,
+      "margin": 72.21495206310495,
+      "reason": "stop-loss",
+      "hours": 9
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19360675499999996,
+      "exit": 0.19109107722721871,
+      "pnl": -1.9606,
+      "margin": 71.09635489821014,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 107.08351499999999,
+      "exit": 105.69209857696876,
+      "pnl": -1.9604,
+      "margin": 71.0867595550798,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.18651320999999998,
+      "exit": 0.1840897039775625,
+      "pnl": -1.9509,
+      "margin": 70.74193860410175,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.18767378999999998,
+      "exit": 0.1899247025188125,
+      "pnl": 1.5798,
+      "margin": 70.59562426394258,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.18877433999999998,
+      "exit": 0.186321453419625,
+      "pnl": -1.9501,
+      "margin": 70.71410792693216,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.183101505,
+      "exit": 0.18529757867559374,
+      "pnl": 1.5792,
+      "margin": 70.56785114848597,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.18571281,
+      "exit": 0.18329970417506253,
+      "pnl": -1.9493,
+      "margin": 70.6862881986651,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.4967477499999995,
+      "exit": 2.4643056339234373,
+      "pnl": -1.9453,
+      "margin": 70.54008895928648,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 8.06793195,
+      "exit": 7.9630992592246885,
+      "pnl": -1.9413,
+      "margin": 70.39419210129101,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 8.093344649999999,
+      "exit": 8.190414202395935,
+      "pnl": 1.572,
+      "margin": 70.24859699926846,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 8.122559249999998,
+      "exit": 8.01701674574531,
+      "pnl": -1.9405,
+      "margin": 70.36649823152092,
+      "reason": "stop-loss",
+      "hours": 9
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.59839855,
+      "exit": 2.6295630926090627,
+      "pnl": 1.5714,
+      "margin": 70.22096040825495,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.6061023999999997,
+      "exit": 2.57223935694,
+      "pnl": -1.9397,
+      "margin": 70.3388152568318,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.6265126,
+      "exit": 2.59238435190375,
+      "pnl": -1.9357,
+      "margin": 70.19333468978832,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2631.21495,
+      "exit": 2597.0256007434377,
+      "pnl": -1.9317,
+      "margin": 70.04815501771029,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.40300115,
+      "exit": 1.3847709038071876,
+      "pnl": -1.9277,
+      "margin": 69.9032756182618,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4040016499999999,
+      "exit": 1.4208408947896873,
+      "pnl": 1.5611,
+      "margin": 69.75869587039415,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4201096999999998,
+      "exit": 1.4371421407143747,
+      "pnl": 1.5637,
+      "margin": 69.87577488057751,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.43561745,
+      "exit": 1.4528358867909377,
+      "pnl": 1.5663,
+      "margin": 69.99305038948343,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.5824906,
+      "exit": 2.54893436276625,
+      "pnl": -1.9299,
+      "margin": 69.98360395110853,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4783388,
+      "exit": 1.4591296352175,
+      "pnl": -1.9295,
+      "margin": 69.96577683732129,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4649321,
+      "exit": 1.482502129374375,
+      "pnl": 1.5615,
+      "margin": 69.77944620690646,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4639316,
+      "exit": 1.4449096387725002,
+      "pnl": -1.928,
+      "margin": 69.91231903662862,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 79238.5995,
+      "exit": 78208.99294774688,
+      "pnl": -1.9292,
+      "margin": 69.95633407985368,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4359176,
+      "exit": 1.4172596456850002,
+      "pnl": -1.922,
+      "margin": 69.69422275824182,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.618107149999999,
+      "exit": 7.519119370219688,
+      "pnl": -1.9217,
+      "margin": 69.6848166503967,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 102.581265,
+      "exit": 101.24834968790626,
+      "pnl": -1.9157,
+      "margin": 69.4675156158405,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.15881937,
+      "exit": 0.16072420981893748,
+      "pnl": 1.5489,
+      "margin": 69.21693996236536,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.16428210000000001,
+      "exit": 0.16625245843687503,
+      "pnl": 1.5515,
+      "margin": 69.3331097203805,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.16946469,
+      "exit": 0.16726270818431252,
+      "pnl": -1.9152,
+      "margin": 69.4494744510813,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.55217545,
+      "exit": 2.582785604303438,
+      "pnl": 1.5509,
+      "margin": 69.30583329239639,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.5820904,
+      "exit": 2.5485393628649997,
+      "pnl": -1.9145,
+      "margin": 69.42215224389861,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.5879933499999996,
+      "exit": 2.619033095241562,
+      "pnl": 1.5503,
+      "margin": 69.27856759526692,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.62321095,
+      "exit": 2.6546730863315626,
+      "pnl": 1.5529,
+      "margin": 69.39484078558064,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.6793389999999997,
+      "exit": 2.64452433886875,
+      "pnl": -1.9169,
+      "margin": 69.51130912217488,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.6289138,
+      "exit": 2.59475435131125,
+      "pnl": -1.913,
+      "margin": 69.36754007189866,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.637318,
+      "exit": 2.6689493327625002,
+      "pnl": 1.5491,
+      "margin": 69.22406837668707,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.6997492,
+      "exit": 2.6646693338325003,
+      "pnl": -1.9122,
+      "margin": 69.3402500986256,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.6743365,
+      "exit": 2.6395868401031253,
+      "pnl": -1.9082,
+      "margin": 69.1968348467984,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.66102985,
+      "exit": 2.6929455767634374,
+      "pnl": 1.5453,
+      "margin": 69.05371621828056,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.70004935,
+      "exit": 2.7324330668915624,
+      "pnl": 1.5479,
+      "margin": 69.16961203088778,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.7261623999999998,
+      "exit": 2.7588593102849996,
+      "pnl": 1.5505,
+      "margin": 69.28570235640632,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.753376,
+      "exit": 2.7863993034,
+      "pnl": 1.5531,
+      "margin": 69.40198752129557,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.589993099999999,
+      "exit": 7.491370627156875,
+      "pnl": -1.9136,
+      "margin": 69.39262085425409,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.8076030999999997,
+      "exit": 2.7711218072193753,
+      "pnl": -1.9135,
+      "margin": 69.38795314306903,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.8112049,
+      "exit": 2.844921788769375,
+      "pnl": 1.5474,
+      "margin": 69.14790584632885,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.87533695,
+      "exit": 2.8379755405059375,
+      "pnl": -1.911,
+      "margin": 69.29629711762131,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.72414189,
+      "exit": 0.7328270667931874,
+      "pnl": 1.5527,
+      "margin": 69.38325545136158,
+      "reason": "take-profit",
+      "hours": 6
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.8764374999999998,
+      "exit": 2.8390617902343753,
+      "pnl": -1.9089,
+      "margin": 69.22116150386255,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.8187086499999996,
+      "exit": 2.852515536870937,
+      "pnl": 1.5466,
+      "margin": 69.11444087653462,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.8830408,
+      "exit": 2.917619270595,
+      "pnl": 1.5503,
+      "margin": 69.2794328993078,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.9765875499999996,
+      "exit": 3.0122879969278125,
+      "pnl": 1.5539,
+      "margin": 69.43694630574743,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.049524,
+      "exit": 3.0098992475250004,
+      "pnl": -1.9178,
+      "margin": 69.54449984730056,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 2.991495,
+      "exit": 3.02737424315625,
+      "pnl": 1.5511,
+      "margin": 69.31489858895699,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.0535259999999997,
+      "exit": 3.0138492465375,
+      "pnl": -1.9145,
+      "margin": 69.42469423600404,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.0143063999999997,
+      "exit": 3.0504592373849997,
+      "pnl": 1.5523,
+      "margin": 69.36572256728033,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.1450717499999996,
+      "exit": 3.1827929543015623,
+      "pnl": 1.5542,
+      "margin": 69.45349766929539,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.1491738,
+      "exit": 3.1082542229362504,
+      "pnl": -1.9199,
+      "margin": 69.61780516140838,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 101.09052,
+      "exit": 102.30297442425001,
+      "pnl": 1.5464,
+      "margin": 69.10511301751256,
+      "reason": "take-profit",
+      "hours": 11
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.75143553,
+      "exit": 0.7604480598879374,
+      "pnl": 1.5553,
+      "margin": 69.50196413396566,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 7.617806999999999,
+      "exit": 7.709173072706249,
+      "pnl": 1.5512,
+      "margin": 69.3205184029685,
+      "reason": "take-profit",
+      "hours": 14
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.23151495,
+      "exit": 3.2702729324315625,
+      "pnl": 1.5618,
+      "margin": 69.7906860574463,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.76270116,
+      "exit": 0.77184880703775,
+      "pnl": 1.5616,
+      "margin": 69.78126693067135,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.3700841999999995,
+      "exit": 3.4105041473737496,
+      "pnl": 1.5657,
+      "margin": 69.96767849402183,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 102.77135999999999,
+      "exit": 104.00397399899998,
+      "pnl": 1.5655,
+      "margin": 69.95823547990184,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.5065524,
+      "exit": 3.4609891347525004,
+      "pnl": -1.9376,
+      "margin": 70.26222179304283,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.7893945,
+      "exit": 0.7791373052156251,
+      "pnl": -1.9374,
+      "margin": 70.25273902661732,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.22669329,
+      "exit": 0.2237476940630625,
+      "pnl": -1.9371,
+      "margin": 70.24325754000986,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.54347085,
+      "exit": 3.497427875642813,
+      "pnl": -1.9256,
+      "margin": 69.826314179244,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.785022315,
+      "exit": 0.7748219312944687,
+      "pnl": -1.9251,
+      "margin": 69.80746758065003,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.44942385,
+      "exit": 3.490795377300938,
+      "pnl": 1.5549,
+      "margin": 69.48554740023948,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.775237425,
+      "exit": 0.7845354288660937,
+      "pnl": 1.5547,
+      "margin": 69.47616945574627,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.48404115,
+      "exit": 3.438770390307188,
+      "pnl": -1.9215,
+      "margin": 69.67652863391254,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.4549266,
+      "exit": 3.49636412590875,
+      "pnl": 1.559,
+      "margin": 69.66865007912007,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.7871333699999999,
+      "exit": 0.7965740508564375,
+      "pnl": 1.5588,
+      "margin": 69.65924742262813,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.5401692000000002,
+      "exit": 3.5826291043425003,
+      "pnl": 1.5643,
+      "margin": 69.9019587756702,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.7985490749999999,
+      "exit": 0.7881729279567188,
+      "pnl": -1.928,
+      "margin": 69.91139419351923,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 105.85289999999999,
+      "exit": 107.122473219375,
+      "pnl": 1.5624,
+      "margin": 69.81689024400801,
+      "reason": "take-profit",
+      "hours": 9
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.085818888,
+      "exit": 0.08684817828795,
+      "pnl": 1.5652,
+      "margin": 69.94542205481235,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.7927962,
+      "exit": 0.8023047994237499,
+      "pnl": 1.5609,
+      "margin": 69.75360911784514,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.5732857499999997,
+      "exit": 3.6161428459640623,
+      "pnl": 1.5704,
+      "margin": 70.17535678781601,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.7006493999999996,
+      "exit": 3.65256408685875,
+      "pnl": -1.9408,
+      "margin": 70.37795970730672,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 3.6570275999999997,
+      "exit": 3.6095090976225004,
+      "pnl": -1.9343,
+      "margin": 70.14063521845412,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 111.76585499999999,
+      "exit": 113.10634672340625,
+      "pnl": 1.5661,
+      "margin": 69.98594236670769,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.8064130049999999,
+      "exit": 0.8160849209787187,
+      "pnl": 1.5706,
+      "margin": 70.18482910912996,
+      "reason": "take-profit",
+      "hours": 7
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.0872686125,
+      "exit": 0.08831529042117188,
+      "pnl": 1.5702,
+      "margin": 70.16588574491041,
+      "reason": "take-profit",
+      "hours": 7
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2639.0188499999995,
+      "exit": 2604.728098817812,
+      "pnl": -1.939,
+      "margin": 70.31116505165485,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.08835615599999999,
+      "exit": 0.08720807819797499,
+      "pnl": -1.9393,
+      "margin": 70.32442966621271,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 8.70485025,
+      "exit": 8.591741602064063,
+      "pnl": -1.932,
+      "margin": 70.05905224030745,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 8.61260415,
+      "exit": 8.500694124825937,
+      "pnl": -1.9295,
+      "margin": 69.96641252069655,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 113.57676,
+      "exit": 112.10097197475001,
+      "pnl": -1.9396,
+      "margin": 70.33392210949351,
+      "reason": "stop-loss",
+      "hours": 8
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2615.40705,
+      "exit": 2646.775588305937,
+      "pnl": 1.5676,
+      "margin": 70.04959689415652,
+      "reason": "take-profit",
+      "hours": 7
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4289140999999999,
+      "exit": 1.410347147413125,
+      "pnl": -1.9214,
+      "margin": 69.67456602898378,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 8.810402999999999,
+      "exit": 8.916072770981248,
+      "pnl": 1.5579,
+      "margin": 69.61855571408037,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.0028992,
+      "exit": 9.11087772228,
+      "pnl": 1.5602,
+      "margin": 69.71905720687597,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.163979699999999,
+      "exit": 9.273890181526873,
+      "pnl": 1.5622,
+      "margin": 69.80982832334773,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.33316425,
+      "exit": 9.211891447026563,
+      "pnl": -1.9289,
+      "margin": 69.9447573867167,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.357676499999998,
+      "exit": 9.236085190978123,
+      "pnl": -1.9252,
+      "margin": 69.81041940218924,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.38699115,
+      "exit": 9.499576375105311,
+      "pnl": 1.5587,
+      "margin": 69.65207071028549,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.70515015,
+      "exit": 9.821551294611561,
+      "pnl": 1.5637,
+      "margin": 69.87840269172727,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.653024099999998,
+      "exit": 9.768800057799373,
+      "pnl": 1.5649,
+      "margin": 69.92920564388344,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.769682399999999,
+      "exit": 9.642737589315,
+      "pnl": -1.9308,
+      "margin": 70.01354737884357,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.6206079,
+      "exit": 9.735995066000624,
+      "pnl": 1.5629,
+      "margin": 69.84264839491777,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.753074100000001,
+      "exit": 9.626345093413127,
+      "pnl": -1.9287,
+      "margin": 69.9377776262376,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.701748449999998,
+      "exit": 9.818108795472186,
+      "pnl": 1.5609,
+      "margin": 69.75214146174919,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 10.1060505,
+      "exit": 10.227259943184375,
+      "pnl": 1.5644,
+      "margin": 69.91003914817216,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2648.62365,
+      "exit": 2614.2080964478127,
+      "pnl": -1.9201,
+      "margin": 69.62795287797553,
+      "reason": "stop-loss",
+      "hours": 17
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 10.34517,
+      "exit": 10.210747447312501,
+      "pnl": -1.9307,
+      "margin": 70.01255337221255,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 81208.584,
+      "exit": 80153.37996165,
+      "pnl": -1.9242,
+      "margin": 69.77487877384442,
+      "reason": "stop-loss",
+      "hours": 24
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.6160056,
+      "exit": 9.731337567165,
+      "pnl": 1.5587,
+      "margin": 69.65504065867042,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 9.762878999999998,
+      "exit": 9.636022590993749,
+      "pnl": -1.9241,
+      "margin": 69.77194569986773,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.4107025,
+      "exit": 11.262434684390625,
+      "pnl": -1.9201,
+      "margin": 69.62763757942126,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.113554,
+      "exit": 11.2468471882875,
+      "pnl": 1.5549,
+      "margin": 69.48362792898904,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 4.24562175,
+      "exit": 4.296542675864062,
+      "pnl": 1.5547,
+      "margin": 69.4742502435525,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 4.411204499999999,
+      "exit": 4.353886411528125,
+      "pnl": -1.9226,
+      "margin": 69.71684689374504,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.303649,
+      "exit": 11.439222140193749,
+      "pnl": 1.5599,
+      "margin": 69.70743773248962,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.560777499999999,
+      "exit": 11.410559647359374,
+      "pnl": -1.9218,
+      "margin": 69.68964571466856,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 4.424211,
+      "exit": 4.36672390831875,
+      "pnl": -1.9216,
+      "margin": 69.68024022455278,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.345669999999998,
+      "exit": 11.1982472004375,
+      "pnl": -1.9139,
+      "margin": 69.40138936628978,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 4.2891435,
+      "exit": 4.233411441646875,
+      "pnl": -1.9136,
+      "margin": 69.3920227799768,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.9636515849999999,
+      "exit": 0.9511301372174062,
+      "pnl": -1.906,
+      "margin": 69.11432532878483,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 4.285741799999999,
+      "exit": 4.3371439157137495,
+      "pnl": 1.5464,
+      "margin": 69.1049974853574,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.9682738949999999,
+      "exit": 0.9798871300281562,
+      "pnl": 1.5425,
+      "margin": 68.930366330839,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.08989192349999998,
+      "exit": 0.09097006475747811,
+      "pnl": 1.5423,
+      "margin": 68.92106331498128,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09210602999999999,
+      "exit": 0.0932107266973125,
+      "pnl": 1.5512,
+      "margin": 69.3187211982012,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.9966380699999999,
+      "exit": 0.9836880040779376,
+      "pnl": -1.9114,
+      "margin": 69.30936576899241,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 0.9870632849999998,
+      "exit": 0.9989018752744686,
+      "pnl": 1.5499,
+      "margin": 69.25894674518084,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4784388499999999,
+      "exit": 1.4961708759571875,
+      "pnl": 1.5508,
+      "margin": 69.30001160241592,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09230813099999999,
+      "exit": 0.09341525164618124,
+      "pnl": 1.5501,
+      "margin": 69.26829536879268,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.004502,
+      "exit": 1.0165497458625,
+      "pnl": 1.557,
+      "margin": 69.57851876215072,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.01780865,
+      "exit": 1.0300159924959378,
+      "pnl": 1.5608,
+      "margin": 69.74787778757059,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.03901925,
+      "exit": 1.0514809871296873,
+      "pnl": 1.5639,
+      "margin": 69.88790885155247,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09351373349999999,
+      "exit": 0.09463531384116561,
+      "pnl": 1.561,
+      "margin": 69.75729240745443,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.48764345,
+      "exit": 1.5054858736284376,
+      "pnl": 1.5606,
+      "margin": 69.73846443830756,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.038519,
+      "exit": 1.02502474374375,
+      "pnl": -1.9303,
+      "margin": 69.99783078895008,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09516755999999998,
+      "exit": 0.09630897592274999,
+      "pnl": 1.5683,
+      "margin": 70.08099552994209,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09748972049999999,
+      "exit": 0.09622296344425313,
+      "pnl": -1.9347,
+      "margin": 70.15628023271265,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.0968153835,
+      "exit": 0.09797656300585313,
+      "pnl": 1.5648,
+      "margin": 69.92648971727195,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.097522737,
+      "exit": 0.09869240032689375,
+      "pnl": 1.5678,
+      "margin": 70.0593481920777,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.099823887,
+      "exit": 0.09852680036829375,
+      "pnl": -1.9392,
+      "margin": 70.32078174652698,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4996494499999997,
+      "exit": 1.5176358705909372,
+      "pnl": 1.5678,
+      "margin": 70.06208019111398,
+      "reason": "take-profit",
+      "hours": 6
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.0987183345,
+      "exit": 0.09990233752440938,
+      "pnl": 1.5714,
+      "margin": 70.21946147099929,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 118.16905499999999,
+      "exit": 119.58634510340623,
+      "pnl": 1.5681,
+      "margin": 70.07153722226953,
+      "reason": "take-profit",
+      "hours": 7
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.10039016999999999,
+      "exit": 0.09908572522856249,
+      "pnl": -1.9434,
+      "margin": 70.47128543680608,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.5523758,
+      "exit": 1.5709946072512502,
+      "pnl": 1.5729,
+      "margin": 70.28909457577613,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.099423687,
+      "exit": 0.10061614984595625,
+      "pnl": 1.5727,
+      "margin": 70.27960818253217,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.55847885,
+      "exit": 1.5382283654428126,
+      "pnl": -1.9444,
+      "margin": 70.50899759676705,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.10051022999999999,
+      "exit": 0.09920422519893751,
+      "pnl": -1.9442,
+      "margin": 70.49948152485752,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 87090.5235,
+      "exit": 85958.89101027188,
+      "pnl": -1.9431,
+      "margin": 70.46177445462465,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.1000489995,
+      "exit": 0.10124896218775313,
+      "pnl": 1.5718,
+      "margin": 70.2383473751817,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.53866895,
+      "exit": 1.5186758703309375,
+      "pnl": -1.9367,
+      "margin": 70.22886783090777,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.099551751,
+      "exit": 0.09825820043544375,
+      "pnl": -1.9337,
+      "margin": 70.12147648171083,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.0522258500000001,
+      "exit": 1.0385534903615627,
+      "pnl": -1.9335,
+      "margin": 70.11201271062706,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.0999349425,
+      "exit": 0.09863641284089063,
+      "pnl": -1.9246,
+      "margin": 69.7883385716579,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.10213103999999999,
+      "exit": 0.100803974799,
+      "pnl": -1.9213,
+      "margin": 69.67173579604675,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.5139566,
+      "exit": 1.4942846264287502,
+      "pnl": -1.9243,
+      "margin": 69.77891976170555,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.10007000999999999,
+      "exit": 0.09876972530756249,
+      "pnl": -1.9155,
+      "margin": 69.46115036046379,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.10023009,
+      "exit": 0.0989277252680625,
+      "pnl": -1.908,
+      "margin": 69.18707970344465,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09896245649999999,
+      "exit": 0.09767656308085314,
+      "pnl": -1.9039,
+      "margin": 69.03811055998764,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.24946467,
+      "exit": 0.2524566868858125,
+      "pnl": 1.545,
+      "margin": 69.04061982873853,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 85975.9665,
+      "exit": 87007.14074820936,
+      "pnl": 1.5687,
+      "margin": 70.10255021679765,
+      "reason": "take-profit",
+      "hours": 28
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.24951469499999998,
+      "exit": 0.24627256343184376,
+      "pnl": -1.9077,
+      "margin": 69.17679646864765,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.6407199499999998,
+      "exit": 1.6194008451496875,
+      "pnl": -1.9045,
+      "margin": 69.0595671920563,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.25022504999999995,
+      "exit": 0.24697368825656246,
+      "pnl": -1.9005,
+      "margin": 68.91673247187806,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.24748367999999998,
+      "exit": 0.244267938933,
+      "pnl": -1.8966,
+      "margin": 68.77419317430551,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.0573283999999998,
+      "exit": 1.0435897391025,
+      "pnl": -1.8927,
+      "margin": 68.63194868832116,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 4.92576165,
+      "exit": 4.984840003789687,
+      "pnl": 1.5325,
+      "margin": 68.48075482147806,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.5551772,
+      "exit": 1.5738296065425,
+      "pnl": 1.5327,
+      "margin": 68.48999840417123,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 118.39917,
+      "exit": 119.8192200451875,
+      "pnl": 1.5322,
+      "margin": 68.4715124863221,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 4.9616796,
+      "exit": 5.0211887447025,
+      "pnl": 1.5369,
+      "margin": 68.68045427309158,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.59669795,
+      "exit": 1.6158483460378126,
+      "pnl": 1.543,
+      "margin": 68.95007031813377,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 120.86039999999998,
+      "exit": 119.2899701775,
+      "pnl": -1.9012,
+      "margin": 68.9407646429763,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.1413704,
+      "exit": 1.126539718365,
+      "pnl": -1.9009,
+      "margin": 68.93146022373617,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.60150035,
+      "exit": 1.5806908548271876,
+      "pnl": -1.8968,
+      "margin": 68.780633415753,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 120.82038,
+      "exit": 119.250470187375,
+      "pnl": -1.8965,
+      "margin": 68.77135060822664,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.0988403955,
+      "exit": 0.09755608811097188,
+      "pnl": -1.8963,
+      "margin": 68.76206905353136,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.181089249999999,
+      "exit": 5.1137674715578125,
+      "pnl": -1.885,
+      "margin": 68.35391759290096,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.58469195,
+      "exit": 1.5641008589746879,
+      "pnl": -1.8847,
+      "margin": 68.34469237601682,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.5882937499999998,
+      "exit": 1.5676558580859374,
+      "pnl": -1.877,
+      "margin": 68.06199914012288,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.125061249999999,
+      "exit": 5.0584674853828115,
+      "pnl": -1.8767,
+      "margin": 68.05281332128841,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 120.50021999999998,
+      "exit": 121.94546951362499,
+      "pnl": 1.5233,
+      "margin": 68.07118619886593,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.1863929,
+      "exit": 1.200622199844375,
+      "pnl": 1.5205,
+      "margin": 67.94497728203861,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.1962978499999999,
+      "exit": 1.1807534548115626,
+      "pnl": -1.8768,
+      "margin": 68.05566340314735,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 121.66079999999998,
+      "exit": 120.07996997999999,
+      "pnl": -1.8726,
+      "margin": 67.90390905356783,
+      "reason": "stop-loss",
+      "hours": 7
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.18149045,
+      "exit": 1.1661384584653127,
+      "pnl": -1.8727,
+      "margin": 67.90653292147236,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.1701848,
+      "exit": 1.1549797112550002,
+      "pnl": -1.8641,
+      "margin": 67.59629124753452,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.1525759999999998,
+      "exit": 1.1663997083999997,
+      "pnl": 1.5095,
+      "margin": 67.45648299593374,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.16368155,
+      "exit": 1.1776384555903125,
+      "pnl": 1.5121,
+      "margin": 67.56969810354252,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.0525235,
+      "exit": 10.908909772771874,
+      "pnl": -1.8668,
+      "margin": 67.69538377115455,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.1851923,
+      "exit": 1.169792207551875,
+      "pnl": -1.8665,
+      "margin": 67.6831032249205,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.26813375,
+      "exit": 1.2833434291640626,
+      "pnl": 1.507,
+      "margin": 67.34367221804732,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.27493715,
+      "exit": 1.2583709354071875,
+      "pnl": -1.8607,
+      "margin": 67.47347569320063,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 84968.46299999999,
+      "exit": 83864.40403389375,
+      "pnl": -1.8588,
+      "margin": 67.40310221862312,
+      "reason": "stop-loss",
+      "hours": 16
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.5667805,
+      "exit": 11.705509573621875,
+      "pnl": 1.5046,
+      "margin": 67.23716507473299,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.855925,
+      "exit": 11.70187207453125,
+      "pnl": -1.8573,
+      "margin": 67.35001209167136,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.523759,
+      "exit": 11.374022156493751,
+      "pnl": -1.8535,
+      "margin": 67.2107132150311,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.460729,
+      "exit": 5.38977365255625,
+      "pnl": -1.8496,
+      "margin": 67.07170244787193,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 86670.31349999999,
+      "exit": 85544.14111395937,
+      "pnl": -1.8458,
+      "margin": 66.9329791943019,
+      "reason": "stop-loss",
+      "hours": 10
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 122.59126499999999,
+      "exit": 120.99834475040625,
+      "pnl": -1.8461,
+      "margin": 66.94410202680909,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.129562,
+      "exit": 10.9849472537625,
+      "pnl": -1.8379,
+      "margin": 66.64708744693606,
+      "reason": "stop-loss",
+      "hours": 13
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.4903448,
+      "exit": 1.508219622945,
+      "pnl": 1.4916,
+      "margin": 66.65608351985729,
+      "reason": "take-profit",
+      "hours": 21
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 4.959178349999999,
+      "exit": 5.0186574953353125,
+      "pnl": 1.493,
+      "margin": 66.71619847011517,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 84950.454,
+      "exit": 85969.32850766249,
+      "pnl": 1.4912,
+      "margin": 66.63809258814749,
+      "reason": "take-profit",
+      "hours": 27
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09548471849999998,
+      "exit": 0.09662993834250935,
+      "pnl": 1.4948,
+      "margin": 66.80002750470463,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 85878.91799999999,
+      "exit": 86908.9282727625,
+      "pnl": 1.4983,
+      "margin": 66.95378516268555,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.09640117649999999,
+      "exit": 0.09514856371285313,
+      "pnl": -1.8466,
+      "margin": 66.9628226338902,
+      "reason": "stop-loss",
+      "hours": 7
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 86634.2955,
+      "exit": 85508.59112284688,
+      "pnl": -1.8487,
+      "margin": 67.03847722239084,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "entry": 121.14053999999999,
+      "exit": 119.56647010837499,
+      "pnl": -1.8362,
+      "margin": 66.5859980166506,
+      "reason": "stop-loss",
+      "hours": 31
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.0960670095,
+      "exit": 0.09481873879530939,
+      "pnl": -1.843,
+      "margin": 66.83184548199847,
+      "reason": "stop-loss",
+      "hours": 8
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.3437705499999995,
+      "exit": 5.274334931415937,
+      "pnl": -1.8346,
+      "margin": 66.52531080116766,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.4447195,
+      "exit": 11.581984604503125,
+      "pnl": 1.4856,
+      "margin": 66.38771764008357,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.5347645,
+      "exit": 11.384884653778125,
+      "pnl": -1.8339,
+      "margin": 66.49913899297232,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.4407175,
+      "exit": 11.577934605515624,
+      "pnl": 1.485,
+      "margin": 66.3615999625909,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.608801499999998,
+      "exit": 11.457959635509374,
+      "pnl": -1.8331,
+      "margin": 66.47297748106172,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.441718,
+      "exit": 11.5789471052625,
+      "pnl": 1.4844,
+      "margin": 66.33549256008737,
+      "reason": "take-profit",
+      "hours": 5
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.5527735,
+      "exit": 11.691334577165625,
+      "pnl": 1.4869,
+      "margin": 66.44682626138521,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.6208075,
+      "exit": 11.469809632546875,
+      "pnl": -1.8355,
+      "margin": 66.55834681880738,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.18087039,
+      "exit": 0.1830397042400625,
+      "pnl": 1.4864,
+      "margin": 66.42068532989373,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.181080495,
+      "exit": 0.17872758031809377,
+      "pnl": -1.8348,
+      "margin": 66.53216201386977,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.0700347499999998,
+      "exit": 1.0561309859671875,
+      "pnl": -1.8316,
+      "margin": 66.41876639112982,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.178639275,
+      "exit": 0.18078182980453122,
+      "pnl": 1.4829,
+      "margin": 66.26701946838553,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.182641275,
+      "exit": 0.18483182879203125,
+      "pnl": 1.4847,
+      "margin": 66.34780681711212,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.185422665,
+      "exit": 0.18301332924665625,
+      "pnl": -1.8329,
+      "margin": 66.46476877106245,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.245521449999999,
+      "exit": 5.308434922890937,
+      "pnl": 1.4846,
+      "margin": 66.34438083123106,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.311854599999999,
+      "exit": 5.375563656108749,
+      "pnl": 1.4856,
+      "margin": 66.38546307125809,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.1217606,
+      "exit": 1.13521471619625,
+      "pnl": 1.4848,
+      "margin": 66.35333604459049,
+      "reason": "take-profit",
+      "hours": 4
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.366682,
+      "exit": 5.4310486422375,
+      "pnl": 1.489,
+      "margin": 66.54003738642602,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.1314654499999999,
+      "exit": 1.1167634708090626,
+      "pnl": -1.8433,
+      "margin": 66.84058895290248,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.374786049999999,
+      "exit": 5.304947423762813,
+      "pnl": -1.8435,
+      "margin": 66.84961114479941,
+      "reason": "stop-loss",
+      "hours": 4
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.34517125,
+      "exit": 5.275717431070313,
+      "pnl": -1.8362,
+      "margin": 66.58551878897602,
+      "reason": "stop-loss",
+      "hours": 6
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "entry": 1.11905925,
+      "exit": 1.1045184738703127,
+      "pnl": -1.836,
+      "margin": 66.5765322396486,
+      "reason": "stop-loss",
+      "hours": 7
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2491.245,
+      "exit": 2521.1243697187497,
+      "pnl": 1.4886,
+      "margin": 66.52318266570711,
+      "reason": "take-profit",
+      "hours": 47
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 10.9264605,
+      "exit": 11.057509735621874,
+      "pnl": 1.4847,
+      "margin": 66.34781669394576,
+      "reason": "take-profit",
+      "hours": 7
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2571.18495,
+      "exit": 2537.7756155559377,
+      "pnl": -1.8318,
+      "margin": 66.42496512597751,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 11.0605275,
+      "exit": 10.916809770796876,
+      "pnl": -1.8328,
+      "margin": 66.45917107936585,
+      "reason": "stop-loss",
+      "hours": 7
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19151571,
+      "exit": 0.18902720274318754,
+      "pnl": -1.8252,
+      "margin": 66.18432909609318,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19587789,
+      "exit": 0.1982272004431875,
+      "pnl": 1.478,
+      "margin": 66.04744118163036,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 10.163079,
+      "exit": 10.28497242875625,
+      "pnl": 1.4792,
+      "margin": 66.1027613402118,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.196588245,
+      "exit": 0.19894607526346875,
+      "pnl": 1.4801,
+      "margin": 66.1396137294985,
+      "reason": "take-profit",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 10.387191,
+      "exit": 10.51177237205625,
+      "pnl": 1.4855,
+      "margin": 66.38023948192087,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19915952999999997,
+      "exit": 0.2015481996129375,
+      "pnl": 1.4853,
+      "margin": 66.37128063760578,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.199529715,
+      "exit": 0.20192282451928126,
+      "pnl": 1.4904,
+      "margin": 66.60304204985889,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "entry": 5.2952463,
+      "exit": 5.226441193389375,
+      "pnl": -1.8362,
+      "margin": 66.58506543440372,
+      "reason": "stop-loss",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.20132061,
+      "exit": 0.19870470032381252,
+      "pnl": -1.8392,
+      "margin": 66.6929106209745,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "entry": 10.3481715,
+      "exit": 10.213709946571875,
+      "pnl": -1.8365,
+      "margin": 66.59405313554804,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.199309605,
+      "exit": 0.19671982582003125,
+      "pnl": -1.8298,
+      "margin": 66.35199109324046,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "entry": 2459.32905,
+      "exit": 2427.373143156563,
+      "pnl": -1.83,
+      "margin": 66.36001240614307,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19823907,
+      "exit": 0.1956632010841875,
+      "pnl": -1.8208,
+      "margin": 66.02694693162479,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.195767835,
+      "exit": 0.19322407669396877,
+      "pnl": -1.8171,
+      "margin": 65.89038452799758,
+      "reason": "stop-loss",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19766878499999999,
+      "exit": 0.19510032622490625,
+      "pnl": -1.8133,
+      "margin": 65.75410457405115,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19403697,
+      "exit": 0.19636420090893753,
+      "pnl": 1.4684,
+      "margin": 65.6181064855997,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.196248075,
+      "exit": 0.19860182534953125,
+      "pnl": 1.4709,
+      "margin": 65.72823616709078,
+      "reason": "take-profit",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "entry": 0.19718854499999997,
+      "exit": 0.19462632634340624,
+      "pnl": -1.8156,
+      "margin": 65.83855068394814,
+      "reason": "stop-loss",
+      "hours": 3
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.38139035,
+      "exit": 1.3979584005103125,
+      "pnl": 1.4703,
+      "margin": 65.70237793705371,
+      "reason": "take-profit",
+      "hours": 3
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "entry": 0.08350273049999998,
+      "exit": 0.08241771689556561,
+      "pnl": -1.8116,
+      "margin": 65.69351057864007,
+      "reason": "stop-loss",
+      "hours": 7
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "entry": 1.3880937,
+      "exit": 1.3700571574856253,
+      "pnl": -1.8123,
+      "margin": 65.71591191113232,
+      "reason": "stop-loss",
+      "hours": 5
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "entry": 84543.2505,
+      "exit": 83444.71663881563,
+      "pnl": -1.8114,
+      "margin": 65.68464441698747,
+      "reason": "stop-loss",
+      "hours": 10
+    }
+  ]
+}
