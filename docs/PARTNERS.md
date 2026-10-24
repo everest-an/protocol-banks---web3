@@ -40,6 +40,30 @@ uncertain submission (recorded for reconciliation, never retried).
 
 Mode, equity, open positions, activity and the effective risk config (post-clamp).
 
+### `POST /api/v1/agent/pay`
+
+Returns a **signed-ready transfer intent** — the platform holds no keys, so the
+agent submits it from its own wallet. Destination is validated (EVM `0x…` or
+Solana base58), the amount is checked against the key's policy.
+
+### `POST /api/v1/agent/swap`
+
+Returns a **quote and the transaction to sign** (Rango). Same rule: the agent
+executes, never us. Quotes are not metered because nothing is spent.
+
+## The key's policy (enforced server-side)
+
+| Field | Meaning | Default |
+|---|---|---|
+| `allowedOps` | `read` \| `pay` \| `swap` \| `trade` | `["read"]` for a new key, all ops for a key created before policies existed |
+| `maxNotionalUsd` | per call | 50 |
+| `dailyCapUsd` | per UTC day, summed from metered operations | 200 |
+| `allowedCoins` | allowlist; empty means every supported market | `[]` |
+
+A call outside the policy returns `403` with the reason. Trading orders are also
+clamped by the platform risk envelope: `sizeUsd` above `positionNotional(equity)`
+is reduced, and the daily breakers can refuse the call entirely (`409`).
+
 ## What the partner controls, and what they do not
 
 | Partner chooses | Platform decides |

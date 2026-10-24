@@ -207,6 +207,9 @@ model ApiKey {
   key_prefix            String
   owner_address         String
   permissions           String[] // Array of permissions
+  /// Agent policy: scopes, per-call and daily caps, coin allowlist.
+  /// Null means the legacy policy (all ops, hard-capped).
+  policy                Json?
   rate_limit_per_minute Int       @default(60)
   rate_limit_per_day    Int       @default(10000)
   allowed_ips           String[]  @default([])
@@ -500,13 +503,13 @@ model SubscriptionPayment {
 /// row whose validity window covers the charge date and then marks it used.
 ///
 /// Every column below exists in the database (scripts/030, scripts/034). Do not
-/// remove fields to "simplify" the model — `prisma db push` would drop the real
+/// remove fields to "simplify" the model â€” `prisma db push` would drop the real
 /// columns, taking the stored signatures with them.
 model SubscriptionAuthorization {
   id                String    @id @default(uuid())
   subscription_id   String
   /// The ERC-3009 tuple below is optional because rows created before migration
-  /// 034 predate these columns. A row without the full tuple cannot be charged —
+  /// 034 predate these columns. A row without the full tuple cannot be charged â€”
   /// the executor skips it rather than submitting a signature that would revert.
   user_address      String?
   recipient_address String?
@@ -1494,8 +1497,8 @@ model MonthlyFeeSummary {
 // ============================================================================
 
 /**
- * 支付处理队列任务
- * 用于 Redis 队列的持久化备份和状态跟踪
+ * æ”¯ä»˜å¤„ç†é˜Ÿåˆ—ä»»åŠ¡
+ * ç”¨äºŽ Redis é˜Ÿåˆ—çš„æŒä¹…åŒ–å¤‡ä»½å’ŒçŠ¶æ€è·Ÿè¸ª
  */
 model PaymentQueueJob {
   id            String    @id @default(cuid())
@@ -1505,7 +1508,7 @@ model PaymentQueueJob {
   status        String    @default("pending") // pending, processing, completed, failed
   attempts      Int       @default(0)
   max_attempts  Int       @default(3)
-  priority      Int       @default(10) // 1-10, 数字越小优先级越高
+  priority      Int       @default(10) // 1-10, æ•°å­—è¶Šå°ä¼˜å…ˆçº§è¶Šé«˜
   error_message String?   @db.Text
   created_at    DateTime  @default(now())
   processed_at  DateTime?
@@ -1517,8 +1520,8 @@ model PaymentQueueJob {
 }
 
 /**
- * 自动生息存款记录
- * 跟踪商户在 JustLend 的存款和收益
+ * è‡ªåŠ¨ç”Ÿæ¯å­˜æ¬¾è®°å½•
+ * è·Ÿè¸ªå•†æˆ·åœ¨ JustLend çš„å­˜æ¬¾å’Œæ”¶ç›Š
  */
 model YieldDeposit {
   id            String    @id @default(cuid())
@@ -1539,8 +1542,8 @@ model YieldDeposit {
 }
 
 /**
- * 区块信息缓存
- * 用于区块重组检测
+ * åŒºå—ä¿¡æ¯ç¼“å­˜
+ * ç”¨äºŽåŒºå—é‡ç»„æ£€æµ‹
  */
 model BlockInfo {
   block_number Int      @id
@@ -1555,8 +1558,8 @@ model BlockInfo {
 }
 
 /**
- * 审计日志增强
- * 记录可疑交易和安全事件
+ * å®¡è®¡æ—¥å¿—å¢žå¼º
+ * è®°å½•å¯ç–‘äº¤æ˜“å’Œå®‰å…¨äº‹ä»¶
  */
 model SecurityAuditLog {
   id            String   @id @default(cuid())
@@ -1644,7 +1647,7 @@ model FiatOrder {
 }
 
 // ============================================================================
-// Enterprise Ledger System (总账系统)
+// Enterprise Ledger System (æ€»è´¦ç³»ç»Ÿ)
 // ============================================================================
 
 /// User balance ledger - cached balance per user/token/chain
@@ -1716,7 +1719,7 @@ model IdempotencyKey {
 }
 
 // ============================================================================
-// Batch Payment Items (批量支付明细)
+// Batch Payment Items (æ‰¹é‡æ”¯ä»˜æ˜Žç»†)
 // ============================================================================
 
 /// Individual items within a batch payment - tracks each recipient separately
@@ -1748,7 +1751,7 @@ model BatchItem {
 }
 
 // ============================================================================
-// Cross-Chain Transaction State Machine (跨链交易状态机)
+// Cross-Chain Transaction State Machine (è·¨é“¾äº¤æ˜“çŠ¶æ€æœº)
 // ============================================================================
 
 /// Cross-chain transaction tracking with full state machine
@@ -1807,7 +1810,7 @@ model CrossChainStateTransition {
 }
 
 // ============================================================================
-// Settlement & Reconciliation (清算对账)
+// Settlement & Reconciliation (æ¸…ç®—å¯¹è´¦)
 // ============================================================================
 
 /// Settlement records - periodic reconciliation between on-chain and off-chain
@@ -1839,7 +1842,7 @@ model SettlementRecord {
 }
 
 // ============================================================================
-// Risk Control & Compliance (风控与合规)
+// Risk Control & Compliance (é£ŽæŽ§ä¸Žåˆè§„)
 // ============================================================================
 
 /// Risk assessment for transactions
@@ -1886,10 +1889,10 @@ model ComplianceCheck {
 }
 
 // ============================================================================
-// Virtual Card Issuance (虚拟卡发行 — Powered by Yativo)
+// Virtual Card Issuance (è™šæ‹Ÿå¡å‘è¡Œ â€” Powered by Yativo)
 // ============================================================================
 /// Virtual Visa cards issued via Yativo, funded by USDC/USDT deposits.
-/// Flow: User deposits USDC → Yativo USD balance → Issue virtual card → Spend globally
+/// Flow: User deposits USDC â†’ Yativo USD balance â†’ Issue virtual card â†’ Spend globally
 model UserVirtualCard {
   id               String   @id @default(uuid())
   /// Wallet address of the card owner
@@ -1951,7 +1954,7 @@ model AgentVirtualCard {
 }
 
 // ============================================================================
-// AI Trading (live mode) � per-user isolation
+// AI Trading (live mode) ï¿½ per-user isolation
 // ============================================================================
 
 /// One row per user wallet that has onboarded to live AI trading.
@@ -1986,7 +1989,7 @@ model TradingAccount {
   public_track_record Boolean   @default(false)
   /// Telegram binding: the user's private chat that receives this account's
   /// trading progress. Linked with a one-time code the signed-in cockpit
-  /// generates (t.me/ProtocolTraderBot?start=<code>) — ownership is proven by
+  /// generates (t.me/ProtocolTraderBot?start=<code>) â€” ownership is proven by
   /// the SIWE session that created the code, so nobody can bind someone
   /// else's wallet.
   telegram_chat_id        String?   @unique
@@ -2031,7 +2034,7 @@ model TradeRecord {
 
 /// Product analytics for the acquisition funnel: one row per event, written by
 /// lib/analytics/events.ts. The wallet is only attached when the request is
-/// authenticated for it — never taken from the request body.
+/// authenticated for it â€” never taken from the request body.
 model UsageEvent {
   id         String   @id @default(uuid())
   name       String

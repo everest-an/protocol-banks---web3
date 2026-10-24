@@ -59,6 +59,22 @@ control_trading_agent (pause | resume | stop | reset — auth required).
 - Supported chains: Ethereum, Polygon, Arbitrum, Base, Optimism, BSC.
   Non-custodial: funds always move from the user's wallet, never a platform balance.
 
+## Agent API (for AI agents and their developers)
+
+Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
+
+- POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee
+- GET /state — mode, equity, open positions, effective risk config, remaining policy
+- POST /pay — { to, amountUsd, token?, chain?, memo? } -> a signed-ready transfer intent; the agent submits it from its own wallet
+- POST /swap — { from, to, amount, amountUsd, slippage? } -> a quote and the transaction to sign
+
+Every key carries a policy the server enforces, not the agent: allowedOps
+(read | pay | swap | trade), maxNotionalUsd (per call), dailyCapUsd (per UTC day),
+allowedCoins (empty = all). Trading also passes the platform risk envelope —
+position cap, stop-loss, daily breakers — and a sizeUsd above the cap is clamped,
+not rejected. Pay and swap never move funds: the platform holds no keys, so those
+endpoints return what the agent must sign.
+
 ## Legal
 
 Automated trading can lose the entire trading wallet. Protocol Bank provides no

@@ -16,6 +16,7 @@ export const EVENT_NAMES = [
   "strategy_applied",
   "nl_command",
   "partner_order",
+  "agent_op",
 ] as const
 
 export type EventName = (typeof EVENT_NAMES)[number]

@@ -50,14 +50,24 @@ describe("POST /api/v1/agent/orders", () => {
     const agent = fakeAgent({ ok: true, avgPx: 100, size: 1.5, notional: 150 })
     resolveMock.mockResolvedValue(agent)
 
-    const res = await POST(req({ coin: "btc", side: "long", sizeUsd: 5_000 }) as never)
+    const res = await POST(req({ coin: "btc", side: "long", sizeUsd: 50 }) as never)
     const body = await res.json()
 
     expect(res.status).toBe(200)
     expect(body.fill).toMatchObject({ coin: "BTC", side: "long", avgPx: 100 })
     expect(body.fee).toBeCloseTo(0.12, 4)
-    expect(agent.executeManualOrder).toHaveBeenCalledWith(expect.objectContaining({ coin: "BTC", sizeUsd: 5000 }))
-    expect(eventMock).toHaveBeenCalledWith(expect.objectContaining({ name: "partner_order", wallet: WALLET }))
+    expect(agent.executeManualOrder).toHaveBeenCalledWith(expect.objectContaining({ coin: "BTC", sizeUsd: 50 }))
+    expect(eventMock).toHaveBeenCalledWith(expect.objectContaining({ name: "agent_op", wallet: WALLET }))
+  })
+
+  it("refuses a per-call overshoot from the key's policy before touching the agent", async () => {
+    const res = await POST(req({ coin: "BTC", side: "long", sizeUsd: 5_000 }) as never)
+    const body = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(body.error).toMatch(/per-call cap/)
+    expect(resolveMock).not.toHaveBeenCalled()
+    expect(eventMock).not.toHaveBeenCalled()
   })
 
   it("surfaces a risk-guard refusal as 409 without metering it", async () => {

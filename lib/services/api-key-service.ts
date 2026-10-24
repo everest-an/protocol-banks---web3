@@ -19,6 +19,8 @@ export interface APIKey {
   key_prefix: string;
   owner_address: string;
   permissions: Permission[];
+  /** Agent policy: scopes, per-call/daily caps, coin allowlist (lib/agent/policy.ts). */
+  policy?: unknown;
   rate_limit_per_minute: number;
   rate_limit_per_day: number;
   allowed_ips?: string[];
@@ -35,6 +37,7 @@ export interface CreateAPIKeyInput {
   name: string;
   owner_address: string;
   permissions?: Permission[];
+  policy?: unknown;
   rate_limit_per_minute?: number;
   rate_limit_per_day?: number;
   allowed_ips?: string[];
@@ -129,6 +132,7 @@ export class APIKeyService {
           key_prefix: keyPrefix,
           owner_address: input.owner_address.toLowerCase(),
           permissions: (input.permissions || ['read']) as string[],
+          policy: input.policy === undefined ? undefined : (input.policy as object),
           rate_limit_per_minute: input.rate_limit_per_minute || 60,
           rate_limit_per_day: input.rate_limit_per_day || 10000,
           allowed_ips: input.allowed_ips || [],

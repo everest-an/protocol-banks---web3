@@ -1,22 +1,22 @@
 import { NextResponse } from "next/server"
-import { withAPIKeyAuth, type AuthenticatedRequest } from "@/lib/middleware/api-key-auth"
+import { withAgentAuth, type AgentRequest } from "@/lib/agent/auth"
+import { evaluatePolicy } from "@/lib/agent/policy"
 import { resolveAgentForWallet } from "@/lib/trading/agent"
 import { recordEvent } from "@/lib/analytics/events"
 
 /**
  * POST /api/v1/agent/orders — a partner places an order for the account the API
- * key belongs to. The order runs through the same risk envelope the strategy
- * does: no bypass of caps, breakers, funds or position limits. Billing is per
- * executed order (PARTNER_FEE_BPS, default 8 bps of notional) and is metered as
- * a `partner_order` event.
+ * key belongs to. Two envelopes apply: the key's policy (ops, per-call cap,
+ * daily cap, coin allowlist) and the agent's own risk envelope (position cap,
+ * breakers, funds). Billing is per executed order at PARTNER_FEE_BPS.
  */
 export const dynamic = "force-dynamic"
 
 const FEE_BPS = Number(process.env.PARTNER_FEE_BPS || 8)
 
-async function handler(request: AuthenticatedRequest) {
-  const wallet = request.ownerAddress
-  if (!wallet) return NextResponse.json({ error: "this key has no owner address" }, { status: 403 })
+async function handler(request: AgentRequest) {
+  const wallet = request.ownerAddress as string
+  const policy = request.agentPolicy!
 
   let body: { coin?: unknown; side?: unknown; sizeUsd?: unknown; reason?: unknown }
   try {
@@ -32,6 +32,9 @@ async function handler(request: AuthenticatedRequest) {
     return NextResponse.json({ error: "coin, side (long|short) and a positive sizeUsd are required" }, { status: 400 })
   }
 
+  const allowed = evaluatePolicy(policy, { op: "trade", notionalUsd: sizeUsd, coin }, request.spentTodayUsd ?? 0)
+  if (!allowed.ok) return NextResponse.json({ ok: false, error: allowed.reason }, { status: 403 })
+
   const agent = await resolveAgentForWallet(wallet)
   const result = await agent.executeManualOrder({
     coin,
@@ -43,23 +46,28 @@ async function handler(request: AuthenticatedRequest) {
 
   const fee = Number(((result.notional * FEE_BPS) / 10_000).toFixed(4))
   void recordEvent({
-    name: "partner_order",
+    name: "agent_op",
     wallet,
-    props: { coin, side, notional: Number(result.notional.toFixed(2)), feeBps: FEE_BPS, fee, mode: agent.isLive() ? "live" : "paper" },
+    props: {
+      op: "trade",
+      coin,
+      side,
+      notionalUsd: Number(result.notional.toFixed(2)),
+      feeBps: FEE_BPS,
+      fee,
+      mode: agent.isLive() ? "live" : "paper",
+    },
   })
 
   return NextResponse.json({
     ok: true,
-    fill: {
-      coin,
-      side,
-      avgPx: result.avgPx,
-      size: result.size,
-      notional: Number(result.notional.toFixed(2)),
-    },
+    fill: { coin, side, avgPx: result.avgPx, size: result.size, notional: Number(result.notional.toFixed(2)) },
     fee,
     mode: agent.isLive() ? "live" : "paper",
+    remainingTodayUsd: Number(
+      Math.max(0, policy.dailyCapUsd - (request.spentTodayUsd ?? 0) - result.notional).toFixed(2),
+    ),
   })
 }
 
-export const POST = withAPIKeyAuth(handler, { requiredPermissions: ["write"] })
+export const POST = withAgentAuth(handler, "trade")

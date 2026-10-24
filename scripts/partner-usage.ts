@@ -9,7 +9,7 @@ const DAYS = Number(process.env.DAYS || 30)
 async function main() {
   const since = new Date(Date.now() - DAYS * 86_400_000)
   const rows = await prisma.usageEvent.findMany({
-    where: { name: "partner_order", created_at: { gte: since } },
+    where: { name: "agent_op", created_at: { gte: since } },
     select: { wallet: true, props: true },
   })
 
