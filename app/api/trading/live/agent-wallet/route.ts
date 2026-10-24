@@ -151,6 +151,9 @@ export const POST = withAuth(async (req, address) => {
           )
         }
         markApproved(address)
+        void import("@/lib/analytics/events").then(({ recordEvent }) =>
+          recordEvent({ name: "live_approved", wallet: address }),
+        )
         return NextResponse.json({ ok: true, result })
       } catch (e) {
         return NextResponse.json(

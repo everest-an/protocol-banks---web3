@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import useSWR from "swr"
 import {
   Bot,
@@ -39,6 +39,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { TradingLiveSetup } from "@/components/trading-live-setup"
 import { TradingCommandBar } from "@/components/trading-command-bar"
+import { track } from "@/lib/analytics/events"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { createAuthenticatedFetch } from "@/lib/authenticated-fetch"
 
@@ -132,6 +133,10 @@ export default function TradingPage() {
   const { address: walletAddress } = useUnifiedWallet()
   const [range, setRange] = useState<7 | 30>(30)
   const { toast } = useToast()
+
+  useEffect(() => {
+    track("cockpit_view")
+  }, [])
 
   const authFetch = createAuthenticatedFetch(walletAddress, { isDemoMode: !walletAddress })
   const overviewKey = walletAddress ? `/api/trading/overview?wallet=${walletAddress}` : "/api/trading/overview"

@@ -13,6 +13,7 @@
 // and only the configured owner chat is answered.
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { recordEvent } from '@/lib/analytics/events'
 import type { Prisma } from '@prisma/client'
 import { PRESETS, resolveStrategyProfile } from '@/lib/trading/strategy-profile'
 import type { RiskConfig } from '@/lib/trading/risk'
@@ -209,6 +210,7 @@ export async function POST(req: NextRequest) {
       where: { wallet_address: row.wallet_address },
       data: { telegram_chat_id: chatId, telegram_link_code: null, telegram_link_expires_at: null },
     })
+    void recordEvent({ name: 'wallet_bound', wallet: row.wallet_address })
     await send(
       chatId,
       `✅ 绑定成功：${row.wallet_address.slice(0, 6)}…${row.wallet_address.slice(-4)}\n交易进展会推送到这里；直接发消息问我账户情况即可；发 /unbind 可解绑。`,
@@ -400,6 +402,7 @@ export async function POST(req: NextRequest) {
     })
     const { invalidateAgentForWallet } = await import('@/lib/trading/agent')
     invalidateAgentForWallet(walletForChat)
+    void recordEvent({ name: 'strategy_applied', wallet: walletForChat, props: { preset: pending.preset } })
     const clamped = resolved.clamped.map((c) => `${c.field} ${String(c.requested)}→${String(c.applied)}`).join('，')
     await send(chatId, formatStrategy(`${pending.preset}（已生效）`, resolved.config, clamped ? `已夹紧：${clamped}` : ''))
     return NextResponse.json({ ok: true })

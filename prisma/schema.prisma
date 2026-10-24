@@ -2028,3 +2028,20 @@ model TradeRecord {
   @@map("trade_records")
 }
 
+
+/// Product analytics for the acquisition funnel: one row per event, written by
+/// lib/analytics/events.ts. The wallet is only attached when the request is
+/// authenticated for it — never taken from the request body.
+model UsageEvent {
+  id         String   @id @default(uuid())
+  name       String
+  anon_id    String?
+  wallet     String?
+  path       String?
+  props      Json?
+  created_at DateTime @default(now())
+
+  @@index([name, created_at])
+  @@index([wallet, created_at])
+  @@map("usage_events")
+}

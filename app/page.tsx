@@ -6,6 +6,7 @@ import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { useToast } from "@/hooks/use-toast"
 import { LandingPage } from "@/components/landing-page"
+import { track } from "@/lib/analytics/events"
 
 export default function HomePage() {
   const router = useRouter()
@@ -13,6 +14,10 @@ export default function HomePage() {
   const { toggleDemoMode } = useDemo()
   const { toast } = useToast()
   const connectingRef = useRef(false)
+
+  useEffect(() => {
+    track("landing_view")
+  }, [])
 
   // Redirect to AI trading cockpit after wallet connects from the landing page
   useEffect(() => {

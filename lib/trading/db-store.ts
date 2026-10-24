@@ -192,6 +192,12 @@ export async function recordTradeOpened(walletAddress: string, trade: OpenedTrad
         status: "open",
       },
     })
+    const { recordEvent } = await import("@/lib/analytics/events")
+    void recordEvent({
+      name: "trade_opened",
+      wallet: walletAddress,
+      props: { mode: trade.mode, symbol: trade.symbol, side: trade.side },
+    })
   } catch (e) {
     console.warn("[trading] trade record (open) skipped:", e)
   }
