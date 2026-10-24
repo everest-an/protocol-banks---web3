@@ -10,6 +10,7 @@ export { PaymentLink } from "./payment-link"
 export { Invoice } from "./invoice"
 export { Checkout } from "./checkout"
 export { Webhook } from "./webhook"
+export { Agent } from "./agent"
 
 // Types
 export type {
@@ -24,3 +25,4 @@ export type {
 } from "./types"
 
 export type { WebhookEvent, WebhookConfig } from "./webhook"
+export type { AgentOrderRequest, AgentOrderResponse } from "./agent"

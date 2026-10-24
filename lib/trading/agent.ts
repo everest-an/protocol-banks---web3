@@ -592,6 +592,116 @@ export class TradingAgent {
     return pnl
   }
 
+  /**
+   * A partner-placed order. It is NOT a bypass: the same envelope the strategy
+   * obeys applies here — status, max positions, daily breakers, funds, and the
+   * notional is clamped to positionNotional(equity). A partner can choose the
+   * market and the side; they cannot choose the risk.
+   */
+  async executeManualOrder(req: {
+    coin: string
+    side: "long" | "short"
+    sizeUsd: number
+    reason?: string
+  }): Promise<{ ok: true; avgPx: number; size: number; notional: number } | { ok: false; reason: string }> {
+    const st = this.state()
+    if (st.agent.status !== "running") return { ok: false, reason: "agent is paused or stopped" }
+    if (st.positions.some((p) => p.symbol === req.coin)) {
+      return { ok: false, reason: `already holding ${req.coin}` }
+    }
+    if (st.positions.length >= this.risk.maxPositions) {
+      return { ok: false, reason: `max positions reached (${this.risk.maxPositions})` }
+    }
+
+    const equity = this.equityOf(st)
+    const risk = dailyRisk(st.todayStartEquity, equity, this.risk)
+    if (risk.killAll) return { ok: false, reason: "daily kill level reached — trading is halted for today" }
+    if (risk.stopNewEntries) return { ok: false, reason: "daily loss limit reached — no new entries today" }
+
+    const notional = Math.min(Math.max(req.sizeUsd, this.risk.minNotionalUsd), positionNotional(equity, this.risk))
+    const allocated = notional / this.risk.leverage
+    const feeEstimate = notional * this.risk.feeRate
+    if (st.cash < allocated + feeEstimate + 1) {
+      return { ok: false, reason: `insufficient free funds ($${st.cash.toFixed(2)})` }
+    }
+
+    let markPx: number
+    try {
+      const meta = await this.client.metaAndAssetCtxs()
+      const i = meta.universe.findIndex((u) => u.name === req.coin)
+      if (i < 0) return { ok: false, reason: `unknown market "${req.coin}"` }
+      markPx = parseFloat(meta.ctxs[i].markPx)
+      if (!Number.isFinite(markPx) || markPx <= 0) return { ok: false, reason: "no usable mark price" }
+    } catch {
+      return { ok: false, reason: "market data unavailable" }
+    }
+
+    let entryPrice: number
+    let size: number
+    let oid: number | null = null
+    if (this.mode === "live") {
+      if (!this.executor) return { ok: false, reason: "live mode has no order executor" }
+      if (!this.executor.isReady()) return { ok: false, reason: "no approved agent wallet for this account" }
+      const result = await this.executor.placeOrder({
+        coin: req.coin,
+        isBuy: req.side === "long",
+        sizeUsd: notional,
+      })
+      if (!result.ok) {
+        if (!result.rejected && !result.preSubmit) {
+          this.store.mutate((s) => {
+            s.verifying = [
+              ...(s.verifying ?? []).filter((v) => !(v.coin === req.coin && v.kind === "entry")),
+              { coin: req.coin, side: req.side, kind: "entry", at: new Date().toISOString(), cloid: result.cloid },
+            ]
+          })
+          return { ok: false, reason: `order status uncertain — the next tick reconciles it (${result.reason})` }
+        }
+        return { ok: false, reason: result.reason }
+      }
+      entryPrice = result.avgPx
+      size = result.totalSz
+      oid = result.oid
+    } else {
+      entryPrice = slippedPrice(markPx, req.side, this.risk)
+      size = notional / entryPrice
+    }
+
+    const fee = entryPrice * size * this.risk.feeRate
+    const reason = (req.reason ?? "manual order (partner API)").slice(0, 120)
+    this.store.mutate((s) => {
+      s.cash = Number((s.cash - allocated - fee).toFixed(2))
+      s.positions.push({
+        symbol: req.coin,
+        side: req.side,
+        size: Number(size.toFixed(6)),
+        entry: Number(entryPrice.toFixed(6)),
+        mark: Number(markPx.toFixed(6)),
+        allocated: Number(allocated.toFixed(2)),
+        pnl: 0,
+        pnlPct: 0,
+        leverage: this.risk.leverage,
+        reason,
+        openedAt: new Date().toISOString(),
+      })
+      this.refreshAccount(s)
+    })
+    if (this.ownerAddress) {
+      void recordTradeOpened(this.ownerAddress, {
+        mode: this.mode,
+        symbol: req.coin,
+        side: req.side,
+        size,
+        entryPrice,
+        fees: fee,
+        reason,
+        oid,
+      })
+    }
+    this.log("open", `Opened ${req.coin} ${req.side} at $${entryPrice.toFixed(2)} (manual order)`)
+    return { ok: true, avgPx: entryPrice, size, notional }
+  }
+
   private async scanAndEnter(ctxByCoin: Map<string, AssetCtx>): Promise<boolean> {
     if ((this.state().verifying ?? []).length) {
       this.noteGuard("Waiting for a prior UNCERTAIN order to be verified - no new entries this tick.")

@@ -9,6 +9,7 @@ import { PaymentLink } from "./payment-link"
 import { Invoice } from "./invoice"
 import { Checkout } from "./checkout"
 import { Webhook } from "./webhook"
+import { Agent } from "./agent"
 
 export class ProtocolBanks {
   private config: Required<
@@ -24,6 +25,8 @@ export class ProtocolBanks {
   public checkout: Checkout
   /** Webhooks module */
   public webhooks: Webhook
+  /** Agent module — orders through the platform's risk envelope */
+  public agent: Agent
 
   constructor(config: ProtocolBanksConfig) {
     this.config = {
@@ -36,6 +39,7 @@ export class ProtocolBanks {
     this.invoices = new Invoice(this.config)
     this.checkout = new Checkout(this.config)
     this.webhooks = new Webhook(this.config)
+    this.agent = new Agent(this.config)
   }
 
   /**
