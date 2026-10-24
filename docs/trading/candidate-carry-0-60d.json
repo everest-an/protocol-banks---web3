@@ -1,0 +1,498 @@
+{
+  "ranAt": "2026-10-24T08:18:26.174Z",
+  "risk": {
+    "maxPositions": 3,
+    "positionPct": 0.15,
+    "minNotionalUsd": 20,
+    "minVolumeUsd": 1000000,
+    "entryThreshold": 0.45,
+    "exitFadeThreshold": 0.3,
+    "takeProfitPct": 0.025,
+    "stopLossPct": 0.025,
+    "dailyLossStopPct": 0.05,
+    "dailyLossKillPct": 0.08,
+    "feeRate": 0.0004,
+    "slippageRate": 0.0005,
+    "leverage": 2,
+    "approvalMode": "auto"
+  },
+  "result": {
+    "strategy": "carry",
+    "window": "last 60d",
+    "coins": 12,
+    "returnPct": -5.74,
+    "maxDrawdownPct": 14.68,
+    "sharpeAnnualized": -1.47,
+    "trades": 66,
+    "winRatePct": 42.4,
+    "profitFactor": 0.76,
+    "expectancyPerTrade": -0.869,
+    "feesPaid": 7.42,
+    "avgHoldHours": 28.5,
+    "btcReturnPct": 1.1
+  },
+  "trades": [
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -12.1628,
+      "reason": "safety stop",
+      "hours": 9
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -12.0211,
+      "reason": "safety stop",
+      "hours": 10
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": -11.8571,
+      "reason": "safety stop",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": -11.7772,
+      "reason": "safety stop",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": -11.6387,
+      "reason": "safety stop",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -11.8755,
+      "reason": "safety stop",
+      "hours": 27
+    },
+    {
+      "symbol": "LINK",
+      "side": "short",
+      "pnl": -11.9903,
+      "reason": "safety stop",
+      "hours": 71
+    },
+    {
+      "symbol": "LTC",
+      "side": "short",
+      "pnl": -11.1968,
+      "reason": "safety stop",
+      "hours": 26
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": 30.3486,
+      "reason": "funding normalized",
+      "hours": 87
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": 0.3149,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "LINK",
+      "side": "short",
+      "pnl": 15.0048,
+      "reason": "funding normalized",
+      "hours": 93
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -11.6713,
+      "reason": "safety stop",
+      "hours": 34
+    },
+    {
+      "symbol": "LTC",
+      "side": "short",
+      "pnl": 8.9091,
+      "reason": "funding normalized",
+      "hours": 100
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -0.363,
+      "reason": "funding normalized",
+      "hours": 8
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": -0.915,
+      "reason": "funding normalized",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -0.3854,
+      "reason": "funding normalized",
+      "hours": 5
+    },
+    {
+      "symbol": "LINK",
+      "side": "long",
+      "pnl": 1.7748,
+      "reason": "funding normalized",
+      "hours": 9
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": 1.2256,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "HYPE",
+      "side": "short",
+      "pnl": -5.379,
+      "reason": "funding normalized",
+      "hours": 9
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -11.5589,
+      "reason": "safety stop",
+      "hours": 8
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -11.3147,
+      "reason": "safety stop",
+      "hours": 11
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -11.0326,
+      "reason": "safety stop",
+      "hours": 50
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -10.9761,
+      "reason": "safety stop",
+      "hours": 7
+    },
+    {
+      "symbol": "LTC",
+      "side": "short",
+      "pnl": -10.961,
+      "reason": "safety stop",
+      "hours": 65
+    },
+    {
+      "symbol": "HYPE",
+      "side": "short",
+      "pnl": 0.7651,
+      "reason": "funding normalized",
+      "hours": 140
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -11.1614,
+      "reason": "safety stop",
+      "hours": 7
+    },
+    {
+      "symbol": "SUI",
+      "side": "short",
+      "pnl": -10.5218,
+      "reason": "safety stop",
+      "hours": 95
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": 1.4568,
+      "reason": "funding normalized",
+      "hours": 19
+    },
+    {
+      "symbol": "SUI",
+      "side": "short",
+      "pnl": -10.6142,
+      "reason": "safety stop",
+      "hours": 43
+    },
+    {
+      "symbol": "AVAX",
+      "side": "short",
+      "pnl": 8.628,
+      "reason": "max hold",
+      "hours": 169
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": 14.7089,
+      "reason": "funding normalized",
+      "hours": 39
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": -2.5651,
+      "reason": "funding normalized",
+      "hours": 1
+    },
+    {
+      "symbol": "AVAX",
+      "side": "short",
+      "pnl": 11.8536,
+      "reason": "funding normalized",
+      "hours": 82
+    },
+    {
+      "symbol": "LTC",
+      "side": "short",
+      "pnl": 4.8983,
+      "reason": "max hold",
+      "hours": 169
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": -0.0246,
+      "reason": "funding normalized",
+      "hours": 8
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -2.5204,
+      "reason": "max hold",
+      "hours": 169
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": -0.9851,
+      "reason": "funding normalized",
+      "hours": 3
+    },
+    {
+      "symbol": "SUI",
+      "side": "short",
+      "pnl": 18.0487,
+      "reason": "funding normalized",
+      "hours": 112
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -1.8282,
+      "reason": "funding normalized",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": 22.1457,
+      "reason": "funding normalized",
+      "hours": 22
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": 1.6104,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": 5.5227,
+      "reason": "funding normalized",
+      "hours": 7
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -11.446,
+      "reason": "safety stop",
+      "hours": 1
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": 8.8751,
+      "reason": "funding normalized",
+      "hours": 25
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": 0.6074,
+      "reason": "funding normalized",
+      "hours": 4
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": -0.7153,
+      "reason": "funding normalized",
+      "hours": 9
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": 5.6366,
+      "reason": "funding normalized",
+      "hours": 4
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -0.1552,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": -1.0297,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": -0.8504,
+      "reason": "funding normalized",
+      "hours": 3
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": 0.2301,
+      "reason": "funding normalized",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": 5.8217,
+      "reason": "funding normalized",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": 0.616,
+      "reason": "funding normalized",
+      "hours": 1
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "pnl": 0.1807,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "LINK",
+      "side": "long",
+      "pnl": -0.351,
+      "reason": "funding normalized",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": 1.4819,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -0.9566,
+      "reason": "funding normalized",
+      "hours": 3
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -3.7627,
+      "reason": "funding normalized",
+      "hours": 11
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": 2.2489,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -11.4716,
+      "reason": "safety stop",
+      "hours": 14
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": -2.2736,
+      "reason": "funding normalized",
+      "hours": 3
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -0.7393,
+      "reason": "funding normalized",
+      "hours": 3
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -0.0336,
+      "reason": "funding normalized",
+      "hours": 3
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": 12.5288,
+      "reason": "funding normalized",
+      "hours": 48
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": 0.1672,
+      "reason": "funding normalized",
+      "hours": 3
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": 0.1201,
+      "reason": "funding normalized",
+      "hours": 3
+    }
+  ]
+}

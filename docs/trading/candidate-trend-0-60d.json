@@ -1,0 +1,449 @@
+{
+  "ranAt": "2026-10-24T08:15:34.110Z",
+  "risk": {
+    "maxPositions": 3,
+    "positionPct": 0.15,
+    "minNotionalUsd": 20,
+    "minVolumeUsd": 1000000,
+    "entryThreshold": 0.45,
+    "exitFadeThreshold": 0.3,
+    "takeProfitPct": 0.025,
+    "stopLossPct": 0.025,
+    "dailyLossStopPct": 0.05,
+    "dailyLossKillPct": 0.08,
+    "feeRate": 0.0004,
+    "slippageRate": 0.0005,
+    "leverage": 2,
+    "approvalMode": "auto"
+  },
+  "result": {
+    "strategy": "trend",
+    "window": "last 60d",
+    "coins": 12,
+    "returnPct": -4.16,
+    "maxDrawdownPct": 7.46,
+    "sharpeAnnualized": -1.81,
+    "trades": 59,
+    "winRatePct": 37.3,
+    "profitFactor": 0.7,
+    "expectancyPerTrade": -0.705,
+    "feesPaid": 6.95,
+    "avgHoldHours": 23.3,
+    "btcReturnPct": 1.06
+  },
+  "trades": [
+    {
+      "symbol": "HYPE",
+      "side": "short",
+      "pnl": -4.3105,
+      "reason": "trailing stop",
+      "hours": 18
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": -2.4387,
+      "reason": "trailing stop",
+      "hours": 15
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": -0.4173,
+      "reason": "trailing stop",
+      "hours": 26
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": -0.5314,
+      "reason": "trailing stop",
+      "hours": 23
+    },
+    {
+      "symbol": "SOL",
+      "side": "short",
+      "pnl": -1.4187,
+      "reason": "trend flipped",
+      "hours": 5
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "pnl": 2.2324,
+      "reason": "trailing stop",
+      "hours": 46
+    },
+    {
+      "symbol": "XRP",
+      "side": "short",
+      "pnl": -2.8812,
+      "reason": "trailing stop",
+      "hours": 12
+    },
+    {
+      "symbol": "BTC",
+      "side": "short",
+      "pnl": -1.2959,
+      "reason": "trailing stop",
+      "hours": 17
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": -2.7211,
+      "reason": "trailing stop",
+      "hours": 26
+    },
+    {
+      "symbol": "SOL",
+      "side": "short",
+      "pnl": -0.7547,
+      "reason": "trailing stop",
+      "hours": 36
+    },
+    {
+      "symbol": "XRP",
+      "side": "short",
+      "pnl": 1.3599,
+      "reason": "trailing stop",
+      "hours": 29
+    },
+    {
+      "symbol": "HYPE",
+      "side": "short",
+      "pnl": 1.7855,
+      "reason": "trailing stop",
+      "hours": 27
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "pnl": -4.86,
+      "reason": "trailing stop",
+      "hours": 6
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": 5.842,
+      "reason": "trailing stop",
+      "hours": 58
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": -4.8201,
+      "reason": "trailing stop",
+      "hours": 4
+    },
+    {
+      "symbol": "XRP",
+      "side": "short",
+      "pnl": -4.7323,
+      "reason": "trailing stop",
+      "hours": 23
+    },
+    {
+      "symbol": "LTC",
+      "side": "short",
+      "pnl": 2.3505,
+      "reason": "trailing stop",
+      "hours": 35
+    },
+    {
+      "symbol": "ETH",
+      "side": "short",
+      "pnl": -1.8041,
+      "reason": "trailing stop",
+      "hours": 39
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": 1.2613,
+      "reason": "trailing stop",
+      "hours": 3
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": 6.7227,
+      "reason": "trailing stop",
+      "hours": 26
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": 10.136,
+      "reason": "trailing stop",
+      "hours": 46
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "pnl": 9.1226,
+      "reason": "trailing stop",
+      "hours": 44
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": -5.4688,
+      "reason": "trailing stop",
+      "hours": 11
+    },
+    {
+      "symbol": "DOGE",
+      "side": "short",
+      "pnl": -4.7764,
+      "reason": "trailing stop",
+      "hours": 7
+    },
+    {
+      "symbol": "HYPE",
+      "side": "short",
+      "pnl": 2.5306,
+      "reason": "trailing stop",
+      "hours": 52
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "pnl": -5.6705,
+      "reason": "trailing stop",
+      "hours": 6
+    },
+    {
+      "symbol": "XRP",
+      "side": "short",
+      "pnl": -1.8629,
+      "reason": "trend flipped",
+      "hours": 5
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": -2.145,
+      "reason": "trend flipped",
+      "hours": 1
+    },
+    {
+      "symbol": "XRP",
+      "side": "short",
+      "pnl": -3.6421,
+      "reason": "trailing stop",
+      "hours": 21
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": -3.5607,
+      "reason": "trailing stop",
+      "hours": 10
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -7.1408,
+      "reason": "trailing stop",
+      "hours": 12
+    },
+    {
+      "symbol": "XRP",
+      "side": "short",
+      "pnl": -2.1376,
+      "reason": "trailing stop",
+      "hours": 35
+    },
+    {
+      "symbol": "DOGE",
+      "side": "short",
+      "pnl": -2.0174,
+      "reason": "trailing stop",
+      "hours": 39
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": -2.5111,
+      "reason": "trailing stop",
+      "hours": 5
+    },
+    {
+      "symbol": "LINK",
+      "side": "short",
+      "pnl": -2.5092,
+      "reason": "trailing stop",
+      "hours": 11
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": 3.5794,
+      "reason": "trailing stop",
+      "hours": 48
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": 2.6934,
+      "reason": "trailing stop",
+      "hours": 49
+    },
+    {
+      "symbol": "DOGE",
+      "side": "short",
+      "pnl": 7.0494,
+      "reason": "trailing stop",
+      "hours": 37
+    },
+    {
+      "symbol": "XRP",
+      "side": "short",
+      "pnl": 7.2043,
+      "reason": "trailing stop",
+      "hours": 37
+    },
+    {
+      "symbol": "ETH",
+      "side": "short",
+      "pnl": 6.1849,
+      "reason": "trailing stop",
+      "hours": 35
+    },
+    {
+      "symbol": "AVAX",
+      "side": "short",
+      "pnl": -5.138,
+      "reason": "trailing stop",
+      "hours": 12
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": -12.9597,
+      "reason": "trailing stop",
+      "hours": 11
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": 6.0134,
+      "reason": "trailing stop",
+      "hours": 29
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": -6.2411,
+      "reason": "trailing stop",
+      "hours": 13
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -4.6678,
+      "reason": "trailing stop",
+      "hours": 3
+    },
+    {
+      "symbol": "AVAX",
+      "side": "short",
+      "pnl": 1.7043,
+      "reason": "trailing stop",
+      "hours": 9
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": -0.3995,
+      "reason": "trailing stop",
+      "hours": 9
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": 3.7725,
+      "reason": "trailing stop",
+      "hours": 27
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": -4.9308,
+      "reason": "trend flipped",
+      "hours": 2
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": -6.668,
+      "reason": "trailing stop",
+      "hours": 7
+    },
+    {
+      "symbol": "NEAR",
+      "side": "short",
+      "pnl": 3.5016,
+      "reason": "trailing stop",
+      "hours": 54
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": -2.3839,
+      "reason": "trailing stop",
+      "hours": 30
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": -4.7216,
+      "reason": "trailing stop",
+      "hours": 20
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "pnl": 1.0031,
+      "reason": "trailing stop",
+      "hours": 23
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": -8.4875,
+      "reason": "trailing stop",
+      "hours": 13
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": -3.4976,
+      "reason": "trailing stop",
+      "hours": 12
+    },
+    {
+      "symbol": "LTC",
+      "side": "short",
+      "pnl": -1.3076,
+      "reason": "trailing stop",
+      "hours": 20
+    },
+    {
+      "symbol": "ARB",
+      "side": "short",
+      "pnl": 7.8173,
+      "reason": "still open at end",
+      "hours": 48
+    },
+    {
+      "symbol": "SOL",
+      "side": "short",
+      "pnl": 2.3805,
+      "reason": "still open at end",
+      "hours": 48
+    }
+  ]
+}

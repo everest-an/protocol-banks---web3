@@ -64,6 +64,24 @@ users it attracts would churn at the first drawdown.
 Before any profit claim, the strategy needs an edge demonstrated on a second,
 out-of-sample window (and a bear regime) — the harness is here to test candidates.
 
+## Candidate strategies (same harness, same costs, 12 coins)
+
+Two 60-day windows, so a candidate has to be positive in **both** to count
+(`scripts/backtest-candidates.ts`).
+
+| strategy | last 60d (BTC +1.0%) | previous 60d (BTC +32.7%) | verdict |
+|---|---:|---:|---|
+| EMA50/200 cross + 3×ATR trail | −4.16% (PF 0.70) | −4.76% (PF 0.61) | rejected |
+| the same, long-only | −2.67% (PF 0.62) | +0.71% (PF 1.12) | rejected — fails the other window |
+| funding carry (enter > 0.003%/h, exit < 0.001%/h) | −5.74% (PF 0.76) | −2.48% (PF 0.36) | rejected |
+
+None of the tested rules clears costs with any margin. The single positive cell is
++0.71% over 44 trades — inside noise, and it does not repeat in the other window.
+
+This says the problem is not the parameter choice: the entry timing has no edge at
+these horizons. Finding one needs a real research process (longer history across a
+bear regime, walk-forward cross-validation), not more knobs.
+
 ## Re-run
 
 ```bash

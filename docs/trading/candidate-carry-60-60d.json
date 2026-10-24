@@ -1,0 +1,134 @@
+{
+  "ranAt": "2026-10-24T08:19:04.984Z",
+  "risk": {
+    "maxPositions": 3,
+    "positionPct": 0.15,
+    "minNotionalUsd": 20,
+    "minVolumeUsd": 1000000,
+    "entryThreshold": 0.45,
+    "exitFadeThreshold": 0.3,
+    "takeProfitPct": 0.025,
+    "stopLossPct": 0.025,
+    "dailyLossStopPct": 0.05,
+    "dailyLossKillPct": 0.08,
+    "feeRate": 0.0004,
+    "slippageRate": 0.0005,
+    "leverage": 2,
+    "approvalMode": "auto"
+  },
+  "result": {
+    "strategy": "carry",
+    "window": "60-120d ago",
+    "coins": 12,
+    "returnPct": -2.48,
+    "maxDrawdownPct": 4.38,
+    "sharpeAnnualized": -1.52,
+    "trades": 14,
+    "winRatePct": 50,
+    "profitFactor": 0.36,
+    "expectancyPerTrade": -1.77,
+    "feesPaid": 1.68,
+    "avgHoldHours": 32.5,
+    "btcReturnPct": 32.74
+  },
+  "trades": [
+    {
+      "symbol": "SUI",
+      "side": "short",
+      "pnl": 0.9736,
+      "reason": "funding normalized",
+      "hours": 142
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "pnl": -0.397,
+      "reason": "funding normalized",
+      "hours": 5
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": 1.2658,
+      "reason": "funding normalized",
+      "hours": 1
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": -0.2024,
+      "reason": "funding normalized",
+      "hours": 5
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": 0.1037,
+      "reason": "funding normalized",
+      "hours": 6
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": -0.4361,
+      "reason": "funding normalized",
+      "hours": 13
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": 0.1287,
+      "reason": "funding normalized",
+      "hours": 3
+    },
+    {
+      "symbol": "LINK",
+      "side": "long",
+      "pnl": 0.111,
+      "reason": "funding normalized",
+      "hours": 2
+    },
+    {
+      "symbol": "LTC",
+      "side": "short",
+      "pnl": -12.0969,
+      "reason": "safety stop",
+      "hours": 14
+    },
+    {
+      "symbol": "LINK",
+      "side": "short",
+      "pnl": -11.9509,
+      "reason": "safety stop",
+      "hours": 20
+    },
+    {
+      "symbol": "SOL",
+      "side": "short",
+      "pnl": -12.1287,
+      "reason": "safety stop",
+      "hours": 13
+    },
+    {
+      "symbol": "ETH",
+      "side": "short",
+      "pnl": 1.8539,
+      "reason": "still open at end",
+      "hours": 78
+    },
+    {
+      "symbol": "LINK",
+      "side": "short",
+      "pnl": 9.6541,
+      "reason": "still open at end",
+      "hours": 77
+    },
+    {
+      "symbol": "SOL",
+      "side": "short",
+      "pnl": -1.66,
+      "reason": "still open at end",
+      "hours": 76
+    }
+  ]
+}

@@ -1,0 +1,344 @@
+{
+  "ranAt": "2026-10-24T08:17:50.671Z",
+  "risk": {
+    "maxPositions": 3,
+    "positionPct": 0.15,
+    "minNotionalUsd": 20,
+    "minVolumeUsd": 1000000,
+    "entryThreshold": 0.45,
+    "exitFadeThreshold": 0.3,
+    "takeProfitPct": 0.025,
+    "stopLossPct": 0.025,
+    "dailyLossStopPct": 0.05,
+    "dailyLossKillPct": 0.08,
+    "feeRate": 0.0004,
+    "slippageRate": 0.0005,
+    "leverage": 2,
+    "approvalMode": "auto"
+  },
+  "result": {
+    "strategy": "long-trend",
+    "window": "60-120d ago",
+    "coins": 12,
+    "returnPct": 0.71,
+    "maxDrawdownPct": 5.24,
+    "sharpeAnnualized": 0.53,
+    "trades": 44,
+    "winRatePct": 36.4,
+    "profitFactor": 1.12,
+    "expectancyPerTrade": 0.162,
+    "feesPaid": 5.24,
+    "avgHoldHours": 23.6,
+    "btcReturnPct": 32.74
+  },
+  "trades": [
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": 11.0678,
+      "reason": "trailing stop",
+      "hours": 48
+    },
+    {
+      "symbol": "LINK",
+      "side": "long",
+      "pnl": 1.4689,
+      "reason": "trailing stop",
+      "hours": 46
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -3.1299,
+      "reason": "trailing stop",
+      "hours": 34
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": -1.3592,
+      "reason": "trailing stop",
+      "hours": 15
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "pnl": -4.0716,
+      "reason": "trailing stop",
+      "hours": 26
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "pnl": -1.1418,
+      "reason": "trailing stop",
+      "hours": 34
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": 1.48,
+      "reason": "trailing stop",
+      "hours": 50
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -3.1748,
+      "reason": "trailing stop",
+      "hours": 16
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "pnl": 3.0589,
+      "reason": "trailing stop",
+      "hours": 79
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": 2.614,
+      "reason": "trailing stop",
+      "hours": 36
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "pnl": -1.4764,
+      "reason": "trailing stop",
+      "hours": 34
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -3.2458,
+      "reason": "trailing stop",
+      "hours": 15
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": 0.1821,
+      "reason": "trailing stop",
+      "hours": 15
+    },
+    {
+      "symbol": "LINK",
+      "side": "long",
+      "pnl": -0.3098,
+      "reason": "trailing stop",
+      "hours": 6
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -2.3441,
+      "reason": "trailing stop",
+      "hours": 28
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "pnl": 0.9459,
+      "reason": "trailing stop",
+      "hours": 23
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "pnl": -1.8707,
+      "reason": "trailing stop",
+      "hours": 7
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -4.0828,
+      "reason": "trailing stop",
+      "hours": 6
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -3.9667,
+      "reason": "trailing stop",
+      "hours": 5
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": 3.0499,
+      "reason": "trailing stop",
+      "hours": 11
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": 0.8071,
+      "reason": "trailing stop",
+      "hours": 21
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": -3.1666,
+      "reason": "trailing stop",
+      "hours": 13
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": -2.2809,
+      "reason": "trailing stop",
+      "hours": 21
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "pnl": -2.5381,
+      "reason": "trailing stop",
+      "hours": 8
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "pnl": -0.6277,
+      "reason": "trailing stop",
+      "hours": 35
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": -1.86,
+      "reason": "trailing stop",
+      "hours": 27
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "pnl": -2.1096,
+      "reason": "trailing stop",
+      "hours": 6
+    },
+    {
+      "symbol": "LINK",
+      "side": "long",
+      "pnl": -2.2838,
+      "reason": "trailing stop",
+      "hours": 30
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "pnl": 2.6231,
+      "reason": "trailing stop",
+      "hours": 40
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "pnl": -1.8326,
+      "reason": "trailing stop",
+      "hours": 10
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": -4.28,
+      "reason": "trailing stop",
+      "hours": 10
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "pnl": 0.413,
+      "reason": "trailing stop",
+      "hours": 25
+    },
+    {
+      "symbol": "SUI",
+      "side": "long",
+      "pnl": -1.6943,
+      "reason": "trend flipped",
+      "hours": 10
+    },
+    {
+      "symbol": "HYPE",
+      "side": "long",
+      "pnl": 0.3133,
+      "reason": "trailing stop",
+      "hours": 36
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": -3.6476,
+      "reason": "trailing stop",
+      "hours": 8
+    },
+    {
+      "symbol": "ETH",
+      "side": "long",
+      "pnl": -0.9177,
+      "reason": "trailing stop",
+      "hours": 14
+    },
+    {
+      "symbol": "BTC",
+      "side": "long",
+      "pnl": -0.0889,
+      "reason": "trailing stop",
+      "hours": 26
+    },
+    {
+      "symbol": "SOL",
+      "side": "long",
+      "pnl": 6.4114,
+      "reason": "trailing stop",
+      "hours": 45
+    },
+    {
+      "symbol": "DOGE",
+      "side": "long",
+      "pnl": -0.1997,
+      "reason": "trailing stop",
+      "hours": 1
+    },
+    {
+      "symbol": "ARB",
+      "side": "long",
+      "pnl": -0.3918,
+      "reason": "trailing stop",
+      "hours": 3
+    },
+    {
+      "symbol": "XRP",
+      "side": "long",
+      "pnl": 0.4332,
+      "reason": "trailing stop",
+      "hours": 2
+    },
+    {
+      "symbol": "NEAR",
+      "side": "long",
+      "pnl": -1.5516,
+      "reason": "trailing stop",
+      "hours": 18
+    },
+    {
+      "symbol": "LTC",
+      "side": "long",
+      "pnl": 13.2607,
+      "reason": "trailing stop",
+      "hours": 40
+    },
+    {
+      "symbol": "AVAX",
+      "side": "long",
+      "pnl": 18.6502,
+      "reason": "trailing stop",
+      "hours": 56
+    }
+  ]
+}
