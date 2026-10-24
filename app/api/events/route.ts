@@ -42,11 +42,13 @@ export async function POST(request: NextRequest) {
   }
 
   let address: string | null = null
-  try {
-    const auth = await requireAuth(request, { component: "events" })
-    address = auth.address ?? null
-  } catch {
-    address = null
+  if (request.headers.get("authorization")) {
+    try {
+      const auth = await requireAuth(request, { component: "events" })
+      address = auth.address ?? null
+    } catch {
+      address = null
+    }
   }
 
   const props =

@@ -36,7 +36,7 @@ const networks = [mainnet, sepolia, base, arbitrum, bsc, hashkey] as [
 // Metadata for your app
 const metadata = {
   name: "Protocol Banks",
-  description: "Professional stablecoin payment infrastructure for global businesses",
+  description: "AI trading on Hyperliquid with trading-only agent wallets — the AI can trade, never withdraw",
   url: typeof window !== "undefined" ? window.location.origin : "https://protocolbanks.com",
   icons: [
     typeof window !== "undefined" ? `${window.location.origin}/favicon.ico` : "https://protocolbanks.com/favicon.ico",
