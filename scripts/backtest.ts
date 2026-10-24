@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Walk-forward evaluation of the strategy the agent actually ships, on raw
  * Hyperliquid hourly data. No parameter fitting: the question is whether the
  * shipped settings survive costs on data they were not tuned on.
@@ -216,7 +216,7 @@ async function main() {
 
     if (!risk.killAll && !risk.stopNewEntries && positions.length < RISK.maxPositions) {
       const candidates: Array<{ coin: string; side: "long" | "short"; score: number }> = []
-      for (const [coin, bar] of bars) {
+      for (const coin of bars.keys()) {
         const candles = candlesByCoin.get(coin)!
         const idx = barIndex.get(coin)!.get(t)!
         if (idx < Z_WINDOW - 1) continue
