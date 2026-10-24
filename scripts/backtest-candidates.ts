@@ -202,7 +202,6 @@ async function main() {
       const bar = bars.get(p.symbol)
       const idx = barIndex.get(p.symbol)?.get(t)
       if (!bar || idx === undefined) continue
-      const candles = candlesByCoin.get(p.symbol)!
       const dir = p.side === "long" ? 1 : -1
       const a = atrArr.get(p.symbol)![idx]
       const fast = emaFast.get(p.symbol)![idx]
@@ -249,7 +248,7 @@ async function main() {
         const slow = emaSlow.get(coin)![idx]
         const prevFast = emaFast.get(coin)![idx - 1]
         const prevSlow = emaSlow.get(coin)![idx - 1]
-        const c = candles[idx].c
+        const c = candlesByCoin.get(coin)![idx].c
 
         if (STRATEGY === "carry") {
           const rate = fundingByCoin.get(coin)?.get(t) ?? 0
