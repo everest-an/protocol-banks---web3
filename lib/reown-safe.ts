@@ -1,79 +1,41 @@
 "use client"
 
 /**
- * Reown AppKit hooks that tolerate AppKit not being initialised.
+ * Inert stand-ins for the Reown AppKit hooks.
  *
- * `createAppKit` only runs when NEXT_PUBLIC_REOWN_PROJECT_ID is configured
- * (see contexts/reown-provider.tsx). Every AppKit hook throws when it wasn't
- * called, and because these hooks are used in the header and the auth gateway —
- * both mounted on every route — a single missing environment variable takes down
- * the entire site with "Application error: a client-side exception has occurred".
+ * AppKit is retired: the login flow uses injected EVM wallets (MetaMask)
+ * directly (see hooks/use-unified-wallet.ts). The real hooks used to be
+ * imported here behind `isAppKitReady`, which still pulled the whole AppKit
+ * runtime into every page — including a reCAPTCHA script that took ~9 s on the
+ * landing page — for branches that could never execute.
  *
- * These wrappers return inert values instead, so a deployment without wallet
- * connect configured degrades to "wallet connect unavailable" rather than a
- * blank page.
- *
- * Calling the underlying hooks conditionally is safe here: `isAppKitReady` is
- * derived from a build-time environment variable, so it is constant for the life
- * of the page and hook order never changes between renders.
+ * Restoring AppKit means re-adding the `@reown/appkit/react` imports, gating
+ * them on the project id again, and re-mounting ReownProvider in the root layout.
  */
 
-import {
-  useAppKit,
-  useAppKitAccount,
-  useAppKitTheme,
-  useDisconnect,
-} from "@reown/appkit/react"
-
-/**
- * Whether AppKit was initialised.
- *
- * HARD-DISABLED: the product login flow now uses injected EVM wallets
- * (MetaMask) directly. Reown AppKit is retired from the header and auth
- * gateway; keeping it initialized produced background console noise
- * (blocked walletconnect iframes + telemetry 403s) on every page load.
- *
- * Flip this back to `Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID)`
- * and re-mount `ReownProvider` in the root layout to restore AppKit.
- */
 export const isAppKitReady = false
 
-type AppKitOpen = ReturnType<typeof useAppKit>["open"]
+type AppKitOpenOptions = {
+  view?: "Connect" | "Account" | "Networks" | "ApproveTransaction" | "WalletSendTransaction" | "OnRamp" | "Swap" | "WalletReceive"
+}
+type AppKitOpen = (options?: AppKitOpenOptions) => Promise<void>
 
-const noopOpen: AppKitOpen = (async () => {
-  console.warn(
-    "[Reown] Wallet modal unavailable: NEXT_PUBLIC_REOWN_PROJECT_ID is not configured."
-  )
-}) as AppKitOpen
-
-export function useSafeAppKit(): { open: AppKitOpen } {
-  if (!isAppKitReady) return { open: noopOpen }
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- constant condition, see module docs
-  return useAppKit()
+const noopOpen: AppKitOpen = async () => {
+  console.warn("[Reown] AppKit is retired — connect an injected wallet (MetaMask) instead.")
 }
 
-export function useSafeAppKitAccount(): {
-  address: string | undefined
-  isConnected: boolean
-} {
-  if (!isAppKitReady) return { address: undefined, isConnected: false }
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- constant condition, see module docs
-  const account = useAppKitAccount()
-  return { address: account.address, isConnected: account.isConnected }
+export function useSafeAppKit(): { open: AppKitOpen } {
+  return { open: noopOpen }
+}
+
+export function useSafeAppKitAccount(): { address: string | undefined; isConnected: boolean } {
+  return { address: undefined, isConnected: false }
 }
 
 export function useSafeDisconnect(): { disconnect: () => Promise<void> } {
-  if (!isAppKitReady) return { disconnect: async () => {} }
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- constant condition, see module docs
-  const { disconnect } = useDisconnect()
-  return { disconnect: async () => { await disconnect() } }
+  return { disconnect: async () => {} }
 }
 
-export function useSafeAppKitTheme(): {
-  setThemeMode: (mode: "light" | "dark") => void
-} {
-  if (!isAppKitReady) return { setThemeMode: () => {} }
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- constant condition, see module docs
-  const { setThemeMode } = useAppKitTheme()
-  return { setThemeMode: setThemeMode as (mode: "light" | "dark") => void }
+export function useSafeAppKitTheme(): { setThemeMode: (mode: "light" | "dark") => void } {
+  return { setThemeMode: () => {} }
 }

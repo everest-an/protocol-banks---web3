@@ -12,7 +12,6 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { MobileNav } from "@/components/mobile-nav"
 import { Toaster } from "@/components/ui/toaster"
-import { RecaptchaScript } from "@/components/recaptcha-script"
 import { WelcomeGuide } from "@/components/welcome-guide"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { NotificationPrompt } from "@/components/notification-prompt"
@@ -168,7 +167,6 @@ export default function RootLayout({
                     <MobileNav />
                   </div>
                   <Toaster />
-                  <RecaptchaScript />
                   <WelcomeGuide />
                   <PWAInstallPrompt />
                   <NotificationPrompt />

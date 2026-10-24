@@ -1,4 +1,5 @@
 import { ContactForm } from "@/components/contact-form"
+import { RecaptchaScript } from "@/components/recaptcha-script"
 import { Mail, MapPin, Globe } from "lucide-react"
 
 export default function ContactPage() {
@@ -54,6 +55,7 @@ export default function ContactPage() {
 
           {/* Right Column: Form */}
           <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-6 sm:p-8 lg:p-12">
+            <RecaptchaScript />
             <ContactForm />
           </div>
         </div>
