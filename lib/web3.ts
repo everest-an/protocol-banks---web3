@@ -26,6 +26,16 @@ export type ChainType = "EVM" | "SOLANA" | "BITCOIN" | "TRON"
 
 declare global {
   interface Window {
+    ethereum?: {
+      isMetaMask?: boolean
+      isCoinbaseWallet?: boolean
+      isWalletConnect?: boolean
+      isTronLink?: boolean
+      isTron?: boolean
+      providers?: unknown[]
+      request?: (args: { method: string; params?: unknown }) => Promise<unknown>
+      [key: string]: unknown
+    }
     tronWeb: any
     tokenpocket?: any
     solana?: {
