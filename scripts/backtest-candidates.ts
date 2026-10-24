@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Candidate strategies, evaluated with the same cost model as the shipped one
  * (backtest.ts): taker fee both sides, slippage both sides, hourly funding, and
  * the same position sizing / max positions / daily breakers.
@@ -243,7 +243,6 @@ async function main() {
       const candidates: Array<{ coin: string; side: "long" | "short" }> = []
       for (const coin of bars.keys()) {
         if (positions.some((p) => p.symbol === coin)) continue
-        const candles = candlesByCoin.get(coin)!
         const idx = barIndex.get(coin)!.get(t)!
         if (idx < SLOW + 1) continue
         const fast = emaFast.get(coin)![idx]
