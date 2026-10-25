@@ -22,6 +22,8 @@
 
 Protocol Bank is an **AI automated trading product**. Users connect a wallet (MetaMask), fund a trading budget on Hyperliquid, approve a trading-only agent wallet, and an AI agent trades perpetual markets around the clock — with strict risk controls, full transparency, and instant revocation. A paper-trading mode runs on real market data with simulated money, so anyone can watch the agent work risk-free.
 
+The same execution layer is exposed as a **programmatic API for AI agents**: one credential, one policy the server enforces (operations, per-call cap, daily cap, coin allowlist), and an audit trail per operation. See [docs/AGENT_API.md](docs/AGENT_API.md) for the reference and [docs/AGENT_CASES.md](docs/AGENT_CASES.md) for four worked integrations.
+
 **Core safety properties:**
 
 - **The AI can trade, never withdraw** — the agent wallet holds trading-only permissions on Hyperliquid
@@ -116,6 +118,9 @@ CI runs the full frontend suite (tsc + jest + lint) and Go tests on every push �
 | [Terms](https://protocolbanks.com/terms) / [Privacy](https://protocolbanks.com/privacy) | Legal |
 | [ENV_SETUP.md](ENV_SETUP.md) | Environment configuration |
 | [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Test infrastructure details |
+| [Agent API](docs/AGENT_API.md) | Programmatic surface for agents: policy, endpoints, errors, billing |
+| [Agent API cases](docs/AGENT_CASES.md) | Four worked integrations with real requests and responses |
+| [Partners](docs/PARTNERS.md) | Partner integration guide (curl, SDK, sandbox, billing) |
 
 Legacy payment-era docs remain in `docs/` for the Business feature set.
 

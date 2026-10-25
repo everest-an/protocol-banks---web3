@@ -292,6 +292,9 @@ groups, webhooks, notifications, audit log, teams, MCP server, cron jobs.
 | [GO_LIVE_CHECKLIST.md](GO_LIVE_CHECKLIST.md) | Step-by-step first live run + troubleshooting |
 | [SECURITY_THREAT_MODEL.md](SECURITY_THREAT_MODEL.md) | Assets, trust boundaries, known limitations |
 | [MCP.md](MCP.md) | MCP setup and tool reference |
+| [AGENT_API.md](AGENT_API.md) | Agent API: auth, the key policy, five endpoints, errors, billing |
+| [AGENT_CASES.md](AGENT_CASES.md) | Four worked technical cases (framework tool, invoices, x402, runaway limits) |
+| [PARTNERS.md](PARTNERS.md) | Partner integration guide (curl, SDK, sandbox, per-order billing) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture |
 | [AUTH_SYSTEM.md](AUTH_SYSTEM.md) | SIWE + JWT, Shamir, sessions |
 | [TESTING_GUIDE.md](TESTING_GUIDE.md) | Jest, Playwright, property tests |

@@ -124,6 +124,37 @@ Trading tools:
 - The agent wallet is approved on Hyperliquid with trading-only rights and
   physically cannot withdraw; worst case is the funded budget.
 
+## Agent API (for AI agents and the products that run them)
+
+Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
+
+Two operations execute, two prepare. The platform holds no keys, so it can trade
+through a Hyperliquid agent wallet (trading-only, cannot withdraw) but it never
+moves an agent's funds elsewhere.
+
+- GET /state — mode, equity, positions, effective risk config, policy with spentTodayUsd
+- POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee
+- POST /pay — { to, amountUsd, token?, chain?, memo? } -> signed-ready transfer intent
+- POST /swap — { from, to, amount, amountUsd, slippage? } -> quote + transaction to sign
+- POST /invoice — { to, amount, token?, chain?, description?, expiresInHours? } -> pending invoice
+
+Policy, enforced by the server (the agent cannot widen it): allowedOps
+(read | pay | swap | trade), maxNotionalUsd per call, dailyCapUsd per UTC day,
+allowedCoins (empty = all). A new key starts read-only at 50 per call and 200 per
+day; a key created before policies existed keeps all operations at 100/500.
+
+Errors: 400 malformed, 401 bad key, 403 policy refusal (before execution),
+409 platform guard (positions, daily breakers, funds, unknown market, uncertain
+submission), 429 rate limit, 503 venue unavailable. An order that reaches the
+venue without a confirmed response is recorded and resolved by client-order-id
+reconciliation — never retried.
+
+Billing: executed trades are metered at PARTNER_FEE_BPS (default 8 bps of
+notional); every response carries remainingTodayUsd.
+
+References: docs/AGENT_API.md (full reference) and docs/AGENT_CASES.md (four
+worked cases, including what happens when a model asks for 100x leverage).
+
 ## Legal
 
 Automated trading can lose the entire trading wallet balance. Protocol Bank
