@@ -210,16 +210,21 @@ export class TradingStore {
       // demo-history seed so existing demo deployments pick it up without a
       // cold start. States with real progress (2+ points) are kept as-is.
       if (!Array.isArray(parsed.equity) || parsed.equity.length <= 1) {
-        this.state = seedState()
+        this.state = seedState(this.seedOptions())
         this.save()
       } else {
         this.state = parsed
       }
     } catch {
-      this.state = seedState()
+      this.state = seedState(this.seedOptions())
       this.save()
     }
     return this.state
+  }
+
+  /** A wallet may not present an illustrative curve as its own history. */
+  protected seedOptions(): { demoHistory?: boolean } {
+    return {}
   }
 
   get(): TradingState {
@@ -299,5 +304,9 @@ class WalletTradingStore extends TradingStore {
 
   protected override stateFilePath(): string {
     return path.join(STATE_DIR, `state-${this.fileKey}.json`)
+  }
+
+  protected override seedOptions(): { demoHistory?: boolean } {
+    return { demoHistory: false }
   }
 }

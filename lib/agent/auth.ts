@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server"
 import { withAPIKeyAuth, type AuthenticatedRequest } from "@/lib/middleware/api-key-auth"
 import { resolveAgentPolicy, type AgentOp, type AgentPolicy } from "@/lib/agent/policy"
+import { runWithWallet } from "@/lib/rls/context"
 
 export interface AgentRequest extends AuthenticatedRequest {
   agentPolicy?: AgentPolicy
@@ -49,9 +50,13 @@ export function withAgentAuth(
       return NextResponse.json({ error: `this key may not perform "${op}"` }, { status: 403 })
     }
 
-    req.agentPolicy = resolved.policy
-    req.spentTodayUsd = await spentTodayUsd(wallet)
-    return handler(req)
+    // Same RLS scope withAuth establishes: an API-key request is user context,
+    // so every database operation inside the handler must be wallet-scoped.
+    return runWithWallet(wallet, async () => {
+      req.agentPolicy = resolved.policy
+      req.spentTodayUsd = await spentTodayUsd(wallet)
+      return handler(req)
+    })
   }, { requiredPermissions: op === "read" ? ["read"] : ["write"] })
 
   return wrapped as (request: AuthenticatedRequest, context?: unknown) => Promise<NextResponse>

@@ -14,7 +14,7 @@ import { join } from "node:path"
 const APP_DIR = join(process.cwd(), "app")
 const RAW_TX = /\bprisma\.\$transaction\s*\(/
 const SYSTEM_MARKER = "rls:system"
-const SCOPED_OR_SYSTEM = /(withAuth|requireAuth|runAsSystem|rls:system)/
+const SCOPED_OR_SYSTEM = /(withAuth|requireAuth|runAsSystem|withAgentAuth|rls:system)/
 
 function filesUnder(dir: string): string[] {
   const out: string[] = []
