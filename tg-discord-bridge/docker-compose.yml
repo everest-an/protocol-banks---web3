@@ -6,5 +6,14 @@ services:
     env_file: .env
     environment:
       DATA_FILE: /app/data/referrals.json
+      # Inside a container 127.0.0.1 is the container itself — reach the
+      # co-located doubao-free-api by container name on the shared network.
+      LLM_BASE_URL: http://doubao-free-api:8000/v1/chat/completions
     volumes:
       - ./data:/app/data
+    networks:
+      - bridge-net
+
+networks:
+  bridge-net:
+    external: true
