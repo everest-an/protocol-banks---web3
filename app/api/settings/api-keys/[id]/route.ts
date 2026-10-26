@@ -8,6 +8,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService } from '@/lib/services/api-key-service';
 import { withAuth } from '@/lib/middleware/api-auth';
+import { resolveAgentPolicy } from '@/lib/agent/policy';
 
 const apiKeyService = new APIKeyService();
 
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           name: key.name,
           key_prefix: key.key_prefix,
           permissions: key.permissions,
+          policy: key.policy ?? null,
           rate_limit_per_minute: key.rate_limit_per_minute,
           rate_limit_per_day: key.rate_limit_per_day,
           allowed_ips: key.allowed_ips,
@@ -112,11 +114,45 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
       // Parse request body
       const body = await req.json();
-      const { action } = body;
+      const { action, policy } = body;
+
+      // Replacing the agent policy: the server resolves and clamps it, so the
+      // stored values are what the agent API will enforce.
+      if (policy !== undefined) {
+        if (!policy || typeof policy !== 'object' || Array.isArray(policy)) {
+          return NextResponse.json(
+            { error: 'Bad Request', message: 'policy must be an object' },
+            { status: 400 }
+          );
+        }
+
+        const resolved = resolveAgentPolicy(policy);
+        if (!resolved.ok) {
+          return NextResponse.json(
+            { error: 'Bad Request', message: 'Invalid policy', details: resolved.errors },
+            { status: 400 }
+          );
+        }
+
+        const existingPolicyKey = await apiKeyService.getById(id, ownerAddress);
+        if (!existingPolicyKey) {
+          return NextResponse.json(
+            { error: 'Not Found', message: 'API key not found' },
+            { status: 404 }
+          );
+        }
+
+        await apiKeyService.updatePolicy(id, ownerAddress, resolved.policy);
+        return NextResponse.json({
+          success: true,
+          policy: resolved.policy,
+          clamped: resolved.clamped,
+        });
+      }
 
       if (action !== 'deactivate') {
         return NextResponse.json(
-          { error: 'Bad Request', message: 'Invalid action. Supported actions: deactivate' },
+          { error: 'Bad Request', message: 'Invalid action. Supported actions: deactivate, or send a policy object' },
           { status: 400 }
         );
       }

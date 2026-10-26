@@ -328,6 +328,27 @@ export class APIKeyService {
          throw new Error(`Failed to deactivate: ${error.message}`);
     }
   }
+
+  /**
+   * Replace a key's agent policy. The caller resolves and clamps the input
+   * (lib/agent/policy.ts) before calling this; here we only check ownership
+   * and persist, so a caller can never widen a policy they do not own.
+   */
+  async updatePolicy(id: string, ownerAddress: string, policy: unknown): Promise<void> {
+    try {
+      const count = await prisma.apiKey.count({
+        where: { id, owner_address: ownerAddress.toLowerCase() },
+      });
+      if (count === 0) throw new Error("API key not found or access denied");
+
+      await prisma.apiKey.update({
+        where: { id },
+        data: { policy: policy as object },
+      });
+    } catch (error: any) {
+      throw new Error(`Failed to update API key policy: ${error.message}`);
+    }
+  }
 }
 
 // Export singleton instance

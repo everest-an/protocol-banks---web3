@@ -29,15 +29,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Key, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle } from "lucide-react"
+import { authHeaders } from "@/lib/authenticated-fetch"
+import { Key, Plus, Copy, Trash2, Eye, EyeOff, AlertTriangle, Pencil } from "lucide-react"
 
 // Client-safe types and constants (avoid importing server-only lib/security/api-keys)
+interface AgentPolicy {
+  allowedOps: string[]
+  maxNotionalUsd: number
+  dailyCapUsd: number
+  allowedCoins: string[]
+}
+
 interface ApiKey {
   id: string
   name: string
   key_prefix: string
   owner_address: string
   permissions: string[]
+  policy?: AgentPolicy | null
   rate_limit_per_minute: number
   rate_limit_per_day: number
   usage_count: number
@@ -45,15 +54,18 @@ interface ApiKey {
   created_at: string
 }
 
-const API_PERMISSIONS = [
-  "read",
-  "write",
-  "payments.create",
-  "payments.read",
-  "vendors.manage",
-  "analytics.read",
-  "webhooks.manage",
+// Must match VALID_PERMISSIONS in app/api/settings/api-keys/route.ts
+const API_PERMISSIONS = ["read", "write", "payments", "webhooks", "admin"] as const
+
+// The four operations the agent policy can grant (lib/agent/policy.ts).
+const AGENT_OPS = [
+  { value: "read", label: "read", hint: "GET /state" },
+  { value: "trade", label: "trade", hint: "POST /orders" },
+  { value: "pay", label: "pay", hint: "POST /pay, /invoice" },
+  { value: "swap", label: "swap", hint: "POST /swap" },
 ] as const
+
+const POLICY_HINT = "Enforced on the server. The agent cannot widen it, and values are clamped to the platform ranges."
 
 export default function ApiKeysPage() {
   const { address } = useUnifiedWallet()
@@ -66,12 +78,24 @@ export default function ApiKeysPage() {
   const [newSecretKey, setNewSecretKey] = useState<string | null>(null)
   const [showSecret, setShowSecret] = useState(false)
 
-  // Form state
+  // Create form state
   const [keyName, setKeyName] = useState("")
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(["read"])
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(["read", "write"])
   const [rateLimitMinute, setRateLimitMinute] = useState(60)
   const [rateLimitDay, setRateLimitDay] = useState(10000)
   const [expiresInDays, setExpiresInDays] = useState<number | undefined>(undefined)
+  const [policyOps, setPolicyOps] = useState<string[]>(["read"])
+  const [policyMax, setPolicyMax] = useState(50)
+  const [policyDaily, setPolicyDaily] = useState(200)
+  const [policyCoins, setPolicyCoins] = useState("")
+
+  // Edit-policy dialog
+  const [editingKey, setEditingKey] = useState<ApiKey | null>(null)
+  const [editOps, setEditOps] = useState<string[]>([])
+  const [editMax, setEditMax] = useState(50)
+  const [editDaily, setEditDaily] = useState(200)
+  const [editCoins, setEditCoins] = useState("")
+  const [savingPolicy, setSavingPolicy] = useState(false)
 
   useEffect(() => {
     if (address) {
@@ -83,12 +107,17 @@ export default function ApiKeysPage() {
     if (!address) return
     setLoading(true)
     try {
-      const res = await fetch("/api/settings/api-keys", {
-        headers: { "x-wallet-address": address },
-      })
+      const res = await fetch("/api/settings/api-keys", { headers: authHeaders(address) })
       if (res.ok) {
         const data = await res.json()
         setApiKeys(data.keys ?? [])
+      } else {
+        const data = await res.json().catch(() => ({}))
+        toast({
+          title: "Could not load API keys",
+          description: data.message || "Sign in with your wallet and try again.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Failed to load API keys:", error)
@@ -97,19 +126,27 @@ export default function ApiKeysPage() {
     }
   }
 
+  const policyFromForm = () => ({
+    allowedOps: policyOps,
+    maxNotionalUsd: policyMax,
+    dailyCapUsd: policyDaily,
+    allowedCoins: policyCoins
+      .split(",")
+      .map((coin) => coin.trim())
+      .filter(Boolean),
+  })
+
   const handleCreateKey = async () => {
     if (!address || !keyName) return
 
     try {
       const res = await fetch("/api/settings/api-keys", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": address,
-        },
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
         body: JSON.stringify({
           name: keyName,
           permissions: selectedPermissions,
+          policy: policyFromForm(),
           rate_limit_per_minute: rateLimitMinute,
           rate_limit_per_day: rateLimitDay,
           expires_at: expiresInDays
@@ -126,16 +163,67 @@ export default function ApiKeysPage() {
           description: "Make sure to copy your secret key now. It won't be shown again.",
         })
         setKeyName("")
-        setSelectedPermissions(["read"])
+        setSelectedPermissions(["read", "write"])
+        setPolicyOps(["read"])
+        setPolicyMax(50)
+        setPolicyDaily(200)
+        setPolicyCoins("")
       } else {
-        throw new Error(data.message || "Failed to create API key")
+        throw new Error((data.details && data.details.join("; ")) || data.message || "Failed to create API key")
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create API key",
+        description: error instanceof Error ? error.message : "Failed to create API key",
         variant: "destructive",
       })
+    }
+  }
+
+  const openPolicyDialog = (key: ApiKey) => {
+    setEditingKey(key)
+    setEditOps(key.policy?.allowedOps ?? ["read", "trade", "pay", "swap"])
+    setEditMax(key.policy?.maxNotionalUsd ?? 100)
+    setEditDaily(key.policy?.dailyCapUsd ?? 500)
+    setEditCoins((key.policy?.allowedCoins ?? []).join(", "))
+  }
+
+  const handleSavePolicy = async () => {
+    if (!address || !editingKey) return
+    setSavingPolicy(true)
+    try {
+      const res = await fetch(`/api/settings/api-keys/${editingKey.id}`, {
+        method: "PATCH",
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          policy: {
+            allowedOps: editOps,
+            maxNotionalUsd: editMax,
+            dailyCapUsd: editDaily,
+            allowedCoins: editCoins
+              .split(",")
+              .map((coin) => coin.trim())
+              .filter(Boolean),
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error((data.details && data.details.join("; ")) || data.message || "Failed to save policy")
+      }
+      setApiKeys((prev) =>
+        prev.map((key) => (key.id === editingKey.id ? { ...key, policy: data.policy as AgentPolicy } : key)),
+      )
+      toast({ title: "Policy updated", description: "The next API call is enforced with the new limits." })
+      setEditingKey(null)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save policy",
+        variant: "destructive",
+      })
+    } finally {
+      setSavingPolicy(false)
     }
   }
 
@@ -143,16 +231,20 @@ export default function ApiKeysPage() {
     if (!address || !selectedKey) return
 
     try {
-      await fetch(`/api/settings/api-keys/${selectedKey.id}`, {
+      const res = await fetch(`/api/settings/api-keys/${selectedKey.id}`, {
         method: "DELETE",
-        headers: { "x-wallet-address": address },
+        headers: authHeaders(address),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || "Failed to delete API key")
+      }
       setApiKeys((prev) => prev.filter((k) => k.id !== selectedKey.id))
       toast({ title: "API Key Deleted" })
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete API key",
+        description: error instanceof Error ? error.message : "Failed to delete API key",
         variant: "destructive",
       })
     } finally {
@@ -164,6 +256,14 @@ export default function ApiKeysPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     toast({ title: "Copied to clipboard" })
+  }
+
+  const toggle = (list: string[], value: string) =>
+    list.includes(value) ? list.filter((item) => item !== value) : [...list, value]
+
+  const policySummary = (key: ApiKey) => {
+    if (!key.policy) return null
+    return `${key.policy.allowedOps.join(", ") || "no ops"} · $${key.policy.maxNotionalUsd}/call · $${key.policy.dailyCapUsd}/day`
   }
 
   if (!address) {
@@ -201,13 +301,13 @@ export default function ApiKeysPage() {
               Create API Key
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New API Key</DialogTitle>
               <DialogDescription>
                 {newSecretKey
                   ? "Your API key has been created. Copy the secret key now - it won't be shown again."
-                  : "Configure permissions and rate limits for your new API key."}
+                  : "Configure permissions, the agent policy and rate limits for your new key."}
               </DialogDescription>
             </DialogHeader>
 
@@ -267,18 +367,61 @@ export default function ApiKeysPage() {
                       <label key={perm} className="flex items-center gap-2 text-sm">
                         <Checkbox
                           checked={selectedPermissions.includes(perm)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedPermissions((prev) => [...prev, perm])
-                            } else {
-                              setSelectedPermissions((prev) => prev.filter((p) => p !== perm))
-                            }
-                          }}
+                          onCheckedChange={() => setSelectedPermissions((prev) => toggle(prev, perm))}
                         />
                         {perm}
                       </label>
                     ))}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <code>read</code> covers GET /state; <code>write</code> covers orders, pay, swap and invoice.
+                  </p>
+                </div>
+
+                <div className="rounded-lg border p-3 space-y-3">
+                  <div>
+                    <Label className="mb-1 block">Agent operations</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {AGENT_OPS.map((op) => (
+                        <label key={op.value} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={policyOps.includes(op.value)}
+                            onCheckedChange={() => setPolicyOps((prev) => toggle(prev, op.value))}
+                          />
+                          <span>
+                            {op.label} <span className="text-xs text-muted-foreground">{op.hint}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Max per call (USD)</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={10000}
+                        value={policyMax}
+                        onChange={(e) => setPolicyMax(Number(e.target.value))}
+                      />
+                    </div>
+                    <div>
+                      <Label>Daily cap (USD)</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100000}
+                        value={policyDaily}
+                        onChange={(e) => setPolicyDaily(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Coin allowlist (comma separated, empty = all)</Label>
+                    <Input placeholder="BTC, ETH" value={policyCoins} onChange={(e) => setPolicyCoins(e.target.value)} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{POLICY_HINT}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -330,7 +473,9 @@ export default function ApiKeysPage() {
             <Key className="h-5 w-5" />
             Your API Keys
           </CardTitle>
-          <CardDescription>Use these keys to authenticate API requests from your applications</CardDescription>
+          <CardDescription>
+            Each key carries a policy the server enforces on every call. Editing it takes effect immediately.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -344,6 +489,7 @@ export default function ApiKeysPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Key Prefix</TableHead>
                   <TableHead>Permissions</TableHead>
+                  <TableHead>Policy</TableHead>
                   <TableHead>Usage</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -368,6 +514,15 @@ export default function ApiKeysPage() {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="text-xs">
+                      {key.policy ? (
+                        policySummary(key)
+                      ) : (
+                        <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600">
+                          legacy defaults — edit to tighten
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell>{key.usage_count.toLocaleString()} requests</TableCell>
                     <TableCell>
                       <Badge variant={key.is_active ? "default" : "destructive"}>
@@ -375,6 +530,9 @@ export default function ApiKeysPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => openPolicyDialog(key)} title="Edit policy">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -394,6 +552,61 @@ export default function ApiKeysPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(editingKey)} onOpenChange={(open) => !open && setEditingKey(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Policy for “{editingKey?.name}”</DialogTitle>
+            <DialogDescription>{POLICY_HINT}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-1 block">Agent operations</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {AGENT_OPS.map((op) => (
+                  <label key={op.value} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={editOps.includes(op.value)}
+                      onCheckedChange={() => setEditOps((prev) => toggle(prev, op.value))}
+                    />
+                    <span>
+                      {op.label} <span className="text-xs text-muted-foreground">{op.hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Max per call (USD)</Label>
+                <Input type="number" min={1} max={10000} value={editMax} onChange={(e) => setEditMax(Number(e.target.value))} />
+              </div>
+              <div>
+                <Label>Daily cap (USD)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100000}
+                  value={editDaily}
+                  onChange={(e) => setEditDaily(Number(e.target.value))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Coin allowlist (comma separated, empty = all)</Label>
+              <Input placeholder="BTC, ETH" value={editCoins} onChange={(e) => setEditCoins(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingKey(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSavePolicy} disabled={savingPolicy}>
+              {savingPolicy ? "Saving..." : "Save policy"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

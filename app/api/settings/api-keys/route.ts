@@ -7,6 +7,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService, type Permission } from '@/lib/services/api-key-service';
 import { withAuth } from '@/lib/middleware/api-auth';
+import { resolveAgentPolicy } from '@/lib/agent/policy';
 
 const apiKeyService = new APIKeyService();
 
@@ -21,7 +22,7 @@ export const POST = withAuth(async (request: NextRequest, ownerAddress: string) 
   try {
     // Parse request body
     const body = await request.json();
-    const { name, permissions, rate_limit_per_minute, rate_limit_per_day, allowed_ips, allowed_origins, expires_at } = body;
+    const { name, permissions, policy, rate_limit_per_minute, rate_limit_per_day, allowed_ips, allowed_origins, expires_at } = body;
 
     // Validate required fields
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -54,6 +55,16 @@ export const POST = withAuth(async (request: NextRequest, ownerAddress: string) 
           { status: 400 }
         );
       }
+    }
+
+    // Resolve the agent policy. A key created without one starts read-only
+    // under the strict defaults, never under the legacy all-ops policy.
+    const resolvedPolicy = resolveAgentPolicy(policy ?? {});
+    if (!resolvedPolicy.ok) {
+      return NextResponse.json(
+        { error: 'Bad Request', message: 'Invalid policy', details: resolvedPolicy.errors },
+        { status: 400 }
+      );
     }
 
     // Validate rate limits if provided
@@ -93,6 +104,7 @@ export const POST = withAuth(async (request: NextRequest, ownerAddress: string) 
       name: name.trim(),
       owner_address: ownerAddress,
       permissions: permissions || ['read'],
+      policy: resolvedPolicy.policy,
       rate_limit_per_minute,
       rate_limit_per_day,
       allowed_ips,
@@ -108,6 +120,7 @@ export const POST = withAuth(async (request: NextRequest, ownerAddress: string) 
         name: key.name,
         key_prefix: key.key_prefix,
         permissions: key.permissions,
+        policy: resolvedPolicy.policy,
         rate_limit_per_minute: key.rate_limit_per_minute,
         rate_limit_per_day: key.rate_limit_per_day,
         expires_at: key.expires_at,
@@ -141,6 +154,7 @@ export const GET = withAuth(async (request: NextRequest, ownerAddress: string) =
       name: key.name,
       key_prefix: key.key_prefix,
       permissions: key.permissions,
+      policy: key.policy ?? null,
       rate_limit_per_minute: key.rate_limit_per_minute,
       rate_limit_per_day: key.rate_limit_per_day,
       allowed_ips: key.allowed_ips,

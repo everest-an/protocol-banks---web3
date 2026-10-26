@@ -80,6 +80,10 @@ const FAQ = [
     a: "Paper mode is free forever. Live mode is profit-share only: 20% of net profits, charged when you sweep profits out. If the agent doesn't make money, you pay nothing — no subscription, no upfront fee, no fee on losses.",
   },
   {
+    q: "Can another app or an AI agent trade my account?",
+    a: "Yes — create an API key under Settings → API Keys. Each key carries a policy the server enforces: which operations (read, trade, pay, swap), a per-call cap, a daily cap and a coin allowlist. New keys start read-only; a key with trade can place orders through the trading-only agent wallet and can never withdraw. See docs/AGENT_API.md.",
+  },
+  {
     q: "Can I approve every trade myself?",
     a: "Yes — switch the cockpit to Manual approval mode and the agent will hold each new entry as a pending trade until you approve or reject it. Exits (stop-losses, take-profits) always run automatically for safety, and approving re-checks every risk limit before the order is placed.",
   },
