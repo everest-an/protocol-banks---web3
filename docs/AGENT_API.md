@@ -1,7 +1,7 @@
 # Agent API — reference
 
 The programmatic surface for AI agents and the products that run them: one
-credential, one policy the server enforces, four operations.
+credential, one policy the server enforces, five endpoints.
 
 **Two of them execute; two of them prepare.** The platform holds no keys, so it
 can trade through a Hyperliquid agent wallet (trading-only rights) but it can
@@ -36,14 +36,20 @@ byte-identical for existing integrations.
 Authorization: Bearer pb_...
 ```
 
-Keys are created in **Settings → API Keys**. Two permissions matter:
+Keys are created in **Settings → API Keys**. The dialog also sets the key's
+**policy** (below): a new key starts read-only (`["read"]`, $50 per call, $200
+per day), and the policy can be changed from the key's row at any time — the
+next call is enforced with the new limits. A key created before policies existed
+carries no stored policy and runs under the legacy defaults.
+
+Two permissions matter:
 
 - `read` — `GET /state`
 - `write` — `orders`, `pay`, `swap`, `invoice`
 
-Each key also carries a **policy** (below). Rate limits are per key
-(`rate_limit_per_minute`, default 60) and are enforced by the API-key middleware;
-every call is logged to `api_key_usage_logs`.
+Every call is logged to `api_key_usage_logs`. The enforced limit today is the
+global one: **100 requests/minute per IP** (`middleware.ts`). The per-key
+`rate_limit_per_minute` value is stored on the key but is not enforced yet.
 
 A key with no owner address is rejected (`403`) — the key belongs to an account.
 
@@ -146,11 +152,15 @@ Quotes are not metered — nothing is spent.
 ```
 
 ```json
-{ "ok": true, "invoice": { "invoiceId": "INV-…", "status": "pending", "to": "0xabc…", "amount": 25, "token": "USDC", "chain": "Ethereum", "expiresAt": "…", "signed": true } }
+{ "ok": true, "invoice": { "invoiceId": "INV-…", "status": "pending", "to": "0xabc…", "amount": 25, "token": "USDC", "chain": "Ethereum", "expiresAt": "…", "signed": true, "paymentLink": "https://protocolbanks.com/pay?invoice=INV-…&sig=…" } }
 ```
 
 Creates a pending invoice. Moves no money and is not metered; the amount is
 checked against the key's policy because an invoice is a payment request.
+Give `paymentLink` to the payer. To check settlement, read the invoice back
+with the id and signature from that link:
+`GET /api/invoice?id=INV-…&sig=…` (without the signature a signed invoice
+answers `403`).
 
 ## 4. Errors
 
@@ -233,13 +243,16 @@ PB_KEY=pb_… pnpm example:agent --invoice
 One command walks the surface with nothing but a key: it prints the mode and
 equity, the effective policy, places a $20 BTC order (`PB_USD` changes the
 size), and with `--invoice` creates a pending invoice. `PB_BASE` points it at a
-local server; `PB_TO` sets the invoice destination.
+local server; `PB_TO` sets the invoice destination. A run with `--invoice`
+looks like this:
 
 ```text
 mode: paper · equity: $500.00
 policy: read, trade, pay · per-call $100.00 · daily $200.00 · spent today $0.00
 fill: BTC long 0.000248 @ $81062.50 · notional $20.00
 fee: $0.0080 · mode: paper · remainingTodayUsd: $180.00
+invoice: INV-M8K2Q1-9F3A21B7 · pending · expires 2026-10-26T04:00:00.000Z
+pay: https://protocolbanks.com/pay?invoice=INV-M8K2Q1-9F3A21B7&sig=3f9a1c2b7d4e5f60
 not called: pay and swap return something you sign from your own wallet — this example cannot execute them
 ```
 

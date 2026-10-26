@@ -31,6 +31,8 @@ Positioning & milestones → [PRD_V2_AI_TRADING.md](PRD_V2_AI_TRADING.md)
 | AI Trading cockpit | `/trading` | The product: status, positions, activity, controls |
 | Live track record | `/live-track-record` | Public, anonymized real-money performance |
 | Usage guide | `/help` | In-product onboarding & FAQ |
+| Settings | `/settings` | API keys + policy, AI model, billing, team, webhooks |
+| API keys | `/settings/api-keys` | Create keys, set/edit the server-enforced policy |
 | Media kit | `/media-kit` | Logos, boilerplate, brand rules |
 | MCP server | local stdio | Control the agent from Claude / any MCP host |
 | Admin analytics | `/admin/analytics` | Internal: users, usage, feedback |
@@ -284,7 +286,50 @@ groups, webhooks, notifications, audit log, teams, MCP server, cron jobs.
 > protection, and the fourteen audit fixes (cross-tenant reads, wrong-chain
 > fallback, error-semantics bugs) — see [FEATURE_REVIEW.md](FEATURE_REVIEW.md).
 
-## 12. Documentation map
+## 12. Settings & the Agent API
+
+Settings lives at `/settings`; the two entries that matter for programmatic use
+are **API Keys** (`/settings/api-keys`) and **AI Model** (`/settings/ai-model`).
+Every key carries a **policy** the server enforces on each call, so the same
+credential can be exposed to a third-party or model without handing over the
+account.
+
+### 12.1 API keys and the policy
+
+| Field | Meaning | New key |
+|---|---|---|
+| `allowedOps` | `read`, `trade`, `pay`, `swap` — which calls the key may make | `["read"]` |
+| `maxNotionalUsd` | Per-call cap | `$50` |
+| `dailyCapUsd` | Per-UTC-day cap, summed from metered calls | `$200` |
+| `allowedCoins` | Allowlist; empty means every supported market | empty |
+
+Permissions are a second gate: `read` covers `GET /state`, `write` covers
+`orders`, `pay`, `swap` and `invoice`. The create dialog sets both; the key's row
+shows the policy and opens an editor. Values are clamped server-side, and a key
+created before policies existed is marked **legacy defaults** (all four ops,
+$100/call, $500/day) until someone edits it.
+
+### 12.2 The Agent API
+
+Five endpoints under `/api/v1/agent/*`:
+
+| Endpoint | Operation | Executes? |
+|---|---|---|
+| `GET /state` | `read` | — |
+| `POST /orders` | `trade` | **yes** (agent wallet, trading-only) |
+| `POST /pay` | `pay` | no — returns an intent to sign |
+| `POST /swap` | `swap` | no — returns a quote to sign |
+| `POST /invoice` | `pay` | no — pending invoice + `paymentLink` |
+
+The platform holds no keys, so only `orders` can move value; `pay` and `swap`
+return something the agent signs itself, and `invoice` is a payment request the
+payer settles through the returned link (read it back with `GET /api/invoice?id=…&sig=…`).
+
+Walk it with one command: `PB_KEY=pb_… pnpm example:agent` (add `--invoice`).
+The machine-readable contract is [api/agent.openapi.json](api/agent.openapi.json);
+check it offline with `node scripts/verify-openapi.mjs`.
+
+## 13. Documentation map
 
 | Doc | Covers |
 |---|---|
@@ -293,6 +338,7 @@ groups, webhooks, notifications, audit log, teams, MCP server, cron jobs.
 | [SECURITY_THREAT_MODEL.md](SECURITY_THREAT_MODEL.md) | Assets, trust boundaries, known limitations |
 | [MCP.md](MCP.md) | MCP setup and tool reference |
 | [AGENT_API.md](AGENT_API.md) | Agent API: auth, the key policy, five endpoints, errors, billing |
+| [Agent API contract](api/agent.openapi.json) | OpenAPI 3.1 for the five agent endpoints — policy schema, error classes, real examples |
 | [AGENT_CASES.md](AGENT_CASES.md) | Four worked technical cases (framework tool, invoices, x402, runaway limits) |
 | [PARTNERS.md](PARTNERS.md) | Partner integration guide (curl, SDK, sandbox, per-order billing) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture |

@@ -7,6 +7,9 @@ envelope, and read back exactly what is enforced.
 ## Auth
 
 Create a key in **Settings → API Keys**. `write` places orders, `read` reads state.
+The same dialog sets the key's **policy** (operations, per-call cap, daily cap,
+coin allowlist); a new key starts read-only and can be tightened or widened from
+the key's row — the next call is enforced with the new limits.
 
 ```
 Authorization: Bearer pb_...
@@ -23,7 +26,7 @@ curl -X POST https://protocolbanks.com/api/v1/agent/orders \
 ```
 
 ```json
-{ "ok": true, "fill": { "coin": "BTC", "side": "long", "avgPx": 81062, "size": 0.00185, "notional": 150 }, "fee": 0.12, "mode": "live" }
+{ "ok": true, "fill": { "coin": "BTC", "side": "long", "avgPx": 81062, "size": 0.00185, "notional": 150 }, "fee": 0.12, "mode": "live", "remainingTodayUsd": 350 }
 ```
 
 Failures return `409` with the guard that refused:
@@ -38,7 +41,8 @@ uncertain submission (recorded for reconciliation, never retried).
 
 ### `GET /api/v1/agent/state`
 
-Mode, equity, open positions, activity and the effective risk config (post-clamp).
+Mode, equity, open positions, the activity feed, and the key's policy with
+`spentTodayUsd` — i.e. what is still allowed today.
 
 ### `POST /api/v1/agent/pay`
 
@@ -50,6 +54,13 @@ Solana base58), the amount is checked against the key's policy.
 
 Returns a **quote and the transaction to sign** (Rango). Same rule: the agent
 executes, never us. Quotes are not metered because nothing is spent.
+
+### `POST /api/v1/agent/invoice`
+
+Creates a pending invoice and returns a **`paymentLink`** (`/pay?invoice=…&sig=…`)
+to hand the payer. Moves no money and is not metered; the amount is still checked
+against the key's policy. Read settlement back with
+`GET /api/invoice?id=…&sig=…` — the signature is in the link.
 
 ## The key's policy (enforced server-side)
 
@@ -84,8 +95,8 @@ Switch the account to live (agent wallet approved) and the same code goes live.
 
 ## Billing
 
-Per executed order: `PARTNER_FEE_BPS` (default **8 bps** of notional), metered as a
-`partner_order` event. See what is owed:
+Per executed order: `PARTNER_FEE_BPS` (default **8 bps** of notional), metered as an
+`agent_op` event (the daily cap is summed from the same events). See what is owed:
 
 ```bash
 DAYS=30 npx tsx -r dotenv/config scripts/partner-usage.ts

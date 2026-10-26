@@ -59,15 +59,16 @@ payment by invoice id.
 
 ```
 agent  ──POST /agent/invoice { to: 0xclient, amount: 25 }──▶ platform
-                                                              └─ Invoice row (pending, 24h)
-agent  ── shares invoiceId with the client ─────────────────▶ client
-client ── settles USDC to 0xclient (any wallet) ────────────▶ chain
-agent  ── GET /api/invoice?id=INV-…  (legacy invoice API) ──▶ platform
-                                                              └─ status: paid | pending | expired
+                                                             ├─▶ Invoice row (pending, 24h)
+                                                             └─▶ paymentLink (/pay?invoice=…&sig=…)
+agent  ── shares paymentLink with the client ───────────────▶ client
+client ── opens the link, settles USDC to 0xclient ─────────▶ chain
+agent  ── GET /api/invoice?id=INV-…&sig=… (sig from the link) ▶ platform
+                                                             └─▶ status: paid | pending | expired
 ```
 
 ```json
-{ "ok": true, "invoice": { "invoiceId": "INV-M8K2Q1-9F3A21B7", "status": "pending", "amount": 25, "token": "USDC", "chain": "Ethereum", "expiresAt": "…", "signed": true } }
+{ "ok": true, "invoice": { "invoiceId": "INV-M8K2Q1-9F3A21B7", "status": "pending", "amount": 25, "token": "USDC", "chain": "Ethereum", "expiresAt": "…", "signed": true, "paymentLink": "https://protocolbanks.com/pay?invoice=INV-M8K2Q1-9F3A21B7&sig=3f9a1c2b7d4e5f60" } }
 ```
 
 **Failure modes**
@@ -76,6 +77,7 @@ agent  ── GET /api/invoice?id=INV-…  (legacy invoice API) ──▶ platfo
 |---|---|---|
 | amount above the key's cap | `403` | the invoice is not created |
 | bad address | `400` | EVM `0x…`, TRON `T…`, Solana base58 |
+| read back without the signature | `403` | a signed invoice is only readable with `sig` from `paymentLink` |
 | client pays the wrong chain | — | the invoice records one `chain`; reconciliation is the caller's job today |
 | invoice expires | `status: "expired"` | `expiresInHours` (default 24, max 720) |
 
