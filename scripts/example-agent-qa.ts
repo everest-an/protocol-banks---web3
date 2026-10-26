@@ -186,6 +186,23 @@ async function main(): Promise<void> {
         : null
       check("the invoice row exists and is pending", invoice?.status === "pending", `found: ${invoice ? invoice.status : "none"}`)
       check("the invoice belongs to the QA wallet", invoice?.merchant_name === MERCHANT, `merchant: ${invoice?.merchant_name ?? "none"}`)
+
+      const linkMatch = invoiced.stdout.match(/^pay: (\S+)$/m)
+      check("invoice run prints a payment link", Boolean(linkMatch), invoiced.stdout.trim())
+      const link = linkMatch ? linkMatch[1] : ""
+      const params = link ? new URL(link).searchParams : null
+      const id = params?.get("id") ?? params?.get("invoice") ?? ""
+      const sig = params?.get("sig") ?? ""
+      const readable = id
+        ? await fetch(
+            `${BASE}/api/invoice?id=${encodeURIComponent(id)}${sig ? `&sig=${encodeURIComponent(sig)}` : ""}`,
+          ).then(async (res) => ({ status: res.status, body: await res.json().catch(() => ({})) }))
+        : { status: 0, body: {} }
+      check(
+        "the payment link resolves to the invoice",
+        readable.status === 200 && (readable.body as { invoice?: { invoice_id?: string } }).invoice?.invoice_id === invoiceId,
+        `status ${readable.status}`,
+      )
     }
   } finally {
     rmSync(keyDir, { recursive: true, force: true })

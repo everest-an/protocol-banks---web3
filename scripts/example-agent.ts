@@ -44,7 +44,7 @@ interface OrderView {
 
 interface InvoiceView {
   ok?: boolean
-  invoice?: { invoiceId: string; status: string; expiresAt: string }
+  invoice?: { invoiceId: string; status: string; expiresAt: string; paymentLink?: string }
 }
 
 interface ErrorBody {
@@ -118,6 +118,7 @@ async function main(): Promise<number> {
     }
     const created = invoice.json.invoice
     console.log(`invoice: ${created.invoiceId} · ${created.status} · expires ${created.expiresAt}`)
+    if (created.paymentLink) console.log(`pay: ${created.paymentLink}`)
   }
 
   console.log("not called: pay and swap return something you sign from your own wallet — this example cannot execute them")

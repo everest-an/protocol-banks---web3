@@ -19,6 +19,8 @@ export interface AgentOrderResponse {
   fill?: { coin: string; side: "long" | "short"; avgPx: number; size: number; notional: number }
   fee?: number
   mode?: "live" | "paper"
+  /** dailyCapUsd − spentTodayUsd − this order */
+  remainingTodayUsd?: number
   error?: string
 }
 

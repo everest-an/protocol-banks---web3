@@ -101,8 +101,10 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
         }
     }
 
-    // Generate payment link
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://protocol-banks.vercel.app"
+    // Generate payment link (the configured value is a bare domain in some
+    // deployments, which would otherwise produce a relative href)
+    const configuredBase = process.env.NEXT_PUBLIC_APP_URL || "https://protocol-banks.vercel.app"
+    const baseUrl = /^https?:\/\//i.test(configuredBase) ? configuredBase : `https://${configuredBase}`
     const paymentLink = `${baseUrl}/pay?invoice=${invoiceId}&sig=${signature}`
 
     return NextResponse.json({

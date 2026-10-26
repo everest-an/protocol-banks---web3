@@ -400,9 +400,10 @@
                     "chain": "Ethereum",
                     "description": "agent work, October",
                     "expiresAt": "2026-10-26T04:00:00.000Z",
-                    "signed": true
+                    "signed": true,
+                    "paymentLink": "https://protocolbanks.com/pay?invoice=INV-2026-10-25-7F3C9A1B&sig=3f9a1c2b7d4e5f60"
                   },
-                  "note": "moves no money; the payer settles it against this invoice id"
+                  "note": "moves no money; share the paymentLink with the payer, who settles it against this invoice id"
                 }
               }
             }
@@ -991,7 +992,7 @@
       },
       "Invoice": {
         "type": "object",
-        "required": ["invoiceId", "status", "to", "amount", "token", "chain", "expiresAt", "signed"],
+        "required": ["invoiceId", "status", "to", "amount", "token", "chain", "expiresAt", "signed", "paymentLink"],
         "properties": {
           "invoiceId": {
             "type": "string"
@@ -1022,6 +1023,10 @@
           "signed": {
             "type": "boolean",
             "description": "Whether the platform signature was attached."
+          },
+          "paymentLink": {
+            "type": "string",
+            "description": "Give this to the payer. It opens the in-app payment page and carries the signature the legacy invoice read requires (`GET /api/invoice?id=…&sig=…`)."
           }
         }
       },

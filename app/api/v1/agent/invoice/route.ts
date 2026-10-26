@@ -75,6 +75,18 @@ async function handler(request: AgentRequest) {
     },
   })
 
+  // The payer opens this in the app; it carries the same HMAC the legacy
+  // invoice route uses, so `GET /api/invoice?id=…&sig=…` can read the row.
+  // NEXT_PUBLIC_APP_URL is a display domain in some deployments (no scheme),
+  // so only trust it when it parses as an absolute http(s) URL.
+  const configured = process.env.NEXT_PUBLIC_APP_URL
+  const origin = (
+    configured && /^https?:\/\//i.test(configured) ? configured : request.nextUrl.origin
+  ).replace(/\/+$/, "")
+  const paymentLink = signature
+    ? `${origin}/pay?invoice=${invoiceId}&sig=${signature}`
+    : `${origin}/pay?invoice=${invoiceId}`
+
   return NextResponse.json({
     ok: true,
     invoice: {
@@ -87,8 +99,9 @@ async function handler(request: AgentRequest) {
       description,
       expiresAt: expiresAt.toISOString(),
       signed: signature !== null,
+      paymentLink,
     },
-    note: "moves no money; the payer settles it against this invoice id",
+    note: "moves no money; share the paymentLink with the payer, who settles it against this invoice id",
   })
 }
 
