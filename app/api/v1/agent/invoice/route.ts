@@ -81,7 +81,7 @@ async function handler(request: AgentRequest) {
   // so only trust it when it parses as an absolute http(s) URL.
   const configured = process.env.NEXT_PUBLIC_APP_URL
   const origin = (
-    configured && /^https?:\/\//i.test(configured) ? configured : request.nextUrl.origin
+    configured && /^https?:\/\//i.test(configured) ? configured : new URL(request.url).origin
   ).replace(/\/+$/, "")
   const paymentLink = signature
     ? `${origin}/pay?invoice=${invoiceId}&sig=${signature}`

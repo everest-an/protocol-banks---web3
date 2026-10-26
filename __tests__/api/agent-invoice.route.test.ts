@@ -50,6 +50,7 @@ describe("POST /api/v1/agent/invoice", () => {
     expect(res.status).toBe(200)
     expect(body.invoice.invoiceId).toMatch(/^INV-/)
     expect(body.invoice).toMatchObject({ to: TO, amount: 25, token: "USDC", chain: "Ethereum", status: "pending" })
+    expect(body.invoice.paymentLink).toContain(`/pay?invoice=${body.invoice.invoiceId}`)
     expect(createMock).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ recipient_address: TO, amount: 25, token: "USDC", status: "pending" }),
