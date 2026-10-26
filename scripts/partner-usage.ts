@@ -15,11 +15,11 @@ async function main() {
 
   const byWallet = new Map<string, { orders: number; notional: number; fee: number }>()
   for (const row of rows) {
-    const props = (row.props ?? {}) as { notional?: number; fee?: number }
+    const props = (row.props ?? {}) as { notionalUsd?: number; fee?: number }
     const key = row.wallet ?? "unknown"
     const entry = byWallet.get(key) ?? { orders: 0, notional: 0, fee: 0 }
     entry.orders += 1
-    entry.notional += Number(props.notional ?? 0)
+    entry.notional += Number(props.notionalUsd ?? 0)
     entry.fee += Number(props.fee ?? 0)
     byWallet.set(key, entry)
   }
