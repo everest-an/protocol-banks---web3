@@ -51,6 +51,7 @@ the AI automated trading product. Start here and follow the links.
 | Document | What it covers |
 |---|---|
 | [OpenAPI Spec](api/openapi.yaml) | REST API specification |
+| [Agent API contract](api/agent.openapi.json) | OpenAPI 3.1 for the five `/api/v1/agent/*` endpoints — policy schema, error classes, real examples |
 | [Postman Collection](api/postman-collection.json) | API examples for Postman |
 | [Example Code](examples/) | Node.js and Python integration examples |
 | [llms-full.txt (live)](https://protocolbanks.com/llms-full.txt) | Full AI-readable API reference |

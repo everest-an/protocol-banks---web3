@@ -16,6 +16,18 @@ must sign itself.
 | `pay` | `POST /api/v1/agent/pay` | no (returns a signed-ready intent) |
 | `swap` | `POST /api/v1/agent/swap` | no (returns a quote + transaction) |
 
+### The contract
+
+[`api/agent.openapi.json`](api/agent.openapi.json) is the machine-readable
+version of this document: OpenAPI 3.1, all five paths, the policy schema with
+its clamp ranges, one response per error class with a real example body, and
+the exact field names each route returns.
+
+It is **JSON** rather than YAML on purpose — the repo has no YAML parser, so
+the contract validates offline with plain `node`: no install, no network, no
+linter to trust. The payment-era [`api/openapi.yaml`](api/openapi.yaml) stays
+byte-identical for existing integrations.
+
 ---
 
 ## 1. Authentication
@@ -149,7 +161,6 @@ checked against the key's policy because an invoice is a payment request.
 | `403` | key policy refuses (op, per-call cap, daily cap, allowlist) | surface the reason; do not retry |
 | `409` | platform guard refuses (positions, breakers, funds, unknown market, no route) or the key policy is invalid | surface the reason; back off |
 | `429` | rate limit | back off |
-| `503` | market data or the venue is unavailable | retry later |
 
 A trade that reaches the venue but returns no confirmed response is reported as
 `409` with "order status uncertain". The platform records it and resolves it on
@@ -211,3 +222,43 @@ read state, place orders and create invoices without HTTP plumbing.
 - fill webhooks (poll `state` for now)
 - per-partner usage dashboard (the report script is the source of truth)
 - invoice settlement lookup in this surface (the legacy invoice API serves it)
+
+## 8. Run it
+
+```bash
+PB_KEY=pb_… pnpm example:agent
+PB_KEY=pb_… pnpm example:agent --invoice
+```
+
+One command walks the surface with nothing but a key: it prints the mode and
+equity, the effective policy, places a $20 BTC order (`PB_USD` changes the
+size), and with `--invoice` creates a pending invoice. `PB_BASE` points it at a
+local server; `PB_TO` sets the invoice destination.
+
+```text
+mode: paper · equity: $500.00
+policy: read, trade, pay · per-call $100.00 · daily $200.00 · spent today $0.00
+fill: BTC long 0.000248 @ $81062.50 · notional $20.00
+fee: $0.0080 · mode: paper · remainingTodayUsd: $180.00
+not called: pay and swap return something you sign from your own wallet — this example cannot execute them
+```
+
+A refusal is printed, not thrown — `REFUSED (403): …` — and the run still exits
+0, because the refusal *is* the answer. The example never calls `pay` or
+`swap`: both return something the agent must sign from its own wallet, so there
+is nothing this script could execute.
+
+## 9. Verify the contract
+
+```bash
+node scripts/verify-openapi.mjs                        # offline, Node built-ins only
+npx tsx -r dotenv/config scripts/example-agent-qa.ts   # needs a dev server on :3200
+```
+
+The first checks the path list, the twelve named schemas, every `$ref`, the
+per-endpoint status lists and every non-200 body; it prints
+`OK 5 paths · … schemas · … refs` or exactly one `FAIL …` line. The second
+provisions a paper account and a scoped key, runs the example (fill, an
+over-cap `403`, an invoice), asserts what the API reported, and deletes every
+row and file it created. `PB_QA_BASE` points it at another origin;
+`--read-only` proves a policy refusal with a read-only key.
