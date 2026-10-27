@@ -71,3 +71,34 @@ jobs:
       - name: Test ${{ matrix.service }}
         working-directory: services/${{ matrix.service }}
         run: go test ./...
+
+  packages:
+    name: Packages (build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The two published packages are standalone (not a pnpm workspace), so
+      # tsup + typescript come from npx. A broken dist must fail the push, not
+      # the next manual release.
+      - name: Build @everestan/protocolbanks-sdk
+        working-directory: packages/sdk
+        run: npx --yes -p tsup@8 -p typescript@5 tsup src/index.ts --format cjs,esm --dts
+
+      - name: Build @everestan/protocolbanks-agent-tools
+        working-directory: packages/agent-tools
+        run: npx --yes -p tsup@8 -p typescript@5 tsup src/index.ts --format cjs,esm --dts
+
+      - name: Verify the tarball contents
+        run: |
+          for pkg in packages/sdk packages/agent-tools; do
+            for file in index.js index.mjs index.d.ts; do
+              test -f "$pkg/dist/$file" || { echo "missing $pkg/dist/$file"; exit 1; }
+            done
+          done
+          echo "both packages built with cjs + esm + dts"
