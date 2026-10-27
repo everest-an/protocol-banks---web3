@@ -220,7 +220,9 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
           <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ frameworks ]</p>
           <p className="text-sm text-[#6F6B64] leading-relaxed max-w-[72ch]">
             The API is a tool call. Wrap it in whatever your agent already uses — LangChain, the Vercel AI SDK, CrewAI,
-            Mastra, or a raw function. The server enforces the cap, so the model can ask for anything:
+            Mastra, or a raw function. <span className="text-[#111111] font-medium">@protocolbanks/agent-tools</span>{" "}
+            ships the five operations as JSON-Schema tool definitions with OpenAI and Anthropic converters, so one
+            manifest covers every framework. The server enforces the cap, so the model can ask for anything:
           </p>
           <pre className="mt-5 overflow-x-auto rounded-lg border border-[#E4E2DD] bg-white p-5 font-mono text-xs leading-relaxed text-[#111111]">
 {`const call = (path, body) =>
@@ -275,6 +277,17 @@ const order = await call("/orders", { coin: "BTC", side: "long", sizeUsd: 20 })`
                 AGENT_CASES.md
               </a>{" "}
               <span className="text-[#6F6B64]">— four worked integrations, including a runaway model loop</span>
+            </li>
+            <li>
+              <a
+                href={`${DOCS}/AGENT_TOOLS.md`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]"
+              >
+                AGENT_TOOLS.md
+              </a>{" "}
+              <span className="text-[#6F6B64]">— the tool manifest and framework adapters</span>
             </li>
             <li>
               <a

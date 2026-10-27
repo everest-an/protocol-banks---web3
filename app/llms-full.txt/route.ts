@@ -158,8 +158,9 @@ Billing: executed trades are metered at PARTNER_FEE_BPS (default 8 bps of
 notional); every order response carries remainingTodayUsd.
 
 References: docs/AGENT_API.md (full reference), docs/AGENT_CASES.md (four
-worked cases), docs/PARTNERS.md (partner integration), and the served contract
-at /api/agent.openapi.json.
+worked cases), docs/AGENT_TOOLS.md (tool manifest for the Vercel AI SDK,
+LangChain, OpenAI and Anthropic), docs/PARTNERS.md (partner integration), and
+the served contract at /api/agent.openapi.json.
 
 ## Legal
 

@@ -225,6 +225,14 @@ r = requests.post(
 print(r.status_code, r.json())
 ```
 
+**Framework tools**
+
+`@protocolbanks/agent-tools` exports the five operations as JSON-Schema tool
+definitions, plus OpenAI and Anthropic converters — one manifest for the Vercel
+AI SDK, LangChain, or a raw function-calling loop. Only `place_order` executes;
+the descriptions tell the model not to retry a `403`/`409`. See
+[AGENT_TOOLS.md](AGENT_TOOLS.md).
+
 **MCP** — the same capability is exposed as MCP tools (`trading-tools.ts`,
 `payment-tools.ts`, `invoice-tools.ts`, `balance-tools.ts`), so an MCP host can
 read state, place orders and create invoices without HTTP plumbing.

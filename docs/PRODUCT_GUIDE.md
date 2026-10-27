@@ -331,6 +331,12 @@ Walk it with one command: `PB_KEY=pb_… pnpm example:agent` (add `--invoice`).
 The machine-readable contract is [api/agent.openapi.json](api/agent.openapi.json);
 check it offline with `node scripts/verify-openapi.mjs`.
 
+**Framework tools.** `@protocolbanks/agent-tools` exports the five operations as
+JSON Schema tool definitions with OpenAI/Anthropic converters, so one manifest
+feeds the Vercel AI SDK, LangChain or a hand-rolled loop. Only `place_order`
+executes, and the tool descriptions tell the model not to retry a refusal — see
+[AGENT_TOOLS.md](AGENT_TOOLS.md).
+
 ## 13. Documentation map
 
 | Doc | Covers |
@@ -342,6 +348,7 @@ check it offline with `node scripts/verify-openapi.mjs`.
 | [AGENT_API.md](AGENT_API.md) | Agent API: auth, the key policy, five endpoints, errors, billing |
 | [Agent API contract](api/agent.openapi.json) | OpenAPI 3.1 for the five agent endpoints — policy schema, error classes, real examples |
 | [AGENT_CASES.md](AGENT_CASES.md) | Four worked technical cases (framework tool, invoices, x402, runaway limits) |
+| [AGENT_TOOLS.md](AGENT_TOOLS.md) | The tool manifest and adapters for the Vercel AI SDK, LangChain, OpenAI and Anthropic |
 | [PARTNERS.md](PARTNERS.md) | Partner integration guide (curl, SDK, sandbox, per-order billing) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture |
 | [AUTH_SYSTEM.md](AUTH_SYSTEM.md) | SIWE + JWT, Shamir, sessions |
