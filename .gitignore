@@ -81,3 +81,4 @@ x-*.png
 packages/*/dist/
 *.tgz
 
+integrations/*/dist/

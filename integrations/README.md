@@ -14,7 +14,8 @@ inside an agent framework. All three call the published packages:
 
 Each folder is standalone: `npm install`, set `PB_KEY`, run it. They are not
 part of the site build (excluded from `tsc`/ESLint), so their framework
-dependencies never leak into the app.
+dependencies never leak into the app. Each starter was type-checked against the
+version it pins: AI SDK 7, Mastra 1.79, elizaOS 1.7.
 
 **The one rule that matters:** the server enforces the key's policy. A `403`
 (key policy) or `409` (platform guard) is returned, not thrown — and must not be
