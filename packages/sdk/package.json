@@ -1,10 +1,17 @@
 {
   "name": "@protocolbanks/sdk",
-  "version": "0.1.0",
-  "description": "Protocol Banks SDK - Crypto payment integration for web applications",
+  "version": "0.2.0",
+  "description": "Protocol Banks SDK — agent execution, payments and invoicing for web applications",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/everest-an/protocol-banks---web3.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://protocolbanks.com/agent-api",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -28,13 +35,13 @@
     "USDC",
     "stablecoin",
     "x402",
+    "ai-agents",
+    "trading",
+    "hyperliquid",
     "protocol-banks"
   ],
   "author": "Protocol Banks",
   "license": "GPL-3.0-only",
-  "peerDependencies": {
-    "ethers": "^6.0.0"
-  },
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"

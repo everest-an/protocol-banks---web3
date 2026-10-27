@@ -11,6 +11,7 @@ export { Invoice } from "./invoice"
 export { Checkout } from "./checkout"
 export { Webhook } from "./webhook"
 export { Agent } from "./agent"
+export type * from "./agent"
 
 // Types
 export type {

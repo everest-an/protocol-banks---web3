@@ -31,7 +31,7 @@ export class ProtocolBanks {
   constructor(config: ProtocolBanksConfig) {
     this.config = {
       ...config,
-      baseUrl: config.baseUrl || "https://protocol-banks.vercel.app",
+      baseUrl: config.baseUrl || "https://protocolbanks.com",
       defaultToken: config.defaultToken || "USDC",
     }
 

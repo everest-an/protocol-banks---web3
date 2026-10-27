@@ -10,6 +10,8 @@ const config = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^@protocolbanks/sdk$': '<rootDir>/packages/sdk/src/index.ts',
+    '^@protocolbanks/agent-tools$': '<rootDir>/packages/agent-tools/src/index.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   collectCoverageFrom: [

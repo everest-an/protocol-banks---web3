@@ -22,7 +22,9 @@
     "paths": {
       "@/*": ["./*"],
       "@/backend/*": ["./backend/*"],
-      "@/services/*": ["./lib/services/*"]
+      "@/services/*": ["./lib/services/*"],
+      "@protocolbanks/sdk": ["./packages/sdk/src/index.ts"],
+      "@protocolbanks/agent-tools": ["./packages/agent-tools/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
