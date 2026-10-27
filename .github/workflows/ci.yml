@@ -89,13 +89,13 @@ jobs:
       - name: Build @everestan/protocolbanks-sdk
         working-directory: packages/sdk
         run: |
-          npm install --no-save --no-package-lock tsup@8 typescript@5
+          npm install --no-save --no-package-lock tsup@8 typescript@5 @types/node@22
           npx tsup src/index.ts --format cjs,esm --dts
 
       - name: Build @everestan/protocolbanks-agent-tools
         working-directory: packages/agent-tools
         run: |
-          npm install --no-save --no-package-lock --legacy-peer-deps tsup@8 typescript@5
+          npm install --no-save --no-package-lock --legacy-peer-deps tsup@8 typescript@5 @types/node@22
           npx tsup src/index.ts --format cjs,esm --dts
 
       - name: Verify the tarball contents
