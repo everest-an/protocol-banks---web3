@@ -9,6 +9,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService } from '@/lib/services/api-key-service';
 import { withAuth } from '@/lib/middleware/api-auth';
 import { resolveAgentPolicy } from '@/lib/agent/policy';
+import { recordEvent } from '@/lib/analytics/events';
 
 const apiKeyService = new APIKeyService();
 
@@ -143,6 +144,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         }
 
         await apiKeyService.updatePolicy(id, ownerAddress, resolved.policy);
+        void recordEvent({
+          name: 'policy_updated',
+          wallet: ownerAddress,
+          props: {
+            allowedOps: resolved.policy.allowedOps,
+            maxNotionalUsd: resolved.policy.maxNotionalUsd,
+            dailyCapUsd: resolved.policy.dailyCapUsd,
+            clamped: resolved.clamped.length,
+          },
+        });
         return NextResponse.json({
           success: true,
           policy: resolved.policy,

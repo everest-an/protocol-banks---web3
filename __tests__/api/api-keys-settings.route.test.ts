@@ -16,6 +16,8 @@ jest.mock("@/lib/services/api-key-service", () => ({
   APIKeyService: jest.fn().mockImplementation(() => ({ create: mockCreate })),
 }))
 
+jest.mock("@/lib/analytics/events", () => ({ recordEvent: jest.fn() }))
+
 import { POST } from "@/app/api/settings/api-keys/route"
 
 function req(body: unknown) {

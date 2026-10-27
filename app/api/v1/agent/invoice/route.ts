@@ -3,6 +3,7 @@ import { withAgentAuth, type AgentRequest } from "@/lib/agent/auth"
 import { evaluatePolicy } from "@/lib/agent/policy"
 import { prisma } from "@/lib/prisma"
 import { generateInvoiceId, signInvoice } from "@/lib/invoice/signing"
+import { recordEvent } from "@/lib/analytics/events"
 
 /**
  * POST /api/v1/agent/invoice — an agent asks to be paid. This creates a pending
@@ -86,6 +87,12 @@ async function handler(request: AgentRequest) {
   const paymentLink = signature
     ? `${origin}/pay?invoice=${invoiceId}&sig=${signature}`
     : `${origin}/pay?invoice=${invoiceId}`
+
+  void recordEvent({
+    name: "agent_invoice_created",
+    wallet,
+    props: { amount, token, chain, signed: signature !== null },
+  })
 
   return NextResponse.json({
     ok: true,

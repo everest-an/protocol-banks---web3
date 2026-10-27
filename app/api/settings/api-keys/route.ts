@@ -8,6 +8,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService, type Permission } from '@/lib/services/api-key-service';
 import { withAuth } from '@/lib/middleware/api-auth';
 import { resolveAgentPolicy } from '@/lib/agent/policy';
+import { recordEvent } from '@/lib/analytics/events';
 
 const apiKeyService = new APIKeyService();
 
@@ -110,6 +111,18 @@ export const POST = withAuth(async (request: NextRequest, ownerAddress: string) 
       allowed_ips,
       allowed_origins,
       expires_at,
+    });
+
+    // Acquisition funnel: a key was created, with the policy it was born with.
+    void recordEvent({
+      name: 'api_key_created',
+      wallet: ownerAddress,
+      props: {
+        permissions: key.permissions,
+        allowedOps: resolvedPolicy.policy.allowedOps,
+        maxNotionalUsd: resolvedPolicy.policy.maxNotionalUsd,
+        dailyCapUsd: resolvedPolicy.policy.dailyCapUsd,
+      },
     });
 
     // Return key info with secret (shown only once)
