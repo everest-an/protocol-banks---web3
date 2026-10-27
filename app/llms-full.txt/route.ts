@@ -130,6 +130,8 @@ Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_
 Contract: https://protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1, CORS-open)
 Keys and policy: https://protocolbanks.com/settings/api-keys
 Walkthrough: https://protocolbanks.com/agent-api — PB_KEY=pb_... pnpm example:agent
+Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools
+(tool manifest for the Vercel AI SDK, LangChain, OpenAI and Anthropic)
 
 Only /orders executes: it trades through a Hyperliquid agent wallet with
 trading-only rights (it can place and cancel orders, never withdraw). /pay,

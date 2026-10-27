@@ -186,6 +186,9 @@ fee). Billing is `PARTNER_FEE_BPS` (default **8 bps** of notional).
 ```bash
 # what partners owe, last 30 days
 DAYS=30 npx tsx -r dotenv/config scripts/partner-usage.ts
+
+# the agent-API funnel: views → keys → first order, plus npm downloads
+DAYS=30 pnpm funnel:agents
 ```
 
 `remainingTodayUsd` in every response is `dailyCapUsd − spentTodayUsd − thisCall`.

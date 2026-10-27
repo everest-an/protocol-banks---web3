@@ -225,6 +225,15 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                 </Button>
               </div>
 
+              <Link
+                href="/agent-api"
+                className="mt-6 inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] hover:text-[#111111] transition-colors"
+              >
+                <span className="text-primary">[ for developers ]</span>
+                give your agent an execution layer with a hard cap
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+
               <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5 text-sm">
                 <Link
                   href="/live-track-record"
