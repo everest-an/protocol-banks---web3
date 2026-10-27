@@ -76,3 +76,8 @@ qa-*.png
 
 x-*.png
 
+
+# package build output
+packages/*/dist/
+*.tgz
+
