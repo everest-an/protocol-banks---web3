@@ -54,8 +54,9 @@ export class TradingAgent {
   ) {
     this.store = store
     this.risk = risk
-    // Live mode passes the account owner so trade events can trigger
-    // push notifications. Paper mode has no owner — no notifications.
+    // The owner is passed for paper and live accounts so fills can be recorded
+    // and the ledger persisted. Push notifications stay live-only: notifyOwner
+    // checks the mode, so a paper account never pages anyone.
     this.ownerAddress = ownerAddress ? ownerAddress.toLowerCase() : null
     this.mode = options?.mode ?? "paper"
     this.executor = options?.executor ?? null
@@ -88,6 +89,17 @@ export class TradingAgent {
     // Wait up to 8s for fresh data, then fall back to the current state.
     await Promise.race([this.ticking, new Promise((resolve) => setTimeout(resolve, 8_000))])
     return this.store.get()
+  }
+
+  /**
+   * Restore a persisted ledger on a cold start (serverless has no durable
+   * disk). The resolver only calls this with a row whose mode is "paper" —
+   * live ledgers are rebuilt by the promotion path instead.
+   */
+  hydrate(state: TradingState): void {
+    this.store.mutate((s) => {
+      Object.assign(s, state)
+    })
   }
 
   /**
@@ -382,7 +394,9 @@ export class TradingAgent {
    * and ignored.
    */
   private notifyOwner(kind: "opened" | "closed" | "guard", detail: { symbol?: string; side?: string; price?: number; pnl?: number; reason?: string; message?: string }): void {
-    if (!this.ownerAddress) return
+    // Paper accounts carry an owner now (for persistence and receipts) but must
+    // never page anyone: simulated fills are not events a user needs a push for.
+    if (!this.ownerAddress || this.mode !== "live") return
     void (async () => {
       try {
         if (kind === "opened" && detail.symbol && detail.side) {
@@ -687,6 +701,9 @@ export class TradingAgent {
       this.refreshAccount(s)
     })
     if (this.ownerAddress) {
+      // Persist before returning: a serverless instance may freeze right after
+      // the response, and a paper fill that never reached the DB is gone.
+      void persistStateToDb(this.ownerAddress, this.state()).catch(() => {})
       void recordTradeOpened(this.ownerAddress, {
         mode: this.mode,
         symbol: req.coin,
@@ -1072,12 +1089,13 @@ const walletAgents = new Map<string, TradingAgent>()
 export function getAgentForWallet(
   walletAddress: string | null | undefined,
   risk: RiskConfig = DEFAULT_RISK,
+  ownerAddress: string | null = walletAddress ?? null,
 ): TradingAgent {
   if (!walletAddress) return getAgent() // guests share the demo account
   const key = walletAddress.toLowerCase()
   let agent = walletAgents.get(key)
   if (!agent) {
-    agent = new TradingAgent(getStoreForWallet(key), risk)
+    agent = new TradingAgent(getStoreForWallet(key), risk, ownerAddress)
     walletAgents.set(key, agent)
   }
   return agent
@@ -1113,6 +1131,7 @@ export async function resolveAgentForWallet(
   if (existing?.isLive()) return existing
 
   let risk: RiskConfig = DEFAULT_RISK
+  let persistedPaperState: TradingState | null = null
   try {
     const { prisma } = await import("@/lib/prisma")
     const row = await prisma.tradingAccount.findUnique({
@@ -1173,9 +1192,26 @@ export async function resolveAgentForWallet(
       walletAgents.set(key, agent)
       return agent
     }
+
+    // Paper: remember the durable ledger and make sure the account row exists
+    // before the first fill, so the trade receipt's foreign key has a home.
+    const persisted = (row?.state_json ?? null) as TradingState | null
+    if (persisted?.mode === "paper") persistedPaperState = persisted
+
+    if (!row) {
+      await prisma.tradingAccount
+        .create({ data: { wallet_address: key, status: "paper" } })
+        .catch(() => {})
+    }
   } catch {
     /* DB unavailable or account not live — stay on the paper agent */
   }
 
-  return getAgentForWallet(key, risk)
+  // Paper agents persist through the same write-through as live ones: the
+  // owner is passed so fills are recorded and the ledger survives a cold start;
+  // notifications remain live-only. Restore the durable ledger once per process.
+  const freshInstance = !walletAgents.has(key)
+  const agent = getAgentForWallet(key, risk, key)
+  if (freshInstance && persistedPaperState) agent.hydrate(persistedPaperState)
+  return agent
 }

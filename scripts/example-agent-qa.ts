@@ -109,6 +109,16 @@ async function fetchPositions(secret: string): Promise<PositionView[]> {
   return res.status === 200 && Array.isArray(json.positions) ? json.positions : []
 }
 
+/** The route writes the receipt and the ledger fire-and-forget; poll briefly. */
+async function waitFor<T>(read: () => Promise<T>, done: (value: T) => boolean, attempts = 20): Promise<T> {
+  let value = await read()
+  for (let attempt = 0; attempt < attempts && !done(value); attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    value = await read()
+  }
+  return value
+}
+
 async function reportZeroRows(): Promise<void> {  const [trades, invoices, keys, events, accounts] = await Promise.all([
     prisma.tradeRecord.count({ where: { wallet_address: WALLET } }),
     prisma.invoice.count({ where: { merchant_name: MERCHANT } }),
@@ -169,6 +179,31 @@ async function main(): Promise<void> {
         "the paper account holds exactly one open BTC position",
         positions.length === 1 && positions[0].symbol === "BTC",
         `positions: ${JSON.stringify(positions)}`,
+      )
+
+      const receipts = await waitFor(
+        () =>
+          prisma.tradeRecord.findMany({
+            where: { wallet_address: WALLET, status: "open", symbol: "BTC" },
+            select: { mode: true },
+          }),
+        (rows) => rows.length > 0,
+      )
+      check(
+        "the paper fill wrote a trade receipt",
+        receipts.length === 1 && receipts[0].mode === "paper",
+        `rows: ${JSON.stringify(receipts)}`,
+      )
+
+      const persisted = await waitFor(
+        () => prisma.tradingAccount.findUnique({ where: { wallet_address: WALLET }, select: { state_json: true } }),
+        (row) => Boolean((row?.state_json as { positions?: unknown[] } | null)?.positions?.length),
+      )
+      const ledger = (persisted?.state_json as { positions?: { symbol?: string }[] } | null)?.positions ?? []
+      check(
+        "the paper ledger is persisted in TradingAccount.state_json",
+        ledger.some((position) => position.symbol === "BTC"),
+        `positions in DB: ${JSON.stringify(ledger.map((position) => position.symbol))}`,
       )
 
       const refused = await runExample({ PB_KEY: created.secret, PB_USD: "5000" })

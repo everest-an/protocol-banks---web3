@@ -149,8 +149,10 @@ ledgers (§6.2).
 
 Paper state lives per wallet: in-memory → file store (`.data/` or `/tmp`) with
 a fire-and-forget write-through to `TradingAccount.state_json` so progress
-survives serverless restarts. Hydration is mode-guarded (paper state can't
-overwrite live).
+survives serverless restarts. A cold start restores the last ledger from
+`state_json` (mode-guarded: paper state can never overwrite live), and paper
+fills are written to trade history like live ones — only the notifications stay
+live-only.
 
 ## 5. Manual approval mode
 
