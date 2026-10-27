@@ -3,8 +3,8 @@
  * the SDK. The descriptions are model-facing, so the refusal rule is asserted
  * too — a tool must tell the model not to retry a 403/409 unchanged.
  */
-import { ProtocolBanks } from "@protocolbanks/sdk"
-import { agentTools, toAnthropicTools, toOpenAIFunctions } from "@protocolbanks/agent-tools"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
+import { agentTools, toAnthropicTools, toOpenAIFunctions } from "@everestan/protocolbanks-agent-tools"
 
 const pb = new ProtocolBanks({ apiKey: "pb_test", baseUrl: "https://api.test" })
 

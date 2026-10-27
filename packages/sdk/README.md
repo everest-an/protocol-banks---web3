@@ -1,9 +1,9 @@
-# @protocolbanks/sdk
+# @everestan/protocolbanks-sdk
 
 Agent execution, payments and invoicing for Protocol Banks.
 
 ```bash
-npm install @protocolbanks/sdk
+npm install @everestan/protocolbanks-sdk
 ```
 
 ## Agent API
@@ -14,7 +14,7 @@ wallet (trading-only rights); `pay`, `swap` and `invoice` return something the
 agent signs itself — the platform holds no keys.
 
 ```ts
-import { ProtocolBanks } from "@protocolbanks/sdk"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
 
 const pb = new ProtocolBanks({ apiKey: process.env.PB_KEY! })
 
@@ -34,7 +34,7 @@ await pb.agent.invoiceStatus(invoice.invoice!.invoiceId, "sig-from-paymentLink")
 
 - Reference: https://github.com/everest-an/protocol-banks---web3/blob/main/docs/AGENT_API.md
 - Contract: https://protocolbanks.com/api/agent.openapi.json
-- Tool manifest: `@protocolbanks/agent-tools`
+- Tool manifest: `@everestan/protocolbanks-agent-tools`
 
 ## Payments
 

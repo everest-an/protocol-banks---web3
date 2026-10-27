@@ -1,5 +1,5 @@
 /**
- * @protocolbanks/sdk
+ * @everestan/protocolbanks-sdk
  *
  * Protocol Banks SDK for crypto payment integration.
  * Supports payment links, checkout, invoicing, and embedded payments.

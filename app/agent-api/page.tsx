@@ -220,7 +220,7 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
           <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ frameworks ]</p>
           <p className="text-sm text-[#6F6B64] leading-relaxed max-w-[72ch]">
             The API is a tool call. Wrap it in whatever your agent already uses — LangChain, the Vercel AI SDK, CrewAI,
-            Mastra, or a raw function. <span className="text-[#111111] font-medium">@protocolbanks/agent-tools</span>{" "}
+            Mastra, or a raw function. <span className="text-[#111111] font-medium">@everestan/protocolbanks-agent-tools</span>{" "}
             ships the five operations as JSON-Schema tool definitions with OpenAI and Anthropic converters, so one
             manifest covers every framework. The server enforces the cap, so the model can ask for anything:
           </p>

@@ -1,15 +1,15 @@
-# @protocolbanks/agent-tools
+# @everestan/protocolbanks-agent-tools
 
 Tool definitions for the Protocol Banks Agent API — adapt once to the Vercel AI
 SDK, LangChain, OpenAI or Anthropic.
 
 ```bash
-npm install @protocolbanks/sdk @protocolbanks/agent-tools
+npm install @everestan/protocolbanks-sdk @everestan/protocolbanks-agent-tools
 ```
 
 ```ts
-import { ProtocolBanks } from "@protocolbanks/sdk"
-import { agentTools, toAnthropicTools, toOpenAIFunctions } from "@protocolbanks/agent-tools"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
+import { agentTools, toAnthropicTools, toOpenAIFunctions } from "@everestan/protocolbanks-agent-tools"
 
 const pb = new ProtocolBanks({ apiKey: process.env.PB_KEY! })
 const tools = agentTools(pb)

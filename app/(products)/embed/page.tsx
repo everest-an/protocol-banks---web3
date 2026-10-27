@@ -52,7 +52,7 @@ export default function EmbedPage() {
   allow="payment"
 ></iframe>`
 
-  const reactCode = `import { ProtocolBanks } from '@protocolbanks/sdk';
+  const reactCode = `import { ProtocolBanks } from '@everestan/protocolbanks-sdk';
 
 const pb = new ProtocolBanks({
   apiKey: 'pk_your_api_key',
@@ -276,18 +276,18 @@ const widget = pb.embed({
                       <GlassCardTitle className="text-lg">React / SDK</GlassCardTitle>
                       <Badge variant="secondary">Recommended</Badge>
                     </div>
-                    <GlassCardDescription>Install @protocolbanks/sdk for full control</GlassCardDescription>
+                    <GlassCardDescription>Install @everestan/protocolbanks-sdk for full control</GlassCardDescription>
                   </GlassCardHeader>
                   <GlassCardContent className="space-y-3">
                     <div className="relative">
                       <pre className="bg-muted p-3 rounded-lg overflow-x-auto text-sm font-mono">
-                        npm install @protocolbanks/sdk
+                        npm install @everestan/protocolbanks-sdk
                       </pre>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="absolute top-1 right-1 h-7 w-7"
-                        onClick={() => copyToClipboard("npm install @protocolbanks/sdk", "npm")}
+                        onClick={() => copyToClipboard("npm install @everestan/protocolbanks-sdk", "npm")}
                       >
                         {copied === "npm" ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
                       </Button>

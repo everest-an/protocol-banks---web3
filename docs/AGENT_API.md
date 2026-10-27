@@ -203,7 +203,7 @@ curl -X POST https://protocolbanks.com/api/v1/agent/orders \
 **TypeScript (SDK)**
 
 ```ts
-import { ProtocolBanks } from "@protocolbanks/sdk"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
 
 const pb = new ProtocolBanks({ apiKey: process.env.PB_KEY!, baseUrl: "https://protocolbanks.com" })
 const state = await pb.agent.state()
@@ -227,7 +227,7 @@ print(r.status_code, r.json())
 
 **Framework tools**
 
-`@protocolbanks/agent-tools` exports the five operations as JSON-Schema tool
+`@everestan/protocolbanks-agent-tools` exports the five operations as JSON-Schema tool
 definitions, plus OpenAI and Anthropic converters — one manifest for the Vercel
 AI SDK, LangChain, or a raw function-calling loop. Only `place_order` executes;
 the descriptions tell the model not to retry a `403`/`409`. See

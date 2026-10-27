@@ -2,7 +2,7 @@
  * The SDK's Agent module: auth header, paths, and the rule that a refusal is
  * returned (status + envelope), never thrown — a model must see it.
  */
-import { ProtocolBanks } from "@protocolbanks/sdk"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
 
 const fetchMock = jest.fn()
 const originalFetch = global.fetch
@@ -24,7 +24,7 @@ afterAll(() => {
   global.fetch = originalFetch
 })
 
-describe("@protocolbanks/sdk — agent", () => {
+describe("@everestan/protocolbanks-sdk — agent", () => {
   it("state: GET, bearer auth, and the status is carried on the body", async () => {
     fetchMock.mockReturnValueOnce(
       reply(200, {

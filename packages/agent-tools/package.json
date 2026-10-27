@@ -1,5 +1,5 @@
 {
-  "name": "@protocolbanks/agent-tools",
+  "name": "@everestan/protocolbanks-agent-tools",
   "version": "0.1.0",
   "description": "Tool definitions for the Protocol Banks Agent API — adapt once to the Vercel AI SDK, LangChain, OpenAI or Anthropic",
   "repository": {
@@ -41,7 +41,7 @@
   "author": "Protocol Banks",
   "license": "GPL-3.0-only",
   "peerDependencies": {
-    "@protocolbanks/sdk": ">=0.2.0"
+    "@everestan/protocolbanks-sdk": ">=0.2.0"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

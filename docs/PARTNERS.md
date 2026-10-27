@@ -105,7 +105,7 @@ DAYS=30 npx tsx -r dotenv/config scripts/partner-usage.ts
 ## SDK
 
 ```ts
-import { ProtocolBanks } from "@protocolbanks/sdk"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
 
 const pb = new ProtocolBanks({ apiKey: process.env.PB_KEY!, baseUrl: "https://protocolbanks.com" })
 const res = await pb.agent.order({ coin: "BTC", side: "long", sizeUsd: 150, reason: "my-signal-v3" })

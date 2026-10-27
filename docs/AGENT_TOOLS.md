@@ -1,6 +1,6 @@
 # Agent tools — one manifest, any framework
 
-`@protocolbanks/agent-tools` turns the Agent API into tool definitions you can
+`@everestan/protocolbanks-agent-tools` turns the Agent API into tool definitions you can
 hand to a model. The definitions are plain JSON Schema, so they work with the
 Vercel AI SDK, LangChain, OpenAI function calling, Anthropic tools, or a small
 loop of your own.
@@ -8,8 +8,8 @@ loop of your own.
 There are no runtime dependencies: the only import is the `ProtocolBanks` type.
 
 ```ts
-import { ProtocolBanks } from "@protocolbanks/sdk"
-import { agentTools } from "@protocolbanks/agent-tools"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
+import { agentTools } from "@everestan/protocolbanks-agent-tools"
 
 const pb = new ProtocolBanks({ apiKey: process.env.PB_KEY! })
 const tools = agentTools(pb)
@@ -25,14 +25,14 @@ other four prepare something the agent signs itself.
 ## Vercel AI SDK
 
 ```bash
-pnpm add ai @ai-sdk/openai @protocolbanks/sdk @protocolbanks/agent-tools
+pnpm add ai @ai-sdk/openai @everestan/protocolbanks-sdk @everestan/protocolbanks-agent-tools
 ```
 
 ```ts
 import { generateText, jsonSchema, stepCountIs, tool } from "ai"
 import { openai } from "@ai-sdk/openai"
-import { ProtocolBanks } from "@protocolbanks/sdk"
-import { agentTools } from "@protocolbanks/agent-tools"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
+import { agentTools } from "@everestan/protocolbanks-agent-tools"
 
 const pb = new ProtocolBanks({ apiKey: process.env.PB_KEY! })
 
@@ -64,14 +64,14 @@ LangChain tools take a Zod schema, so each definition is a one-field wrapper
 (the description is reused verbatim, so the model sees the same rules):
 
 ```bash
-pnpm add @langchain/core zod @protocolbanks/sdk @protocolbanks/agent-tools
+pnpm add @langchain/core zod @everestan/protocolbanks-sdk @everestan/protocolbanks-agent-tools
 ```
 
 ```ts
 import { tool } from "@langchain/core/tools"
 import { z } from "zod"
-import { ProtocolBanks } from "@protocolbanks/sdk"
-import { agentTools } from "@protocolbanks/agent-tools"
+import { ProtocolBanks } from "@everestan/protocolbanks-sdk"
+import { agentTools } from "@everestan/protocolbanks-agent-tools"
 
 const pb = new ProtocolBanks({ apiKey: process.env.PB_KEY! })
 const manifest = agentTools(pb)
@@ -105,7 +105,7 @@ const createInvoice = tool(
 Both APIs accept JSON Schema directly:
 
 ```ts
-import { toAnthropicTools, toOpenAIFunctions, agentTools } from "@protocolbanks/agent-tools"
+import { toAnthropicTools, toOpenAIFunctions, agentTools } from "@everestan/protocolbanks-agent-tools"
 
 const definitions = agentTools(pb)
 const openaiTools = toOpenAIFunctions(definitions) // [{ type: "function", function: { name, description, parameters } }]

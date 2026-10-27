@@ -331,7 +331,7 @@ Walk it with one command: `PB_KEY=pb_… pnpm example:agent` (add `--invoice`).
 The machine-readable contract is [api/agent.openapi.json](api/agent.openapi.json);
 check it offline with `node scripts/verify-openapi.mjs`.
 
-**Framework tools.** `@protocolbanks/agent-tools` exports the five operations as
+**Framework tools.** `@everestan/protocolbanks-agent-tools` exports the five operations as
 JSON Schema tool definitions with OpenAI/Anthropic converters, so one manifest
 feeds the Vercel AI SDK, LangChain or a hand-rolled loop. Only `place_order`
 executes, and the tool descriptions tell the model not to retry a refusal — see

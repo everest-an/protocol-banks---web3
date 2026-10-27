@@ -14,7 +14,7 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@protocolbanks/sdk": ["../sdk/src/index.ts"]
+      "@everestan/protocolbanks-sdk": ["../sdk/src/index.ts"]
     }
   },
   "include": ["src"],

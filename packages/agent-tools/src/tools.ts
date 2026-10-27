@@ -11,7 +11,7 @@
  *   - OpenAI / Anthropic: pass `toOpenAIFunctions()` / `toAnthropicTools()`.
  *   - MCP hosts: use the hosted MCP server instead (/mcp).
  */
-import type { ProtocolBanks } from "@protocolbanks/sdk"
+import type { ProtocolBanks } from "@everestan/protocolbanks-sdk"
 
 export interface AgentToolSchema {
   type: "object"
