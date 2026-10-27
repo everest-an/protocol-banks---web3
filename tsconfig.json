@@ -28,5 +28,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "protocol-banks---web3", "protocol-banks---web3-main", "contracts", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
+  "exclude": ["node_modules", "protocol-banks---web3", "protocol-banks---web3-main", "contracts", "integrations", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
 }

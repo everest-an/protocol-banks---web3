@@ -239,7 +239,17 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
 const order = await call("/orders", { coin: "BTC", side: "long", sizeUsd: 20 })`}
           </pre>
           <p className="mt-4 text-xs text-[#6F6B64]">
-            Prefer a protocol? The same surface is reachable from the{" "}
+            Runnable starters for the{" "}
+            <a
+              href="https://github.com/everest-an/protocol-banks---web3/tree/main/integrations"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]"
+            >
+              Vercel AI SDK, Mastra and elizaOS
+            </a>{" "}
+            live in `integrations/`. Prefer a protocol? The same account is
+            reachable from the{" "}
             <Link href="/mcp" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
               MCP server
             </Link>{" "}

@@ -125,6 +125,18 @@ If your runtime has no tool abstraction, the manifest is still the contract:
 name, description, JSON Schema, execute. A dispatcher is ten lines and the
 server enforces the cap regardless of what the model asks for.
 
+## Runnable starters in this repo
+
+Each folder is standalone (`npm install`, set `PB_KEY`, run it) and excluded
+from the site build:
+
+- [`integrations/vercel-ai/`](../integrations/vercel-ai) — `generateText` with the
+  five tools wired from the manifest
+- [`integrations/mastra/`](../integrations/mastra) — `createTool` definitions and
+  a ready `Agent`
+- [`integrations/eliza/`](../integrations/eliza) — an elizaOS v1 plugin (state
+  provider + trade/state actions; structured args only)
+
 ## Why this shape
 
 - **Only `place_order` moves money.** It executes through the account's

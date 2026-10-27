@@ -74,6 +74,7 @@ the AI automated trading product. Start here and follow the links.
 | [AGENT_API.md](AGENT_API.md) | The programmatic surface: auth, the key policy (ops, per-call cap, daily cap, allowlist), five endpoints, error semantics, billing |
 | [AGENT_CASES.md](AGENT_CASES.md) | Four worked technical cases with real requests and responses — a framework tool with a cap, invoice reconciliation, x402 interop, and the runaway-agent limits |
 | [AGENT_TOOLS.md](AGENT_TOOLS.md) | The tool manifest (`@everestan/protocolbanks-agent-tools`) and adapters for the Vercel AI SDK, LangChain, OpenAI and Anthropic |
+| [Framework starters](../integrations/) | Runnable integrations: Vercel AI SDK, Mastra, elizaOS |
 | [PARTNERS.md](PARTNERS.md) | Partner integration: curl and SDK, the two-layer envelope, sandbox, per-order billing |
 | [growth/partner-targets.md](growth/partner-targets.md) | 20 concrete integration targets and the three qualification questions |
 | [llms.txt](https://protocolbanks.com/llms.txt) / [llms-full.txt](https://protocolbanks.com/llms-full.txt) | Machine-readable summaries for AI crawlers |

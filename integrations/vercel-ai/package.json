@@ -1,0 +1,19 @@
+{
+  "name": "@everestan/example-protocolbanks-vercel-ai",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^4.0.0",
+    "@everestan/protocolbanks-agent-tools": "^0.1.0",
+    "@everestan/protocolbanks-sdk": "^0.2.0",
+    "ai": "^7.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.0.0"
+  }
+}

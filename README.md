@@ -122,6 +122,7 @@ CI runs the full frontend suite (tsc + jest + lint) and Go tests on every push â
 | [Agent API contract](docs/api/agent.openapi.json) | OpenAPI 3.1 for the five agent endpoints â€” policy schema, error classes, real examples |
 | [Agent API cases](docs/AGENT_CASES.md) | Four worked integrations with real requests and responses |
 | [Agent tools](docs/AGENT_TOOLS.md) | One tool manifest for the Vercel AI SDK, LangChain, OpenAI and Anthropic |
+| [Framework starters](integrations/) | Runnable Vercel AI SDK, Mastra and elizaOS integrations |
 | [Partners](docs/PARTNERS.md) | Partner integration guide (curl, SDK, sandbox, billing) |
 
 Legacy payment-era docs remain in `docs/` for the Business feature set.

@@ -1,0 +1,17 @@
+{
+  "name": "@everestan/plugin-protocol-banks",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@elizaos/core": "^1.7.0",
+    "@everestan/protocolbanks-sdk": "^0.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
