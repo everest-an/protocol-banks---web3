@@ -21,8 +21,8 @@ export const tools = Object.fromEntries(
     tool({
       description: definition.description,
       // The manifest is JSON Schema; the AI SDK accepts it through jsonSchema().
-      inputSchema: jsonSchema(definition.parameters as never),
-      execute: definition.execute,
+      inputSchema: jsonSchema<Record<string, unknown>>(definition.parameters as never),
+      execute: (args) => definition.execute(args),
     }),
   ]),
 )
