@@ -4,7 +4,7 @@
   "license": "GPL-3.0-only",
   "private": true,
   "scripts": {
-    "prebuild": "node scripts/sync-product-guide.mjs",
+    "prebuild": "node scripts/sync-product-guide.mjs && node scripts/sync-agent-contract.mjs",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "dev": "next dev --turbopack",

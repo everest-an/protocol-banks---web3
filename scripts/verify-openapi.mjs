@@ -140,4 +140,18 @@ for (const field of ["message", "details"]) {
   }
 }
 
+// The app serves a synced copy at /api/agent.openapi.json; keep it honest.
+const generatedPath = resolve(ROOT, "app", "api", "agent.openapi.json", "agent.openapi.json")
+if (existsSync(generatedPath)) {
+  let generated
+  try {
+    generated = JSON.parse(readFileSync(generatedPath, "utf8"))
+  } catch (error) {
+    fail(`served copy is not valid JSON: ${error.message}`)
+  }
+  if (JSON.stringify(generated) !== JSON.stringify(spec)) {
+    fail("served copy is out of date — run node scripts/sync-agent-contract.mjs")
+  }
+}
+
 console.log(`OK ${agentPaths.length} paths · ${Object.keys(schemas).length} schemas · ${refCount} refs`)
