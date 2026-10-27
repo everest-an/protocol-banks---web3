@@ -62,18 +62,27 @@ control_trading_agent (pause | resume | stop | reset — auth required).
 ## Agent API (for AI agents and their developers)
 
 Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
+Contract: https://protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1)
+Keys and policy: https://protocolbanks.com/settings/api-keys
+Walkthrough: https://protocolbanks.com/agent-api — one command: PB_KEY=pb_... pnpm example:agent
 
-- POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee
-- GET /state — mode, equity, open positions, effective risk config, remaining policy
+Only /orders executes (through the Hyperliquid agent wallet, trading-only).
+/pay and /swap return what the agent must sign itself; /invoice creates a
+payment request and moves nothing.
+
+- POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee + remainingTodayUsd
+- GET /state — mode, equity, positions, activity, and the key's policy with spentTodayUsd
 - POST /pay — { to, amountUsd, token?, chain?, memo? } -> a signed-ready transfer intent; the agent submits it from its own wallet
 - POST /swap — { from, to, amount, amountUsd, slippage? } -> a quote and the transaction to sign
+- POST /invoice — { to, amount, token?, chain?, description?, expiresInHours? } -> pending invoice + a payable paymentLink (/pay?invoice=...&sig=...)
 
 Every key carries a policy the server enforces, not the agent: allowedOps
 (read | pay | swap | trade), maxNotionalUsd (per call), dailyCapUsd (per UTC day),
-allowedCoins (empty = all). Trading also passes the platform risk envelope —
-position cap, stop-loss, daily breakers — and a sizeUsd above the cap is clamped,
-not rejected. Pay and swap never move funds: the platform holds no keys, so those
-endpoints return what the agent must sign.
+allowedCoins (empty = all). A new key starts read-only at $50 per call and $200
+per day; the policy is editable from the key's row. Trading also passes the
+platform risk envelope — position cap, stop-loss, daily breakers — and a sizeUsd
+above the cap is clamped, not rejected. Pay and swap never move funds: the
+platform holds no keys, so those endpoints return what the agent must sign.
 
 ## Legal
 

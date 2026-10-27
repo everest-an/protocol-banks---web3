@@ -21,7 +21,9 @@ must sign itself.
 [`api/agent.openapi.json`](api/agent.openapi.json) is the machine-readable
 version of this document: OpenAPI 3.1, all five paths, the policy schema with
 its clamp ranges, one response per error class with a real example body, and
-the exact field names each route returns.
+the exact field names each route returns. It is also served at
+**`https://protocolbanks.com/api/agent.openapi.json`** (CORS-open), so tooling
+can fetch it without cloning the repo.
 
 It is **JSON** rather than YAML on purpose — the repo has no YAML parser, so
 the contract validates offline with plain `node`: no install, no network, no
