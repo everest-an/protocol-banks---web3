@@ -564,6 +564,9 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               <Link href="/live-track-record" className="hover:text-[#111111] transition-colors flex items-center gap-1">
                 live track record <ChevronRight className="h-3.5 w-3.5" />
               </Link>
+              <Link href="/agent-api" className="hover:text-[#111111] transition-colors flex items-center gap-1">
+                agent api <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
               <Link href="/help" className="hover:text-[#111111] transition-colors flex items-center gap-1">
                 usage guide <ChevronRight className="h-3.5 w-3.5" />
               </Link>
