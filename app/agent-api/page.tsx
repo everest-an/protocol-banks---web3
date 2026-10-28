@@ -65,6 +65,12 @@ export default function AgentsPage() {
           >
             Create an API key <ArrowRight className="h-4 w-4" />
           </Link>
+          <Link
+            href="/pricing"
+            className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-transparent px-5 py-3 text-sm hover:bg-white transition"
+          >
+            Pricing
+          </Link>
           <a
             href="/api/agent.openapi.json"
             className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-transparent px-5 py-3 text-sm hover:bg-white transition"

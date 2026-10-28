@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "", priority: 1.0, changeFrequency: "weekly" as const },
     { path: "/trading", priority: 0.9, changeFrequency: "daily" as const },
     { path: "/agent-api", priority: 0.9, changeFrequency: "weekly" as const },
+    { path: "/pricing", priority: 0.9, changeFrequency: "weekly" as const },
     { path: "/help", priority: 0.8, changeFrequency: "weekly" as const },
     { path: "/product-guide", priority: 0.8, changeFrequency: "monthly" as const },
     { path: "/guides/ai-crypto-trading", priority: 0.8, changeFrequency: "monthly" as const },

@@ -21,6 +21,7 @@
     "trading:agent": "tsx backend/trading-agent.ts",
     "example:agent": "tsx -r dotenv/config scripts/example-agent.ts",
     "funnel:agents": "tsx -r dotenv/config scripts/agent-funnel.ts",
+    "invoice:create": "tsx -r dotenv/config scripts/create-invoice.ts",
     "mcp:stdio": "tsx -r dotenv/config lib/mcp/stdio-server.ts",
     "mcp:test": "node scripts/test-mcp.cjs"
   },

@@ -576,6 +576,9 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               <Link href="/agent-api" className="hover:text-[#111111] transition-colors flex items-center gap-1">
                 agent api <ChevronRight className="h-3.5 w-3.5" />
               </Link>
+              <Link href="/pricing" className="hover:text-[#111111] transition-colors flex items-center gap-1">
+                pricing <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
               <Link href="/help" className="hover:text-[#111111] transition-colors flex items-center gap-1">
                 usage guide <ChevronRight className="h-3.5 w-3.5" />
               </Link>
