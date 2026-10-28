@@ -5,11 +5,19 @@ const BASE_URL = "https://api.rango.exchange"
 
 type ApiMode = "demo" | "real"
 
+/**
+ * Mocks are a development aid, not a feature. They must never be reachable in production: a
+ * fabricated route in a payment path shows the user a price that does not exist and, on
+ * checkStatus, a success that did not happen. Gated on BOTH an explicit env flag and a
+ * non-production build.
+ */
+const MOCKS_ALLOWED = process.env.ALLOW_RANGO_MOCKS === "1" && process.env.NODE_ENV !== "production"
+
 function getRouteConfig(mode: ApiMode) {
   if (mode === "demo") {
     return {
       apiKey: process.env.RANGO_DEV_API_KEY || process.env.RANGO_API_KEY || "",
-      allowMockFallback: true,
+      allowMockFallback: MOCKS_ALLOWED,
     }
   }
 
@@ -177,6 +185,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (mode === "demo" && !config.apiKey) {
+      if (!MOCKS_ALLOWED) {
+        return NextResponse.json(
+          { error: "Rango is not configured on this deployment", message: "RANGO_API_KEY is missing." },
+          { status: 503 },
+        )
+      }
       return NextResponse.json(buildMockResponse(action, params))
     }
 
