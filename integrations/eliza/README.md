@@ -32,16 +32,22 @@ refuses to guess.
 
 ## Publish (elizaOS registry)
 
-The registry requires `images/logo.jpg` (400×400) and `images/banner.jpg`
-(1280×640) — both are committed here. Then:
+Published: https://www.npmjs.com/package/@everestan/plugin-protocol-banks (0.1.0).
+
+**Registry submission is blocked on the elizaOS side.** Their docs point at
+`github.com/elizaos-plugins/registry`, but that repository returns 404 and the
+`elizaos-plugins` org has zero public repos (checked 2026-10-28), so
+`elizaos publish` has nowhere to open its pull request. The npm package is
+installable by name today; when the registry is restored, run:
 
 ```bash
 npm run build
-npm publish --access public
-npx elizaos publish        # creates the plugin repo + registry PR (needs gh + npm login)
+npx elizaos publish
 ```
 
-`npm run build` runs on `prepublishOnly`, so the tarball always carries `dist/`.
+The registry requires `images/logo.jpg` (400×400) and `images/banner.jpg`
+(1280×640) — both are committed here. `npm run build` runs on `prepublishOnly`,
+so the tarball always carries `dist/`.
 
 **Tool-style host?** Use the hosted MCP server
 (`https://protocolbanks.com/api/mcp`, in the official MCP Registry) — it

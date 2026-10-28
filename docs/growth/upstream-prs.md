@@ -74,6 +74,13 @@ PR body:
 
 ## 3. elizaOS (registry, not a PR to `elizaOS/eliza`)
 
+**Status (2026-10-28):** published to npm as
+`@everestan/plugin-protocol-banks@0.1.0`. **Registry PR is blocked:**
+`github.com/elizaos-plugins/registry` returns 404 and the `elizaos-plugins` org
+has zero public repos, so `elizaos publish` has nowhere to open its PR. Their
+docs are stale on this point. Re-check weekly; once the repo is back, run
+`npx elizaos publish` from `integrations/eliza` (assets and build are ready).
+
 Plugins live in their own repos and the registry accepts published packages.
 Path:
 
