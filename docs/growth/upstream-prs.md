@@ -44,6 +44,10 @@ PR body:
 
 ## 2. Vercel AI SDK (`vercel/ai`)
 
+**Issue opened:** https://github.com/vercel/ai/issues/24146 (2026-10-28).
+Discussions are disabled in that repo; the support-request template is the
+channel, and their CONTRIBUTING explicitly welcomes community examples.
+
 **Reality check:** `examples/` is first-party. A third-party service example is
 usually declined unless a maintainer asks for it. Ask before opening:
 a discussion/issue with the starter link, or a docs entry in their community
