@@ -13,6 +13,9 @@ Already live (no PR needed): the official MCP Registry entry
 
 ## 1. Mastra (`mastra-ai/mastra`)
 
+**Issue opened:** https://github.com/mastra-ai/mastra/issues/28679 (Integration
+Request, 2026-10-28). Wait for a maintainer's answer before porting.
+
 **Reality check:** their `examples/` are curated full Mastra projects
 (`src/mastra/index.ts`, agent + tools in their layout), not standalone scripts.
 A drive-by PR will be asked to restructure.
