@@ -1,17 +1,53 @@
 {
   "name": "@everestan/plugin-protocol-banks",
-  "private": true,
   "version": "0.1.0",
   "type": "module",
+  "description": "Trade through a trading-only Hyperliquid wallet with a server-enforced spend cap, and read the account it belongs to.",
   "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "images"
+  ],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "plugin",
+    "elizaos",
+    "trading",
+    "hyperliquid",
+    "payments",
+    "spend-cap",
+    "protocol-banks"
+  ],
+  "author": "Protocol Banks",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/everest-an/protocol-banks---web3.git",
+    "directory": "integrations/eliza"
+  },
+  "homepage": "https://protocolbanks.com/agent-api",
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@elizaos/core": "^1.7.0",
     "@everestan/protocolbanks-sdk": "^0.2.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "@types/node": "^22",
+    "typescript": "^5.0.0",
+    "vitest": "^5.0.0"
   }
 }
