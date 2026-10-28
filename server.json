@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.everest-an/protocol-banks",
+  "title": "Protocol Banks",
+  "description": "Non-custodial Hyperliquid trading and crypto payments with a server-enforced spend cap.",
+  "repository": {
+    "url": "https://github.com/everest-an/protocol-banks---web3",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://protocolbanks.com/api/mcp"
+    }
+  ]
+}

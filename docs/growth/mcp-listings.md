@@ -1,5 +1,19 @@
 # MCP directory listings
 
+## Official MCP Registry (automated)
+
+`server.json` at the repo root is the listing; `.github/workflows/publish-mcp.yml`
+publishes it with **GitHub OIDC** (no token, no package). The registry verifies
+the workflow runs in the `everest-an` namespace, which is what the name claims.
+
+```bash
+gh workflow run publish-mcp.yml
+curl -s "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.everest-an/protocol-banks"
+```
+
+Most directories (Glama, PulseMCP, and part of mcp.so) ingest this registry or
+GitHub, so this is the highest-leverage listing.
+
 The hosted MCP server is live and verified:
 
 ```bash
@@ -46,18 +60,19 @@ cap, create invoices. Trading-only wallet: it can trade, never withdraw.
 
 ## Where to list (in this order)
 
-1. **Smithery** — smithery.ai. Dashboard → add server; the hosted URL is enough
+1. **Official MCP Registry** — automated above (`publish-mcp.yml`).
+2. **Smithery** — smithery.ai. Dashboard → add server; the hosted URL is enough
    (no local command). Use the copy above.
-2. **mcp.so** — mcp.so. Submit form; paste the endpoint and the short text.
-3. **Glama** — glama.ai/mcp/servers. Submit; Glama also scores servers, so add
-   the tool list and the docs links.
-4. **PulseMCP** — pulsemcp.com. Submit form; weekly newsletter picks are free
-   distribution.
-5. **awesome-mcp-servers** — PR to `github.com/punkpeye/awesome-mcp-servers`,
+3. **mcp.so** — mcp.so. Submit form; paste the endpoint and the short text.
+4. **Glama** — glama.ai/mcp/servers. Submit; Glama also scores servers, so add
+   the tool list and the docs links. It often auto-indexes the official registry.
+5. **PulseMCP** — pulsemcp.com. Submit form; weekly newsletter picks are free
+   distribution. It ingests the official registry.
+6. **awesome-mcp-servers** — PR to `github.com/punkpeye/awesome-mcp-servers`,
    finance section, one line: `- [Protocol Banks](https://protocolbanks.com/mcp)
    - Non-custodial Hyperliquid trading + payments with a server-enforced spend cap.`
-6. **modelcontextprotocol/servers** — reference implementations only; do not PR
-   a hosted server there. The community list (5) is the right home.
+7. **modelcontextprotocol/servers** — reference implementations only; do not PR
+   a hosted server there. The official registry (1) is the right home.
 
 ## Before submitting
 
