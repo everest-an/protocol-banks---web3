@@ -599,10 +599,15 @@ class RangoService {
 
       const data = await response.json()
 
+      // Asking for the step AFTER the last one answers "Request contain invalid step(s)!" - that
+      // is the route finishing, not failing. Treating it as an error made a successful swap
+      // report as broken.
+      if (/invalid step/i.test(String(data?.error ?? ""))) return { success: true, tx: null }
+
       if (data?.ok === false) return { success: false, error: data.error || "Transaction creation failed" }
       if (data?.error) return { success: false, error: data.error }
 
-      const tx = data?.result?.transaction ?? data?.transaction ?? null
+      const tx = data?.transaction ?? data?.result?.transaction ?? null
       if (!tx) return { success: false, tx: null, error: data?.error ?? "No transaction returned" }
 
       return { success: true, tx }
