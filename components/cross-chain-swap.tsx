@@ -61,7 +61,7 @@ export function CrossChainSwap({
   recipientAddress,
   onSwapComplete,
 }: CrossChainSwapProps) {
-  const { address, signer, isConnected } = useUnifiedWallet()
+  const { address, signer, isConnected, chainId, switchNetwork } = useUnifiedWallet()
   const { isWeb2User, translateTerm } = useUserType()
   const { isDemoMode } = useDemo()
 
@@ -229,45 +229,79 @@ export function CrossChainSwap({
     setSelectedRoute(null)
   }, [fromChain, toChain, fromToken, toToken])
 
-  // Execute swap
+  // Execute swap. This is the part that was missing: the previous version asked Rango for routes,
+  // "confirmed" without selectedWallets, dropped the transaction it never requested, and then showed
+  // a success toast. Nothing was ever signed, so nothing ever happened on-chain.
+  //
+  // The loop below is the documented flow: confirm -> for each step, create a transaction, send it,
+  // and while that transaction is an approval (isApprovalTx) create again for the same step.
   const handleSwap = async () => {
     if (!signer || !selectedRoute || !address || !fromToken || !toToken) {
-      toast.error("Please connect your wallet")
+      toast.error("Please connect a wallet")
       return
     }
 
     setIsSwapping(true)
     try {
-      // Confirm route
-      const confirmResult = await rangoService.confirmRoute(selectedRoute.requestId, routeId)
-      if (!confirmResult.success) {
-        throw new Error(confirmResult.error || "Route confirmation failed")
+      // Rango requires an address for EVERY blockchain in the route, not just the source.
+      const selectedWallets: Record<string, string> = { [fromChain]: address, [toChain]: address }
+
+      const confirmed = await rangoService.confirmRoute(selectedRoute.requestId, selectedWallets, address)
+      if (!confirmed.success) throw new Error(confirmed.error || "Route confirmation failed")
+
+      const confirmedRoute: any = confirmed.route ?? {}
+      const steps: any[] = confirmedRoute?.route ?? confirmedRoute?.result?.route ?? []
+      if (!steps.length) throw new Error("Rango confirmed the route but returned no steps")
+
+      let landed = 0
+      for (let i = 0; i < steps.length; i++) {
+        const stepNumber = steps[i]?.step ?? i + 1
+        let guard = 0
+
+        // An approval is a separate round trip; loop until Rango hands us the actual swap.
+        for (;;) {
+          if (guard++ > 4) throw new Error("Too many transactions for one step - aborting")
+
+          const created = await rangoService.createTransaction(selectedRoute.requestId, stepNumber, {
+            slippage: "1.0",
+          })
+          if (!created.success) throw new Error(created.error || "Transaction creation failed")
+          if (!created.tx) break // Rango has nothing left for this step
+
+          const tx = created.tx as any
+          if (tx.to && tx.blockChain) {
+            const target = SUPPORTED_CHAINS.find((c) => c.id === tx.blockChain)?.chainId
+            if (target && chainId && target !== chainId) {
+              toast.message?.(`Switching to ${tx.blockChain}`)
+              await switchNetwork(target)
+            }
+          }
+
+          toast.message?.(tx.isApprovalTx ? "Approve in your wallet" : "Confirm the swap in your wallet")
+
+          const sent = await signer.sendTransaction({
+            to: tx.to,
+            data: tx.data ?? "0x",
+            value: tx.value ? BigInt(tx.value) : BigInt(0),
+            ...(tx.gasLimit ? { gasLimit: BigInt(tx.gasLimit) } : {}),
+          })
+          await sent.wait()
+          landed++
+
+          if (!tx.isApprovalTx) break // that was the swap for this step
+        }
       }
 
-      // Create transaction
-      const txResult = await rangoService.createTransaction(selectedRoute.requestId, routeId, {
-        [fromChain]: address,
-        [toChain]: address,
-      })
+      if (!landed) throw new Error("No transaction was produced by Rango for this route")
 
-      if (!txResult.success) {
-        throw new Error(txResult.error || "Transaction creation failed")
-      }
-
-      toast.success(
-        isWeb2User
-          ? `Exchange initiated! Converting ${inputAmount} ${fromToken.symbol} to ${toToken.symbol}`
-          : `Swap initiated! ${fromChain} → ${toChain}`,
-      )
-
+      toast.success(`Swap sent - ${landed} transaction(s) landed`)
       onSwapComplete?.({
-        hash: txResult.tx?.hash || selectedRoute.requestId,
+        hash: selectedRoute.requestId,
         fromChain,
         toChain,
         amount: inputAmount,
       })
 
-      // Reset form
       setInputAmount("")
       setRoutes([])
       setSelectedRoute(null)

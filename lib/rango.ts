@@ -539,32 +539,45 @@ class RangoService {
   }
 
   // Confirm and create transaction via server API
-  async confirmRoute(requestId: string, routeId: string): Promise<{ success: boolean; tx?: any; error?: string }> {
+  /**
+   * Confirm the selected route. selectedWallets is REQUIRED by Rango and must contain an address for
+   * EVERY blockchain in the route - omitting it is what produces
+   * "errorCode 1201: Can not find wallet for <chain>, <chain>!". The previous version sent only
+   * requestId/routeId, so confirmation never succeeded and the swap never happened.
+   */
+  async confirmRoute(
+    requestId: string,
+    selectedWallets: Record<string, string>,
+    destination?: string,
+  ): Promise<{ success: boolean; route?: any; error?: string }> {
     try {
       const response = await fetch("/api/rango", {
         method: "POST",
         headers: this._headers,
-        body: JSON.stringify({ action: "confirmRoute", requestId, routeId }),
+        body: JSON.stringify({ action: "confirmRoute", requestId, selectedWallets, destination }),
       })
 
       const data = await response.json()
 
-      if (data.error) {
-        return { success: false, error: data.error }
-      }
+      if (data?.ok === false) return { success: false, error: data.error || "Route confirmation failed" }
+      if (data?.error) return { success: false, error: data.error }
 
-      return { success: true, tx: data }
+      return { success: true, route: data?.result ?? data }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : "Confirmation failed" }
     }
   }
 
   // Create swap transaction via server API
+  /**
+   * Ask Rango for the next transaction of a step. The approval is a SEPARATE round trip: when the
+   * returned transaction has isApprovalTx=true you sign and land it, then call this again for the
+   * same step to receive the real swap.
+   */
   async createTransaction(
     requestId: string,
-    routeId: string,
-    userWallets: Record<string, string>,
-    destinationAddress?: string,
+    step: number,
+    opts?: { slippage?: string; infiniteApprove?: boolean },
   ): Promise<{ success: boolean; tx?: any; error?: string }> {
     try {
       const response = await fetch("/api/rango", {
@@ -573,19 +586,26 @@ class RangoService {
         body: JSON.stringify({
           action: "createTransaction",
           requestId,
-          step: 1,
-          userSettings: { slippage: "1.0" },
-          validations: { balance: true, fee: true, approve: true },
+          step,
+          userSettings: {
+            slippage: opts?.slippage ?? "1.0",
+            infiniteApprove: opts?.infiniteApprove ?? false,
+          },
+          // balance/fee are checked client-side; leaving them true makes Rango repeat the check and
+          // fail on balances it has not refreshed.
+          validations: { balance: false, fee: false, approve: true },
         }),
       })
 
       const data = await response.json()
 
-      if (data.error) {
-        return { success: false, error: data.error }
-      }
+      if (data?.ok === false) return { success: false, error: data.error || "Transaction creation failed" }
+      if (data?.error) return { success: false, error: data.error }
 
-      return { success: true, tx: data }
+      const tx = data?.result?.transaction ?? data?.transaction ?? null
+      if (!tx) return { success: false, tx: null, error: data?.error ?? "No transaction returned" }
+
+      return { success: true, tx }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : "Transaction creation failed" }
     }
