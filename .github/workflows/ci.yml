@@ -34,6 +34,10 @@ jobs:
 
       - name: Typecheck
         run: npx tsc --noEmit
+        env:
+          # The type graph outgrew the default 2 GB heap on a runner; 4 GB is
+          # enough and still well under the 7 GB runner limit.
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Unit tests
         run: pnpm test --ci --runInBand
