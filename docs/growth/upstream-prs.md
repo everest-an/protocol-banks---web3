@@ -1,6 +1,6 @@
 # Upstream integration PRs
 
-The code is ready in [`integrations/`](../../integrations). This file is the
+The code is ready in [`integrations/`](https://github.com/everest-an/protocolbanks-sdk). This file is the
 per-repo plan: what to send, where, and the exact commands. Two of the three
 need a maintainer's yes before a PR is worth opening; the third is a publish,
 not a code PR.
@@ -38,7 +38,7 @@ PR body:
 > data (`403`/`409`).
 >
 > Standalone starter (type-checked against Mastra 1.79):
-> https://github.com/everest-an/protocol-banks---web3/tree/main/integrations/mastra
+> https://github.com/everest-an/protocolbanks-sdk/tree/main/integrations/mastra
 
 ---
 
@@ -68,7 +68,7 @@ PR body:
 > pay/swap/invoice return something the agent signs itself.
 >
 > Standalone starter (type-checked against AI SDK 7):
-> https://github.com/everest-an/protocol-banks---web3/tree/main/integrations/vercel-ai
+> https://github.com/everest-an/protocolbanks-sdk/tree/main/integrations/vercel-ai
 
 ---
 

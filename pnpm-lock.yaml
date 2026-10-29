@@ -277,6 +277,12 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
     devDependencies:
+      '@everestan/protocolbanks-agent-tools':
+        specifier: 0.2.0
+        version: 0.2.0(@everestan/protocolbanks-sdk@0.3.0)
+      '@everestan/protocolbanks-sdk':
+        specifier: 0.3.0
+        version: 0.3.0
       '@playwright/test':
         specifier: ^1.52.0
         version: 1.58.2
@@ -840,6 +846,14 @@ packages:
 
   '@ethersproject/sha2@5.7.0':
     resolution: {integrity: sha512-gKlH42riwb3KYp0reLsFTokByAKoJdgFCwI+CCiX/k+Jm2mbNs6oOaCjYQSlI1+XBVejwH2KrmCbMAT/GnRDQw==}
+
+  '@everestan/protocolbanks-agent-tools@0.2.0':
+    resolution: {integrity: sha512-oCRCAltTz59DHXXX1Fcql85zQhDlt/euBQyduSe+AjlnU0k1oPywtqveAf2/uAg0r2ZT9CQd93GewoAPd04IfA==}
+    peerDependencies:
+      '@everestan/protocolbanks-sdk': '>=0.3.0'
+
+  '@everestan/protocolbanks-sdk@0.3.0':
+    resolution: {integrity: sha512-9wVTswmadMas1bhIgj7zJWUcxE+32EfqnHZya0NCR2K5rKjOy+vcNMMOEWytQVD5TvxW3oJwZGRmrSZ4N1h2qQ==}
 
   '@floating-ui/core@1.7.3':
     resolution: {integrity: sha512-sGnvb5dmrJaKEZ+LDIpguvdX3bDlEllmv4/ClQ9awcmCZrlx5jQyyMWFM5kBI+EyNOCDDiKk8il0zeuX3Zlg/w==}
@@ -8066,6 +8080,12 @@ snapshots:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/logger': 5.8.0
       hash.js: 1.1.7
+
+  '@everestan/protocolbanks-agent-tools@0.2.0(@everestan/protocolbanks-sdk@0.3.0)':
+    dependencies:
+      '@everestan/protocolbanks-sdk': 0.3.0
+
+  '@everestan/protocolbanks-sdk@0.3.0': {}
 
   '@floating-ui/core@1.7.3':
     dependencies:

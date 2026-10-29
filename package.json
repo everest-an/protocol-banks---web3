@@ -126,6 +126,8 @@
     "@noble/curves": "1.9.7"
   },
   "devDependencies": {
+    "@everestan/protocolbanks-agent-tools": "0.2.0",
+    "@everestan/protocolbanks-sdk": "0.3.0",
     "@playwright/test": "^1.52.0",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/ioredis": "^4.28.10",

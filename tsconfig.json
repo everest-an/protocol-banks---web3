@@ -22,11 +22,9 @@
     "paths": {
       "@/*": ["./*"],
       "@/backend/*": ["./backend/*"],
-      "@/services/*": ["./lib/services/*"],
-      "@everestan/protocolbanks-sdk": ["./packages/sdk/src/index.ts"],
-      "@everestan/protocolbanks-agent-tools": ["./packages/agent-tools/src/index.ts"]
+      "@/services/*": ["./lib/services/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "protocol-banks---web3", "protocol-banks---web3-main", "contracts", "integrations", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
+  "exclude": ["node_modules", "protocol-banks---web3", "protocol-banks---web3-main", "contracts", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
 }
