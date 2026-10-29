@@ -1,353 +1,267 @@
 import Link from "next/link"
-import {
-  Wallet,
-  Bot,
-  TrendingUp,
-  Shield,
-  PiggyBank,
-  OctagonX,
-  HelpCircle,
-  ArrowRight,
-  Check,
-  Send,
-} from "lucide-react"
+import type { Metadata } from "next"
+import { ArrowRight, Check, Code2, KeyRound, Shield, Terminal } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Help — build on the Protocol Banks Agent API",
+  description:
+    "Create a key, set a policy the server enforces, call the sandbox, then go live. Endpoints, limits, billing and the security model in one page.",
+  alternates: { canonical: "https://protocolbanks.com/help" },
+}
 
 const STEPS = [
   {
-    icon: Wallet,
-    step: "1",
-    title: "Connect your wallet",
-    text: "Click Connect Wallet in the top right and approve the MetaMask prompt. Your keys never leave your device — we sign in via SIWE (Sign-In with Ethereum).",
+    icon: KeyRound,
+    title: "Create a key, set the policy",
+    text: "Settings → API Keys. Grant read and trade, set a per-call cap and a daily cap. New keys start read-only at $50 per call and $200 per day.",
   },
   {
-    icon: PiggyBank,
-    step: "2",
-    title: "Fund your trading wallet",
-    text: "Paper mode needs nothing. To go live, deposit USDC into your Hyperliquid account and give the AI a budget you're comfortable risking.",
+    icon: Terminal,
+    title: "Call the sandbox",
+    text: "The same five endpoints against a paper account with real market data. Place an order, read the fill, watch a $5,000 request get a 403.",
   },
   {
-    icon: Bot,
-    step: "3",
-    title: "The AI trades. You watch.",
-    text: "The agent scans real Hyperliquid markets 24/7, opens and closes positions, and reports every move in plain language on the cockpit.",
+    icon: Shield,
+    title: "Approve the wallet, go live",
+    text: "Approve a Hyperliquid agent wallet with trading-only rights. The same code goes live; the wallet can trade, never withdraw.",
   },
 ]
 
-const COCKPIT = [
-  { title: "Total Assets", text: "Your combined balance across the main wallet and the trading wallet, plus today's PnL." },
-  { title: "Main Wallet vs Trading Wallet", text: "The main wallet is yours alone — the AI can never touch it. The trading wallet holds the budget the AI may trade, and it's also your maximum possible loss." },
-  { title: "Equity Curve", text: "Your account value over time. Switch between 7-day and 30-day views." },
-  { title: "What the AI is doing", text: "A natural-language feed: every scan, entry, exit, and risk decision, with reasons and PnL." },
-  { title: "Open Positions", text: "Current positions with direction, leverage, entry/mark price, and unrealized PnL." },
-  { title: "Controls", text: "Pause AI stops new entries (existing positions are still managed). Emergency Stop halts trading entirely. Reset restarts the paper account." },
+const ENDPOINTS = [
+  ["GET /v1/agent/state", "account, positions, activity, policy with spentTodayUsd"],
+  ["POST /v1/agent/orders", "place one order (executes through the agent wallet)"],
+  ["POST /v1/agent/pay", "validate and prepare a transfer the agent signs"],
+  ["POST /v1/agent/swap", "quote and prepare a swap the agent signs"],
+  ["POST /v1/agent/invoice", "create a pending invoice with a payment link"],
 ]
 
-const RISK_CONTROLS = [
-  { title: "Take-profit / Stop-loss", text: "Every position carries a +2.5% take-profit and a -2.5% stop-loss, enforced before any order goes out." },
-  { title: "Position limits", text: "At most 3 concurrent positions, each sized at ~15% of the trading wallet." },
-  { title: "Daily loss circuit breaker", text: "A 5% daily loss stops new entries for the day; an 8% loss closes everything." },
-  { title: "No withdrawal rights", text: "The AI's agent wallet is approved with trading-only permissions on Hyperliquid. It can never move funds off the exchange." },
-  { title: "Revoke anytime", text: "You can revoke the agent's permissions on Hyperliquid at any moment — and we delete our key material on request." },
+const SAFETY = [
+  { title: "A cap the model cannot raise", text: "The policy lives on the key and is checked before an order reaches the venue. Prompt injection, bugs and loops cannot raise it." },
+  { title: "Trading-only rights", text: "The agent wallet can place and cancel orders; it cannot withdraw. The funded budget is the maximum loss." },
+  { title: "No keys, no funds held", text: "The platform holds neither. pay and swap return something the agent signs from its own wallet." },
+  { title: "Receipts per call", text: "Every call is logged; every fill is recorded; state carries the policy and spentTodayUsd." },
 ]
 
 const FAQ = [
   {
-    q: "Is this safe?",
-    a: "The core safety property is that the AI can trade but never withdraw. Your main wallet is never exposed, the trading wallet is the maximum you can lose, and every order passes through pre-configured risk limits.",
+    q: "What is the Protocol Banks Agent API?",
+    a: "One API key gives an AI agent a trading and payments account under a policy the server enforces: which operations (read, trade, pay, swap), a per-call cap, a daily cap and a coin allowlist. Five endpoints cover state, orders, pay, swap and invoice.",
   },
   {
-    q: "What's the difference between paper and live mode?",
-    a: "Paper mode uses real Hyperliquid market data with simulated money — zero risk, ideal for watching the agent work. Live mode trades your actual USDC after you approve the agent wallet.",
+    q: "Is it safe?",
+    a: "The agent trades through a Hyperliquid wallet approved with trading-only rights. It can place and cancel orders and can never withdraw. The platform holds no keys and no funds; the worst case is the trading budget, shown on screen.",
   },
   {
-    q: "Which wallets are supported?",
-    a: "MetaMask and other injected EVM wallets. Hyperliquid funding happens through Arbitrum, which MetaMask supports natively.",
+    q: "Paper mode or live mode?",
+    a: "Paper mode uses real market data and simulated fills, and the account persists across cold starts. Approve the agent wallet on Hyperliquid and the same endpoints switch to live mode without a code change.",
   },
   {
-    q: "What does the AI actually trade?",
-    a: "The most liquid perpetual markets on Hyperliquid, using two signals: 24-hour momentum (risk-adjusted trend) and funding-rate carry. It's long/short with strict size and stop rules.",
+    q: "How are the limits enforced?",
+    a: "On the server, per key. The key's policy is the first gate (403 on a violation) and the platform risk envelope is the second (positions, leverage, stop-loss, daily breakers; 409 on a refusal). A refusal is final for the request.",
   },
   {
-    q: "How do I withdraw profits?",
-    a: "Use the Withdraw Profit button in the cockpit to sweep available funds from the trading wallet back to your main wallet. You can also withdraw from Hyperliquid to your wallet at any time.",
-  },
-  {
-    q: "What happens if the AI loses money?",
-    a: "Losses are capped by the stop-loss on every position and the daily circuit breakers. The worst case is losing your trading-wallet budget — never more, and never your main wallet.",
+    q: "What happens when an order is refused?",
+    a: "A 403 means the key's policy said no; a 409 means the platform guard did. The response carries the reason and the agent is never touched. Do not retry it unchanged.",
   },
   {
     q: "What does it cost?",
-    a: "Paper mode is free forever. Live mode is profit-share only: 20% of net profits, charged when you sweep profits out. If the agent doesn't make money, you pay nothing — no subscription, no upfront fee, no fee on losses.",
+    a: "The sandbox is free. Live plans start at $199/mo (Builder) and $999/mo (Growth); without a plan, executed orders are billed at 8 bps of notional, invoiced monthly. Paid plans replace the per-order fee.",
   },
   {
-    q: "Can another app or an AI agent trade my account?",
-    a: "Yes — create an API key under Settings → API Keys. Each key carries a policy the server enforces: which operations (read, trade, pay, swap), a per-call cap, a daily cap and a coin allowlist. New keys start read-only; a key with trade can place orders through the trading-only agent wallet and can never withdraw. See docs/AGENT_API.md.",
+    q: "Can I self-host the whole thing?",
+    a: "The client surface is open source under MIT: SDK, tool manifest, MCP proxy and framework examples. The policy and risk engine are hosted; you integrate with them rather than forking them.",
   },
   {
-    q: "Can I approve every trade myself?",
-    a: "Yes — switch the cockpit to Manual approval mode and the agent will hold each new entry as a pending trade until you approve or reject it. Exits (stop-losses, take-profits) always run automatically for safety, and approving re-checks every risk limit before the order is placed.",
+    q: "Where do I integrate from?",
+    a: "Any language over HTTP, the TypeScript SDK, a framework tool manifest (Vercel AI SDK, LangChain, Mastra, elizaOS), the MCP server, or the hosted MCP endpoint for MCP hosts.",
   },
 ]
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen bg-[#F7F6F3] text-[#111111]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
-            dateModified: "2026-08-25",
             inLanguage: "en",
-            mainEntity: FAQ.map((f) => ({
+            mainEntity: FAQ.map((item) => ({
               "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
+              name: item.q,
+              acceptedAnswer: { "@type": "Answer", text: item.a },
             })),
           }),
         }}
       />
-      <div className="container mx-auto px-4 py-12 sm:py-16 max-w-4xl">
-        {/* Hero */}
-        <div className="mb-12 sm:mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            <HelpCircle className="h-4 w-4" />
-            <span>Usage Guide</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight">
-            Let the AI trade. <span className="text-primary">Keep control.</span>
-          </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl">
-            From wallet to working agent in minutes — no trading knowledge required.
-            Everything below is written for first-time users.
-          </p>
-          <p className="text-sm text-muted-foreground mt-4">Last updated: August 2026</p>
 
-          <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mt-6">
-            <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
-            <p className="text-sm text-foreground/90 leading-relaxed">
-              Connect MetaMask, set a trading budget on Hyperliquid, approve a <strong>trading-only agent
-              wallet</strong> (EIP-712), and the AI trades momentum + funding-carry signals 24/7. The agent can trade
-              but never withdraw — your funds stay in your own wallet, and the worst case is the budget you choose,
-              shown on screen. Start with free paper trading to watch the agent work risk-free before going live.
-            </p>
-          </div>
+      <div className="mx-auto w-full max-w-5xl md:border-x border-[#E4E2DD] px-6 md:px-10 py-16 sm:py-20">
+        <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ help ]</p>
+        <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05] max-w-3xl">
+          Build on the execution layer for AI agents
+        </h1>
+        <p className="mt-6 text-lg text-[#6F6B64] leading-relaxed max-w-[62ch]">
+          One key, one server-enforced policy, five endpoints. This page is the short version: how to start, what the
+          server enforces, what it costs, and where the deeper docs are.
+        </p>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/settings/api-keys"
+            className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-5 py-3 text-sm font-medium text-neutral-50 hover:bg-neutral-800 transition"
+          >
+            Create an API key <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/docs/quickstart"
+            className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] px-5 py-3 text-sm hover:bg-white transition"
+          >
+            Quickstart
+          </Link>
+          <Link
+            href="/docs"
+            className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] px-5 py-3 text-sm hover:bg-white transition"
+          >
+            Docs (中文 / English)
+          </Link>
         </div>
 
-        {/* Getting started */}
-        <section className="mb-14">
-          <h2 className="text-2xl font-bold mb-6">How do I get started?</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {STEPS.map((s) => (
-              <div key={s.step} className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-2.5 rounded-lg bg-primary/10">
-                    <s.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-3xl font-bold text-foreground/10">{s.step}</span>
-                </div>
-                <h3 className="font-semibold mb-1.5">{s.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{s.text}</p>
+        <section className="mt-16 border-t border-[#E4E2DD] pt-10">
+          <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ start in five minutes ]</p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {STEPS.map((step) => (
+              <div key={step.title} className="rounded-lg border border-[#E4E2DD] bg-white p-5">
+                <step.icon className="h-4 w-4 text-[#6F6B64]" />
+                <h2 className="mt-3 text-sm font-semibold">{step.title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#6F6B64]">{step.text}</p>
               </div>
             ))}
           </div>
-          <div className="mt-6 flex gap-3">
-            <Link href="/trading">
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                Open the cockpit <ArrowRight className="h-4 w-4" />
-              </span>
+        </section>
+
+        <section className="mt-16 border-t border-[#E4E2DD] pt-10">
+          <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ the five endpoints ]</p>
+          <div className="overflow-x-auto rounded-lg border border-[#E4E2DD] bg-white">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-[#E4E2DD] font-mono text-[11px] uppercase tracking-[0.06em] text-[#6F6B64]">
+                <tr>
+                  <th className="px-4 py-3">Endpoint</th>
+                  <th className="px-4 py-3">What it does</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ENDPOINTS.map(([endpoint, meaning]) => (
+                  <tr key={endpoint} className="border-b border-[#F0EEE9] last:border-0">
+                    <td className="px-4 py-3 font-mono text-xs">{endpoint}</td>
+                    <td className="px-4 py-3 text-[#6F6B64]">{meaning}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-xs text-[#6F6B64]">
+            Base URL <span className="font-mono">https://protocolbanks.com/api/v1/agent</span> · auth{" "}
+            <span className="font-mono">Authorization: Bearer pb_…</span> · full reference at{" "}
+            <Link href="/docs/api" className="underline underline-offset-2 hover:text-[#111111]">
+              /docs/api
             </Link>
-          </div>
+            .
+          </p>
         </section>
 
-        {/* Cockpit guide */}
-        <section className="mb-14">
-          <h2 className="text-2xl font-bold mb-6">How does the cockpit work?</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {COCKPIT.map((c) => (
-              <div key={c.title} className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
-                <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
-                  <Check className="h-4 w-4 text-emerald-500" />
-                </div>
+        <section className="mt-16 border-t border-[#E4E2DD] pt-10">
+          <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ why it is safe ]</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {SAFETY.map((item) => (
+              <div key={item.title} className="flex gap-3 border-b border-[#E4E2DD] pb-4">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#1F7A4D]" />
                 <div>
-                  <h3 className="font-semibold text-sm mb-1">{c.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{c.text}</p>
+                  <h3 className="text-sm font-semibold">{item.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-[#6F6B64]">{item.text}</p>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Going live */}
-        <section className="mb-14">
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 sm:p-8">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <h2 className="text-2xl font-bold">How do I go live with real funds?</h2>
-            </div>
-            <ol className="space-y-4 text-sm sm:text-base text-muted-foreground">
-              <li>
-                <span className="font-medium text-foreground">1. Fund Hyperliquid.</span>{" "}
-                Deposit USDC to your wallet address at app.hyperliquid.xyz (Arbitrum bridge via MetaMask).
-                <span className="block text-xs mt-1 text-muted-foreground/80">
-                  First run: keep it small ($50–100). The trading budget is your maximum loss.
-                </span>
-              </li>
-              <li>
-                <span className="font-medium text-foreground">2. Create the agent wallet.</span>{" "}
-                On the cockpit&apos;s Go Live card, click Create. We generate a key for the agent and encrypt it.
-              </li>
-              <li>
-                <span className="font-medium text-foreground">3. Sign the approval.</span>{" "}
-                MetaMask will ask you to sign a Hyperliquid approveAgent message. This grants
-                trading-only rights — no withdrawals, ever.
-              </li>
-              <li>
-                <span className="font-medium text-foreground">4. Start in manual approval mode.</span>{" "}
-                Switch Entry mode to <em>Require my approval</em> on the cockpit. The agent finds signals and
-                holds each entry for you to approve or reject. Exits (stop-loss / take-profit) always run automatically.
-              </li>
-              <li>
-                <span className="font-medium text-foreground">5. Watch and withdraw.</span>{" "}
-                Once the approvals look sane, switch to Automatic if you like. Sweep profits back to your main
-                wallet anytime, or revoke the agent on Hyperliquid.
-              </li>
-            </ol>
-            <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-              If an order ever fails with an <strong>UNCERTAIN</strong> status, the agent stops itself rather than
-              retrying (a retry could open a duplicate position). Check your positions on Hyperliquid, then resume.
-            </p>
-          </div>
+        <section className="mt-16 border-t border-[#E4E2DD] pt-10">
+          <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ the demo ]</p>
+          <p className="max-w-[72ch] text-sm leading-relaxed text-[#6F6B64]">
+            The cockpit at{" "}
+            <Link href="/trading" className="underline underline-offset-2 hover:text-[#111111]">
+              /trading
+            </Link>{" "}
+            is a paper agent your key can drive: balance, equity curve, positions, and a plain-language feed. It is the
+            demo, not the pitch — production integrations call the API. The public{" "}
+            <Link href="/live-track-record" className="underline underline-offset-2 hover:text-[#111111]">
+              track record
+            </Link>{" "}
+            shows every live account, wins and losses.
+          </p>
         </section>
 
-        {/* Talk to the AI */}
-        <section className="mb-14">
-          <div className="flex items-center gap-2 mb-6">
-            <Send className="h-5 w-5 text-primary" />
-            <h2 className="text-2xl font-bold">How do I talk to the AI?</h2>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
-              <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
-                <Check className="h-4 w-4 text-emerald-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm mb-1">
-                  Telegram —{" "}
-                  <Link href="https://t.me/protocolbanks" target="_blank" className="text-primary underline underline-offset-2">
-                    community group
-                  </Link>
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Join the group and @mention the assistant with any question — &ldquo;how are the positions
-                  doing?&rdquo;, &ldquo;why hasn&apos;t the AI entered?&rdquo;, &ldquo;what are the risk
-                  rules?&rdquo; — it answers from live account data. Trade events (opens, closes, risk guardrails)
-                  are pushed to your private chat with the bot.
-                </p>
-              </div>
+        <section className="mt-16 border-t border-[#E4E2DD] pt-10">
+          <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ tools and plans ]</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-[#E4E2DD] bg-white p-5">
+              <Code2 className="h-4 w-4 text-[#6F6B64]" />
+              <h3 className="mt-3 text-sm font-semibold">Open client</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#6F6B64]">
+                The SDK, tool manifest and MCP proxy are MIT-licensed.{" "}
+                <a
+                  href="https://github.com/everest-an/protocolbanks-sdk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-[#111111]"
+                >
+                  github.com/everest-an/protocolbanks-sdk
+                </a>
+              </p>
             </div>
-            <div className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
-              <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
-                <Check className="h-4 w-4 text-emerald-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm mb-1">Cockpit controls</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Pause AI, Emergency Stop and Reset live on the cockpit, and the activity feed narrates every
-                  scan, entry, exit and guard decision in plain language.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
-              <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
-                <Check className="h-4 w-4 text-emerald-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm mb-1">Manual approval mode</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Prefer to approve every entry? Switch Entry mode to <em>Require my approval</em> — the agent
-                  holds each signal until you approve or reject it. Exits always run automatically.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
-              <div className="p-1 rounded-full bg-emerald-500/10 mt-0.5 h-fit">
-                <Check className="h-4 w-4 text-emerald-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm mb-1">
-                  MCP —{" "}
-                  <Link href="/mcp" className="text-primary underline underline-offset-2">
-                    any AI assistant
-                  </Link>
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Claude Desktop, Claude Code or any MCP host can read positions and control the agent through
-                  the Protocol Bank MCP server.
-                </p>
-              </div>
+            <div className="rounded-lg border border-[#E4E2DD] bg-white p-5">
+              <span className="font-mono text-[11px] text-[#6F6B64]">$0 → $999/mo</span>
+              <h3 className="mt-3 text-sm font-semibold">Plans</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#6F6B64]">
+                Sandbox is free. Live plans start at $199/mo, or pay 8 bps per executed order.{" "}
+                <Link href="/pricing" className="underline underline-offset-2 hover:text-[#111111]">
+                  See pricing
+                </Link>
+                .
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Risk controls */}
-        <section className="mb-14">
-          <div className="flex items-center gap-2 mb-6">
-            <Shield className="h-5 w-5 text-primary" />
-            <h2 className="text-2xl font-bold">What risk controls protect my funds?</h2>
-          </div>
-          <div className="space-y-4">
-            {RISK_CONTROLS.map((r) => (
-              <div key={r.title} className="flex gap-4 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl">
-                <div className="p-2 rounded-lg bg-primary/10 h-fit shrink-0">
-                  <Shield className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm mb-1">{r.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{r.text}</p>
-                </div>
+        <section className="mt-16 border-t border-[#E4E2DD] pt-10">
+          <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ questions ]</p>
+          <div className="space-y-6 max-w-[76ch]">
+            {FAQ.map((item) => (
+              <div key={item.q}>
+                <h3 className="text-sm font-semibold">{item.q}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-[#6F6B64]">{item.a}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="mb-14">
-          <h2 className="text-2xl font-bold mb-6">FAQ</h2>
-          <div className="space-y-4">
-            {FAQ.map((f) => (
-              <div key={f.q} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl p-5">
-                <h3 className="font-semibold mb-1.5 flex items-center gap-2">
-                  <HelpCircle className="h-4 w-4 text-primary" />
-                  {f.q}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.a}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="text-center py-10">
-          <h2 className="text-2xl font-bold mb-3">Ready to try it?</h2>
-          <p className="text-muted-foreground mb-6">Paper trading is free and uses real market data.</p>
-          <div className="flex justify-center gap-3">
-            <Link href="/trading">
-              <span className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-3 text-sm font-medium hover:bg-primary/90 transition-colors">
-                <Bot className="h-4 w-4" />
-                Open AI Trading
-              </span>
-            </Link>
-            <Link href="/">
-              <span className="inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-sm font-medium hover:bg-white/5 transition-colors">
-                <OctagonX className="h-4 w-4" />
-                Back Home
-              </span>
+        <section className="mt-16 border-t border-[#E4E2DD] pt-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-base font-semibold">Still deciding?</p>
+              <p className="mt-1 text-sm text-[#6F6B64]">
+                Tell us the agent, the venue and the worst case you can live with. We will size the policy.
+              </p>
+            </div>
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-5 py-3 text-sm font-medium text-neutral-50 hover:bg-neutral-800 transition"
+            >
+              Talk to us <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </section>
       </div>
-    </div>
+    </main>
   )
 }

@@ -8,6 +8,7 @@ export type DocBlock =
   | { kind: "list"; items: string[] }
   | { kind: "table"; head: string[]; rows: string[][] }
   | { kind: "note"; text: string }
+  | { kind: "diagram"; name: "architecture" | "order-flow" | "security" }
 
 export interface DocPage {
   id: string
@@ -103,6 +104,8 @@ const EN: DocPage[] = [
         kind: "p",
         text: "The policy lives on the key, is edited in Settings → API Keys, and takes effect on the next call. The agent can never widen it.",
       },
+      { kind: "h2", text: "How a call flows" },
+      { kind: "diagram", name: "architecture" },
       { kind: "h2", text: "Execute vs prepare" },
       {
         kind: "table",
@@ -212,6 +215,7 @@ const EN: DocPage[] = [
         kind: "p",
         text: "The key policy is the first envelope: a per-call or daily violation is 403 and the agent is never touched. The platform risk envelope is the second: max positions, position size, leverage, stop-loss/take-profit and daily breakers. A size above the platform cap is clamped; a breaker refusal is 409.",
       },
+      { kind: "diagram", name: "order-flow" },
       { kind: "h2", text: "Plans and their ceilings" },
       {
         kind: "p",
@@ -332,6 +336,7 @@ const EN: DocPage[] = [
         kind: "p",
         text: "The platform holds no funds. Trading happens on your Hyperliquid account through an agent wallet you approve; pay and swap return something you sign from your own wallet. We never have the ability to move your money elsewhere.",
       },
+      { kind: "diagram", name: "security" },
       { kind: "h2", text: "Trading-only rights" },
       {
         kind: "p",
@@ -418,6 +423,8 @@ const ZH: DocPage[] = [
         kind: "p",
         text: "策略保存在 Key 上，在设置 → API Keys 中修改，下一次调用即生效。Agent 无法自行放宽。",
       },
+      { kind: "h2", text: "一次调用如何流动" },
+      { kind: "diagram", name: "architecture" },
       { kind: "h2", text: "执行与准备" },
       {
         kind: "table",
@@ -521,6 +528,7 @@ const ZH: DocPage[] = [
         kind: "p",
         text: "第一层是 Key 策略：超过单笔或每日上限返回 403，Agent 完全不会被触达。第二层是平台风险包络：最大持仓数、单仓大小、杠杆、止盈止损与日内熔断。超过平台仓位上限会被压缩；熔断拒绝返回 409。",
       },
+      { kind: "diagram", name: "order-flow" },
       { kind: "h2", text: "计划与上限" },
       {
         kind: "p",
@@ -641,6 +649,7 @@ const ZH: DocPage[] = [
         kind: "p",
         text: "平台不持有资金。交易发生在你自己的 Hyperliquid 账户上，通过你授权的 agent 钱包执行；pay 与 swap 返回你在自己钱包里签名的内容。我们没有任何能力把资金转走。",
       },
+      { kind: "diagram", name: "security" },
       { kind: "h2", text: "仅交易权限" },
       {
         kind: "p",

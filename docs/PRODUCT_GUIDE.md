@@ -6,18 +6,19 @@
 > **This guide describes behavior — it does not repeat** the PRD (spec &
 > milestones), the Go-Live checklist (step-by-step operations), the MCP docs
 > (integration), or the threat model (security limits). Those are linked, not
-> duplicated. Last updated: September 2026.
+> duplicated. Last updated: October 2026.
 
 ---
 
 ## 0. One-paragraph product
 
-Protocol Bank is a **non-custodial AI trading product** for Hyperliquid. You
-connect a wallet, set a trading budget, and approve a **trading-only agent
-wallet** (EIP-712 `approveAgent`). The AI trades momentum + funding-carry
-signals around the clock. It **can trade but never withdraw** — your worst case
-is the budget you approved, shown on screen. A free paper mode runs the same
-agent on real market data.
+Protocol Bank is an **execution and policy layer for AI agents**, built on
+Hyperliquid. One API key gives an agent a trading and payments account under a
+policy the server enforces — which operations (read/trade/pay/swap), a per-call
+cap, a daily cap, a coin allowlist. Trading runs through a **trading-only agent
+wallet** (EIP-712 `approveAgent`): it can place and cancel orders, and can never
+withdraw. `pay` and `swap` return something the agent signs from its own wallet.
+The cockpit is a paper demo of the same account; the API is the product.
 
 Positioning & milestones → [PRD_V2_AI_TRADING.md](PRD_V2_AI_TRADING.md)
 
@@ -27,39 +28,78 @@ Positioning & milestones → [PRD_V2_AI_TRADING.md](PRD_V2_AI_TRADING.md)
 
 | Surface | Route | Purpose |
 |---|---|---|
-| Landing | `/` | Positioning, trust, pricing, CTAs |
-| AI Trading cockpit | `/trading` | The product: status, positions, activity, controls |
+| Landing | `/` | Execution + policy for AI agents; sandbox and API CTAs |
+| Agent API | `/agent-api` | The product: five endpoints, policy, quickstart |
+| Docs | `/docs`, `/zh/docs` | Overview, quickstart, concepts, API, security (EN/中文) |
+| Pricing | `/pricing` | Plans, caps, per-order fee |
+| Demo cockpit | `/trading` | A paper agent the same API drives |
 | Live track record | `/live-track-record` | Public, anonymized real-money performance |
-| Usage guide | `/help` | In-product onboarding & FAQ |
+| Usage guide | `/help` | B2B onboarding & FAQ |
 | Settings | `/settings` | API keys + policy, AI model, billing, team, webhooks |
 | API keys | `/settings/api-keys` | Create keys, set/edit the server-enforced policy |
 | Media kit | `/media-kit` | Logos, boilerplate, brand rules |
-| MCP server | local stdio | Control the agent from Claude / any MCP host |
+| MCP server | local stdio / hosted | Control the account from Claude / any MCP host |
 | Admin analytics | `/admin/analytics` | Internal: users, usage, feedback |
 
 ---
 
-## 2. Landing page (`/`)
+## 2. The Agent API (the product)
 
-**Design intent:** lead with the category label, then the safety promise, then
-proof. Not a feature list.
+One API key gives an agent a trading and payments account under a policy the
+server enforces. Five endpoints; only `orders` executes. The cockpit in §3 is
+its demo.
 
-- **Badge:** "Non-custodial AI trading on Hyperliquid" (the category label).
-- **Promise:** "The AI can trade but never withdraw — your worst case is the
-  budget you choose, written on the screen."
-- **Trust link:** "Every live account is public — see real PnL" → track record.
-- **Product trio:** Paper / Live / Track record, each with one-line benefit and
-  its own CTA.
-- **Pricing block:** Paper = free; Live = **20% of profits, nothing on losses**.
-- **Final CTA:** Connect Wallet / Try Paper Trading (+ Discord, help, contact).
+### 2.1 The key and the policy
 
-The legacy enterprise payment suite is deliberately de-emphasized (the
-`Products` nav item is hidden; the Business group is collapsed inside the
-product). One story: AI trading.
+Settings → API Keys. A policy carries `allowedOps` (read/trade/pay/swap),
+`maxNotionalUsd`, `dailyCapUsd` and `allowedCoins`. Values are clamped; the agent
+cannot widen them. New keys start read-only ($50/call, $200/day); the owner edits
+the policy and it applies on the next call.
 
-## 3. The AI Trading cockpit (`/trading`)
+### 2.2 Endpoints
 
-The single source of truth for the agent. Data comes from
+| Endpoint | Operation | Executes? |
+|---|---|---|
+| `GET /api/v1/agent/state` | read | — |
+| `POST /api/v1/agent/orders` | trade | yes (trading-only wallet) |
+| `POST /api/v1/agent/pay` | pay | no (intent to sign) |
+| `POST /api/v1/agent/swap` | swap | no (quote to sign) |
+| `POST /api/v1/agent/invoice` | pay | no (pending invoice + `paymentLink`) |
+
+Two envelopes act on a trade: the key policy (403 on a violation) and the
+platform risk envelope (positions, leverage, stop-loss, daily breakers; 409 on a
+refusal). A refusal is final for the request. Full reference:
+[AGENT_API.md](AGENT_API.md) and the served contract at
+`/api/agent.openapi.json`.
+
+### 2.3 Sandbox and live
+
+Paper mode uses real market data and simulated fills; the ledger persists per
+wallet. Approve the agent wallet on Hyperliquid and the same endpoints switch to
+live mode without a code change. The wallet has trading-only rights: place and
+cancel orders, never withdraw.
+
+### 2.4 Plans and billing
+
+Sandbox is free. Builder $199/mo, Growth $999/mo, Scale from $4,999/mo; without a
+plan, executed orders are billed at 8 bps of notional, invoiced monthly. A paid
+plan replaces the per-order fee and sets the ceiling the key policy may ask for.
+→ `/pricing`.
+
+### 2.5 Clients
+
+HTTP, the MIT TypeScript SDK, the framework tool manifest (Vercel AI SDK,
+LangChain, Mastra, elizaOS), the hosted MCP server and the stdio MCP proxy. Docs:
+`/docs` (EN), `/zh/docs` (中文). Open client:
+[github.com/everest-an/protocolbanks-sdk](https://github.com/everest-an/protocolbanks-sdk).
+
+## 3. The demo cockpit (`/trading`)
+
+This is the **demo**: a paper agent the same API drives. Production integrations
+call the API in §2; the cockpit exists so a developer can watch the account
+behave before wiring anything.
+
+The single source of truth for the demo account. Data comes from
 `GET /api/trading/overview` and refreshes every 15s (SWR).
 
 ### 3.1 Status & account cards
@@ -247,18 +287,24 @@ Setup & tool reference → [MCP.md](MCP.md)
 
 ## 10. Pricing
 
-| Mode | Price |
-|---|---|
-| Paper | Free forever |
-| Live | **20% of net profits**, charged when profits are swept out. No subscription, no upfront fee, nothing on losses. |
+| Plan | Price | Keys | Per call / day |
+|---|---|---|---|
+| Sandbox | Free | 1 | $50 / $200 |
+| Builder | $199/mo | 3 | $500 / $5,000 |
+| Growth | $999/mo | 10 | $2,500 / $50,000 |
+| Scale | from $4,999/mo | 100 | $10,000 / $100,000 |
+
+Without a plan: **8 bps of executed notional**, invoiced monthly. Paid plans
+replace the per-order fee and set the ceiling the key policy may ask for.
+Details and checkout: `/pricing`.
 
 ## 11. Business suite (payments)
 
 The payment-era surfaces remain available but are deliberately de-emphasized —
-the company's focus is the AI trading product, and several of these surfaces
-are hidden from the current navigation (their URLs still resolve). Custody
-differs per feature and is stated explicitly: "non-custodial" is only true
-where it is true.
+the company's focus is the agent execution product, and several of these
+surfaces are hidden from the current navigation (their URLs still resolve).
+Custody differs per feature and is stated explicitly: "non-custodial" is only
+true where it is true.
 
 ### Non-custodial — the platform never holds the funds
 
@@ -354,3 +400,4 @@ executes, and the tool descriptions tell the model not to retry a refusal — se
 | [AUTH_SYSTEM.md](AUTH_SYSTEM.md) | SIWE + JWT, Shamir, sessions |
 | [TESTING_GUIDE.md](TESTING_GUIDE.md) | Jest, Playwright, property tests |
 | [../README.md](../README.md) | Repo front door |
+| [Open client (MIT)](https://github.com/everest-an/protocolbanks-sdk) | SDK, tool manifest, MCP proxy and framework starters |

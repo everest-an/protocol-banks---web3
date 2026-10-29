@@ -83,7 +83,7 @@ export function DocsShell({ locale, page }: { locale: DocLocale; page: DocPage }
           <article className="min-w-0 flex-1">
             <h1 className="max-w-[30ch] text-3xl sm:text-4xl font-bold tracking-tight leading-[1.1]">{page.title}</h1>
             <p className="mt-5 max-w-[62ch] text-base leading-relaxed text-[#6F6B64]">{page.description}</p>
-            <DocBody blocks={page.blocks} />
+            <DocBody blocks={page.blocks} locale={locale} />
           </article>
         </div>
       </div>

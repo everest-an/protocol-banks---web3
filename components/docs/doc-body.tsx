@@ -1,7 +1,8 @@
-import type { DocBlock } from "@/lib/docs/content"
+import type { DocBlock, DocLocale } from "@/lib/docs/content"
+import { DocDiagram } from "@/components/docs/diagrams"
 
 /** Renders the structured docs content; every locale shares the same shapes. */
-export function DocBody({ blocks }: { blocks: DocBlock[] }) {
+export function DocBody({ blocks, locale }: { blocks: DocBlock[]; locale: DocLocale }) {
   return (
     <div className="mt-10 space-y-5">
       {blocks.map((block, index) => {
@@ -74,6 +75,8 @@ export function DocBody({ blocks }: { blocks: DocBlock[] }) {
                 </table>
               </div>
             )
+          case "diagram":
+            return <DocDiagram key={index} name={block.name} locale={locale} />
           case "note":
             return (
               <div key={index} className="rounded-lg border border-[#E4E2DD] bg-white p-4 text-sm leading-relaxed text-[#6F6B64]">
