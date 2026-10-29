@@ -37,8 +37,12 @@ jobs:
             sleep 15
             # Pull up to 20 READY production deployments and pick the one with
             # the greatest createdAt in JS — no reliance on response ordering.
-            RESP=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=20")
+            RESP=$(curl -s --max-time 20 --retry 2 -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&target=production&state=READY&limit=20" || true)
+            if [ -z "$RESP" ]; then
+              echo "  ...empty response from the Vercel API, retrying"
+              continue
+            fi
             # Fail fast if the API returns an auth error (e.g. expired token),
             # instead of silently polling for 24 minutes.
             if echo "$RESP" | grep -q '"invalidToken":true'; then
