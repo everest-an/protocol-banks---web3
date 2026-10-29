@@ -11,7 +11,7 @@ protocol-banks---web3-main/
 scripts/*.sql
 
 # Documentation that's not needed for build
-docs/
+/docs/
 *.md
 !README.md
 
