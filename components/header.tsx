@@ -10,10 +10,10 @@ import {
   StopCircle,
   Loader2,
   ArrowLeftRight,
-  ShoppingBag,
-  Grid3X3,
   TrendingUp,
   BookOpen,
+  Code2,
+  Tag,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -51,13 +51,13 @@ export function Header() {
   const logoTextSrc = mounted && resolvedTheme === 'light' ? '/logo-text-black.png' : '/logo-text-white.png'
 
   const navItems = [
-    { href: "/trading", label: "AI Trading", icon: Bot },
-    { href: "/live-track-record", label: "Track Record", icon: TrendingUp },
+    { href: "/agent-api", label: "Agent API", icon: Code2 },
     { href: "/docs", label: "Docs", icon: BookOpen },
+    { href: "/pricing", label: "Pricing", icon: Tag },
+    { href: "/trading", label: "Demo", icon: Bot },
+    { href: "/live-track-record", label: "Track Record", icon: TrendingUp },
     { href: "/balances", label: "Wallet", icon: Wallet },
     { href: "/history", label: "Transactions", icon: ArrowLeftRight },
-    { href: "/vendors", label: "Contacts", icon: ShoppingBag },
-    { href: "/products", label: "Products", icon: Grid3X3 },
   ]
 
   const isActivePath = (href: string) => {

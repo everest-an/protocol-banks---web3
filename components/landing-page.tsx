@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Lock,
   MessagesSquare,
-  Play,
   Shield,
   Zap,
 } from "lucide-react"
@@ -24,51 +23,51 @@ interface LandingPageProps {
 const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Connect your wallet",
-    text: "Sign in with MetaMask or any EVM wallet. Your keys never leave your device.",
+    title: "Create a key, set the policy",
+    text: "Choose the operations, a per-call cap, a daily cap and a coin allowlist. The server enforces them on every call — the agent cannot widen them.",
   },
   {
     step: "02",
-    title: "Fund your trading wallet",
-    text: "Move the amount you're comfortable risking into the AI trading wallet. That's your maximum loss — never more.",
+    title: "Call the sandbox",
+    text: "The same five endpoints against a paper account with real market data. Place an order, read the fill, watch a $5,000 request get a 403.",
   },
   {
     step: "03",
-    title: "The AI trades. You watch.",
-    text: "The agent scans markets 24/7, opens and closes positions, and reports every move in plain language.",
+    title: "Approve the wallet, go live",
+    text: "Approve a Hyperliquid agent wallet with trading-only rights. The same code goes live; the wallet can trade, never withdraw.",
   },
 ]
 
 const FEATURES = [
   {
     icon: Shield,
-    title: "No withdrawal permission — ever",
-    text: "The agent wallet is approved with trading-only rights on Hyperliquid. It cannot move funds off the exchange.",
+    title: "A cap the model cannot raise",
+    text: "The policy lives on the key and is checked before an order reaches the venue. A prompt injection, a bug or a loop cannot raise it.",
   },
   {
     icon: Lock,
-    title: "Keys stay with you",
-    text: "You sign the agent approval with your own wallet. The agent's signing key is encrypted at rest and scoped to one trading wallet only.",
+    title: "Trading-only rights",
+    text: "The agent wallet can place and cancel orders; it cannot withdraw. The funded budget is the maximum loss, written on screen.",
   },
   {
     icon: Zap,
-    title: "Circuit breakers on every trade",
-    text: "Per-trade stop-loss, position caps, and a daily loss limit that stops new entries automatically.",
+    title: "One credential, five endpoints",
+    text: "state, orders, pay, swap and invoice under one key — with a usage log per call and a receipt per fill.",
   },
   {
     icon: Check,
-    title: "You can always stop it",
-    text: "Pause the agent or hit Emergency Stop anytime. Revoke its access completely — the AI can never withdraw your funds.",
+    title: "Open client, closed core",
+    text: "The SDK, tool manifest and MCP proxy are MIT. The policy and risk engine stay hosted: you integrate, not fork.",
   },
 ]
 
 const SAFETY_CHECKLIST = [
+  { label: "Policy enforcement", status: "Server-side" },
+  { label: "Model can raise the cap", status: "Never" },
   { label: "Agent withdrawal rights", status: "None" },
-  { label: "Main wallet exposure", status: "Zero" },
   { label: "Max loss visible on screen", status: "Always" },
   { label: "Revocation", status: "Instant" },
   { label: "Stop-loss on every position", status: "On" },
-  { label: "Daily loss circuit breaker", status: "Armed" },
 ]
 
 function Label({ children }: { children: ReactNode }) {
@@ -118,14 +117,8 @@ function BrandChip({ src, name, px = 18 }: { src: string; name: string; px?: num
   )
 }
 
-/** The hero artifact: what the product actually is, told as a terminal window. */
+/** The hero artifact: the API refusing what the model asked for. */
 function TerminalArtifact() {
-  const bars = [38, 44, 40, 52, 48, 58, 54, 65, 61, 72, 68, 80]
-  const log = [
-    { time: "10:32", text: "added to btc long (momentum 0.87)", pnl: null },
-    { time: "10:15", text: "closed eth short (trailing stop)", pnl: "+$8.40" },
-  ]
-
   return (
     <div className="rounded-lg border border-[#E4E2DD] bg-white overflow-hidden">
       {/* window chrome */}
@@ -133,49 +126,27 @@ function TerminalArtifact() {
         <span className="w-2 h-2 rounded-full bg-[#D9D6D0]" />
         <span className="w-2 h-2 rounded-full bg-[#D9D6D0]" />
         <span className="w-2 h-2 rounded-full bg-[#D9D6D0]" />
-        <span className="ml-3 font-mono text-[11px] text-[#6F6B64]">agent — live</span>
+        <span className="ml-3 font-mono text-[11px] text-[#6F6B64]">agent-api — sandbox</span>
         <span className="ml-auto flex items-center gap-1.5 font-mono text-[11px] text-[#1F7A4D]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#1F7A4D] animate-pulse" />
-          running
+          policy enforced
         </span>
       </div>
 
-      <div className="p-4 sm:p-5 space-y-4 font-mono text-sm">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[11px] uppercase tracking-[0.08em] text-[#6F6B64]">total assets</span>
-          <span className="text-2xl tracking-tight tabular-nums">$520.40</span>
+      <div className="p-4 sm:p-5 space-y-4 font-mono text-xs sm:text-sm">
+        <p className="text-[#6F6B64]">key pb_… · read, trade · $100/call · $200/day</p>
+
+        <div>
+          <p className="text-[#111111]">POST /v1/agent/orders {"{ sizeUsd: 20 }"}</p>
+          <p className="mt-1 text-[#1F7A4D]">200 fill 0.000249 @ $80,065.91 · fee $0.008 · remaining $180.00</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="rounded-md border border-[#E4E2DD] p-3">
-            <p className="text-[10px] uppercase tracking-[0.08em] text-[#6F6B64]">main wallet</p>
-            <p className="mt-1 tabular-nums">$120.00</p>
-            <p className="mt-0.5 text-[10px] text-[#6F6B64]">ai can never touch</p>
-          </div>
-          <div className="rounded-md border border-[#E4E2DD] p-3">
-            <p className="text-[10px] uppercase tracking-[0.08em] text-[#6F6B64]">trading wallet</p>
-            <p className="mt-1 tabular-nums">$400.40</p>
-            <p className="mt-0.5 text-[10px] text-[#8A6116]">max loss: $400.40</p>
-          </div>
+        <div>
+          <p className="text-[#111111]">POST /v1/agent/orders {"{ sizeUsd: 5000 }"}</p>
+          <p className="mt-1 text-[#8A6116]">403 order of $5000.00 exceeds this key&apos;s per-call cap of $100</p>
         </div>
 
-        <div className="flex items-end gap-1 h-14">
-          {bars.map((h, i) => (
-            <div key={i} className="flex-1 bg-[#111111]/80 rounded-t-[2px]" style={{ height: `${h}%` }} />
-          ))}
-        </div>
-
-        <div className="space-y-2 pt-1">
-          {log.map((entry) => (
-            <div key={entry.time} className="flex items-baseline gap-3 text-xs">
-              <span className="text-[#6F6B64] tabular-nums">{entry.time}</span>
-              <span className="text-[#111111]">
-                {entry.text}
-                {entry.pnl ? <span className="ml-2 text-[#1F7A4D] tabular-nums">{entry.pnl}</span> : null}
-              </span>
-            </div>
-          ))}
-        </div>
+        <p className="border-t border-[#E4E2DD] pt-3 text-[#6F6B64]">the model asked; the server said no.</p>
       </div>
     </div>
   )
@@ -189,60 +160,51 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         <section className="pt-14 pb-20 sm:pt-20 sm:pb-24">
           <div className="flex items-center justify-between font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">
             <span>PB V2.0</span>
-            <span className="hidden sm:block">non-custodial · built on hyperliquid</span>
+            <span className="hidden sm:block">non-custodial · execution + policy for ai agents</span>
           </div>
 
           <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-16 items-center mt-12 sm:mt-16">
             <div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] uppercase">
-                Your AI trades.
+                Your agent can trade.
                 <br />
-                <span className="text-primary">You keep control.</span>
+                <span className="text-primary">It can never drain the account.</span>
               </h1>
               <p className="mt-7 text-lg text-[#6F6B64] leading-relaxed max-w-[52ch]">
-                Connect your wallet, fund a trading wallet, and let the agent work real
-                markets around the clock. The AI can trade but never withdraw — your worst
-                case is the budget you choose, written on the screen.
+                One API key, one policy the server enforces — operations, per-call cap, daily cap and coin
+                allowlist. Trading runs through a trading-only Hyperliquid wallet; pay and swap return what the agent
+                signs itself.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-9">
-                <Button
-                  size="lg"
-                  onClick={onConnectWallet}
-                  className="text-base px-7 py-6 rounded-md bg-neutral-900 text-neutral-50 hover:bg-neutral-800 active:scale-[0.98] transition"
+                <Link
+                  href="/settings/api-keys"
+                  className="inline-flex items-center justify-center rounded-md bg-neutral-900 px-7 py-4 text-base font-medium text-neutral-50 hover:bg-neutral-800 active:scale-[0.98] transition"
                 >
-                  Connect Wallet
+                  Start in sandbox
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={onTryDemo}
-                  className="text-base px-7 py-6 rounded-md border-[#E4E2DD] bg-transparent text-[#111111] hover:bg-white"
+                </Link>
+                <Link
+                  href="/agent-api"
+                  className="inline-flex items-center justify-center rounded-md border border-[#E4E2DD] bg-transparent px-7 py-4 text-base text-[#111111] hover:bg-white transition"
                 >
-                  <Play className="mr-2 h-4 w-4" />
-                  Try Paper Trading
-                </Button>
+                  Read the API
+                </Link>
               </div>
 
-              <Link
-                href="/agent-api"
-                className="mt-6 inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] hover:text-[#111111] transition-colors"
-              >
-                <span className="text-primary">[ for developers ]</span>
-                give your agent an execution layer with a hard cap
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-
-              <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5 text-sm">
-                <Link
-                  href="/live-track-record"
+              <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
+                <a
+                  href="https://github.com/everest-an/protocolbanks-sdk"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-primary hover:underline font-medium"
                 >
-                  Every live account is public — see real PnL
+                  Open client, MIT-licensed
                   <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+                <Link href="/trading" className="text-[#6F6B64] hover:text-[#111111] transition-colors">
+                  watch the paper agent
                 </Link>
-                <span className="text-[#6F6B64] font-mono text-xs">paper mode is free · real market data</span>
               </div>
 
               {/* Trust: official marks of what actually signs and executes */}
@@ -267,10 +229,10 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
           <Reveal>
             <Label>how it works</Label>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight max-w-2xl">
-              From wallet to working agent in 3 minutes
+              From a key to a live agent in three steps
             </h2>
             <p className="mt-4 text-lg text-[#6F6B64] leading-relaxed max-w-[60ch]">
-              No strategy configuration, no trading knowledge required. Set a budget, and the agent handles the rest.
+              No SDK required. The same five endpoints move from sandbox to live without a code change.
             </p>
           </Reveal>
 
@@ -288,60 +250,60 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         {/* The product */}
         <section className="border-t border-[#E4E2DD] py-20 sm:py-24">
           <Reveal>
-            <Label>the product</Label>
+            <Label>surfaces</Label>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight max-w-2xl">
-              Three ways to use it — all non-custodial
+              Sandbox, live, and the receipt
             </h2>
             <p className="mt-4 text-lg text-[#6F6B64] leading-relaxed max-w-[60ch]">
-              Start with simulated money, go live when you&apos;re ready, and check the public track record any time.
+              Start simulated, go live when the wallet is approved, and check the public record any time.
             </p>
           </Reveal>
 
           <div className="mt-14 grid md:grid-cols-3 gap-4">
             <Reveal>
               <div className="rounded-lg border border-[#E4E2DD] bg-white p-6 h-full flex flex-col">
-                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ paper ]</span>
-                <h3 className="mt-3 text-base font-semibold">Paper mode</h3>
+                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ sandbox ]</span>
+                <h3 className="mt-3 text-base font-semibold">Sandbox</h3>
                 <p className="mt-2 text-sm text-[#6F6B64] leading-relaxed flex-1">
-                  Watch the agent trade real Hyperliquid markets with simulated money. Zero risk, full experience —
-                  free forever.
+                  The same endpoints against a paper account with real market data. Integration tests and demos with
+                  simulated fills — free.
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-6 w-fit rounded-md border-[#E4E2DD] bg-transparent text-[#111111] hover:bg-[#F7F6F3]"
-                  onClick={onTryDemo}
-                >
-                  Try it free
-                </Button>
+                <Link href="/settings/api-keys" className="mt-6 w-fit">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-md border-[#E4E2DD] bg-transparent text-[#111111] hover:bg-[#F7F6F3]"
+                  >
+                    Create a key
+                  </Button>
+                </Link>
               </div>
             </Reveal>
 
             <Reveal>
               <div className="rounded-lg border border-[#111111] bg-white p-6 h-full flex flex-col">
                 <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ live ]</span>
-                <h3 className="mt-3 text-base font-semibold">Live mode</h3>
+                <h3 className="mt-3 text-base font-semibold">Live execution</h3>
                 <p className="mt-2 text-sm text-[#6F6B64] leading-relaxed flex-1">
-                  Real funds, real markets. The AI trades through a trading-only agent wallet and can never withdraw.
-                  20% of profits, nothing on losses.
+                  Trading runs through a trading-only agent wallet. Plans from $199/mo, or 8 bps per executed order.
                 </p>
-                <Button
-                  size="sm"
-                  className="mt-6 w-fit rounded-md bg-neutral-900 text-neutral-50 hover:bg-neutral-800"
-                  onClick={onConnectWallet}
-                >
-                  Go live
-                </Button>
+                <Link href="/pricing" className="mt-6 w-fit">
+                  <Button
+                    size="sm"
+                    className="rounded-md bg-neutral-900 text-neutral-50 hover:bg-neutral-800"
+                  >
+                    See plans
+                  </Button>
+                </Link>
               </div>
             </Reveal>
 
             <Reveal>
               <div className="rounded-lg border border-[#E4E2DD] bg-white p-6 h-full flex flex-col">
                 <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ track record ]</span>
-                <h3 className="mt-3 text-base font-semibold">Track record</h3>
+                <h3 className="mt-3 text-base font-semibold">Public record</h3>
                 <p className="mt-2 text-sm text-[#6F6B64] leading-relaxed flex-1">
-                  Every live account is public: real budgets, real realized PnL, updated automatically. Wins and losses
-                  both shown.
+                  Every live account is public: real budgets, realized PnL, wins and losses. No cherry-picking.
                 </p>
                 <Link href="/live-track-record" className="mt-6">
                   <Button
@@ -374,8 +336,8 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                 The AI can trade. It can never withdraw.
               </h2>
               <p className="mt-4 text-lg text-[#6F6B64] leading-relaxed">
-                The agent holds a revocable trading permission scoped to your trading wallet. Your main wallet is
-                untouchable, and the permission can be revoked from Hyperliquid at any moment.
+                The agent holds a revocable trading permission scoped to the trading wallet. The key&apos;s policy
+                decides what it may do, and the permission can be revoked from Hyperliquid at any moment.
               </p>
               <div className="mt-8 space-y-4">
                 {FEATURES.map((f) => (
@@ -416,18 +378,18 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         <section className="border-t border-[#E4E2DD] py-20 sm:py-24">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <Reveal>
-              <Label>live cockpit</Label>
+              <Label>the demo cockpit</Label>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Every move, explained</h2>
               <p className="text-lg text-[#6F6B64] leading-relaxed mb-6">
-                The cockpit shows your balance, a real-time equity curve, open positions, and a natural-language feed of
-                what the AI is doing — not raw logs.
+                The paper agent your API key can drive: balance, equity curve, positions, and a plain-language feed.
+                The same account is available at GET /v1/agent/state.
               </p>
               <ul className="space-y-3">
                 {[
                   "Real-time PnL curve with daily breakdown",
                   'Plain-language feed: "Closed BTC long +$8.40 (take-profit hit)"',
-                  "Main wallet vs trading wallet, always visible",
-                  "One-click profit sweep back to your wallet",
+                  "Policy and spentTodayUsd in every state response",
+                  "Positions with the reason the agent opened them",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <Check className="h-4 w-4 text-[#1F7A4D] mt-0.5 shrink-0" />
@@ -441,7 +403,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                   onClick={onTryDemo}
                   className="group rounded-md bg-neutral-900 text-neutral-50 hover:bg-neutral-800 active:scale-[0.98] transition"
                 >
-                  See it live
+                  Open the demo
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </div>
@@ -510,31 +472,32 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         <section className="border-t border-[#E4E2DD] py-16 sm:py-20">
           <Reveal>
             <Label>pricing</Label>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-8">We only earn when you profit</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-8">Plans from $0 to live</h2>
             <div className="grid sm:grid-cols-2 gap-4 max-w-3xl">
               <div className="rounded-lg border border-[#E4E2DD] bg-white p-6">
-                <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ paper ]</p>
+                <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ sandbox ]</p>
                 <p className="text-3xl font-bold mt-3 font-mono tabular-nums">Free</p>
                 <p className="text-sm text-[#6F6B64] mt-2 leading-relaxed">
-                  Real market data, simulated money. Watch the agent trade, read every decision, verify it works — zero
-                  risk, forever.
+                  Full API against a paper account. One key, $50 per call, $200 per day, real market data.
                 </p>
               </div>
               <div className="rounded-lg border border-[#111111] bg-white p-6">
                 <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ live ]</p>
                 <p className="text-3xl font-bold mt-3 font-mono tabular-nums">
-                  20% <span className="text-base font-normal text-[#6F6B64]">of profits</span>
+                  From $199 <span className="text-base font-normal text-[#6F6B64]">/ month</span>
                 </p>
                 <p className="text-sm text-[#6F6B64] mt-2 leading-relaxed">
-                  Profit-share only, charged when you sweep profits out. No subscription, no upfront fee. If the agent
-                  doesn&apos;t make money, you pay nothing.
+                  Trading through a trading-only wallet. 3 keys at Builder, 10 at Growth — or 8 bps pay-as-you-go.
                 </p>
               </div>
             </div>
             <p className="mt-5 text-sm text-[#6F6B64] font-mono text-xs">
-              see real live-account performance on the{" "}
+              <Link href="/pricing" className="text-primary underline">
+                see all plans
+              </Link>{" "}
+              ·{" "}
               <Link href="/live-track-record" className="text-primary underline">
-                live track record
+                public track record
               </Link>
             </p>
           </Reveal>
@@ -544,30 +507,35 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         <section className="border-t border-[#E4E2DD] py-20 sm:py-28">
           <Reveal className="max-w-3xl">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              Put an AI to work on your funds
+              Give your agent an execution layer.
             </h2>
             <p className="mt-4 text-lg text-[#6F6B64] max-w-xl leading-relaxed">
-              Start with paper trading to watch the agent work risk-free. Go live whenever you&apos;re ready — you stay
-              in control either way.
+              One key, one server-enforced policy, five endpoints. Start in the sandbox; the same code goes live when
+              the agent wallet is approved.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-9">
-              <Button
-                size="lg"
-                onClick={onConnectWallet}
-                className="text-base px-7 py-6 rounded-md bg-neutral-900 text-neutral-50 hover:bg-neutral-800 active:scale-[0.98] transition"
+              <Link
+                href="/settings/api-keys"
+                className="inline-flex items-center justify-center rounded-md bg-neutral-900 px-7 py-4 text-base font-medium text-neutral-50 hover:bg-neutral-800 active:scale-[0.98] transition"
               >
-                Connect Wallet
+                Start in sandbox
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={onTryDemo}
-                className="text-base px-7 py-6 rounded-md border-[#E4E2DD] bg-transparent text-[#111111] hover:bg-white"
+              </Link>
+              <Link
+                href="/agent-api"
+                className="inline-flex items-center justify-center rounded-md border border-[#E4E2DD] bg-transparent px-7 py-4 text-base text-[#111111] hover:bg-white transition"
               >
-                <Play className="mr-2 h-4 w-4" />
-                Try Paper Trading
-              </Button>
+                Read the API
+              </Link>
+            </div>
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={onConnectWallet}
+                className="font-mono text-xs text-[#6F6B64] underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111] transition-colors"
+              >
+                already have an account? connect
+              </button>
             </div>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-7 mt-9 font-mono text-xs text-[#6F6B64]">
               <Link href="/live-track-record" className="hover:text-[#111111] transition-colors flex items-center gap-1">
@@ -579,6 +547,14 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               <Link href="/pricing" className="hover:text-[#111111] transition-colors flex items-center gap-1">
                 pricing <ChevronRight className="h-3.5 w-3.5" />
               </Link>
+              <a
+                href="https://github.com/everest-an/protocolbanks-sdk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[#111111] transition-colors flex items-center gap-1"
+              >
+                open sdk (MIT) <ChevronRight className="h-3.5 w-3.5" />
+              </a>
               <Link href="/help" className="hover:text-[#111111] transition-colors flex items-center gap-1">
                 usage guide <ChevronRight className="h-3.5 w-3.5" />
               </Link>
