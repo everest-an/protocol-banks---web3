@@ -53,7 +53,9 @@ jobs:
       - name: Production build
         run: pnpm build
         env:
-          # Placeholders only — the build must not need real credentials.
+          # The build worker also needs more than the default 2 GB heap.
+          NODE_OPTIONS: --max-old-space-size=4096
+          # Placeholders only - the build must not need real credentials.
           DATABASE_URL: postgresql://user:pass@localhost:5432/placeholder
           DIRECT_DATABASE_URL: postgresql://user:pass@localhost:5432/placeholder
           AI_JWT_SECRET: ci-placeholder
