@@ -1,6 +1,6 @@
 {
   "name": "@everestan/plugin-protocol-banks",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Trade through a trading-only Hyperliquid wallet with a server-enforced spend cap, and read the account it belongs to.",
   "main": "dist/index.js",
@@ -32,11 +32,6 @@
   ],
   "author": "Protocol Banks",
   "license": "GPL-3.0-only",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/everest-an/protocol-banks---web3.git",
-    "directory": "integrations/eliza"
-  },
   "homepage": "https://protocolbanks.com/agent-api",
   "engines": {
     "node": ">=18"

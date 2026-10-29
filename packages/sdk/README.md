@@ -32,7 +32,7 @@ const invoice = await pb.agent.invoice({ to: "0x…", amount: 25, description: "
 await pb.agent.invoiceStatus(invoice.invoice!.invoiceId, "sig-from-paymentLink")
 ```
 
-- Reference: https://github.com/everest-an/protocol-banks---web3/blob/main/docs/AGENT_API.md
+- Docs: https://protocolbanks.com/docs · API reference: https://protocolbanks.com/docs/api
 - Contract: https://protocolbanks.com/api/agent.openapi.json
 - Tool manifest: `@everestan/protocolbanks-agent-tools`
 

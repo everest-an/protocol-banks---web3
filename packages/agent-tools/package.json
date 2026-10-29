@@ -1,12 +1,7 @@
 {
   "name": "@everestan/protocolbanks-agent-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tool definitions for the Protocol Banks Agent API — adapt once to the Vercel AI SDK, LangChain, OpenAI or Anthropic",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/everest-an/protocol-banks---web3.git",
-    "directory": "packages/agent-tools"
-  },
   "homepage": "https://protocolbanks.com/agent-api",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

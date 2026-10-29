@@ -3,11 +3,7 @@
   "name": "io.github.everest-an/protocol-banks",
   "title": "Protocol Banks",
   "description": "Non-custodial Hyperliquid trading and crypto payments with a server-enforced spend cap.",
-  "repository": {
-    "url": "https://github.com/everest-an/protocol-banks---web3",
-    "source": "github"
-  },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "remotes": [
     {
       "type": "streamable-http",

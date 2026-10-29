@@ -26,7 +26,7 @@ const tools = agentTools(pb)
   the model not to retry.
 
 Full adapters (AI SDK, LangChain, OpenAI, Anthropic):
-https://github.com/everest-an/protocol-banks---web3/blob/main/docs/AGENT_TOOLS.md
+https://protocolbanks.com/docs/quickstart
 
 ## License
 

@@ -11,9 +11,7 @@ npm test        # vitest: shape, refusals, fill reporting, provider
 npm run build   # tsc -> dist (ESM + d.ts)
 ```
 
-Add it to a character (the package is unscoped on npm as
-`@everestan/plugin-protocol-banks` once published; until then `npm pack` it or
-run from a local path):
+Add it to a character (published as `@everestan/plugin-protocol-banks` on npm):
 
 ```json
 {
@@ -32,7 +30,7 @@ refuses to guess.
 
 ## Publish (elizaOS registry)
 
-Published: https://www.npmjs.com/package/@everestan/plugin-protocol-banks (0.1.0).
+Published: https://www.npmjs.com/package/@everestan/plugin-protocol-banks (0.1.1).
 
 **Registry submission is blocked on the elizaOS side.** Their docs point at
 `github.com/elizaos-plugins/registry`, but that repository returns 404 and the
