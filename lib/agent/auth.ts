@@ -6,10 +6,13 @@
 import { NextResponse } from "next/server"
 import { withAPIKeyAuth, type AuthenticatedRequest } from "@/lib/middleware/api-key-auth"
 import { resolveAgentPolicy, type AgentOp, type AgentPolicy } from "@/lib/agent/policy"
+import { clampPolicyToPlan, type PlanId } from "@/lib/billing/plans"
+import { getPlanForWallet } from "@/lib/billing/stripe"
 import { runWithWallet } from "@/lib/rls/context"
 
 export interface AgentRequest extends AuthenticatedRequest {
   agentPolicy?: AgentPolicy
+  agentPlan?: PlanId
   spentTodayUsd?: number
 }
 
@@ -50,10 +53,15 @@ export function withAgentAuth(
       return NextResponse.json({ error: `this key may not perform "${op}"` }, { status: 403 })
     }
 
+    // The plan sets the ceiling; the key's policy can only be tighter.
+    const planState = await getPlanForWallet(wallet)
+    const effectivePolicy = clampPolicyToPlan(resolved.policy, planState.plan)
+
     // Same RLS scope withAuth establishes: an API-key request is user context,
     // so every database operation inside the handler must be wallet-scoped.
     return runWithWallet(wallet, async () => {
-      req.agentPolicy = resolved.policy
+      req.agentPolicy = effectivePolicy
+      req.agentPlan = planState.plan
       req.spentTodayUsd = await spentTodayUsd(wallet)
       return handler(req)
     })

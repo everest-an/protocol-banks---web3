@@ -63,6 +63,9 @@ stages (emails, demos, pilots) — the database cannot see a phone call.
 
 - `/pricing` and `/agent-api` (offer + docs), sandbox keys with policy
 - Contract + SDK + tool manifest + MCP registry entry
+- **Stripe checkout + plan enforcement**: paid plans replace the 8 bps fee and
+  clamp the key's caps; key count is checked at creation; customer portal for
+  cancellation/cards. Needs `STRIPE_*` env vars (see `ENV_SETUP.md` §11).
 - **Invoices with a payable link**: `pnpm invoice:create --to … --amount 1000 --description "Builder plan, November"`
 - **Usage + fees owed**: `DAYS=30 pnpm partner-usage`-equivalent script
   (`scripts/partner-usage.ts`) and `pnpm funnel:agents`

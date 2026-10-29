@@ -102,6 +102,7 @@
     "redis": "^5.10.0",
     "resend": "^4.0.3",
     "sonner": "^1.7.4",
+    "stripe": "^23.0.1",
     "swr": "2.3.8",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",

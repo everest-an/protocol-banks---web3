@@ -18,6 +18,14 @@ jest.mock("@/lib/services/api-key-service", () => ({
 
 jest.mock("@/lib/analytics/events", () => ({ recordEvent: jest.fn() }))
 
+jest.mock("@/lib/billing/stripe", () => ({
+  getPlanForWallet: jest.fn().mockResolvedValue({ plan: "sandbox", status: "none" }),
+}))
+
+jest.mock("@/lib/prisma", () => ({
+  prisma: { apiKey: { count: jest.fn().mockResolvedValue(0) } },
+}))
+
 import { POST } from "@/app/api/settings/api-keys/route"
 
 function req(body: unknown) {

@@ -8,7 +8,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService, type Permission } from '@/lib/services/api-key-service';
 import { withAuth } from '@/lib/middleware/api-auth';
 import { resolveAgentPolicy } from '@/lib/agent/policy';
+import { PLANS, planAllowsMoreKeys } from '@/lib/billing/plans';
+import { getPlanForWallet } from '@/lib/billing/stripe';
 import { recordEvent } from '@/lib/analytics/events';
+import { prisma } from '@/lib/prisma';
 
 const apiKeyService = new APIKeyService();
 
@@ -65,6 +68,22 @@ export const POST = withAuth(async (request: NextRequest, ownerAddress: string) 
       return NextResponse.json(
         { error: 'Bad Request', message: 'Invalid policy', details: resolvedPolicy.errors },
         { status: 400 }
+      );
+    }
+
+    // The plan sets how many keys an account may hold.
+    const planState = await getPlanForWallet(ownerAddress);
+    const plan = PLANS[planState.plan];
+    const keyCount = await prisma.apiKey.count({ where: { owner_address: ownerAddress.toLowerCase() } });
+    if (!planAllowsMoreKeys(planState.plan, keyCount)) {
+      return NextResponse.json(
+        {
+          error: 'key limit reached',
+          message: `${plan.name} allows ${plan.maxKeys} key${plan.maxKeys === 1 ? '' : 's'}. Upgrade to add more.`,
+          plan: plan.id,
+          upgradeUrl: '/pricing',
+        },
+        { status: 403 }
       );
     }
 

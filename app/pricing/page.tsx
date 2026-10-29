@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { Metadata } from "next"
 import { ArrowRight, Check } from "lucide-react"
+import { PlanCheckoutButton } from "@/components/plan-checkout-button"
 
 export const metadata: Metadata = {
   title: "Pricing — agent execution with a server-enforced cap",
@@ -16,6 +17,8 @@ const PLANS = [
     period: "forever",
     blurb: "The full API against a paper account with real market data.",
     cta: { label: "Create a key", href: "/settings/api-keys" },
+    checkout: null,
+    featured: false,
     features: [
       "1 API key",
       "Paper account ($500 simulated)",
@@ -29,7 +32,8 @@ const PLANS = [
     price: "$199",
     period: "per month",
     blurb: "One team, live trading, a real budget on the line.",
-    cta: { label: "Start a pilot", href: "/contact" },
+    cta: { label: "Subscribe", href: "/settings/api-keys" },
+    checkout: "builder" as const,
     featured: false,
     features: [
       "3 API keys",
@@ -44,7 +48,8 @@ const PLANS = [
     price: "$999",
     period: "per month",
     blurb: "A product with paying users of its own.",
-    cta: { label: "Talk to us", href: "/contact" },
+    cta: { label: "Subscribe", href: "/settings/api-keys" },
+    checkout: "growth" as const,
     featured: true,
     features: [
       "10 API keys",
@@ -60,6 +65,8 @@ const PLANS = [
     period: "per month",
     blurb: "White-label execution, custom caps, an SLA.",
     cta: { label: "Talk to us", href: "/contact" },
+    checkout: null,
+    featured: false,
     features: [
       "Unlimited keys",
       "Custom caps and risk envelope",
@@ -149,16 +156,20 @@ export default function PricingPage() {
                 <span className="ml-2 text-xs text-[#6F6B64]">{plan.period}</span>
               </div>
               <p className="mt-3 text-sm text-[#6F6B64] leading-relaxed min-h-[3rem]">{plan.blurb}</p>
-              <Link
-                href={plan.cta.href}
-                className={`mt-5 inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition ${
-                  plan.featured
-                    ? "bg-neutral-900 text-neutral-50 hover:bg-neutral-800"
-                    : "border border-[#E4E2DD] hover:bg-[#F7F6F3]"
-                }`}
-              >
-                {plan.cta.label}
-              </Link>
+              {plan.checkout ? (
+                <PlanCheckoutButton plan={plan.checkout} label={plan.cta.label} featured={plan.featured} />
+              ) : (
+                <Link
+                  href={plan.cta.href}
+                  className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition ${
+                    plan.featured
+                      ? "bg-neutral-900 text-neutral-50 hover:bg-neutral-800"
+                      : "border border-[#E4E2DD] hover:bg-[#F7F6F3]"
+                  }`}
+                >
+                  {plan.cta.label}
+                </Link>
+              )}
               <ul className="mt-5 space-y-2 text-sm">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex gap-2">

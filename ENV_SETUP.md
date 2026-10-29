@@ -302,6 +302,32 @@ For subscription cron endpoint protection:
 CRON_SECRET=your_secure_random_string
 ```
 
+### 11. API plans (Stripe)
+
+The agent API sells plans at `/pricing`. Checkout and the customer portal are
+Stripe-hosted; a subscription is looked up by customer metadata (`wallet`), so
+there is no webhook to configure and no local billing table.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | yes | `sk_live_…` (or `sk_test_…` while testing). Without it, checkout answers 503 and every account stays on the sandbox plan. |
+| `STRIPE_PRICE_BUILDER` | for Builder | Recurring price id (`price_…`), $199/mo. |
+| `STRIPE_PRICE_GROWTH` | for Growth | $999/mo. |
+| `STRIPE_PRICE_SCALE` | optional | Scale is sales-led today; the id makes self-serve possible. |
+| `NEXT_PUBLIC_APP_URL` | recommended | Absolute origin for success/cancel URLs, e.g. `https://protocolbanks.com`. A bare domain falls back to the request origin. |
+
+Setup:
+
+1. Stripe → Product catalog → create the three recurring prices.
+2. Stripe → Settings → Billing → Customer portal → enable (cancel, payment methods, invoices).
+3. Set the env vars in Vercel and redeploy.
+4. Test with test keys: subscribe with card `4242 4242 4242 4242`, then check
+   `GET /api/billing/status` shows the new plan.
+
+Plan caps are enforced server-side: a key's own policy is clamped to the plan's
+per-call and daily caps, and the key count is checked at creation. Paid plans
+replace the 8 bps per-order fee.
+
 ## How to Add Variables in v0
 
 1. Open your project in v0

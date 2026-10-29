@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,6 +55,18 @@ interface ApiKey {
   created_at: string
 }
 
+interface BillingStatus {
+  plan: string
+  name: string
+  status: string
+  monthlyUsd: number
+  currentPeriodEnd: string | null
+  caps: { maxKeys: number; maxNotionalUsd: number; dailyCapUsd: number }
+  feeBps: number
+  keysUsed: number
+  billingConfigured: boolean
+}
+
 // Must match VALID_PERMISSIONS in app/api/settings/api-keys/route.ts
 const API_PERMISSIONS = ["read", "write", "payments", "webhooks", "admin"] as const
 
@@ -77,6 +90,8 @@ export default function ApiKeysPage() {
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null)
   const [newSecretKey, setNewSecretKey] = useState<string | null>(null)
   const [showSecret, setShowSecret] = useState(false)
+  const [billing, setBilling] = useState<BillingStatus | null>(null)
+  const [portalLoading, setPortalLoading] = useState(false)
 
   // Create form state
   const [keyName, setKeyName] = useState("")
@@ -100,7 +115,23 @@ export default function ApiKeysPage() {
   useEffect(() => {
     if (address) {
       loadApiKeys()
+      loadBilling()
     }
+  }, [address])
+
+  useEffect(() => {
+    if (!address || typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("billing") !== "success") return
+
+    toast({
+      title: "Subscription active",
+      description: "Stripe is confirming the plan. If the caps below still show the old values, reload in a moment.",
+    })
+    loadBilling(true)
+    const url = new URL(window.location.href)
+    url.searchParams.delete("billing")
+    window.history.replaceState({}, "", url.toString())
   }, [address])
 
   const loadApiKeys = async () => {
@@ -123,6 +154,35 @@ export default function ApiKeysPage() {
       console.error("Failed to load API keys:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadBilling = async (refresh = false) => {
+    if (!address) return
+    try {
+      const res = await fetch(`/api/billing/status${refresh ? "?refresh=1" : ""}`, { headers: authHeaders(address) })
+      if (res.ok) setBilling(await res.json())
+    } catch (error) {
+      console.error("Failed to load billing:", error)
+    }
+  }
+
+  const openPortal = async () => {
+    if (!address) return
+    setPortalLoading(true)
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST", headers: authHeaders(address) })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.url) throw new Error(data.message || data.error || "Could not open billing")
+      window.location.href = data.url
+    } catch (error) {
+      toast({
+        title: "Billing portal",
+        description: error instanceof Error ? error.message : "Could not open billing",
+        variant: "destructive",
+      })
+    } finally {
+      setPortalLoading(false)
     }
   }
 
@@ -466,6 +526,40 @@ export default function ApiKeysPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            Plan
+            {billing ? <Badge variant="secondary">{billing.name}</Badge> : null}
+          </CardTitle>
+          <CardDescription>
+            {billing
+              ? `${billing.keysUsed}/${billing.caps.maxKeys} keys · $${billing.caps.maxNotionalUsd}/call · $${billing.caps.dailyCapUsd}/day · ${
+                  billing.feeBps === 0 ? "no per-order fee" : `${billing.feeBps} bps per executed order`
+                }`
+              : "Loading plan…"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-3">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/pricing">Upgrade plan</Link>
+          </Button>
+          {billing && billing.status !== "none" ? (
+            <Button size="sm" variant="outline" onClick={openPortal} disabled={portalLoading}>
+              {portalLoading ? "Opening…" : "Manage billing"}
+            </Button>
+          ) : null}
+          {billing?.currentPeriodEnd ? (
+            <span className="text-xs text-muted-foreground">
+              Renews {new Date(billing.currentPeriodEnd).toLocaleDateString()}
+            </span>
+          ) : null}
+          {billing && !billing.billingConfigured ? (
+            <span className="text-xs text-muted-foreground">Billing is not connected on this deployment.</span>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

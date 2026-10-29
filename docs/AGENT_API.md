@@ -181,7 +181,10 @@ the next reconciliation tick by client-order-id — **it is never retried**.
 ## 5. Metering and billing
 
 Executed trades are metered as one `agent_op` event (`op: "trade"`, notional,
-fee). Billing is `PARTNER_FEE_BPS` (default **8 bps** of notional).
+fee). Billing is `PARTNER_FEE_BPS` (default **8 bps** of notional) — unless the
+account has a paid plan (Builder, Growth, Scale), where the subscription
+replaces the per-order fee and the plan's caps clamp the key policy. The plans
+and their ceilings are at [`/pricing`](https://protocolbanks.com/pricing).
 
 ```bash
 # what partners owe, last 30 days

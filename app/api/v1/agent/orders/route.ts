@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAgentAuth, type AgentRequest } from "@/lib/agent/auth"
 import { evaluatePolicy } from "@/lib/agent/policy"
+import { planFeeBps } from "@/lib/billing/plans"
 import { resolveAgentForWallet } from "@/lib/trading/agent"
 import { recordEvent } from "@/lib/analytics/events"
 
@@ -44,7 +45,10 @@ async function handler(request: AgentRequest) {
   })
   if (!result.ok) return NextResponse.json({ ok: false, error: result.reason }, { status: 409 })
 
-  const fee = Number(((result.notional * FEE_BPS) / 10_000).toFixed(4))
+  // Paid plans replace the per-order fee; pay-as-you-go keeps PARTNER_FEE_BPS.
+  const feeBps =
+    request.agentPlan && request.agentPlan !== "sandbox" ? planFeeBps(request.agentPlan) : FEE_BPS
+  const fee = Number(((result.notional * feeBps) / 10_000).toFixed(4))
   void recordEvent({
     name: "agent_op",
     wallet,
@@ -53,9 +57,10 @@ async function handler(request: AgentRequest) {
       coin,
       side,
       notionalUsd: Number(result.notional.toFixed(2)),
-      feeBps: FEE_BPS,
+      feeBps,
       fee,
       mode: agent.isLive() ? "live" : "paper",
+      plan: request.agentPlan,
     },
   })
 
