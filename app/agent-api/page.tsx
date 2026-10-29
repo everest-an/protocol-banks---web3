@@ -17,8 +17,6 @@ export const metadata: Metadata = {
   },
 }
 
-const DOCS = "https://github.com/everest-an/protocol-banks---web3/blob/main/docs"
-
 const POLICY = [
   { field: "allowedOps", meaning: "read | trade | pay | swap — which calls the key may make", born: '["read"]' },
   { field: "maxNotionalUsd", meaning: "per-call cap; a larger order is refused before execution", born: "$50" },
@@ -245,17 +243,14 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
 const order = await call("/orders", { coin: "BTC", side: "long", sizeUsd: 20 })`}
           </pre>
           <p className="mt-4 text-xs text-[#6F6B64]">
-            Runnable starters for the{" "}
-            <a
-              href="https://github.com/everest-an/protocol-banks---web3/tree/main/integrations"
-              target="_blank"
-              rel="noopener noreferrer"
+            Framework starters for the Vercel AI SDK, Mastra and elizaOS are covered in the{" "}
+            <Link
+              href="/docs/quickstart"
               className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]"
             >
-              Vercel AI SDK, Mastra and elizaOS
-            </a>{" "}
-            live in `integrations/`. Prefer a protocol? The same account is
-            reachable from the{" "}
+              quickstart
+            </Link>
+            . Prefer a protocol? The same account is reachable from the{" "}
             <Link href="/mcp" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
               MCP server
             </Link>{" "}
@@ -273,48 +268,34 @@ const order = await call("/orders", { coin: "BTC", side: "long", sizeUsd: 20 })`
               <span className="text-[#6F6B64]">— the machine-readable contract (OpenAPI 3.1)</span>
             </li>
             <li>
-              <a
-                href={`${DOCS}/AGENT_API.md`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]"
-              >
-                AGENT_API.md
-              </a>{" "}
-              <span className="text-[#6F6B64]">— auth, policy, every endpoint, errors, billing</span>
+              <Link href="/docs/quickstart" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
+                /docs/quickstart
+              </Link>{" "}
+              <span className="text-[#6F6B64]">— a key, a fill and an invoice in five minutes</span>
             </li>
             <li>
-              <a
-                href={`${DOCS}/AGENT_CASES.md`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]"
-              >
-                AGENT_CASES.md
-              </a>{" "}
-              <span className="text-[#6F6B64]">— four worked integrations, including a runaway model loop</span>
+              <Link href="/docs/api" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
+                /docs/api
+              </Link>{" "}
+              <span className="text-[#6F6B64]">— every endpoint, payload, error class and rate limit</span>
             </li>
             <li>
-              <a
-                href={`${DOCS}/AGENT_TOOLS.md`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]"
-              >
-                AGENT_TOOLS.md
-              </a>{" "}
-              <span className="text-[#6F6B64]">— the tool manifest and framework adapters</span>
+              <Link href="/docs/concepts" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
+                /docs/concepts
+              </Link>{" "}
+              <span className="text-[#6F6B64]">— policy, plans, metering, paper vs live</span>
             </li>
             <li>
-              <a
-                href={`${DOCS}/PARTNERS.md`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]"
-              >
-                PARTNERS.md
-              </a>{" "}
-              <span className="text-[#6F6B64]">— partner integration, sandbox, per-order billing</span>
+              <Link href="/docs/security" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
+                /docs/security
+              </Link>{" "}
+              <span className="text-[#6F6B64]">— what the platform can and cannot do</span>
+            </li>
+            <li>
+              <Link href="/pricing" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
+                /pricing
+              </Link>{" "}
+              <span className="text-[#6F6B64]">— plans from $0, or 8 bps per executed order</span>
             </li>
           </ul>
         </section>

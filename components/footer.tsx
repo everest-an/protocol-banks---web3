@@ -82,6 +82,24 @@ export function Footer() {
               </li>
               <li>
                 <Link
+                  href="/docs"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
+                >
+                  <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate">Docs</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/zh/docs"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
+                >
+                  <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate">中文文档</span>
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/mcp"
                   className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
                 >

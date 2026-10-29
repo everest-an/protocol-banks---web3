@@ -23,6 +23,14 @@ const LLMS_TXT = `# Protocol Bank
 
 - Landing: https://protocolbanks.com/
 - AI Trading cockpit: https://protocolbanks.com/trading
+- Agent API: https://protocolbanks.com/agent-api
+- Docs (overview): https://protocolbanks.com/docs
+- Docs (quickstart): https://protocolbanks.com/docs/quickstart
+- Docs (API reference): https://protocolbanks.com/docs/api
+- Docs (concepts): https://protocolbanks.com/docs/concepts
+- Docs (security): https://protocolbanks.com/docs/security
+- Docs (中文): https://protocolbanks.com/zh/docs
+- Pricing: https://protocolbanks.com/pricing
 - Usage guide: https://protocolbanks.com/help
 - Risk disclosure: https://protocolbanks.com/risk-disclosure
 - Terms: https://protocolbanks.com/terms

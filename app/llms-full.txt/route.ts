@@ -127,6 +127,8 @@ Trading tools:
 ## Agent API (for AI agents and the products that run them)
 
 Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
+Docs: https://protocolbanks.com/docs (overview) · /docs/quickstart · /docs/api ·
+/docs/concepts · /docs/security · Chinese: /zh/docs
 Contract: https://protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1, CORS-open)
 Keys and policy: https://protocolbanks.com/settings/api-keys
 Walkthrough: https://protocolbanks.com/agent-api — PB_KEY=pb_... pnpm example:agent

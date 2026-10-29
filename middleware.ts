@@ -113,6 +113,15 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Unknown docs slugs must 404 at the router. The root layout streams, so a
+  // page-level notFound() would render the 404 UI with a 200 status.
+  if (path === "/docs" || path.startsWith("/docs/") || path === "/zh/docs" || path.startsWith("/zh/docs/")) {
+    const slug = path.replace(/^\/(zh\/)?docs\/?/, "").split("/")[0]
+    if (slug && !["quickstart", "concepts", "api", "security"].includes(slug)) {
+      return new NextResponse("Not found", { status: 404 })
+    }
+  }
+
   // Rate limit API routes
   if (path.startsWith("/api/")) {
     // A2A endpoint: stricter rate limit for unauthenticated agents
