@@ -136,7 +136,7 @@ export function Footer() {
             <ul className="space-y-3 sm:space-y-4 text-xs sm:text-sm text-muted-foreground">
               <li>
                 <Link
-                  href="https://github.com/everest-an"
+                  href="https://github.com/everest-an/protocolbanks-sdk"
                   target="_blank"
                   className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
                 >
