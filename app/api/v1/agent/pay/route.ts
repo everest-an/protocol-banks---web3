@@ -22,6 +22,8 @@ import { recordEvent } from "@/lib/analytics/events"
  * allowlist) before anything is signed or submitted.
  */
 export const dynamic = "force-dynamic"
+/** The relayer waits for the receipt before answering. */
+export const maxDuration = 60
 
 const EVM_ADDRESS = /^0x[a-fA-F0-9]{40}$/
 const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
