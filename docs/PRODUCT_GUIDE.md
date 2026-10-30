@@ -17,7 +17,8 @@ Hyperliquid. One API key gives an agent a trading and payments account under a
 policy the server enforces — which operations (read/trade/pay/swap), a per-call
 cap, a daily cap, a coin allowlist. Trading runs through a **trading-only agent
 wallet** (EIP-712 `approveAgent`): it can place and cancel orders, and can never
-withdraw. `pay` and `swap` return something the agent signs from its own wallet.
+withdraw. `pay` prepares an EIP-712 intent and can execute it from the payer's
+signed authorization (EVM USDC); `swap` returns a transaction the agent signs.
 The cockpit is a paper demo of the same account; the API is the product.
 
 Positioning & milestones → [PRD_V2_AI_TRADING.md](PRD_V2_AI_TRADING.md)
@@ -62,14 +63,15 @@ the policy and it applies on the next call.
 |---|---|---|
 | `GET /api/v1/agent/state` | read | — |
 | `POST /api/v1/agent/orders` | trade | yes (trading-only wallet) |
-| `POST /api/v1/agent/pay` | pay | no (intent to sign) |
+| `POST /api/v1/agent/pay` | pay | optional: executes with a signed EIP-3009 authorization (EVM USDC) |
 | `POST /api/v1/agent/swap` | swap | no (quote to sign) |
 | `POST /api/v1/agent/invoice` | pay | no (pending invoice + `paymentLink`) |
 
 Two envelopes act on a trade: the key policy (403 on a violation) and the
 platform risk envelope (positions, leverage, stop-loss, daily breakers; 409 on a
-refusal). A refusal is final for the request. Full reference:
-[AGENT_API.md](AGENT_API.md) and the served contract at
+refusal). A refusal is final for the request. `pay` is metered against the daily
+cap but carries no per-order fee; a used EIP-3009 nonce answers 409. Full
+reference: [AGENT_API.md](AGENT_API.md) and the served contract at
 `/api/agent.openapi.json`.
 
 ### 2.3 Sandbox and live

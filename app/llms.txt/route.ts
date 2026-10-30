@@ -76,13 +76,14 @@ Walkthrough: https://protocolbanks.com/agent-api — one command: PB_KEY=pb_... 
 Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools
 (tool manifest for the Vercel AI SDK, LangChain, OpenAI and Anthropic)
 
-Only /orders executes (through the Hyperliquid agent wallet, trading-only).
-/pay and /swap return what the agent must sign itself; /invoice creates a
-payment request and moves nothing.
+Only /orders executes through the Hyperliquid agent wallet (trading-only). /pay
+prepares an EIP-712 intent and executes when the caller POSTs back a signed
+EIP-3009 authorization (EVM USDC); /swap returns something the agent signs;
+/invoice creates a payment request and moves nothing.
 
 - POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee + remainingTodayUsd
 - GET /state — mode, equity, positions, activity, and the key's policy with spentTodayUsd
-- POST /pay — { to, amountUsd, token?, chain?, memo? } -> a signed-ready transfer intent; the agent submits it from its own wallet
+- POST /pay — { to, amountUsd, token?, chain?, memo? } -> an intent + typedData; add the authorization object { ...message, v, r, s } to execute (relayer submits, the payer's own USDC moves)
 - POST /swap — { from, to, amount, amountUsd, slippage? } -> a quote and the transaction to sign
 - POST /invoice — { to, amount, token?, chain?, description?, expiresInHours? } -> pending invoice + a payable paymentLink (/pay?invoice=...&sig=...)
 
@@ -91,8 +92,9 @@ Every key carries a policy the server enforces, not the agent: allowedOps
 allowedCoins (empty = all). A new key starts read-only at $50 per call and $200
 per day; the policy is editable from the key's row. Trading also passes the
 platform risk envelope — position cap, stop-loss, daily breakers — and a sizeUsd
-above the cap is clamped, not rejected. Pay and swap never move funds: the
-platform holds no keys, so those endpoints return what the agent must sign.
+above the cap is clamped, not rejected. Swap and invoice never move funds; pay
+moves the payer's own USDC only through their signature, and the relayer only
+pays gas.
 
 ## Legal
 

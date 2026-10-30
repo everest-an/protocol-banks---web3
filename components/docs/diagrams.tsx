@@ -22,7 +22,7 @@ const LABELS: Record<DocLocale, Record<string, string>> = {
     walletSub: "trading-only",
     receipt: "Receipts",
     receiptSub: "usage log · fills",
-    unsigned: "pay / swap: unsigned",
+    unsigned: "pay: signed auth · swap: unsigned",
     refused: "403 before the venue",
     orderFlow: "What happens to an order",
     orderFlowCaption:
@@ -73,7 +73,7 @@ const LABELS: Record<DocLocale, Record<string, string>> = {
     walletSub: "仅交易权限",
     receipt: "回执",
     receiptSub: "使用日志 · 成交",
-    unsigned: "pay / swap：待签名",
+    unsigned: "pay：签名执行 · swap：待签名",
     refused: "到达场所前 403",
     orderFlow: "一笔订单会经过什么",
     orderFlowCaption:

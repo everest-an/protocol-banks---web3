@@ -3,17 +3,17 @@
 The programmatic surface for AI agents and the products that run them: one
 credential, one policy the server enforces, five endpoints.
 
-**Two of them execute; two of them prepare.** The platform holds no keys, so it
-can trade through a Hyperliquid agent wallet (trading-only rights) but it can
-never move an agent's funds elsewhere. `pay` and `swap` return what the agent
-must sign itself.
+**`orders` executes. `pay` prepares, or executes when the caller supplies a
+signed EIP-3009 authorization.** The platform holds no keys, so trading runs
+through a Hyperliquid agent wallet (trading-only rights); `swap` and `invoice`
+never move money on the platform.
 
 | Operation | Endpoint | Executes? |
 |---|---|---|
 | `read` | `GET /api/v1/agent/state` | — |
 | `trade` | `POST /api/v1/agent/orders` | **yes** (agent wallet, trading-only) |
 | `invoice` | `POST /api/v1/agent/invoice` | no (creates a payment request) |
-| `pay` | `POST /api/v1/agent/pay` | no (returns a signed-ready intent) |
+| `pay` | `POST /api/v1/agent/pay` | **optional** (executes with a signed EIP-3009 authorization, EVM USDC) |
 | `swap` | `POST /api/v1/agent/swap` | no (returns a quote + transaction) |
 
 ### The contract
@@ -123,6 +123,9 @@ One position per market. `sizeUsd` above the platform cap is reduced to
 
 ### `POST /api/v1/agent/pay`
 
+**Prepare.** Without a signature it validates the destination, the amount and the
+key's policy, and returns an intent plus the EIP-712 `typedData` to sign.
+
 ```json
 { "to": "0xabc…", "amountUsd": 25, "token": "USDC", "chain": "base", "memo": "invoice 41" }
 ```
@@ -130,13 +133,44 @@ One position per market. `sizeUsd` above the platform cap is reduced to
 ```json
 {
   "ok": true,
-  "intent": { "kind": "evm-transfer", "to": "0xabc…", "token": "USDC", "chain": "base", "amountUsd": 25, "remainingTodayUsd": 75 },
-  "note": "sign and submit from the agent's own wallet; the platform never holds funds"
+  "intent": {
+    "kind": "evm-transfer", "to": "0xabc…", "token": "USDC", "chain": "base", "amountUsd": 25,
+    "remainingTodayUsd": 75, "chainId": 8453, "executable": true,
+    "authorization": { "from": "0xabc…", "to": "0xabc…", "value": "25000000", "validAfter": 1793392441, "validBefore": 1793393401, "nonce": "0x…" },
+    "typedData": { "domain": { "name": "USD Coin", "version": "2", "chainId": 8453, "verifyingContract": "0x…" }, "primaryType": "TransferWithAuthorization" }
+  },
+  "note": "sign the typedData, then POST the authorization { ...message, v, r, s } back to this endpoint to execute"
 }
 ```
 
-Destination must be EVM (`0x` + 40 hex), TRON (`T` + 33 base58) or Solana
-(base58 32–44).
+**Execute.** POST the signed message back as `authorization` with `v`, `r`, `s`:
+
+```json
+{
+  "to": "0xabc…", "amountUsd": 25, "token": "USDC", "chain": "base",
+  "authorization": {
+    "from": "0xabc…", "to": "0xabc…", "value": "25000000",
+    "validAfter": 1793392441, "validBefore": 1793393401, "nonce": "0x…",
+    "v": 27, "r": "0x…", "s": "0x…"
+  }
+}
+```
+
+```json
+{
+  "ok": true,
+  "payment": { "txHash": "0x…", "status": "submitted", "from": "0xabc…", "to": "0xabc…", "amountUsd": 25, "token": "USDC", "chain": "base" },
+  "note": "submitted by the relayer from the payer's signed authorization; the platform never holds funds",
+  "remainingTodayUsd": 75
+}
+```
+
+The authorization moves the payer's own USDC; the relayer only pays gas. The
+signed `from` must be the key's owner, and the recipient/amount must match the
+request. Execution is available for **EVM USDC** on the supported chains;
+Solana and non-3009 tokens stay prepare-only. A nonce that was already used
+answers `409`. A destination must be an EVM (`0x` + 40 hex) or Solana (base58
+32–44) address.
 
 ### `POST /api/v1/agent/swap`
 
@@ -173,6 +207,8 @@ answers `403`).
 | `403` | key policy refuses (op, per-call cap, daily cap, allowlist) | surface the reason; do not retry |
 | `409` | platform guard refuses (positions, breakers, funds, unknown market, no route) or the key policy is invalid | surface the reason; back off |
 | `429` | rate limit | back off |
+| `502` | the relayer could not submit the payment (pay only) | surface the message; do not resubmit blindly |
+| `503` | payments are not configured on this deployment (pay only) | the intent still works; execute elsewhere |
 
 A trade that reaches the venue but returns no confirmed response is reported as
 `409` with "order status uncertain". The platform records it and resolves it on

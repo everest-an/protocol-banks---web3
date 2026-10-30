@@ -172,8 +172,8 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               </h1>
               <p className="mt-7 text-lg text-[#6F6B64] leading-relaxed max-w-[52ch]">
                 One API key, one policy the server enforces — operations, per-call cap, daily cap and coin
-                allowlist. Trading runs through a trading-only Hyperliquid wallet; pay and swap return what the agent
-                signs itself.
+                allowlist. Trading runs through a trading-only Hyperliquid wallet; pay executes from a signed
+                EIP-3009 authorization, and swap returns a transaction the agent signs.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-9">

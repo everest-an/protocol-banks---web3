@@ -30,7 +30,7 @@ const STEPS = [
 const ENDPOINTS = [
   ["GET /v1/agent/state", "account, positions, activity, policy with spentTodayUsd"],
   ["POST /v1/agent/orders", "place one order (executes through the agent wallet)"],
-  ["POST /v1/agent/pay", "validate and prepare a transfer the agent signs"],
+  ["POST /v1/agent/pay", "prepare an EIP-712 intent, or execute it with a signed authorization (EVM USDC)"],
   ["POST /v1/agent/swap", "quote and prepare a swap the agent signs"],
   ["POST /v1/agent/invoice", "create a pending invoice with a payment link"],
 ]
@@ -38,7 +38,7 @@ const ENDPOINTS = [
 const SAFETY = [
   { title: "A cap the model cannot raise", text: "The policy lives on the key and is checked before an order reaches the venue. Prompt injection, bugs and loops cannot raise it." },
   { title: "Trading-only rights", text: "The agent wallet can place and cancel orders; it cannot withdraw. The funded budget is the maximum loss." },
-  { title: "No keys, no funds held", text: "The platform holds neither. pay and swap return something the agent signs from its own wallet." },
+  { title: "No keys, no funds held", text: "The platform holds neither. pay executes only from a signed EIP-3009 authorization (the relayer pays gas); swap returns a transaction the agent signs." },
   { title: "Receipts per call", text: "Every call is logged; every fill is recorded; state carries the policy and spentTodayUsd." },
 ]
 

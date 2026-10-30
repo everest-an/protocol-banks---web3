@@ -46,9 +46,12 @@ Mode, equity, open positions, the activity feed, and the key's policy with
 
 ### `POST /api/v1/agent/pay`
 
-Returns a **signed-ready transfer intent** — the platform holds no keys, so the
-agent submits it from its own wallet. Destination is validated (EVM `0x…` or
-Solana base58), the amount is checked against the key's policy.
+Returns an **EIP-712 intent** (with the typed data to sign). Destination is
+validated (EVM `0x…` or Solana base58) and the amount is checked against the
+key's policy. To execute, POST the signed message back as `authorization` with
+`v`/`r`/`s`: the relayer submits `transferWithAuthorization` and the payer's own
+USDC moves — the platform only pays gas and never holds funds. Execution is
+available for **EVM USDC**; Solana and non-3009 tokens stay prepare-only.
 
 ### `POST /api/v1/agent/swap`
 

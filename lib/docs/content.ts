@@ -61,6 +61,8 @@ const ERROR_TABLE = {
     ["403", "The key's policy refuses (op, cap, allowlist)", "Surface it; do not retry unchanged"],
     ["409", "The platform guard refuses (positions, breakers, funds, market, no route)", "Surface it; back off"],
     ["429", "Rate limit (100 requests/minute per IP)", "Honour Retry-After"],
+    ["502", "The relayer could not submit the payment (pay only)", "Surface it; do not resubmit blindly"],
+    ["503", "Payments are not configured on this deployment (pay only)", "Use the intent; execute elsewhere"],
   ],
 }
 
@@ -113,7 +115,7 @@ const EN: DocPage[] = [
         rows: [
           ["GET /state", "—", "mode, equity, positions, activity, policy"],
           ["POST /orders", "yes (agent wallet)", "fill, fee, remainingTodayUsd"],
-          ["POST /pay", "no", "a transfer intent to sign"],
+          ["POST /pay", "optional (signed EIP-3009)", "an intent to sign, or a submitted payment"],
           ["POST /swap", "no", "a quote and a transaction to sign"],
           ["POST /invoice", "no", "a pending invoice with a payment link"],
         ],
@@ -256,7 +258,7 @@ const EN: DocPage[] = [
         rows: [
           ["/state", "GET", "account, positions, activity, policy"],
           ["/orders", "POST", "place one order (executes)"],
-          ["/pay", "POST", "validate and prepare a transfer"],
+          ["/pay", "POST", "prepare an EIP-712 intent, or execute it with a signed authorization"],
           ["/swap", "POST", "quote and prepare a swap"],
           ["/invoice", "POST", "create a pending invoice"],
         ],
@@ -293,7 +295,7 @@ const EN: DocPage[] = [
       },
       {
         kind: "p",
-        text: "Returns an intent (kind, to, token, chain, amountUsd, remainingTodayUsd). The agent signs and submits it from its own wallet; the platform never holds funds.",
+        text: "Without a signature this returns an intent (kind, to, token, chain, amountUsd, remainingTodayUsd) plus the EIP-712 typedData to sign. Sign it, then POST the signed EIP-3009 message back as `authorization` with v/r/s and the relayer submits transferWithAuthorization — the payer's own USDC moves; the platform only pays gas. Execution is available for EVM USDC; Solana and non-3009 tokens stay prepare-only.",
       },
       { kind: "h3", text: "POST /swap" },
       {
@@ -334,7 +336,7 @@ const EN: DocPage[] = [
       { kind: "h2", text: "Non-custodial by construction" },
       {
         kind: "p",
-        text: "The platform holds no funds. Trading happens on your Hyperliquid account through an agent wallet you approve; pay and swap return something you sign from your own wallet. We never have the ability to move your money elsewhere.",
+        text: "The platform holds no funds. Trading happens on your Hyperliquid account through an agent wallet you approve; pay executes only from your signed EIP-3009 authorization (the relayer pays gas), and swap returns a transaction you sign. We never have the ability to move your money elsewhere.",
       },
       { kind: "diagram", name: "security" },
       { kind: "h2", text: "Trading-only rights" },
@@ -432,7 +434,7 @@ const ZH: DocPage[] = [
         rows: [
           ["GET /state", "—", "模式、净值、持仓、活动、策略"],
           ["POST /orders", "是（agent 钱包）", "成交、费用、remainingTodayUsd"],
-          ["POST /pay", "否", "待签名的转账意图"],
+          ["POST /pay", "可选（签名后执行）", "待签名的意图，或已提交的支付"],
           ["POST /swap", "否", "报价与待签名交易"],
           ["POST /invoice", "否", "待支付发票 + 支付链接"],
         ],
@@ -569,7 +571,7 @@ const ZH: DocPage[] = [
         rows: [
           ["/state", "GET", "账户、持仓、活动、策略"],
           ["/orders", "POST", "下单一笔（会执行）"],
-          ["/pay", "POST", "校验并准备转账"],
+          ["/pay", "POST", "准备 EIP-712 意图，或凭签名执行"],
           ["/swap", "POST", "报价并准备兑换"],
           ["/invoice", "POST", "创建待支付发票"],
         ],
@@ -606,7 +608,7 @@ const ZH: DocPage[] = [
       },
       {
         kind: "p",
-        text: "返回转账意图（kind、to、token、chain、amountUsd、remainingTodayUsd）。由 Agent 在自己的钱包里签名提交，平台不持有资金。",
+        text: "不带签名时返回意图（kind、to、token、chain、amountUsd、remainingTodayUsd）以及待签名的 EIP-712 typedData。签名后把 EIP-3009 消息连同 v/r/s 作为 `authorization` 回传，relayer 提交 transferWithAuthorization —— 移动的是付款人自己的 USDC，平台只付 gas。仅支持 EVM USDC；Solana 与非 3009 代币保持“只准备”。",
       },
       { kind: "h3", text: "POST /swap" },
       {
@@ -647,7 +649,7 @@ const ZH: DocPage[] = [
       { kind: "h2", text: "结构上非托管" },
       {
         kind: "p",
-        text: "平台不持有资金。交易发生在你自己的 Hyperliquid 账户上，通过你授权的 agent 钱包执行；pay 与 swap 返回你在自己钱包里签名的内容。我们没有任何能力把资金转走。",
+        text: "平台不持有资金。交易发生在你自己的 Hyperliquid 账户上，通过你授权的 agent 钱包执行；pay 仅凭你签名的 EIP-3009 授权执行（relayer 只付 gas），swap 返回你签名的交易。我们没有任何能力把资金转走。",
       },
       { kind: "diagram", name: "security" },
       { kind: "h2", text: "仅交易权限" },

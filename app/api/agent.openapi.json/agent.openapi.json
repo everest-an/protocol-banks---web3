@@ -216,15 +216,13 @@
         },
         "responses": {
           "200": {
-            "description": "The intent to sign, and the remaining daily budget.",
+            "description": "An intent to sign, or a submitted payment when a signed authorization was included.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [
-                    "ok",
-                    "intent",
-                    "note"
+                    "ok"
                   ],
                   "properties": {
                     "ok": {
@@ -234,24 +232,69 @@
                     "intent": {
                       "$ref": "#/components/schemas/PayIntent"
                     },
+                    "payment": {
+                      "$ref": "#/components/schemas/Payment"
+                    },
                     "note": {
-                      "type": "string",
-                      "description": "Why the platform returned an intent instead of moving money."
+                      "type": "string"
+                    },
+                    "remainingTodayUsd": {
+                      "type": "number"
                     }
                   }
                 },
-                "example": {
-                  "ok": true,
+                "examples": {
                   "intent": {
-                    "kind": "evm-transfer",
-                    "to": "0x000000000000000000000000000000000000dEaD",
-                    "token": "USDC",
-                    "chain": "base",
-                    "amountUsd": 25,
-                    "memo": "invoice 41",
-                    "remainingTodayUsd": 175
+                    "summary": "An EIP-712 intent to sign",
+                    "value": {
+                      "ok": true,
+                      "intent": {
+                        "kind": "evm-transfer",
+                        "to": "0x000000000000000000000000000000000000dEaD",
+                        "token": "USDC",
+                        "chain": "base",
+                        "amountUsd": 25,
+                        "remainingTodayUsd": 75,
+                        "chainId": 8453,
+                        "executable": true,
+                        "authorization": {
+                          "from": "0x1111111111111111111111111111111111111111",
+                          "to": "0x000000000000000000000000000000000000dEaD",
+                          "value": "25000000",
+                          "validAfter": 1793392441,
+                          "validBefore": 1793393401,
+                          "nonce": "0xee135b2e1c5d859b11b7023513d365ba1ef96d3dad3be3f795813b03c18ea824"
+                        },
+                        "typedData": {
+                          "domain": {
+                            "name": "USD Coin",
+                            "version": "2",
+                            "chainId": 8453,
+                            "verifyingContract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+                          },
+                          "primaryType": "TransferWithAuthorization"
+                        }
+                      },
+                      "note": "sign the typedData, then POST the authorization { ...message, v, r, s } back to this endpoint to execute"
+                    }
                   },
-                  "note": "sign and submit from the agent's own wallet; the platform never holds funds"
+                  "executed": {
+                    "summary": "A submitted payment",
+                    "value": {
+                      "ok": true,
+                      "payment": {
+                        "txHash": "0x9f1c2a7e1b2c4d5e8f901a2b3c4d5e6f7a8b9c0d1e2f30415263748596a7b8c9",
+                        "status": "submitted",
+                        "from": "0x1111111111111111111111111111111111111111",
+                        "to": "0x000000000000000000000000000000000000dEaD",
+                        "amountUsd": 25,
+                        "token": "USDC",
+                        "chain": "base"
+                      },
+                      "note": "submitted by the relayer from the payer's signed authorization; the platform never holds funds",
+                      "remainingTodayUsd": 75
+                    }
+                  }
                 }
               }
             }
@@ -270,6 +313,12 @@
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
           }
         }
       }
@@ -964,6 +1013,9 @@
           "memo": {
             "type": "string",
             "maxLength": 140
+          },
+          "authorization": {
+            "$ref": "#/components/schemas/SignedAuthorization"
           }
         }
       },
@@ -1003,6 +1055,34 @@
           "remainingTodayUsd": {
             "type": "number",
             "description": "`dailyCapUsd − spentTodayUsd − amountUsd`, floored at 0."
+          },
+          "chainId": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "executable": {
+            "type": "boolean",
+            "description": "True when this destination/token can be executed with EIP-3009 (EVM USDC)."
+          },
+          "authorization": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentAuthorization"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "typedData": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "The EIP-712 payload to sign. Null when execution is not available.",
+            "additionalProperties": true
           }
         }
       },
@@ -1243,6 +1323,111 @@
             ]
           }
         ]
+      },
+      "PaymentAuthorization": {
+        "type": "object",
+        "description": "The EIP-3009 message the payer signs. Only EVM USDC on a supported chain can be executed.",
+        "required": [
+          "from",
+          "to",
+          "value",
+          "validAfter",
+          "validBefore",
+          "nonce"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The payer: the API key's owner address."
+          },
+          "to": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "Amount in token units (USDC has 6 decimals), as a string."
+          },
+          "validAfter": {
+            "type": "integer"
+          },
+          "validBefore": {
+            "type": "integer"
+          },
+          "nonce": {
+            "type": "string",
+            "description": "32-byte hex nonce; the token rejects a replay."
+          }
+        }
+      },
+      "SignedAuthorization": {
+        "description": "The signed authorization: the message plus the signature components. POST it back to execute.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PaymentAuthorization"
+          },
+          {
+            "type": "object",
+            "required": [
+              "v",
+              "r",
+              "s"
+            ],
+            "properties": {
+              "v": {
+                "type": "integer",
+                "enum": [
+                  27,
+                  28
+                ]
+              },
+              "r": {
+                "type": "string"
+              },
+              "s": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "Payment": {
+        "type": "object",
+        "description": "A submitted on-chain payment. The authorization moves the payer's own USDC; the relayer only pays gas.",
+        "required": [
+          "txHash",
+          "status",
+          "from",
+          "to",
+          "amountUsd",
+          "token",
+          "chain"
+        ],
+        "properties": {
+          "txHash": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted"
+            ]
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "amountUsd": {
+            "type": "number"
+          },
+          "token": {
+            "type": "string"
+          },
+          "chain": {
+            "type": "string"
+          }
+        }
       }
     },
     "responses": {
@@ -1319,6 +1504,34 @@
             },
             "example": {
               "error": "Too many requests"
+            }
+          }
+        }
+      },
+      "BadGateway": {
+        "description": "The relayer could not submit the payment after the authorization was accepted. Surface the message; do not resubmit blindly.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "ok": false,
+              "error": "the relayer could not submit the payment",
+              "message": "insufficient funds for gas"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Payments are not configured on this deployment (no relayer). The intent is still available.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "payments are not configured on this deployment"
             }
           }
         }

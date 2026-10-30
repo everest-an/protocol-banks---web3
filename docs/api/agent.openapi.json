@@ -42,7 +42,9 @@
   "paths": {
     "/v1/agent/state": {
       "get": {
-        "tags": ["state"],
+        "tags": [
+          "state"
+        ],
         "operationId": "getAgentState",
         "summary": "Account state, positions, activity and remaining policy budget",
         "description": "The account behind the key: mode, equity, open positions, the plain-language activity feed, the pending manual-approval trade, plus the effective policy and `spentTodayUsd`. Requires the key's `read` permission and the `read` operation in its policy.",
@@ -92,7 +94,11 @@
                   "pendingTrade": null,
                   "approvalMode": "auto",
                   "policy": {
-                    "allowedOps": ["read", "trade", "pay"],
+                    "allowedOps": [
+                      "read",
+                      "trade",
+                      "pay"
+                    ],
                     "maxNotionalUsd": 100,
                     "dailyCapUsd": 200,
                     "allowedCoins": [],
@@ -119,7 +125,9 @@
     },
     "/v1/agent/orders": {
       "post": {
-        "tags": ["trade"],
+        "tags": [
+          "trade"
+        ],
         "operationId": "placeAgentOrder",
         "summary": "Place an order (executes)",
         "description": "Places one order for the account behind the key. Two envelopes apply and both must allow it: the key's policy (op `trade`, per-call cap, daily cap, coin allowlist — a refusal is `403`) and the platform risk envelope (max positions, position size, leverage, stop-loss/take-profit, daily breakers, funds — a refusal is `409`). A `sizeUsd` above the platform position cap is clamped, not rejected; one above the key's per-call cap is refused.\n\nOne position per market: a second order for a held market is `409`. Executed trades are metered as one `agent_op` event and billed at `PARTNER_FEE_BPS` (default 8 bps of notional).",
@@ -183,7 +191,9 @@
     },
     "/v1/agent/pay": {
       "post": {
-        "tags": ["prepare"],
+        "tags": [
+          "prepare"
+        ],
         "operationId": "prepareAgentPayment",
         "summary": "Validate a payment and return a signed-ready intent (does not move money)",
         "description": "Checks the destination, the amount and the key's policy, then returns the intent the agent submits from its own wallet. The platform does not hold keys and does not move the money. An EVM or Solana destination is accepted here; the legacy invoice surface also accepts TRON.",
@@ -206,12 +216,14 @@
         },
         "responses": {
           "200": {
-            "description": "The intent to sign, and the remaining daily budget.",
+            "description": "An intent to sign, or a submitted payment when a signed authorization was included.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok", "intent", "note"],
+                  "required": [
+                    "ok"
+                  ],
                   "properties": {
                     "ok": {
                       "type": "boolean",
@@ -220,24 +232,69 @@
                     "intent": {
                       "$ref": "#/components/schemas/PayIntent"
                     },
+                    "payment": {
+                      "$ref": "#/components/schemas/Payment"
+                    },
                     "note": {
-                      "type": "string",
-                      "description": "Why the platform returned an intent instead of moving money."
+                      "type": "string"
+                    },
+                    "remainingTodayUsd": {
+                      "type": "number"
                     }
                   }
                 },
-                "example": {
-                  "ok": true,
+                "examples": {
                   "intent": {
-                    "kind": "evm-transfer",
-                    "to": "0x000000000000000000000000000000000000dEaD",
-                    "token": "USDC",
-                    "chain": "base",
-                    "amountUsd": 25,
-                    "memo": "invoice 41",
-                    "remainingTodayUsd": 175
+                    "summary": "An EIP-712 intent to sign",
+                    "value": {
+                      "ok": true,
+                      "intent": {
+                        "kind": "evm-transfer",
+                        "to": "0x000000000000000000000000000000000000dEaD",
+                        "token": "USDC",
+                        "chain": "base",
+                        "amountUsd": 25,
+                        "remainingTodayUsd": 75,
+                        "chainId": 8453,
+                        "executable": true,
+                        "authorization": {
+                          "from": "0x1111111111111111111111111111111111111111",
+                          "to": "0x000000000000000000000000000000000000dEaD",
+                          "value": "25000000",
+                          "validAfter": 1793392441,
+                          "validBefore": 1793393401,
+                          "nonce": "0xee135b2e1c5d859b11b7023513d365ba1ef96d3dad3be3f795813b03c18ea824"
+                        },
+                        "typedData": {
+                          "domain": {
+                            "name": "USD Coin",
+                            "version": "2",
+                            "chainId": 8453,
+                            "verifyingContract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+                          },
+                          "primaryType": "TransferWithAuthorization"
+                        }
+                      },
+                      "note": "sign the typedData, then POST the authorization { ...message, v, r, s } back to this endpoint to execute"
+                    }
                   },
-                  "note": "sign and submit from the agent's own wallet; the platform never holds funds"
+                  "executed": {
+                    "summary": "A submitted payment",
+                    "value": {
+                      "ok": true,
+                      "payment": {
+                        "txHash": "0x9f1c2a7e1b2c4d5e8f901a2b3c4d5e6f7a8b9c0d1e2f30415263748596a7b8c9",
+                        "status": "submitted",
+                        "from": "0x1111111111111111111111111111111111111111",
+                        "to": "0x000000000000000000000000000000000000dEaD",
+                        "amountUsd": 25,
+                        "token": "USDC",
+                        "chain": "base"
+                      },
+                      "note": "submitted by the relayer from the payer's signed authorization; the platform never holds funds",
+                      "remainingTodayUsd": 75
+                    }
+                  }
                 }
               }
             }
@@ -256,13 +313,21 @@
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
           }
         }
       }
     },
     "/v1/agent/swap": {
       "post": {
-        "tags": ["prepare"],
+        "tags": [
+          "prepare"
+        ],
         "operationId": "prepareAgentSwap",
         "summary": "Quote a swap against the key's policy (does not execute)",
         "description": "Price-checks the swap against the key's policy and returns the route and the transaction the agent would sign. Execution stays with the agent because the platform holds no keys. A quote is not metered: nothing is spent and the daily cap is untouched. `409` when there is no route for the pair right now.",
@@ -296,7 +361,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok", "route", "note"],
+                  "required": [
+                    "ok",
+                    "route",
+                    "note"
+                  ],
                   "properties": {
                     "ok": {
                       "type": "boolean",
@@ -347,7 +416,9 @@
     },
     "/v1/agent/invoice": {
       "post": {
-        "tags": ["prepare"],
+        "tags": [
+          "prepare"
+        ],
         "operationId": "createAgentInvoice",
         "summary": "Create a pending invoice for the account (does not move money)",
         "description": "Creates a pending invoice the payer settles against the returned id. Moves no money and is not metered; the amount is still checked against the key's policy because an invoice is a payment request. Accepts EVM (`0x` + 40 hex), TRON (`T` + 33 base58) and Solana (base58 32–44) destinations; `chain` defaults to `TRON` for a TRON destination and `Ethereum` otherwise.",
@@ -375,7 +446,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok", "invoice", "note"],
+                  "required": [
+                    "ok",
+                    "invoice",
+                    "note"
+                  ],
                   "properties": {
                     "ok": {
                       "type": "boolean",
@@ -440,16 +515,28 @@
       "Policy": {
         "type": "object",
         "description": "The contract between the partner and the platform. It lives on the key; the agent cannot widen it. Values are clamped, not trusted: `maxNotionalUsd` to 1–10 000, `dailyCapUsd` to 1–100 000, unknown operations are a `409` at authentication time, and coins are upper-cased, deduplicated and capped at 50.",
-        "required": ["allowedOps", "maxNotionalUsd", "dailyCapUsd", "allowedCoins"],
+        "required": [
+          "allowedOps",
+          "maxNotionalUsd",
+          "dailyCapUsd",
+          "allowedCoins"
+        ],
         "properties": {
           "allowedOps": {
             "type": "array",
             "description": "The operations this key may perform. A key without a stored policy is treated as legacy: all four operations.",
             "items": {
               "type": "string",
-              "enum": ["read", "pay", "swap", "trade"]
+              "enum": [
+                "read",
+                "pay",
+                "swap",
+                "trade"
+              ]
             },
-            "default": ["read"],
+            "default": [
+              "read"
+            ],
             "maxItems": 4
           },
           "maxNotionalUsd": {
@@ -477,10 +564,16 @@
           }
         },
         "example": {
-          "allowedOps": ["read", "trade"],
+          "allowedOps": [
+            "read",
+            "trade"
+          ],
           "maxNotionalUsd": 100,
           "dailyCapUsd": 250,
-          "allowedCoins": ["BTC", "ETH"]
+          "allowedCoins": [
+            "BTC",
+            "ETH"
+          ]
         }
       },
       "PolicyState": {
@@ -491,7 +584,9 @@
           },
           {
             "type": "object",
-            "required": ["spentTodayUsd"],
+            "required": [
+              "spentTodayUsd"
+            ],
             "properties": {
               "spentTodayUsd": {
                 "type": "number",
@@ -523,7 +618,10 @@
           },
           "mode": {
             "type": "string",
-            "enum": ["paper", "live"]
+            "enum": [
+              "paper",
+              "live"
+            ]
           },
           "agent": {
             "$ref": "#/components/schemas/AgentInfo"
@@ -564,7 +662,10 @@
           },
           "approvalMode": {
             "type": "string",
-            "enum": ["auto", "manual"]
+            "enum": [
+              "auto",
+              "manual"
+            ]
           },
           "policy": {
             "$ref": "#/components/schemas/PolicyState"
@@ -573,11 +674,21 @@
       },
       "AgentInfo": {
         "type": "object",
-        "required": ["status", "strategy", "lastScanAt", "marketsScanned", "confidenceHighSignals"],
+        "required": [
+          "status",
+          "strategy",
+          "lastScanAt",
+          "marketsScanned",
+          "confidenceHighSignals"
+        ],
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["running", "paused", "stopped"]
+            "enum": [
+              "running",
+              "paused",
+              "stopped"
+            ]
           },
           "strategy": {
             "type": "string"
@@ -638,7 +749,10 @@
       },
       "EquityPoint": {
         "type": "object",
-        "required": ["t", "v"],
+        "required": [
+          "t",
+          "v"
+        ],
         "properties": {
           "t": {
             "type": "string",
@@ -652,14 +766,27 @@
       "Position": {
         "type": "object",
         "description": "An open position. `allocated` and `openedAt` are internal and deliberately not exposed.",
-        "required": ["symbol", "side", "size", "entry", "mark", "pnl", "pnlPct", "leverage", "reason"],
+        "required": [
+          "symbol",
+          "side",
+          "size",
+          "entry",
+          "mark",
+          "pnl",
+          "pnlPct",
+          "leverage",
+          "reason"
+        ],
         "properties": {
           "symbol": {
             "type": "string"
           },
           "side": {
             "type": "string",
-            "enum": ["long", "short"]
+            "enum": [
+              "long",
+              "short"
+            ]
           },
           "size": {
             "type": "number",
@@ -691,7 +818,12 @@
       },
       "ActivityItem": {
         "type": "object",
-        "required": ["time", "type", "text", "pnl"],
+        "required": [
+          "time",
+          "type",
+          "text",
+          "pnl"
+        ],
         "properties": {
           "time": {
             "type": "string",
@@ -699,26 +831,46 @@
           },
           "type": {
             "type": "string",
-            "enum": ["open", "close", "scan", "guard", "info", "error"]
+            "enum": [
+              "open",
+              "close",
+              "scan",
+              "guard",
+              "info",
+              "error"
+            ]
           },
           "text": {
             "type": "string"
           },
           "pnl": {
-            "type": ["number", "null"]
+            "type": [
+              "number",
+              "null"
+            ]
           }
         }
       },
       "PendingTrade": {
         "type": "object",
-        "required": ["symbol", "side", "score", "reason", "markPx", "createdAt"],
+        "required": [
+          "symbol",
+          "side",
+          "score",
+          "reason",
+          "markPx",
+          "createdAt"
+        ],
         "properties": {
           "symbol": {
             "type": "string"
           },
           "side": {
             "type": "string",
-            "enum": ["long", "short"]
+            "enum": [
+              "long",
+              "short"
+            ]
           },
           "score": {
             "type": "number"
@@ -737,7 +889,11 @@
       },
       "OrderRequest": {
         "type": "object",
-        "required": ["coin", "side", "sizeUsd"],
+        "required": [
+          "coin",
+          "side",
+          "sizeUsd"
+        ],
         "properties": {
           "coin": {
             "type": "string",
@@ -745,7 +901,10 @@
           },
           "side": {
             "type": "string",
-            "enum": ["long", "short"]
+            "enum": [
+              "long",
+              "short"
+            ]
           },
           "sizeUsd": {
             "type": "number",
@@ -761,14 +920,23 @@
       },
       "Fill": {
         "type": "object",
-        "required": ["coin", "side", "avgPx", "size", "notional"],
+        "required": [
+          "coin",
+          "side",
+          "avgPx",
+          "size",
+          "notional"
+        ],
         "properties": {
           "coin": {
             "type": "string"
           },
           "side": {
             "type": "string",
-            "enum": ["long", "short"]
+            "enum": [
+              "long",
+              "short"
+            ]
           },
           "avgPx": {
             "type": "number",
@@ -786,7 +954,13 @@
       },
       "OrderResult": {
         "type": "object",
-        "required": ["ok", "fill", "fee", "mode", "remainingTodayUsd"],
+        "required": [
+          "ok",
+          "fill",
+          "fee",
+          "mode",
+          "remainingTodayUsd"
+        ],
         "properties": {
           "ok": {
             "type": "boolean",
@@ -801,7 +975,10 @@
           },
           "mode": {
             "type": "string",
-            "enum": ["paper", "live"]
+            "enum": [
+              "paper",
+              "live"
+            ]
           },
           "remainingTodayUsd": {
             "type": "number",
@@ -811,7 +988,10 @@
       },
       "PayRequest": {
         "type": "object",
-        "required": ["to", "amountUsd"],
+        "required": [
+          "to",
+          "amountUsd"
+        ],
         "properties": {
           "to": {
             "type": "string",
@@ -833,16 +1013,29 @@
           "memo": {
             "type": "string",
             "maxLength": 140
+          },
+          "authorization": {
+            "$ref": "#/components/schemas/SignedAuthorization"
           }
         }
       },
       "PayIntent": {
         "type": "object",
-        "required": ["kind", "to", "token", "chain", "amountUsd", "remainingTodayUsd"],
+        "required": [
+          "kind",
+          "to",
+          "token",
+          "chain",
+          "amountUsd",
+          "remainingTodayUsd"
+        ],
         "properties": {
           "kind": {
             "type": "string",
-            "enum": ["evm-transfer", "solana-transfer"]
+            "enum": [
+              "evm-transfer",
+              "solana-transfer"
+            ]
           },
           "to": {
             "type": "string"
@@ -862,12 +1055,45 @@
           "remainingTodayUsd": {
             "type": "number",
             "description": "`dailyCapUsd − spentTodayUsd − amountUsd`, floored at 0."
+          },
+          "chainId": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "executable": {
+            "type": "boolean",
+            "description": "True when this destination/token can be executed with EIP-3009 (EVM USDC)."
+          },
+          "authorization": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentAuthorization"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "typedData": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "The EIP-712 payload to sign. Null when execution is not available.",
+            "additionalProperties": true
           }
         }
       },
       "SwapRequest": {
         "type": "object",
-        "required": ["from", "to", "amount", "amountUsd"],
+        "required": [
+          "from",
+          "to",
+          "amount",
+          "amountUsd"
+        ],
         "description": "`from` and `to` each need at least `symbol` and `blockchain`; `address` may be added for tokens that share a symbol.",
         "properties": {
           "from": {
@@ -896,7 +1122,10 @@
       },
       "SwapAsset": {
         "type": "object",
-        "required": ["symbol", "blockchain"],
+        "required": [
+          "symbol",
+          "blockchain"
+        ],
         "properties": {
           "symbol": {
             "type": "string"
@@ -905,7 +1134,10 @@
             "type": "string"
           },
           "address": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -959,7 +1191,10 @@
       },
       "InvoiceRequest": {
         "type": "object",
-        "required": ["to", "amount"],
+        "required": [
+          "to",
+          "amount"
+        ],
         "properties": {
           "to": {
             "type": "string",
@@ -992,14 +1227,29 @@
       },
       "Invoice": {
         "type": "object",
-        "required": ["invoiceId", "status", "to", "amount", "token", "chain", "expiresAt", "signed", "paymentLink"],
+        "required": [
+          "invoiceId",
+          "status",
+          "to",
+          "amount",
+          "token",
+          "chain",
+          "expiresAt",
+          "signed",
+          "paymentLink"
+        ],
         "properties": {
           "invoiceId": {
             "type": "string"
           },
           "status": {
             "type": "string",
-            "enum": ["pending", "paid", "expired", "cancelled"]
+            "enum": [
+              "pending",
+              "paid",
+              "expired",
+              "cancelled"
+            ]
           },
           "to": {
             "type": "string"
@@ -1033,7 +1283,9 @@
       "Error": {
         "type": "object",
         "description": "Every non-200 response uses this shape. `error` is always present and is the message a client should surface. `ok` appears when the refusal comes from a handler's business branch; `message` appears on authentication/permission failures; `details` appears when a key's stored policy cannot be parsed.",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
           "error": {
             "type": "string"
@@ -1066,9 +1318,116 @@
           },
           {
             "error": "this key's policy is invalid",
-            "details": ["unknown operations: withdraw"]
+            "details": [
+              "unknown operations: withdraw"
+            ]
           }
         ]
+      },
+      "PaymentAuthorization": {
+        "type": "object",
+        "description": "The EIP-3009 message the payer signs. Only EVM USDC on a supported chain can be executed.",
+        "required": [
+          "from",
+          "to",
+          "value",
+          "validAfter",
+          "validBefore",
+          "nonce"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The payer: the API key's owner address."
+          },
+          "to": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "Amount in token units (USDC has 6 decimals), as a string."
+          },
+          "validAfter": {
+            "type": "integer"
+          },
+          "validBefore": {
+            "type": "integer"
+          },
+          "nonce": {
+            "type": "string",
+            "description": "32-byte hex nonce; the token rejects a replay."
+          }
+        }
+      },
+      "SignedAuthorization": {
+        "description": "The signed authorization: the message plus the signature components. POST it back to execute.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PaymentAuthorization"
+          },
+          {
+            "type": "object",
+            "required": [
+              "v",
+              "r",
+              "s"
+            ],
+            "properties": {
+              "v": {
+                "type": "integer",
+                "enum": [
+                  27,
+                  28
+                ]
+              },
+              "r": {
+                "type": "string"
+              },
+              "s": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "Payment": {
+        "type": "object",
+        "description": "A submitted on-chain payment. The authorization moves the payer's own USDC; the relayer only pays gas.",
+        "required": [
+          "txHash",
+          "status",
+          "from",
+          "to",
+          "amountUsd",
+          "token",
+          "chain"
+        ],
+        "properties": {
+          "txHash": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted"
+            ]
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "amountUsd": {
+            "type": "number"
+          },
+          "token": {
+            "type": "string"
+          },
+          "chain": {
+            "type": "string"
+          }
+        }
       }
     },
     "responses": {
@@ -1145,6 +1504,34 @@
             },
             "example": {
               "error": "Too many requests"
+            }
+          }
+        }
+      },
+      "BadGateway": {
+        "description": "The relayer could not submit the payment after the authorization was accepted. Surface the message; do not resubmit blindly.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "ok": false,
+              "error": "the relayer could not submit the payment",
+              "message": "insufficient funds for gas"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Payments are not configured on this deployment (no relayer). The intent is still available.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "payments are not configured on this deployment"
             }
           }
         }

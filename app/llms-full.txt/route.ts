@@ -136,13 +136,14 @@ Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agen
 (tool manifest for the Vercel AI SDK, LangChain, OpenAI and Anthropic)
 
 Only /orders executes: it trades through a Hyperliquid agent wallet with
-trading-only rights (it can place and cancel orders, never withdraw). /pay,
-/swap and /invoice prepare something the agent signs itself, because the
-platform holds no keys.
+trading-only rights (it can place and cancel orders, never withdraw). /pay
+prepares an EIP-712 intent and executes when the caller POSTs back a signed
+EIP-3009 authorization (EVM USDC) — the payer's own USDC moves and the relayer
+only pays gas. /swap and /invoice prepare something the agent signs itself.
 
 - GET /state — mode, equity, positions, activity, and the key's policy with spentTodayUsd
 - POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee + remainingTodayUsd
-- POST /pay — { to, amountUsd, token?, chain?, memo? } -> signed-ready transfer intent
+- POST /pay — { to, amountUsd, token?, chain?, memo? } -> an intent + typedData; add the authorization object { ...message, v, r, s } to execute (relayer submits; the payer's own USDC moves)
 - POST /swap — { from, to, amount, amountUsd, slippage? } -> quote + transaction to sign
 - POST /invoice — { to, amount, token?, chain?, description?, expiresInHours? } -> pending invoice + paymentLink (/pay?invoice=...&sig=...); read settlement back with GET /api/invoice?id=...&sig=...
 
@@ -154,9 +155,10 @@ existed keeps all operations at 100/500 until edited.
 
 Errors: 400 malformed, 401 bad key, 403 policy refusal (before execution),
 409 platform guard (positions, daily breakers, funds, unknown market, no route,
-uncertain submission), 429 rate limit (100 requests/minute per IP). An order that
-reaches the venue without a confirmed response is recorded and resolved by
-client-order-id reconciliation — never retried.
+uncertain submission), 429 rate limit (100 requests/minute per IP). Pay adds 502
+(the relayer could not submit) and 503 (payments are not configured on this
+deployment). An order that reaches the venue without a confirmed response is
+recorded and resolved by client-order-id reconciliation — never retried.
 
 Billing: executed trades are metered at PARTNER_FEE_BPS (default 8 bps of
 notional); every order response carries remainingTodayUsd.

@@ -6,7 +6,7 @@ import { TrackView } from "@/components/track-view"
 export const metadata: Metadata = {
   title: "Agent API — an execution layer your agent cannot drain",
   description:
-    "One credential, one policy the server enforces — operations, per-call cap, daily cap, coin allowlist — across five endpoints. Trading executes through a trading-only agent wallet; pay, swap and invoice return what the agent signs itself. Sandbox in paper mode.",
+    "One credential, one policy the server enforces — operations, per-call cap, daily cap, coin allowlist — across five endpoints. Trading executes through a trading-only agent wallet; pay executes with a signed EIP-3009 authorization, and swap/invoice return what the agent signs itself. Sandbox in paper mode.",
   alternates: { canonical: "https://protocolbanks.com/agent-api" },
   openGraph: {
     title: "Agent API — an execution layer your agent cannot drain",
@@ -25,11 +25,11 @@ const POLICY = [
 ]
 
 const ENDPOINTS = [
-  { method: "GET", path: "/state", op: "read", executes: false, note: "mode, equity, positions, activity, policy with spentTodayUsd" },
-  { method: "POST", path: "/orders", op: "trade", executes: true, note: "fill + fee + remainingTodayUsd" },
-  { method: "POST", path: "/pay", op: "pay", executes: false, note: "validated transfer intent to sign" },
-  { method: "POST", path: "/swap", op: "swap", executes: false, note: "quote + transaction to sign" },
-  { method: "POST", path: "/invoice", op: "pay", executes: false, note: "pending invoice + paymentLink" },
+  { method: "GET", path: "/state", op: "read", executesLabel: "—", note: "mode, equity, positions, activity, policy with spentTodayUsd" },
+  { method: "POST", path: "/orders", op: "trade", executesLabel: "yes (agent wallet)", note: "fill + fee + remainingTodayUsd" },
+  { method: "POST", path: "/pay", op: "pay", executesLabel: "optional (signed auth)", note: "EIP-712 intent, or a submitted payment" },
+  { method: "POST", path: "/swap", op: "swap", executesLabel: "no", note: "quote + transaction to sign" },
+  { method: "POST", path: "/invoice", op: "pay", executesLabel: "no", note: "pending invoice + paymentLink" },
 ]
 
 const ERRORS = [
@@ -38,6 +38,8 @@ const ERRORS = [
   { status: "403", meaning: "policy refusal — op, per-call cap, daily cap, allowlist" },
   { status: "409", meaning: "platform guard — positions, breakers, funds, unknown market, no route" },
   { status: "429", meaning: "rate limit (100 requests/minute per IP)" },
+  { status: "502", meaning: "the relayer could not submit the payment (pay only)" },
+  { status: "503", meaning: "payments are not configured on this deployment (pay only)" },
 ]
 
 export default function AgentsPage() {
@@ -52,8 +54,9 @@ export default function AgentsPage() {
         <p className="mt-6 text-lg text-[#6F6B64] leading-relaxed max-w-[62ch]">
           One credential, one <span className="text-[#111111] font-medium">policy the server enforces</span> —
           operations, per-call cap, daily cap, coin allowlist. Five endpoints. Trading executes through a
-          Hyperliquid agent wallet with <span className="text-[#111111] font-medium">trading-only rights</span>; pay,
-          swap and invoice return something the agent signs itself, because the platform holds no keys.
+          Hyperliquid agent wallet with <span className="text-[#111111] font-medium">trading-only rights</span>;
+          pay executes from a signed EIP-3009 authorization, and swap and invoice return what the agent signs
+          itself, because the platform holds no keys.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -169,7 +172,7 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
                       {row.method} {row.path}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{row.op}</td>
-                    <td className="px-4 py-3">{row.executes ? "yes (agent wallet)" : "no"}</td>
+                    <td className="px-4 py-3">{row.executesLabel}</td>
                     <td className="px-4 py-3 text-[#6F6B64]">{row.note}</td>
                   </tr>
                 ))}

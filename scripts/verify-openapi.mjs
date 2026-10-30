@@ -18,7 +18,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const EXPECTED_PATHS = {
   "/v1/agent/state": { verb: "get", statuses: ["200", "401", "403", "409", "429"] },
   "/v1/agent/orders": { verb: "post", statuses: ["200", "400", "401", "403", "409", "429"] },
-  "/v1/agent/pay": { verb: "post", statuses: ["200", "400", "401", "403", "409", "429"] },
+  "/v1/agent/pay": { verb: "post", statuses: ["200", "400", "401", "403", "409", "429", "502", "503"] },
   "/v1/agent/swap": { verb: "post", statuses: ["200", "400", "401", "403", "409", "429"] },
   "/v1/agent/invoice": { verb: "post", statuses: ["200", "400", "401", "403", "409", "429"] },
 }
@@ -117,7 +117,6 @@ for (const [key, expected] of Object.entries(EXPECTED_PATHS)) {
   if (actual.join(",") !== wanted.join(",")) {
     fail(`${key} statuses must be ${wanted.join("/")}, got ${actual.join("/") || "none"}`)
   }
-  if ("503" in responses) fail(`${key} must not document 503`)
 
   for (const status of actual) {
     if (status === "200") continue
