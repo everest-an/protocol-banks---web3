@@ -46,7 +46,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-white mb-1">Company</h3>
-                  <p className="text-sm sm:text-base text-zinc-400">Everest Holdings Group</p>
+                  <p className="text-sm sm:text-base text-zinc-400">Everest Holdings Group Co., Limited</p>
                   <p className="text-zinc-500 text-xs sm:text-sm mt-1">Hong Kong · company details for KYB on request</p>
                 </div>
               </div>
