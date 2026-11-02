@@ -12,8 +12,8 @@ export default function ContactPage() {
             <div>
               <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6 tracking-tight">Contact Us</h1>
               <p className="text-lg sm:text-xl text-zinc-400 max-w-md leading-relaxed">
-                Ready to upgrade your enterprise payment infrastructure? Our team is here to help you integrate Protocol
-                Bank into your workflow.
+                Give your agents a trading and payments account with limits the server enforces. Tell us what you are
+                building and we will map it to the Agent API.
               </p>
             </div>
 
@@ -45,9 +45,9 @@ export default function ContactPage() {
                   <MapPin className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-white mb-1">Headquarters</h3>
-                  <p className="text-sm sm:text-base text-zinc-400">Decentralized Network</p>
-                  <p className="text-zinc-500 text-xs sm:text-sm mt-1">Global Availability</p>
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-1">Company</h3>
+                  <p className="text-sm sm:text-base text-zinc-400">Everest Holdings Group</p>
+                  <p className="text-zinc-500 text-xs sm:text-sm mt-1">Hong Kong · company details for KYB on request</p>
                 </div>
               </div>
             </div>

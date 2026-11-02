@@ -82,3 +82,6 @@ packages/*/dist/
 *.tgz
 
 integrations/*/dist/
+
+# private working notes (KYB, credentials)
+.private/
