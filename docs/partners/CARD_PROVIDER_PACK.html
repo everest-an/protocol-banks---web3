@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Protocol Bank — Card Provider Pack</title>
+<style>
+  @page { size: A4; margin: 17mm 15mm 15mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    color: #111; font-size: 10.2pt; line-height: 1.55;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .cover { min-height: 255mm; display: flex; flex-direction: column; justify-content: center; }
+  .kicker { font-family: "Courier New", monospace; font-size: 9pt; letter-spacing: .14em; text-transform: uppercase; color: #6F6B64; }
+  h1 { font-size: 34pt; line-height: 1.02; letter-spacing: -.02em; margin: 10mm 0 6mm; font-weight: 800; text-transform: uppercase; }
+  h2 { font-size: 14pt; margin: 0 0 4mm; letter-spacing: -.01em; }
+  h3 { font-size: 10.5pt; margin: 6mm 0 2mm; text-transform: uppercase; letter-spacing: .06em; }
+  p { margin: 0 0 3mm; }
+  .lede { font-size: 13pt; color: #333; max-width: 135mm; line-height: 1.45; }
+  .meta { margin-top: 18mm; font-size: 9pt; color: #555; }
+  .meta strong { color: #111; }
+  .rule { height: 1px; background: #111; margin: 6mm 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm 10mm; }
+  .card { border: 1px solid #DDD; padding: 4mm 5mm; }
+  .card .label { font-family: "Courier New", monospace; font-size: 8pt; color: #6F6B64; letter-spacing: .08em; text-transform: uppercase; }
+  .card .value { font-size: 11pt; font-weight: 600; margin-top: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 5mm; font-size: 9pt; }
+  th { text-align: left; font-family: "Courier New", monospace; font-size: 8pt; letter-spacing: .06em; text-transform: uppercase; color: #6F6B64; border-bottom: 1px solid #111; padding: 2mm 2mm; }
+  td { border-bottom: 1px solid #E4E2DD; padding: 2mm 2mm; vertical-align: top; }
+  ul { margin: 0 0 4mm 5mm; padding: 0; }
+  li { margin-bottom: 1.2mm; }
+  .note { border-left: 3px solid #1F7A4D; padding: 2.5mm 4mm; background: #F5FAF7; margin: 3mm 0 5mm; font-size: 9.2pt; }
+  .warn { border-left: 3px solid #8A6116; padding: 2.5mm 4mm; background: #FBF8F0; margin: 3mm 0 5mm; font-size: 9.2pt; }
+  .small { font-size: 8.8pt; color: #555; }
+  .mono { font-family: "Courier New", monospace; font-size: 8.6pt; }
+  .toc { margin-top: 10mm; }
+  .toc div { display: flex; justify-content: space-between; border-bottom: 1px solid #E4E2DD; padding: 2.2mm 0; font-size: 10pt; }
+  .toc span:first-child { color: #111; }
+  .toc span:last-child { color: #6F6B64; font-family: "Courier New", monospace; font-size: 9pt; }
+  .flow { width: 100%; margin: 4mm 0 2mm; }
+  .flow text { font-family: -apple-system, "Segoe UI", Arial, sans-serif; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .two .box { border: 1px solid #DDD; padding: 4mm; }
+  .two h3 { margin-top: 0; }
+  .footer { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid #E4E2DD; font-size: 8pt; color: #6F6B64; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="page cover">
+  <div class="kicker">[ card program · provider pack ]</div>
+  <h1>Protocol Bank<br />Card Program</h1>
+  <p class="lede">One virtual Visa card per AI agent, funded from a provider-held balance, with server-enforced limits and freeze controls. Non-custodial for user crypto.</p>
+  <div class="rule"></div>
+  <div class="grid">
+    <div class="card"><div class="label">Legal entity</div><div class="value">Everest Holdings Group</div><div class="small">Hong Kong</div></div>
+    <div class="card"><div class="label">Product</div><div class="value">Execution + policy for AI agents</div><div class="small">protocolbanks.com</div></div>
+    <div class="card"><div class="label">Program ask</div><div class="value">Card issuing API</div><div class="small">Yativo / Rain</div></div>
+    <div class="card"><div class="label">Custody</div><div class="value">Provider-held card balance</div><div class="small">Platform holds no user crypto</div></div>
+  </div>
+  <div class="meta">
+    <strong>Version 1.0</strong> · November 2026 · Prepared for issuer due diligence<br />
+    Company registration, UBO and bank documents are provided separately in the signed KYB submission.
+  </div>
+  <div class="footer"><span>Protocol Bank · Card Provider Pack</span><span>1</span></div>
+</section>
+
+<!-- CONTENTS + SNAPSHOT -->
+<section class="page">
+  <div class="kicker">[ contents ]</div>
+  <h2>What is in this pack</h2>
+  <div class="toc">
+    <div><span>1. Company snapshot and program ask</span><span>02</span></div>
+    <div><span>2. Security overview</span><span>03</span></div>
+    <div><span>3. AML / KYC policy</span><span>05</span></div>
+    <div><span>4. Card program flow and controls</span><span>07</span></div>
+    <div><span>5. Current status and next steps</span><span>08</span></div>
+  </div>
+
+  <h2 style="margin-top:12mm">1. Company snapshot</h2>
+  <table>
+    <tr><th style="width:34%">Field</th><th>Value</th></tr>
+    <tr><td>Legal entity</td><td>Everest Holdings Group (Hong Kong); exact suffix confirmed in the KYB submission</td></tr>
+    <tr><td>Website</td><td>https://protocolbanks.com</td></tr>
+    <tr><td>Business</td><td>Execution and policy layer for AI agents: one API key, server-enforced operations, per-call cap, daily cap and coin allowlist</td></tr>
+    <tr><td>Product requested</td><td>Card issuing — Yativo virtual Visa / Rain issuing API</td></tr>
+    <tr><td>Use case</td><td>One virtual card per AI agent for APIs, cloud and SaaS, with per-agent limits and freeze/close</td></tr>
+    <tr><td>Funding</td><td>USDC from the platform treasury (Yativo model) or the cardholder's own deposit address (Rain model)</td></tr>
+    <tr><td>Custody</td><td>Provider holds the card balance; Protocol Bank does not custody user crypto</td></tr>
+    <tr><td>Expected volume</td><td>50–200 active agents in the first 3 months; $10k–$50k monthly card load; $50–$200 average ticket</td></tr>
+    <tr><td>Target markets</td><td>Hong Kong / SEA / global — confirmed with the issuer</td></tr>
+    <tr><td>Compliance posture</td><td>Issuer-led KYC/KYB; no anonymous or unhosted cards; sanctions screening at onboarding; platform-side caps and monitoring</td></tr>
+  </table>
+
+  <div class="note"><strong>Why this fits.</strong> The platform already exposes a scoped API key per agent and enforces limits outside the model. The card is the missing spend rail: the same policy that caps a trade can cap a card authorization, and the card balance sits with the issuer, not the platform.</div>
+
+  <h3>What is already built</h3>
+  <ul>
+    <li>Agent API: one credential, five operations, server-enforced policy and audit log.</li>
+    <li>Non-custodial payments: EIP-3009 payer signatures; the relayer only pays gas.</li>
+    <li>Trading: Hyperliquid agent wallet with trading-only rights; cannot withdraw.</li>
+    <li>Card clients: Yativo accounts/virtual cards and Rain card/webhook integrations, with tests.</li>
+    <li>Public source and contract: github.com/everest-an/protocol-banks---web3 · protocolbanks.com/api/agent.openapi.json</li>
+  </ul>
+  <div class="footer"><span>Protocol Bank · Card Provider Pack</span><span>2</span></div>
+</section>
+
+<!-- SECURITY -->
+<section class="page">
+  <div class="kicker">[ security overview ]</div>
+  <h2>2. Security overview</h2>
+  <p class="small">This is a factual overview, not a certification. No SOC 2, ISO 27001 or PCI DSS attestation is claimed; the issuer remains responsible for cardholder data and BIN sponsorship.</p>
+
+  <h3>Architecture</h3>
+  <svg class="flow" viewBox="0 0 700 190" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#111"/></marker>
+    </defs>
+    <rect x="4" y="40" width="130" height="58" fill="#fff" stroke="#111"/>
+    <text x="69" y="64" font-size="11" font-weight="700" text-anchor="middle">AI agent</text>
+    <text x="69" y="80" font-size="9" fill="#555" text-anchor="middle">scoped API key</text>
+    <line x1="134" y1="69" x2="176" y2="69" stroke="#111" marker-end="url(#a)"/>
+    <rect x="178" y="40" width="170" height="58" fill="#fff" stroke="#111"/>
+    <text x="263" y="60" font-size="11" font-weight="700" text-anchor="middle">Protocol Bank policy</text>
+    <text x="263" y="76" font-size="9" fill="#555" text-anchor="middle">ops · per-call cap · daily cap · allowlist</text>
+    <line x1="348" y1="69" x2="390" y2="69" stroke="#111" marker-end="url(#a)"/>
+    <rect x="392" y="40" width="150" height="58" fill="#fff" stroke="#111"/>
+    <text x="467" y="60" font-size="11" font-weight="700" text-anchor="middle">Card provider</text>
+    <text x="467" y="76" font-size="9" fill="#555" text-anchor="middle">KYC · card balance · issuer</text>
+    <line x1="542" y1="69" x2="584" y2="69" stroke="#111" marker-end="url(#a)"/>
+    <rect x="586" y="40" width="110" height="58" fill="#fff" stroke="#111"/>
+    <text x="641" y="64" font-size="11" font-weight="700" text-anchor="middle">Visa</text>
+    <text x="641" y="80" font-size="9" fill="#555" text-anchor="middle">merchant</text>
+    <line x1="69" y1="98" x2="69" y2="132" stroke="#1F7A4D" stroke-dasharray="4 3" marker-end="url(#a)"/>
+    <text x="80" y="120" font-size="9" fill="#1F7A4D">USDC funding (provider balance)</text>
+    <line x1="263" y1="98" x2="263" y2="132" stroke="#8A6116" stroke-dasharray="4 3" marker-end="url(#a)"/>
+    <text x="274" y="120" font-size="9" fill="#8A6116">freeze / close</text>
+    <line x1="467" y1="98" x2="467" y2="132" stroke="#111" stroke-dasharray="4 3" marker-end="url(#a)"/>
+    <text x="478" y="120" font-size="9" fill="#555">webhooks + reconciliation</text>
+    <text x="4" y="168" font-size="8.5" fill="#6F6B64">Platform never holds user crypto or card funds. Trading uses a Hyperliquid trading-only agent wallet and cannot withdraw.</text>
+  </svg>
+
+  <h3>Key management</h3>
+  <ul>
+    <li>Wallet auth: wallet signature, email magic link or OAuth; the wallet address is the account identifier.</li>
+    <li>Custom non-custodial wallet: Shamir 2-of-3 shares (device, server, recovery code); the server cannot reconstruct the key alone.</li>
+    <li>PIN-derived encryption: PBKDF2 (100k iterations) + AES-256-GCM. Private keys are never logged.</li>
+    <li>Trading: Hyperliquid <span class="mono">approveAgent</span> with trading-only rights; cannot withdraw.</li>
+  </ul>
+
+  <h3>Agent API and payments</h3>
+  <ul>
+    <li>API keys: 256-bit random secret, shown once, stored as SHA-256 hash with a short prefix.</li>
+    <li>Policy: allowedOps, maxNotionalUsd, dailyCapUsd, allowedCoins; a key cannot widen its own policy; rate limits and optional IP/origin allowlists.</li>
+    <li>EIP-3009 payments: signer must be the key owner; recipient, amount, chain/token and validity window are checked; on-chain nonce prevents replay.</li>
+    <li>The relayer submits the payer's signed authorization and pays gas; the platform never holds the funds.</li>
+  </ul>
+
+  <h3>Monitoring, incident response, limitations</h3>
+  <ul>
+    <li>Audit events for keys, policy changes, orders, payments and card actions; daily card reconciliation.</li>
+    <li>Incident response: detect → contain (disable keys, freeze cards) → assess → notify → remediate.</li>
+    <li>Known limitations: no third-party certification yet; relayer nonce collision across serverless instances is being hardened; single trading venue; provider holds card funds; no insurance.</li>
+  </ul>
+  <div class="footer"><span>Protocol Bank · Card Provider Pack</span><span>3</span></div>
+</section>
+
+<!-- AML -->
+<section class="page">
+  <div class="kicker">[ aml / kyc ]</div>
+  <h2>3. AML / KYC policy</h2>
+  <p class="small">Draft for issuer and counsel review. The card issuer/partner is the regulated entity that performs cardholder KYC and owns the AML program; this describes the controls Protocol Bank operates on top.</p>
+
+  <h3>Scope and regulatory frame</h3>
+  <ul>
+    <li>Hong Kong AMLO/CTF (Cap. 615), FATF recommendations, applicable sanctions lists, PDPO (Cap. 486).</li>
+    <li>Where jurisdictions differ, the stricter requirement applies. This is not legal advice.</li>
+  </ul>
+
+  <h3>Roles</h3>
+  <table>
+    <tr><th style="width:30%">Role</th><th>Responsibility</th></tr>
+    <tr><td>Card issuer / partner</td><td>Cardholder KYC/KYB, sanctions/PEP screening, BIN sponsorship, card balance custody, issuer monitoring, SAR/STR filing</td></tr>
+    <tr><td>Protocol Bank compliance owner (to be named)</td><td>Onboarding gate, limits, agent/card monitoring, escalation, recordkeeping, annual review</td></tr>
+    <tr><td>Engineering / support</td><td>Server-side caps, freeze controls, audit logs, secure key handling, complaints and escalation</td></tr>
+  </table>
+
+  <h3>Customer due diligence</h3>
+  <ul>
+    <li>Platform account: wallet signature / magic link / OAuth; wallet is the account identifier; a card is requested per agent.</li>
+    <li>Card applicant: provider-run identity verification (ID, liveness where required, address, DOB, nationality) or KYB (legal name, registration, address, directors/UBOs, ownership, source of funds).</li>
+    <li>Risk rating low/medium/high by the issuer; high-risk applicants require EDD and may be declined.</li>
+    <li>No anonymous or unhosted cards; no sanctioned jurisdictions; no prohibited businesses.</li>
+  </ul>
+
+  <h3>Monitoring and limits</h3>
+  <table>
+    <tr><th>Control</th><th>Description</th></tr>
+    <tr><td>Per-agent policy</td><td>Allowed operations, per-call cap, daily cap, coin allowlist</td></tr>
+    <tr><td>Card limit</td><td>Per-card spend limit set at issuance; adjustable by the owner</td></tr>
+    <tr><td>Velocity</td><td>Authorizations per window; repeated declines reviewed</td></tr>
+    <tr><td>Anomalies</td><td>Unusual merchant/geography; freeze/close immediately</td></tr>
+    <tr><td>Reconciliation</td><td>Provider balance and card transactions reconciled daily</td></tr>
+  </table>
+  <p>Suspected money laundering, sanctions hits or fraud are escalated to the issuer's MLRO; the issuer files SARs under its own procedures.</p>
+
+  <h3>Recordkeeping, training, review</h3>
+  <ul>
+    <li>KYC records held by the issuer; platform keeps account/agent/card/limit/transaction records for at least five years.</li>
+    <li>Annual AML/CTF training; annual policy review and after incidents or new countries.</li>
+    <li>Independent review of platform controls before production and every two years.</li>
+  </ul>
+  <div class="footer"><span>Protocol Bank · Card Provider Pack</span><span>4</span></div>
+</section>
+
+<!-- FLOW -->
+<section class="page">
+  <div class="kicker">[ card program flow ]</div>
+  <h2>4. Card program flow</h2>
+
+  <div class="two">
+    <div class="box">
+      <h3>A. Treasury-funded (Yativo)</h3>
+      <p class="small">Owner deposits USDC to the provider; provider credits a USD balance; each agent card has its own limit; the provider authorizes against the provider-held balance; the platform enforces per-agent policy and reconciles webhooks.</p>
+    </div>
+    <div class="box">
+      <h3>B. Per-user deposit (Rain)</h3>
+      <p class="small">Provider runs KYC per cardholder and issues a per-user deposit contract/address; the user/agent funds their own USDC; the card draws from that user's balance; browser-side PAN/CVC decryption; the platform stores no PAN/CVC.</p>
+    </div>
+  </div>
+
+  <h3>Sequence</h3>
+  <table>
+    <tr><th style="width:6%">#</th><th style="width:30%">Step</th><th>Control</th></tr>
+    <tr><td>1</td><td>Agent requests a card</td><td>API key policy and account status checked before the provider call</td></tr>
+    <tr><td>2</td><td>Provider KYC/KYB</td><td>Issuer approves or declines; no card before approval</td></tr>
+    <tr><td>3</td><td>Card issued</td><td>Per-card limit, freeze/close controls, metadata returned</td></tr>
+    <tr><td>4</td><td>Funding</td><td>USDC to provider balance (treasury or per-user deposit); webhook confirms</td></tr>
+    <tr><td>5</td><td>Authorization</td><td>Issuer checks balance and rules; platform policy checked before the request</td></tr>
+    <tr><td>6</td><td>Settlement + webhook</td><td>Daily reconciliation against the platform ledger</td></tr>
+    <tr><td>7</td><td>Freeze / close</td><td>Owner or support action; provider API; audit event</td></tr>
+  </table>
+
+  <h3>Open questions for the provider</h3>
+  <ul>
+    <li>KYC ownership and supported jurisdictions; which entity contracts and which MLRO owns SAR filing.</li>
+    <li>Deposit model (per-user contract vs treasury), supported chains, settlement currency.</li>
+    <li>Card limits, velocity, webhook catalogue/signature/retry, freeze/close latency.</li>
+    <li>PAN/CVC handling and what the platform is allowed to store.</li>
+    <li>Fees, minimum volume, production timeline after KYB.</li>
+  </ul>
+  <div class="footer"><span>Protocol Bank · Card Provider Pack</span><span>5</span></div>
+</section>
+
+<!-- STATUS -->
+<section class="page">
+  <div class="kicker">[ status & next steps ]</div>
+  <h2>5. Current status</h2>
+  <table>
+    <tr><th style="width:22%">Item</th><th>Status</th></tr>
+    <tr><td>Yativo</td><td>Client implemented (accounts, virtual cards, top-up, withdraw). Sandbox host returned 522 during the last check; production keys returned 401 (revoked). Awaiting account/KYB confirmation and reissued keys.</td></tr>
+    <tr><td>Rain</td><td>Client + webhook + tests implemented; application pack prepared; submission blocked on company KYB documents (registration number, address, directors/UBO, bank).</td></tr>
+    <tr><td>Platform</td><td>Agent policy, EIP-3009 payments, trading-only wallet, card controls and webhook receiver are in the codebase; production activation waits on a provider program.</td></tr>
+  </table>
+
+  <h3>What we need from the provider</h3>
+  <ul>
+    <li>Confirmation of the program model and supported jurisdictions.</li>
+    <li>KYB requirements and sandbox access.</li>
+    <li>Card limits, webhooks, PAN/CVC flow and freeze/close semantics.</li>
+    <li>Program agreement, fees and production timeline.</li>
+  </ul>
+
+  <h3>What the provider receives separately</h3>
+  <ul>
+    <li>Certificate of incorporation, BR/CI, registered address and proof of address.</li>
+    <li>Directors/UBO details and corporate bank account.</li>
+    <li>Signed application and program agreement.</li>
+  </ul>
+
+  <div class="warn"><strong>Not legal advice.</strong> The AML/KYC policy and security overview are drafts for issuer and counsel review. No certification (SOC 2, ISO 27001, PCI DSS) is claimed. The issuer remains responsible for cardholder data, BIN sponsorship and regulatory reporting.</div>
+
+  <div class="footer"><span>Protocol Bank · Card Provider Pack</span><span>6</span></div>
+</section>
+
+</body>
+</html>
