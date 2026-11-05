@@ -36,9 +36,9 @@ const aeonik = localFont({
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" })
 
 export const metadata: Metadata = {
-  title: "Protocol Bank — Execution + policy for AI agents",
+  title: "Protocol Bank — The control plane for agent money",
   description:
-    "One API key, one server-enforced policy, five endpoints. Trade through a trading-only Hyperliquid wallet; pay and swap return what the agent signs itself.",
+    "One API key per agent, server-enforced limits and audit across trading, payments and cards. Non-custodial; bring your own strategy.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -61,8 +61,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    title: "Protocol Bank — Execution + policy for AI agents",
-    description: "One API key. One server-enforced cap. Five endpoints.",
+    title: "Protocol Bank — The control plane for agent money",
+    description: "One key per agent. Server-enforced limits. Audit on every call.",
     siteName: "Protocol Bank",
     url: "https://protocolbanks.com",
     images: [
@@ -70,15 +70,15 @@ export const metadata: Metadata = {
         url: "https://protocolbanks.com/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Protocol Bank — execution + policy for AI agents.",
+        alt: "Protocol Bank — the control plane for agent money.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Protocol Bank — Execution + policy for AI agents",
+    title: "Protocol Bank — The control plane for agent money",
     description:
-      "Give an AI agent a trading account with a cap the model cannot raise. Non-custodial; the agent wallet can trade, never withdraw.",
+      "Give an agent money it can use but never drain: server-enforced caps, allowlists and audit across trading, payments and cards.",
     images: ["https://protocolbanks.com/og-image.png"],
   },
 }
@@ -123,7 +123,7 @@ export default function RootLayout({
                   url: "https://protocolbanks.com",
                   inLanguage: "en",
                   description:
-                    "Execution and policy infrastructure for AI agents on Hyperliquid. One API key, server-enforced caps, non-custodial.",
+                    "The control plane for agent money: one key per agent, server-enforced limits, non-custodial execution and audit.",
                 },
                 {
                   "@type": "SoftwareApplication",
@@ -134,7 +134,7 @@ export default function RootLayout({
                   inLanguage: "en",
                   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
                   description:
-                    "One API key gives an AI agent a trading account under a server-enforced policy: operations, per-call cap, daily cap and coin allowlist. Trading runs through a trading-only Hyperliquid wallet; the platform holds no funds.",
+                    "One API key gives an agent a trading and payments account under a server-enforced policy: operations, per-call cap, daily cap and allowlist. Trading runs through a trading-only wallet; payments execute only from a signed authorization; the platform holds no funds.",
                 },
                 {
                   "@type": "Organization",
@@ -143,7 +143,7 @@ export default function RootLayout({
                   inLanguage: "en",
                   logo: "https://protocolbanks.com/logo.png",
                   description:
-                    "Protocol Bank builds execution and policy infrastructure for AI agents: non-custodial trading-only wallets, server-enforced caps and an open client.",
+                    "Protocol Bank builds the control plane for agent money: scoped keys, server-enforced limits, non-custodial execution and audit across trading, payments and cards.",
                 },
               ],
             }),
