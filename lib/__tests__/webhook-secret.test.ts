@@ -25,8 +25,10 @@ describe("webhook secret encryption", () => {
 
   it("rejects tampered ciphertext", () => {
     const encrypted = encryptWebhookSecret("whsec_secret")!
-    const tampered = encrypted.slice(0, -2) + "00"
-    expect(decryptWebhookSecret(tampered)).toBeNull()
+    const parts = encrypted.split(":")
+    const ciphertext = parts[3]
+    parts[3] = (ciphertext[0] === "0" ? "1" : "0") + ciphertext.slice(1)
+    expect(decryptWebhookSecret(parts.join(":"))).toBeNull()
   })
 
   it("returns null when no server key is configured", () => {
