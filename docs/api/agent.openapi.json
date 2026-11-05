@@ -283,15 +283,20 @@
                     "value": {
                       "ok": true,
                       "payment": {
+                        "id": "pay_01J8Z3K4M5N6P7Q8R9S0T1V2W3",
                         "txHash": "0x9f1c2a7e1b2c4d5e8f901a2b3c4d5e6f7a8b9c0d1e2f30415263748596a7b8c9",
-                        "status": "submitted",
+                        "status": "confirmed",
                         "from": "0x1111111111111111111111111111111111111111",
                         "to": "0x000000000000000000000000000000000000dEaD",
                         "amountUsd": 25,
                         "token": "USDC",
-                        "chain": "base"
+                        "chain": "base",
+                        "memo": null,
+                        "error": null,
+                        "createdAt": "2026-10-30T21:04:11.000Z",
+                        "confirmedAt": "2026-10-30T21:04:13.000Z"
                       },
-                      "note": "submitted by the relayer from the payer's signed authorization; the platform never holds funds",
+                      "note": "confirmed on-chain; the payer's own USDC moved and the relayer paid gas",
                       "remainingTodayUsd": 75
                     }
                   }
@@ -669,6 +674,13 @@
           },
           "policy": {
             "$ref": "#/components/schemas/PolicyState"
+          },
+          "payments": {
+            "type": "array",
+            "description": "The owner's recent agent payments, newest first.",
+            "items": {
+              "$ref": "#/components/schemas/Payment"
+            }
           }
         }
       },
@@ -1392,8 +1404,9 @@
       },
       "Payment": {
         "type": "object",
-        "description": "A submitted on-chain payment. The authorization moves the payer's own USDC; the relayer only pays gas.",
+        "description": "A submitted, confirmed or failed on-chain payment. The authorization moves the payer's own USDC; the relayer only pays gas.",
         "required": [
+          "id",
           "txHash",
           "status",
           "from",
@@ -1403,13 +1416,20 @@
           "chain"
         ],
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Durable payment id; use it to correlate webhooks."
+          },
           "txHash": {
             "type": "string"
           },
           "status": {
             "type": "string",
             "enum": [
-              "submitted"
+              "pending",
+              "submitted",
+              "confirmed",
+              "failed"
             ]
           },
           "from": {
@@ -1426,6 +1446,41 @@
           },
           "chain": {
             "type": "string"
+          },
+          "memo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       }

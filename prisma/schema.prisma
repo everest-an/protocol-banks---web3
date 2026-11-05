@@ -274,6 +274,7 @@ model Webhook {
   owner_address String
   events        String[]
   secret_hash   String
+  secret_encrypted String?
   is_active     Boolean  @default(true)
   retry_count   Int      @default(3)
   timeout_ms    Int      @default(30000)
@@ -284,6 +285,30 @@ model Webhook {
 
   @@index([owner_address])
   @@map("webhooks")
+}
+
+model AgentPayment {
+  id            String   @id @default(cuid())
+  owner_address String
+  from_address  String
+  to_address    String
+  token         String
+  chain         String
+  chain_id      Int
+  amount_usd    Float
+  amount_units  String
+  nonce         String   @unique
+  tx_hash       String?  @unique
+  status        String   @default("pending")
+  error         String?
+  memo          String?
+  created_at    DateTime @default(now())
+  confirmed_at  DateTime?
+  updated_at    DateTime @updatedAt
+
+  @@index([owner_address, created_at])
+  @@index([status, created_at])
+  @@map("agent_payments")
 }
 
 model WebhookDelivery {

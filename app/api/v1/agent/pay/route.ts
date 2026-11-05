@@ -2,8 +2,19 @@ import { NextResponse } from "next/server"
 import { withAgentAuth, type AgentRequest } from "@/lib/agent/auth"
 import { evaluatePolicy } from "@/lib/agent/policy"
 import { buildPaymentIntent, verifyPaymentAuthorization } from "@/lib/agent/pay"
+import {
+  createAgentPayment,
+  getAgentPaymentByNonce,
+  getTransferStatus,
+  markAgentPaymentConfirmed,
+  markAgentPaymentFailed,
+  markAgentPaymentSubmitted,
+  paymentEventData,
+  paymentView,
+} from "@/lib/agent/payment-store"
 import { getTokenAddress } from "@/lib/erc3009"
 import { submitTransferWithAuthorization } from "@/lib/services/relayer-submit"
+import { webhookTriggerService } from "@/lib/services/webhook-trigger-service"
 import { recordEvent } from "@/lib/analytics/events"
 
 /**
@@ -110,6 +121,38 @@ async function handler(request: AgentRequest) {
       return NextResponse.json({ error: `missing token address for ${checked.token}` }, { status: 400 })
     }
 
+    const existing = await getAgentPaymentByNonce(authorization.nonce)
+    if (existing) {
+      return NextResponse.json({
+        ok: true,
+        payment: paymentView(existing),
+        note: "this authorization nonce was already submitted",
+        remainingTodayUsd: remaining(amountUsd),
+      })
+    }
+
+    const { payment: record, created } = await createAgentPayment({
+      ownerAddress: wallet,
+      fromAddress: authorization.from,
+      toAddress: to,
+      token: checked.token,
+      chain,
+      chainId: checked.chainId,
+      amountUsd,
+      amountUnits: checked.value.toString(),
+      nonce: authorization.nonce,
+      memo,
+    })
+
+    if (!created) {
+      return NextResponse.json({
+        ok: true,
+        payment: paymentView(record),
+        note: "this authorization nonce was already submitted",
+        remainingTodayUsd: remaining(amountUsd),
+      })
+    }
+
     try {
       const txHash = await submitTransferWithAuthorization({
         chainId: checked.chainId,
@@ -125,6 +168,18 @@ async function handler(request: AgentRequest) {
         s: checked.s,
       })
 
+      const submitted = await markAgentPaymentSubmitted(record.id, txHash)
+      const chainStatus = await getTransferStatus(checked.chainId, txHash)
+
+      let final = submitted
+      if (chainStatus === "confirmed") {
+        final = await markAgentPaymentConfirmed(record.id)
+        void webhookTriggerService.triggerPaymentCompleted(wallet, paymentEventData(final))
+      } else if (chainStatus === "failed") {
+        final = await markAgentPaymentFailed(record.id, "transaction reverted")
+        void webhookTriggerService.triggerPaymentFailed(wallet, paymentEventData(final))
+      }
+
       void recordEvent({
         name: "agent_op",
         wallet,
@@ -133,6 +188,7 @@ async function handler(request: AgentRequest) {
           notionalUsd: Number(amountUsd.toFixed(2)),
           fee: 0,
           txHash,
+          paymentId: final.id,
           token: checked.token,
           chain,
           mode: "onchain",
@@ -141,20 +197,21 @@ async function handler(request: AgentRequest) {
 
       return NextResponse.json({
         ok: true,
-        payment: {
-          txHash,
-          status: "submitted",
-          from: wallet,
-          to,
-          amountUsd,
-          token: checked.token,
-          chain,
-        },
-        note: "submitted by the relayer from the payer's signed authorization; the platform never holds funds",
+        payment: paymentView(final),
+        note:
+          chainStatus === "confirmed"
+            ? "confirmed on-chain; the payer's own USDC moved and the relayer paid gas"
+            : chainStatus === "failed"
+              ? "submitted but reverted on-chain"
+              : "submitted; the reconciler will confirm the receipt",
         remainingTodayUsd: remaining(amountUsd),
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      const failed = await markAgentPaymentFailed(record.id, message).catch(() => null)
+      if (failed) {
+        void webhookTriggerService.triggerPaymentFailed(wallet, paymentEventData(failed))
+      }
       if (/authorization is used|already used|invalid signature|expired/i.test(message)) {
         return NextResponse.json({ ok: false, error: message.slice(0, 300) }, { status: 409 })
       }

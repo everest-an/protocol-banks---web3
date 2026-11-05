@@ -5,6 +5,7 @@
 
 import { createHash, randomBytes, createHmac } from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { encryptWebhookSecret } from './webhook-secret';
 
 // ============================================
 // Types
@@ -31,6 +32,7 @@ export interface Webhook {
   owner_address: string;
   events: WebhookEvent[];
   secret_hash: string;
+  secret_encrypted?: string | null;
   is_active: boolean;
   retry_count: number;
   timeout_ms: number;
@@ -165,6 +167,7 @@ export class WebhookService {
         owner_address: input.owner_address.toLowerCase(),
         events: input.events,
         secret_hash: secretHash,
+        secret_encrypted: encryptWebhookSecret(secret),
         is_active: true,
         retry_count: input.retry_count ?? DEFAULT_RETRY_COUNT,
         timeout_ms: input.timeout_ms ?? DEFAULT_TIMEOUT_MS,

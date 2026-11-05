@@ -272,6 +272,7 @@ const EN: DocPage[] = [
           '  "ok": true, "mode": "paper",',
           '  "account": { "totalEquity": 500, "tradingWallet": 500, "maxLoss": 500 },',
           '  "positions": [], "activity": [],',
+          '  "payments": [],',
           '  "policy": { "allowedOps": ["read","trade"], "maxNotionalUsd": 50, "dailyCapUsd": 200, "allowedCoins": [], "spentTodayUsd": 0 }',
           "}",
         ].join("\n"),
@@ -296,6 +297,10 @@ const EN: DocPage[] = [
       {
         kind: "p",
         text: "Without a signature this returns an intent (kind, to, token, chain, amountUsd, remainingTodayUsd) plus the EIP-712 typedData to sign. Sign it, then POST the signed EIP-3009 message back as `authorization` with v/r/s and the relayer submits transferWithAuthorization — the payer's own USDC moves; the platform only pays gas. Execution is available for EVM USDC; Solana and non-3009 tokens stay prepare-only.",
+      },
+      {
+        kind: "p",
+        text: "Executed payments are persisted before submission and advance pending → submitted → confirmed (or failed). `GET /state` returns the last 10 with their id/status; terminal states emit `payment.completed` / `payment.failed` webhooks, signed with the webhook secret.",
       },
       { kind: "h3", text: "POST /swap" },
       {
@@ -585,6 +590,7 @@ const ZH: DocPage[] = [
           '  "ok": true, "mode": "paper",',
           '  "account": { "totalEquity": 500, "tradingWallet": 500, "maxLoss": 500 },',
           '  "positions": [], "activity": [],',
+          '  "payments": [],',
           '  "policy": { "allowedOps": ["read","trade"], "maxNotionalUsd": 50, "dailyCapUsd": 200, "allowedCoins": [], "spentTodayUsd": 0 }',
           "}",
         ].join("\n"),
@@ -609,6 +615,10 @@ const ZH: DocPage[] = [
       {
         kind: "p",
         text: "不带签名时返回意图（kind、to、token、chain、amountUsd、remainingTodayUsd）以及待签名的 EIP-712 typedData。签名后把 EIP-3009 消息连同 v/r/s 作为 `authorization` 回传，relayer 提交 transferWithAuthorization —— 移动的是付款人自己的 USDC，平台只付 gas。仅支持 EVM USDC；Solana 与非 3009 代币保持“只准备”。",
+      },
+      {
+        kind: "p",
+        text: "执行后的支付会在提交前落库，状态依次为 pending → submitted → confirmed（或 failed）。`GET /state` 返回最近 10 笔的 id/状态；终态会发出 `payment.completed` / `payment.failed` webhook，用 webhook secret 签名。",
       },
       { kind: "h3", text: "POST /swap" },
       {

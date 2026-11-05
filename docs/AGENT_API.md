@@ -98,9 +98,14 @@ The account behind the key, plus what the policy still allows today.
   "account": { "totalEquity": 521.55, "tradingWallet": 521.55, "maxLoss": 521.55, "todayPnl": 0 },
   "positions": [],
   "activity": [{ "time": "…", "type": "info", "text": "Paper account ready…" }],
+  "payments": [],
   "policy": { "allowedOps": ["read", "trade"], "maxNotionalUsd": 100, "dailyCapUsd": 250, "allowedCoins": [], "spentTodayUsd": 0 }
 }
 ```
+
+`payments` is the owner's recent `pay` history (newest first): `id`, `txHash`,
+`status` (`pending` / `submitted` / `confirmed` / `failed`), amount, token,
+chain, and timestamps. Use the `id` to correlate webhooks.
 
 ### `POST /api/v1/agent/orders`
 
@@ -159,8 +164,21 @@ key's policy, and returns an intent plus the EIP-712 `typedData` to sign.
 ```json
 {
   "ok": true,
-  "payment": { "txHash": "0x…", "status": "submitted", "from": "0xabc…", "to": "0xabc…", "amountUsd": 25, "token": "USDC", "chain": "base" },
-  "note": "submitted by the relayer from the payer's signed authorization; the platform never holds funds",
+  "payment": {
+    "id": "pay_…",
+    "txHash": "0x…",
+    "status": "confirmed",
+    "from": "0xabc…",
+    "to": "0xabc…",
+    "amountUsd": 25,
+    "token": "USDC",
+    "chain": "base",
+    "memo": "invoice 41",
+    "error": null,
+    "createdAt": "2026-10-30T21:04:11.000Z",
+    "confirmedAt": "2026-10-30T21:04:13.000Z"
+  },
+  "note": "confirmed on-chain; the payer's own USDC moved and the relayer paid gas",
   "remainingTodayUsd": 75
 }
 ```
@@ -168,9 +186,27 @@ key's policy, and returns an intent plus the EIP-712 `typedData` to sign.
 The authorization moves the payer's own USDC; the relayer only pays gas. The
 signed `from` must be the key's owner, and the recipient/amount must match the
 request. Execution is available for **EVM USDC** on the supported chains;
-Solana and non-3009 tokens stay prepare-only. A nonce that was already used
+Solana and non-3009 tokens stay prepare-only. A repeated nonce returns the
+existing payment (idempotent); an authorization that was already used on-chain
 answers `409`. A destination must be an EVM (`0x` + 40 hex) or Solana (base58
 32–44) address.
+
+Every executed payment is **persisted** before submission and advanced through
+`pending → submitted → confirmed` (or `failed`). The reconciler checks the
+receipt and emits a webhook; `GET /state` returns the last 10 payments.
+
+### Webhooks
+
+Register a webhook under Settings → Webhooks and subscribe to
+`payment.completed` and/or `payment.failed` (the same events used by the legacy
+payment rails). The payload `data` includes `payment_id`, `from_address`,
+`to_address`, `amount`, `token_symbol`, `chain_id`, `tx_hash`, `status` and
+`created_at`.
+
+Headers: `X-Webhook-Event`, `X-Webhook-ID`, `X-Webhook-Timestamp`, and
+`X-Webhook-Signature` = HMAC-SHA256 of `${timestamp}.${rawBody}` using the
+webhook secret shown once at creation. Deliveries retry with backoff; treat the
+event as at-least-once and de-duplicate by `payment_id` + `status`.
 
 ### `POST /api/v1/agent/swap`
 

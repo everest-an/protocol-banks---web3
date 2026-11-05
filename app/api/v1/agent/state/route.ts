@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { withAgentAuth, type AgentRequest } from "@/lib/agent/auth"
+import { listRecentAgentPayments } from "@/lib/agent/payment-store"
 import { resolveAgentForWallet } from "@/lib/trading/agent"
 
 /**
@@ -12,9 +13,11 @@ export const dynamic = "force-dynamic"
 async function handler(request: AgentRequest) {
   const policy = request.agentPolicy!
   const agent = await resolveAgentForWallet(request.ownerAddress as string)
+  const payments = await listRecentAgentPayments(request.ownerAddress as string, 10)
   return NextResponse.json({
     ok: true,
     ...agent.toOverview(),
+    payments,
     policy: {
       allowedOps: policy.allowedOps,
       maxNotionalUsd: policy.maxNotionalUsd,

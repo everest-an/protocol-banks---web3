@@ -40,6 +40,14 @@
     {
       "path": "/api/cron/x-post",
       "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/agent-payments",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/webhooks",
+      "schedule": "*/2 * * * *"
     }
   ]
 }

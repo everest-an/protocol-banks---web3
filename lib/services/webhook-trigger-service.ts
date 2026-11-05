@@ -4,6 +4,7 @@
  */
 
 import { WebhookService, type WebhookEvent, generateWebhookSignature } from './webhook-service';
+import { decryptWebhookSecret } from './webhook-secret';
 
 // Lazy prisma import to avoid bundling pg in client components
 const getPrisma = () => import('@/lib/prisma').then((m) => m.prisma);
@@ -216,9 +217,11 @@ export async function processWebhookDeliveries(): Promise<{ processed: number; s
         const timestamp = Math.floor(Date.now() / 1000).toString();
         const signaturePayload = `${timestamp}.${payloadStr}`;
         
-        // Note: In production, we'd need to retrieve the actual secret
-        // For now, we sign with the hash (this is a simplification)
-        const signature = generateWebhookSignature(signaturePayload, webhook.secret_hash);
+        // Sign with the original secret (encrypted at rest for new webhooks).
+        // Legacy rows have no secret_encrypted; fall back to the old hash-derived
+        // signature so existing deliveries keep working until re-created.
+        const signingSecret = decryptWebhookSecret(webhook.secret_encrypted) || webhook.secret_hash;
+        const signature = generateWebhookSignature(signaturePayload, signingSecret);
 
         // Send webhook
         const controller = new AbortController();
