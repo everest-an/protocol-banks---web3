@@ -2,11 +2,11 @@
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Crypto Paper Trading: Practice With Real Market Data (2026)",
+  title: "Crypto Paper Trading: A Sandbox for Agent Builders (2026)",
   description:
     "What crypto paper trading is, why it's the safest way to test an AI trading agent, and how to paper trade on real Hyperliquid market data with simulated money.",
   openGraph: {
-    title: "Crypto Paper Trading: Practice With Real Market Data",
+    title: "Crypto Paper Trading: A Sandbox for Agent Builders",
     description:
       "Paper trading runs an AI agent on live market data with simulated money — the zero-risk way to validate a strategy before going live.",
   },
@@ -51,7 +51,7 @@ export default function PaperTradingGuide() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Crypto Paper Trading: Practice With Real Market Data
+          Crypto Paper Trading: A Sandbox for Agent Builders
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
 
@@ -96,14 +96,14 @@ export default function PaperTradingGuide() {
           <section>
             <h2 className="text-2xl font-bold mb-3">How to paper trade with Protocol Bank</h2>
             <ol className="list-decimal pl-6 space-y-2">
-              <li>Open the AI trading cockpit — no wallet needed for the demo account.</li>
+              <li>Open the demo cockpit — no wallet needed for the demo account.</li>
               <li>The agent scans real Hyperliquid markets and executes simulated trades automatically.</li>
               <li>Watch the plain-language activity feed: every entry, exit, and risk decision explained.</li>
               <li>Connect your wallet for your own private paper account before considering live mode.</li>
             </ol>
             <p className="mt-3">
-              <Link href="/trading" className="text-primary underline">
-                Start paper trading →
+              <Link href="/agent-api" className="text-primary underline">
+                Try the sandbox →
               </Link>
             </p>
           </section>

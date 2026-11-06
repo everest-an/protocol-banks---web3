@@ -2,11 +2,11 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "AI Crypto Trading: The Beginner's Guide (2026)",
+  title: "AI Crypto Trading: A Builder's Guide to Agent Controls (2026)",
   description:
     "How non-custodial AI crypto trading bots work, the safety guardrails that protect your funds, and how to start with paper trading on real market data.",
   openGraph: {
-    title: "AI Crypto Trading: The Beginner's Guide (2026)",
+    title: "AI Crypto Trading: A Builder's Guide to Agent Controls (2026)",
     description:
       "How non-custodial AI trading works: trading-only agent wallets, risk guardrails, and how to start paper trading on real market data.",
   },
@@ -59,7 +59,7 @@ export default function AiCryptoTradingGuide() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          AI Crypto Trading: The Beginner&apos;s Guide
+          AI Crypto Trading: What Builders Need to Know
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 
@@ -135,8 +135,8 @@ export default function AiCryptoTradingGuide() {
               it scan, trade, and explain itself for a week. If you like what you see, go live with a small budget.
             </p>
             <p className="mt-3">
-              <Link href="/trading" className="text-primary underline">
-                Open the AI trading cockpit →
+              <Link href="/agent-api" className="text-primary underline">
+                Build with the Agent API →
               </Link>
             </p>
           </section>

@@ -2,11 +2,11 @@
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Hyperliquid Trading Bot: Non-Custodial AI Automation Explained",
+  title: "Hyperliquid Trading Bot: Non-Custodial Agent Execution",
   description:
     "How Hyperliquid agent wallets enable non-custodial trading bots: approveAgent permissions, momentum and funding-carry signals, and how to run an AI trading agent with paper trading first.",
   openGraph: {
-    title: "Hyperliquid Trading Bot: Non-Custodial AI Automation",
+    title: "Hyperliquid Trading Bot: Non-Custodial Agent Execution",
     description:
       "How trading-only agent wallets on Hyperliquid let an AI trade your budget without ever being able to withdraw it.",
   },
@@ -51,7 +51,7 @@ export default function HyperliquidBotGuide() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Hyperliquid Trading Bot: Non-Custodial AI Automation Explained
+          Hyperliquid Trading Bot: Non-Custodial Agent Execution
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 
@@ -118,8 +118,8 @@ export default function HyperliquidBotGuide() {
               model, zero risk. Watch it for a week before going live.
             </p>
             <p className="mt-3">
-              <Link href="/trading" className="text-primary underline">
-                Try it free →
+              <Link href="/agent-api" className="text-primary underline">
+                Build with the Agent API →
               </Link>{" "}
               ·{" "}
               <Link href="/guides/ai-crypto-trading" className="text-primary underline">

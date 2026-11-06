@@ -2,11 +2,11 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Is AI Trading Safe? Non-Custodial Bots Explained (2026)",
+  title: "Is AI Trading Safe? Trading-Only Permissions for Agents",
   description:
     "How a non-custodial AI trading agent protects your funds: trading-only permissions, stop-losses, circuit breakers, and why the AI can never withdraw your crypto.",
   openGraph: {
-    title: "Is AI Trading Safe? Non-Custodial Trading Bots Explained",
+    title: "Is AI Trading Safe? Trading-Only Permissions for Agents",
     description:
       "The safety architecture of non-custodial AI trading: trading-only agent wallets, per-trade stop-losses, daily circuit breakers, and instant revocation.",
   },
@@ -51,7 +51,7 @@ export default function AiTradingSafetyGuide() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Is AI Trading Safe? How Non-Custodial Bots Protect Your Crypto
+          Is AI Trading Safe? Trading-Only Permissions, Explained
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
 
@@ -116,8 +116,8 @@ export default function AiTradingSafetyGuide() {
               reason, and risk decision for a week before risking anything.
             </p>
             <p className="mt-3">
-              <Link href="/trading" className="text-primary underline">
-                Try paper trading →
+              <Link href="/agent-api" className="text-primary underline">
+                Get an API key →
               </Link>{" "}
               ·{" "}
               <Link href="/guides/ai-crypto-trading" className="text-primary underline">

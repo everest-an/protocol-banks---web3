@@ -2,11 +2,11 @@
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "AI Trading Strategies Explained: Momentum, Funding Carry & More",
+  title: "AI Trading Strategies Explained: For Agent Builders",
   description:
     "How AI trading strategies actually work: momentum scores, funding-rate carry, mean reversion, and the risk controls that separate a real system from a black box.",
   openGraph: {
-    title: "AI Trading Strategies Explained (Momentum, Funding Carry)",
+    title: "AI Trading Strategies Explained: For Agent Builders",
     description:
       "The signals behind AI trading: risk-adjusted momentum, funding-rate carry, and why transparent strategies beat black boxes.",
   },
@@ -74,7 +74,7 @@ export default function StrategiesGuide() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          AI Trading Strategies Explained
+          AI Trading Strategies: What an Agent Can Execute
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 

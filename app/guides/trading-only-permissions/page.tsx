@@ -2,11 +2,11 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Trading-Only Permissions: The Safety Bedrock of AI Trading",
+  title: "Trading-Only Permissions: Safety Bedrock for Agent Wallets",
   description:
     "How Hyperliquid's approveAgent lets an AI trade your funds without ever being able to withdraw them — the architecture that makes non-custodial AI trading safe.",
   openGraph: {
-    title: "Trading-Only Permissions: Why AI Trading Doesn't Need Your Trust",
+    title: "Trading-Only Permissions: Safety Bedrock for Agent Wallets",
     description:
       "The key custody design that separates trading rights from withdrawal rights, so an AI agent's worst case is the budget you approve.",
   },
@@ -51,7 +51,7 @@ export default function TradingOnlyPermissionsGuide() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Trading-Only Permissions: The Safety Bedrock of AI Trading
+          Trading-Only Permissions: Safety Bedrock for Agent Wallets
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: September 2026 · 6 min read</p>
 

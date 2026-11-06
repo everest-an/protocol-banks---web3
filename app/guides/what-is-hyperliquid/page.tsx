@@ -2,11 +2,11 @@
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "What is Hyperliquid? The Perp DEX Behind AI Trading Bots",
+  title: "What is Hyperliquid? The Venue Behind Agent Trading",
   description:
     "Hyperliquid explained: a performant Layer 1 for perpetual futures with deep liquidity, agent wallets with trading-only permissions, and why it's the natural venue for AI trading.",
   openGraph: {
-    title: "What is Hyperliquid? Perp DEX and Agent Wallets Explained",
+    title: "What is Hyperliquid? The Venue Behind Agent Trading",
     description:
       "How Hyperliquid's agent wallet system enables non-custodial AI trading with trading-only permissions.",
   },
@@ -51,7 +51,7 @@ export default function HyperliquidGuide() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          What is Hyperliquid? The Perp DEX Behind AI Trading Bots
+          What is Hyperliquid? The Venue Behind Agent Trading
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
 
@@ -110,8 +110,8 @@ export default function HyperliquidGuide() {
               data with simulated money:
             </p>
             <p className="mt-3">
-              <Link href="/trading" className="text-primary underline">
-                Start paper trading →
+              <Link href="/agent-api" className="text-primary underline">
+                Try the sandbox →
               </Link>{" "}
               ·{" "}
               <Link href="/guides/hyperliquid-trading-bot" className="text-primary underline">

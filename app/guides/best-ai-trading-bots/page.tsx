@@ -2,11 +2,11 @@
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Best AI Trading Bots 2026: Non-Custodial vs Custodial Compared",
+  title: "Best AI Trading Bots 2026: Non-Custodial Agent Controls",
   description:
     "How to evaluate AI trading bots in 2026: custody model, withdrawal rights, strategy transparency, and risk controls. Non-custodial agents vs custodial funds compared.",
   openGraph: {
-    title: "Best AI Trading Bots 2026: What Actually Matters",
+    title: "Best AI Trading Bots 2026: Non-Custodial Agent Controls",
     description:
       "The evaluation framework for AI trading bots: who holds your funds, can the bot withdraw, is the strategy transparent, and what risk controls exist.",
   },
@@ -79,7 +79,7 @@ export default function BestBotsGuide() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Best AI Trading Bots 2026: What Actually Matters
+          Best AI Trading Bots 2026: Non-Custodial Agent Controls
         </h1>
         <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
 
@@ -155,7 +155,7 @@ export default function BestBotsGuide() {
               caps, daily circuit breakers).
             </p>
             <p className="mt-3">
-              <Link href="/trading" className="text-primary underline">
+              <Link href="/agent-api" className="text-primary underline">
                 Judge it yourself — paper trading is free →
               </Link>
             </p>
