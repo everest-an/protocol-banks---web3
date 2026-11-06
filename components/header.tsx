@@ -71,7 +71,7 @@ export function Header() {
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden text-muted-foreground shrink-0">
+              <Button variant="ghost" size="icon" className="xl:hidden text-muted-foreground shrink-0">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
@@ -165,9 +165,9 @@ export function Header() {
         </div>
 
         {/* Desktop Navigation — clean links */}
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden xl:flex items-center gap-0.5">
           {navItems
-            .filter((item) => item.href !== "/products")
+            .filter((item) => item.href !== "/products" && item.href !== "/live-track-record")
             .map((item) => {
               const Icon = item.icon
               const isActive = isActivePath(item.href)
@@ -175,7 +175,7 @@ export function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
+                  className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
                     isActive
                       ? "text-foreground font-medium bg-white/10 dark:bg-white/5"
                       : "text-muted-foreground hover:text-foreground hover:bg-white/5 dark:hover:bg-white/5"

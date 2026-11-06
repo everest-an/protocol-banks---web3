@@ -4,12 +4,12 @@ import { ArrowRight } from "lucide-react"
 import { TrackView } from "@/components/track-view"
 
 export const metadata: Metadata = {
-  title: "Agent API — an execution layer your agent cannot drain",
+    title: "Agent API — the control plane for agent money",
   description:
     "One credential, one policy the server enforces — operations, per-call cap, daily cap, coin allowlist — across five endpoints. Trading executes through a trading-only agent wallet; pay executes with a signed EIP-3009 authorization, and swap/invoice return what the agent signs itself. Sandbox in paper mode.",
   alternates: { canonical: "https://protocolbanks.com/agent-api" },
   openGraph: {
-    title: "Agent API — an execution layer your agent cannot drain",
+  title: "Agent API — the control plane for agent money",
     description:
       "One credential, one server-enforced policy. Give an AI agent a trading budget it cannot exceed and a key it cannot widen.",
     url: "https://protocolbanks.com/agent-api",
@@ -49,7 +49,7 @@ export default function AgentsPage() {
       <div className="mx-auto w-full max-w-6xl md:border-x border-[#E4E2DD] px-6 md:px-10 py-16 sm:py-20">
         <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ agent api ]</p>
         <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05] uppercase max-w-3xl">
-          Your agent can trade. It can never drain the account.
+          Your agent can move money. It can never drain the account.
         </h1>
         <p className="mt-6 text-lg text-[#6F6B64] leading-relaxed max-w-[62ch]">
           One credential, one <span className="text-[#111111] font-medium">policy the server enforces</span> —

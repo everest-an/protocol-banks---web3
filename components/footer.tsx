@@ -16,7 +16,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-              AI automated trading for everyone — your agent works the markets, you keep control.
+              The control plane for agent money — one key per agent, server-enforced limits, non-custodial.
             </p>
           </div>
 
@@ -77,7 +77,7 @@ export function Footer() {
                   className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
                 >
                   <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
-                  <span className="truncate">Live Track Record</span>
+                  <span className="truncate">Track Record</span>
                 </Link>
               </li>
               <li>

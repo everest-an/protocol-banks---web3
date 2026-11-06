@@ -119,7 +119,7 @@ export default function PricingPage() {
           Pay for execution. Not for hope.
         </h1>
         <p className="mt-6 text-lg text-[#6F6B64] leading-relaxed max-w-[62ch]">
-          Sandbox is free and runs the real API against simulated money. When you are ready to trade a budget, a plan
+          Sandbox is free and runs the real API against simulated money. When you are ready to move real money, a plan
           raises the caps and gives you a human to call. No plan? Pay 8 bps on what actually executes.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -185,6 +185,12 @@ export default function PricingPage() {
         <p className="mt-5 text-xs text-[#6F6B64]">
           Pay-as-you-go: 8 bps of executed notional, invoiced monthly, no minimum. Plans replace the per-order fee.
           Launch pricing — annual prepay is two months free.
+        </p>
+        <p className="mt-2 text-xs text-[#6F6B64]">
+          30-day paid pilot: $299 ·{" "}
+          <Link href="/contact" className="underline underline-offset-2 hover:text-[#111111]">
+            talk to us
+          </Link>
         </p>
 
         <section className="mt-16 border-t border-[#E4E2DD] pt-10">

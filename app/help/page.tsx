@@ -193,11 +193,8 @@ export default function HelpPage() {
               /trading
             </Link>{" "}
             is a paper agent your key can drive: balance, equity curve, positions, and a plain-language feed. It is the
-            demo, not the pitch — production integrations call the API. The public{" "}
-            <Link href="/live-track-record" className="underline underline-offset-2 hover:text-[#111111]">
-              track record
-            </Link>{" "}
-            shows every live account, wins and losses.
+            demo, not the pitch — production integrations call the API. The track record page shows the accounts, wins
+            and losses; it is not a promise of returns.
           </p>
         </section>
 
