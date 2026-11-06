@@ -93,6 +93,27 @@ export function MobileNav() {
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
+  // The bottom app bar is for product screens, not marketing/docs pages.
+  const marketingPaths = [
+    "/agent-api",
+    "/docs",
+    "/pricing",
+    "/help",
+    "/product-guide",
+    "/contact",
+    "/media-kit",
+    "/whitepaper",
+    "/guides",
+    "/live-track-record",
+    "/risk-disclosure",
+    "/privacy",
+    "/terms",
+  ]
+  const hideOnPath =
+    pathname === "/" ||
+    marketingPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+  if (hideOnPath) return null
+
   const closeDrawer = () => setDrawerOpen(false)
 
   return (
