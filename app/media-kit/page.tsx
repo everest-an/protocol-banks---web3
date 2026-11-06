@@ -5,21 +5,21 @@ import { Download, Palette, Type, Image as ImageIcon, Mail } from "lucide-react"
 export const metadata: Metadata = {
   title: "Media Kit - Protocol Bank",
   description:
-    "Brand assets, boilerplate copy, and usage guidelines for Protocol Bank — the non-custodial AI trading agent on Hyperliquid.",
+    "Brand assets, boilerplate copy, and usage guidelines for Protocol Bank — the control plane for agent money.",
 }
 
 const BOILERPLATES = [
   {
     label: "One-liner",
-    text: "Protocol Bank is a non-custodial AI trading agent: the AI can trade but never withdraw.",
+    text: "Protocol Bank is the control plane for agent money: one key per agent, server-enforced limits, non-custodial execution.",
   },
   {
     label: "Short (50 words)",
-    text: "Protocol Bank lets an AI agent trade Hyperliquid perpetual markets for you — with trading-only permissions, so it can never withdraw your funds. Your worst case is the budget you approve, shown on screen. Paper mode is free on real market data, and every live account's PnL is public.",
+    text: "Protocol Bank gives an AI agent a scoped API key with server-enforced per-call and daily caps, an allowlist and an audit receipt. Trading runs through a trading-only Hyperliquid wallet; payments execute only from a signed authorization. The platform never holds funds.",
   },
   {
     label: "Long (100 words)",
-    text: "Protocol Bank is a non-custodial AI trading product for Hyperliquid. You connect a wallet, set a trading budget, and approve a trading-only agent wallet (EIP-712 approveAgent). The AI then trades momentum and funding-carry signals 24/7, with per-trade stop-losses, position caps, and daily circuit breakers enforced before every order. Withdrawals always require your own signature — the agent physically cannot move funds out. Every trade is explained in plain language, profits can be swept back anytime, and the agent is revocable on-chain. Paper mode runs on real market data with simulated money, free forever. Live accounts are listed publicly on the track record page.",
+    text: "Protocol Bank is the control plane for agent money. Each agent gets one API key and a policy the server enforces: operations, per-call cap, daily cap, allowlist, approvals and audit. Trading uses a trading-only Hyperliquid wallet; payments execute from the payer's signed EIP-3009 authorization; cards are issued by a provider after KYB. The platform is non-custodial — it holds no keys and no funds — and the cockpit is a demo of the same account. Build with the Agent API, the open SDK or MCP.",
   },
 ]
 
@@ -34,8 +34,8 @@ const LOGOS = [
 
 const COLORS = [
   { name: "Primary", value: "#4A90E2", cls: "bg-[#4A90E2]" },
-  { name: "Emerald (profit)", value: "#10B981", cls: "bg-emerald-500" },
-  { name: "Red (loss)", value: "#EF4444", cls: "bg-red-500" },
+  { name: "Emerald (accent)", value: "#10B981", cls: "bg-emerald-500" },
+  { name: "Red (alert)", value: "#EF4444", cls: "bg-red-500" },
   { name: "Background (light)", value: "#FFFFFF", cls: "bg-white border border-border" },
   { name: "Foreground (dark)", value: "#0A0A0A", cls: "bg-[#0A0A0A]" },
 ]
@@ -50,7 +50,7 @@ export default function MediaKitPage() {
             "@context": "https://schema.org",
             "@type": "WebPage",
             name: "Protocol Bank Media Kit",
-            dateModified: "2026-09-20",
+            dateModified: "2026-11-06",
             inLanguage: "en",
             about: {
               "@type": "Organization",
@@ -158,7 +158,7 @@ export default function MediaKitPage() {
                 <li>• Say the AI &ldquo;holds your funds&rdquo; — it can never withdraw</li>
                 <li>• Imply guaranteed returns</li>
                 <li>• Recolor or distort the logo</li>
-                <li>• Call it a bank or custodian — it is a non-custodial trading tool</li>
+                <li>• Call it a bank or custodian — it is a non-custodial control plane</li>
               </ul>
             </div>
           </div>
@@ -171,26 +171,26 @@ export default function MediaKitPage() {
             <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">Category:</dt>
-                <dd>AI trading / DeFi</dd>
+                <dd>AI agents / execution &amp; policy</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">Chain / venue:</dt>
-                <dd>Hyperliquid (perpetuals)</dd>
+                <dd>Hyperliquid (trading) · Base/EVM (payments)</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">Custody:</dt>
-                <dd>Non-custodial (trading-only agent)</dd>
+                <dd>Non-custodial; provider holds card balance</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">Pricing:</dt>
-                <dd>Free paper mode · 20% of live profits</dd>
+                <dd>Free sandbox; plans from $199/mo; 8 bps; $299 pilot</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="text-muted-foreground">Wallet support:</dt>
                 <dd>MetaMask (injected EVM)</dd>
               </div>
               <div className="flex gap-2">
-                <dt className="text-muted-foreground">Track record:</dt>
+                <dt className="text-muted-foreground">Demo record:</dt>
                 <dd>
                   <Link href="/live-track-record" className="text-primary underline">
                     protocolbanks.com/live-track-record

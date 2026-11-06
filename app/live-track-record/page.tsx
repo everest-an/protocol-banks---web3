@@ -3,9 +3,9 @@ import Link from "next/link"
 import { TrendingUp, TrendingDown, Shield, Activity, Bot } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Live Track Record - Protocol Bank",
+  title: "Track Record — Protocol Bank",
   description:
-    "Real, anonymized performance of live Protocol Bank AI trading accounts on Hyperliquid. See budgets, realized PnL, and trade counts — updated in real time.",
+    "An anonymized record of demo/test and live accounts. A transparency page, not a performance promise or investment advice.",
 }
 
 /**
@@ -74,12 +74,19 @@ export default async function LiveTrackRecordPage() {
           ← Protocol Bank
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Live Track Record
+          Track Record
         </h1>
         <p className="text-muted-foreground mb-2">Last updated: {new Date().toISOString().slice(0, 10)}</p>
-        <p className="text-muted-foreground mb-8 max-w-2xl">
-          Real, anonymized performance of live Protocol Bank accounts — real funds, real Hyperliquid markets, the same
-          agent you can run yourself. Addresses are never exposed.
+        <p className="text-muted-foreground mb-4 max-w-2xl">
+          Anonymized records from demo/test and live accounts. This is a transparency page — not a performance
+          promise, not investment advice, and not the product.
+        </p>
+        <p className="mb-8 max-w-2xl rounded-lg border border-[#E4E2DD] bg-white/60 px-4 py-3 text-sm text-muted-foreground">
+          Demo/test accounts may appear here. Past performance is not a promise; build with the{" "}
+          <Link href="/agent-api" className="text-primary underline">
+            Agent API
+          </Link>
+          .
         </p>
 
         {hasAccounts ? (
@@ -87,7 +94,7 @@ export default async function LiveTrackRecordPage() {
             {/* Aggregate summary */}
             <div className="grid sm:grid-cols-3 gap-4 mb-10">
               <div className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                <p className="text-sm text-muted-foreground mb-1">Live accounts</p>
+                <p className="text-sm text-muted-foreground mb-1">Recorded accounts</p>
                 <p className="text-3xl font-bold">{data.liveAccountCount}</p>
               </div>
               <div className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
@@ -95,7 +102,7 @@ export default async function LiveTrackRecordPage() {
                 <p className="text-3xl font-bold">{fmtUsd(data.totalBudget)}</p>
               </div>
               <div className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                <p className="text-sm text-muted-foreground mb-1">Total realized PnL</p>
+                <p className="text-sm text-muted-foreground mb-1">Recorded realized PnL</p>
                 <p className={`text-3xl font-bold ${data.totalRealizedPnl >= 0 ? "text-emerald-500" : "text-red-500"}`}>
                   {data.totalRealizedPnl >= 0 ? "+" : ""}
                   {fmtUsd(data.totalRealizedPnl)}
@@ -154,7 +161,7 @@ export default async function LiveTrackRecordPage() {
             </div>
 
             <p className="text-xs text-muted-foreground mb-8">
-              Live accounts are anonymized by default. Owners can opt in to publishing their address for on-chain
+              Recorded accounts are anonymized by default. Owners can opt in to publishing their address for on-chain
               verification straight from the cockpit (Go Live → Public track record).
             </p>
           </>
@@ -172,18 +179,24 @@ export default async function LiveTrackRecordPage() {
           /* Honest empty state — the trust asset grows as live users join */
           <div className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-8 text-center mb-8">
             <Activity className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No live accounts yet</h2>
+            <h2 className="text-xl font-semibold mb-2">No accounts yet</h2>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Live mode just opened — the first accounts and their real PnL will appear here automatically. Watch the
-              agent trade real markets risk-free in paper mode meanwhile.
+              This record will fill as demo and live accounts are recorded. The Agent API is the product; the cockpit
+              is the demo.
             </p>
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
                 href="/trading"
                 className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-3 text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 <TrendingUp className="h-4 w-4" />
-                Try Paper Trading
+                Try the demo
+              </Link>
+              <Link
+                href="/agent-api"
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-medium hover:bg-muted/40 transition-colors"
+              >
+                Build with the Agent API
               </Link>
             </div>
           </div>
@@ -196,7 +209,7 @@ export default async function LiveTrackRecordPage() {
             <h3 className="font-semibold mb-1">Anonymized by design</h3>
             <p className="text-sm text-muted-foreground">
               Account identities are short hashes — no wallet addresses are ever shown. The AI can trade but never
-              withdraw, so a live account&apos;s worst case is the budget its owner chose.
+              withdraw, so an account&apos;s worst case is the budget its owner chose.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">

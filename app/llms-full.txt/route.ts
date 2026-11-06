@@ -7,11 +7,19 @@ const LLMS_FULL_TXT = `# Protocol Bank — Full Product Documentation (AI-readab
 
 ## Product overview
 
-Protocol Bank is an AI automated trading product for retail crypto users.
-The core loop: connect a wallet (MetaMask or any injected EVM wallet) ->
-fund a trading budget on Hyperliquid -> approve a trading-only agent wallet
--> the AI agent trades perpetual futures around the clock -> watch, sweep
-profits, or stop it with one click.
+Protocol Bank is the control plane for agent money. An agent gets
+one credential; the server enforces which operations it may perform
+(read / trade / pay / swap), a per-call cap, a daily cap and a coin allowlist.
+Trading runs through a trading-only Hyperliquid agent wallet; payments execute
+from the payer's own EIP-3009 authorization; each agent can also have a
+platform-custodied EVM wallet for signing and agent-scoped virtual cards issued
+through a card provider. The /trading cockpit is a paper demo of the same
+account; the Agent API is the product.
+
+The retail trading loop remains the reference vertical: connect a wallet ->
+fund a trading budget on Hyperliquid -> approve a trading-only agent wallet ->
+the AI agent trades perpetual futures around the clock -> watch, sweep profits,
+or stop it with one click.
 
 ### Safety model (three layers)
 
@@ -94,7 +102,7 @@ Not a production signal until it passes paper-trading validation.
   with file-store fallback; paper state is file-based by design
 - Go microservices: payout-engine, event-indexer, webhook-handler
   (legacy payment infrastructure, retained for the Business feature set)
-- CI: GitHub Actions (tsc + Jest 1050 tests + ESLint + Go tests)
+- CI: GitHub Actions (tsc + Jest 1309 tests + ESLint + Go tests)
 - Deployment: Vercel (auto-deploy on main)
 
 ## Agent integration — how an AI assistant calls trading and payments
@@ -127,6 +135,8 @@ Trading tools:
 ## Agent API (for AI agents and the products that run them)
 
 Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
+or a dashboard agent key (agent_...), which resolves to the owner and a policy
+derived from the agent type, or to an explicit policy on the agent.
 Docs: https://protocolbanks.com/docs (overview) · /docs/quickstart · /docs/api ·
 /docs/concepts · /docs/security · Chinese: /zh/docs
 Contract: https://protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1, CORS-open)
@@ -141,11 +151,13 @@ prepares an EIP-712 intent and executes when the caller POSTs back a signed
 EIP-3009 authorization (EVM USDC) — the payer's own USDC moves and the relayer
 only pays gas. /swap and /invoice prepare something the agent signs itself.
 
-- GET /state — mode, equity, positions, activity, and the key's policy with spentTodayUsd
+- GET /state — mode, equity, positions, activity, the Hyperliquid agent wallet status (tradingOnly, never withdrawable), the platform-custodied wallet, and the key's policy with spentTodayUsd
 - POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee + remainingTodayUsd
 - POST /pay — { to, amountUsd, token?, chain?, memo? } -> an intent + typedData; add the authorization object { ...message, v, r, s } to execute (relayer submits; the payer's own USDC moves)
 - POST /swap — { from, to, amount, amountUsd, slippage? } -> quote + transaction to sign
 - POST /invoice — { to, amount, token?, chain?, description?, expiresInHours? } -> pending invoice + paymentLink (/pay?invoice=...&sig=...); read settlement back with GET /api/invoice?id=...&sig=...
+- GET /wallet — platform-custodied EVM wallet status (requires an agent_... key)
+- POST /wallet/sign — { kind: "message", message } or { kind: "typedData", domain, types, value } -> signature; typed data is limited to TransferWithAuthorization, ReceiveWithAuthorization and Permit and requires the pay operation
 
 Policy, enforced by the server (the agent cannot widen it): allowedOps
 (read | pay | swap | trade), maxNotionalUsd per call, dailyCapUsd per UTC day,
@@ -159,6 +171,41 @@ uncertain submission), 429 rate limit (100 requests/minute per IP). Pay adds 502
 (the relayer could not submit) and 503 (payments are not configured on this
 deployment). An order that reaches the venue without a confirmed response is
 recorded and resolved by client-order-id reconciliation — never retried.
+
+## Agent wallets (platform-custodied)
+
+Each agent can have a platform-generated EVM wallet. The private key is encrypted
+with AES-256-GCM using AGENT_WALLET_SECRET and is never returned by any endpoint.
+Create/rotate/revoke from the agent dashboard (owner session) or read and sign
+with a dashboard agent key.
+
+- GET /api/v1/agent/wallet — address, status, canSign (agent key required; pb_ keys answer 409)
+- POST /api/v1/agent/wallet/sign — personal_sign, or allowlisted EIP-712 typed data
+- POST /api/agents/[id]/wallet — { action: "create" | "rotate" | "revoke" } (owner session)
+- POST /api/agents/[id]/wallet/sign — owner-session signing for testing
+
+Typed data is limited to TransferWithAuthorization, ReceiveWithAuthorization and
+Permit, and requires the key's pay operation. The server signs but does not
+broadcast. Revoking clears local key material; funds already at the address are
+not moved. If AGENT_WALLET_SECRET is missing, creation/signing answers 503.
+
+## Agent cards (virtual Visa, agent-scoped)
+
+Agent cards are issued per agent through a card provider (Yativo today; the
+Rain client is implemented and awaits a partner key). The card balance is held
+by the issuing partner; funding is wallet-signed where the provider supports it.
+
+- GET /api/agents/[id]/virtual-cards — list the agent's cards
+- POST /api/agents/[id]/virtual-cards — { initialAmount, label? } -> issue
+- GET /api/agents/[id]/virtual-cards/[cardId] — status, last4, balance
+- PATCH /api/agents/[id]/virtual-cards/[cardId] — fund | withdraw | activate | freeze | unfreeze | terminate
+- DELETE /api/agents/[id]/virtual-cards/[cardId] — close the card
+
+If the agent has a USDC budget, issuing and funding a card checks and deducts
+that budget. PAN/CVV are held by the issuer; the app shows the last 4 digits
+unless the provider exposes a card-details endpoint. Provider credentials
+(YATIVO_API_KEY/YATIVO_API_SECRET or RAIN_API_KEY) are required; without them
+the endpoints answer 503 instead of fabricating a card.
 
 Billing: executed trades are metered at PARTNER_FEE_BPS (default 8 bps of
 notional); every order response carries remainingTodayUsd.

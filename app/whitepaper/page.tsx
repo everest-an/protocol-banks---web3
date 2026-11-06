@@ -1,5 +1,13 @@
 import { Download, FileText, ExternalLink, Bot, Shield, Zap, Globe } from "lucide-react"
+import type { Metadata } from "next"
 import Link from "next/link"
+
+export const metadata: Metadata = {
+  title: "Whitepaper — the control plane for agent money",
+  description:
+    "The architecture of Protocol Bank: agent identity, server-enforced limits, non-custodial execution, x402/EIP-3009 payments and audit.",
+  alternates: { canonical: "https://protocolbanks.com/whitepaper" },
+}
 
 export default function WhitepaperPage() {
   return (
@@ -16,8 +24,11 @@ export default function WhitepaperPage() {
             Protocol Banks Whitepaper
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-            AI-Native Web3 Payment Infrastructure. A deep dive into the x402 Protocol, AI Agent Authentication,
-            Agent-to-Agent Communication, and the Future of Agentic Finance.
+            The control plane for agent money: identity, policy, limits, audit and non-custodial execution across
+            trading, payments and cards. A technical deep dive into x402, EIP-3009, A2A/MCP and agent authorization.
+          </p>
+          <p className="mt-4 max-w-2xl text-sm text-muted-foreground">
+            The product is the Agent API. The cockpit is a demo. This paper is the protocol and architecture reference.
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mt-6 sm:mt-8">
             <Link
@@ -43,15 +54,16 @@ export default function WhitepaperPage() {
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">1. Executive Summary</h2>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
             As decentralized organizations (DAOs) and AI agents become dominant economic actors, the traditional banking
-            stack is becoming obsolete. Protocol Banks introduces a programmable, cross-chain treasury management layer
-            designed for the future of work. By abstracting chain-specific complexities and integrating standard
-            accounting practices directly with on-chain events, Protocol Banks enables seamless financial operations for
-            the next generation of digital enterprises.
+            stack is becoming obsolete. Protocol Banks introduces a programmable control plane for agent money:
+            identity, policy, limits, audit and non-custodial execution. By making every agent action authorized,
+            bounded and verifiable, Protocol Banks enables safe financial operations for the next generation of digital
+            enterprises.
           </p>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
-            In v2.0, Protocol Banks evolves from a payment platform into <strong className="text-foreground">AI-native payment infrastructure</strong> &mdash;
+            In v2.0, Protocol Banks evolves into the <strong className="text-foreground">control plane for agent money</strong> &mdash;
             any AI agent can discover our services (ERC-8004), authenticate with on-chain identity (SIWE),
-            communicate via signed messages (A2A Protocol), and call payment tools directly (MCP Server).
+            communicate via signed messages (A2A Protocol), and call policy-scoped execution tools directly (MCP
+            Server).
           </p>
 
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">2. The &ldquo;x402&rdquo; Protocol</h2>

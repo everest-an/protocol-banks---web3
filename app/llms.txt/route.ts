@@ -6,15 +6,17 @@ import { NextResponse } from "next/server"
  */
 const LLMS_TXT = `# Protocol Bank
 
-> Protocol Bank is an AI automated trading product. Connect a wallet, fund a
-> trading budget on Hyperliquid, approve a trading-only agent wallet, and an
-> AI agent trades perpetual markets 24/7 with strict risk controls, full
-> transparency, and instant revocation.
+> Protocol Bank is the control plane for agent money. One
+> credential, one server-enforced policy across trading, payments and
+> agent-scoped cards. Trading runs through a trading-only Hyperliquid agent
+> wallet; payments execute from the payer's own EIP-3009 signature.
 
 ## What it does
 
-- AI automated trading on Hyperliquid perpetual markets (momentum + funding-carry signals)
-- Non-custodial: the agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
+- Agent execution + policy: operations (read / trade / pay / swap), per-call cap, daily cap, coin allowlist
+- Non-custodial trading: the agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
+- Agent payments: EIP-3009 payer-signed USDC; the relayer only pays gas
+- Agent cards: virtual Visa cards scoped to one agent, with issue/fund/freeze/close and budget enforcement
 - Paper trading mode: real market data, simulated money, zero risk
 - Risk controls: per-trade stop-loss (+/-2.5%), 15% position sizing, max 3 positions, daily loss circuit breakers (5% stop new entries / 8% close all)
 - Live mode: EIP-712 agent approval, AES-256-GCM key custody, per-user isolation
@@ -22,8 +24,9 @@ const LLMS_TXT = `# Protocol Bank
 ## Key pages
 
 - Landing: https://protocolbanks.com/
-- AI Trading cockpit: https://protocolbanks.com/trading
 - Agent API: https://protocolbanks.com/agent-api
+- AI Trading cockpit (demo): https://protocolbanks.com/trading
+- Agents + cards: https://protocolbanks.com/agents
 - Docs (overview): https://protocolbanks.com/docs
 - Docs (quickstart): https://protocolbanks.com/docs/quickstart
 - Docs (API reference): https://protocolbanks.com/docs/api
@@ -38,10 +41,18 @@ const LLMS_TXT = `# Protocol Bank
 
 ## APIs
 
-- GET /api/trading/overview — cockpit state (tick-on-demand paper engine)
+- GET /api/v1/agent/state — account, policy, agent wallet status (trading-only)
+- POST /api/v1/agent/orders — execute a Hyperliquid order
+- POST /api/v1/agent/pay — prepare or execute an EIP-3009 payment
+- POST /api/v1/agent/swap — Rango quote + transaction to sign
+- POST /api/v1/agent/invoice — create a payable invoice
+- GET /api/v1/agent/wallet — platform-custodied agent wallet status (agent key required)
+- POST /api/v1/agent/wallet/sign — sign a message or allowlisted EIP-712 typed data
+- GET/POST /api/agents/[id]/virtual-cards — list/issue agent cards
+- GET/PATCH/DELETE /api/agents/[id]/virtual-cards/[cardId] — details, fund, freeze, close
+- GET /api/trading/overview — cockpit state (demo)
 - POST /api/trading/actions — pause | resume | stop | reset
 - POST /api/trading/live/agent-wallet — status | generate | approve | revoke (SIWE auth)
-- GET /api/trading/live/state — user's Hyperliquid account state
 - GET /api/health — health check
 
 ## MCP — let any AI agent use Protocol Bank
@@ -70,6 +81,8 @@ control_trading_agent (pause | resume | stop | reset — auth required).
 ## Agent API (for AI agents and their developers)
 
 Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
+or a dashboard agent key (agent_...). The agent key resolves to the owner and a
+policy derived from the agent type, or to an explicit policy on the agent.
 Contract: https://protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1)
 Keys and policy: https://protocolbanks.com/settings/api-keys
 Walkthrough: https://protocolbanks.com/agent-api — one command: PB_KEY=pb_... pnpm example:agent
@@ -82,7 +95,7 @@ EIP-3009 authorization (EVM USDC); /swap returns something the agent signs;
 /invoice creates a payment request and moves nothing.
 
 - POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee + remainingTodayUsd
-- GET /state — mode, equity, positions, activity, and the key's policy with spentTodayUsd
+- GET /state — mode, equity, positions, activity, agent wallet status (trading-only, never withdrawable), and the key's policy with spentTodayUsd
 - POST /pay — { to, amountUsd, token?, chain?, memo? } -> an intent + typedData; add the authorization object { ...message, v, r, s } to execute (relayer submits, the payer's own USDC moves)
 - POST /swap — { from, to, amount, amountUsd, slippage? } -> a quote and the transaction to sign
 - POST /invoice — { to, amount, token?, chain?, description?, expiresInHours? } -> pending invoice + a payable paymentLink (/pay?invoice=...&sig=...)
