@@ -213,7 +213,8 @@
                 "amountUsd": 25,
                 "token": "USDC",
                 "chain": "base",
-                "memo": "invoice 41"
+                "memo": "invoice 41",
+                "orderId": "cm...commerce-order-id"
               }
             }
           }
@@ -1748,6 +1749,10 @@
           },
           "authorization": {
             "$ref": "#/components/schemas/SignedAuthorization"
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Bind this payment to an accepted/delivered commerce order. The server validates buyer, seller, amount, token and chain."
           }
         }
       },
