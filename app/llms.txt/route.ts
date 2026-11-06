@@ -8,7 +8,7 @@ const LLMS_TXT = `# Protocol Bank
 
 ## If you are an agent, start here
 
-You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent.openapi.json for the contract, and /llms-full.txt for the full reference. Use MCP at https://protocolbanks.com/api/mcp (Streamable HTTP) or call the Agent API directly with an API key. Create a key at /settings/api-keys; the owner sets a policy the server enforces. Start with GET /api/v1/agent/state, then call /orders, /pay or /invoice. A 403 (policy) or 409 (risk) refusal is final for that request — return it to the caller; do not retry unchanged.
+You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent.openapi.json for the contract, and /llms-full.txt for the full reference. Use MCP at https://www.protocolbanks.com/api/mcp (Streamable HTTP) or call the Agent API directly with an API key. Create a key at /settings/api-keys; the owner sets a policy the server enforces. Start with GET /api/v1/agent/state, then call /orders, /pay or /invoice. A 403 (policy) or 409 (risk) refusal is final for that request — return it to the caller; do not retry unchanged.
 
 > Protocol Bank is the control plane for agent money. One
 > credential, one server-enforced policy across trading, payments and
@@ -61,11 +61,11 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 
 ## MCP — let any AI agent use Protocol Bank
 
-- Hosted MCP endpoint (Streamable HTTP): POST https://protocolbanks.com/api/mcp
+- Hosted MCP endpoint (Streamable HTTP): POST https://www.protocolbanks.com/api/mcp
   Public tools work without auth; account tools require a JWT Bearer token.
 - Local stdio server for MCP hosts (Claude Desktop / Claude Code / Cursor):
   pnpm mcp:stdio (env: MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS)
-- Human-facing guide: https://protocolbanks.com/mcp
+- Human-facing guide: https://www.protocolbanks.com/mcp
 
 Tools (16): list_supported_tokens, get_payment_quote, estimate_gas,
 compare_chain_fees, create_payment, check_payment_status, list_payments,
@@ -84,10 +84,10 @@ control_trading_agent (pause | resume | stop | reset — auth required).
 
 ## Agent API (for AI agents and their developers)
 
-Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
+Base: https://www.protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
 or a dashboard agent key (agent_...). The agent key resolves to the owner and a
 policy derived from the agent type, or to an explicit policy on the agent.
-Contract: https://protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1)
+Contract: https://www.protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1)
 Keys and policy: https://protocolbanks.com/settings/api-keys
 Walkthrough: https://protocolbanks.com/agent-api — one command: PB_KEY=pb_... pnpm example:agent
 Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools

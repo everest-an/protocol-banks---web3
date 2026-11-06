@@ -161,7 +161,7 @@ export default function HelpPage() {
             </table>
           </div>
           <p className="mt-4 text-xs text-[#6F6B64]">
-            Base URL <span className="font-mono">https://protocolbanks.com/api/v1/agent</span> · auth{" "}
+            Base URL <span className="font-mono">https://www.protocolbanks.com/api/v1/agent</span> · auth{" "}
             <span className="font-mono">Authorization: Bearer pb_…</span> · full reference at{" "}
             <Link href="/docs/api" className="underline underline-offset-2 hover:text-[#111111]">
               /docs/api

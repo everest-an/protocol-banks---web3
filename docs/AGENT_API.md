@@ -22,7 +22,7 @@ never move money on the platform.
 version of this document: OpenAPI 3.1, all five paths, the policy schema with
 its clamp ranges, one response per error class with a real example body, and
 the exact field names each route returns. It is also served at
-**`https://protocolbanks.com/api/agent.openapi.json`** (CORS-open), so tooling
+**`https://www.protocolbanks.com/api/agent.openapi.json`** (CORS-open), so tooling
 can fetch it without cloning the repo.
 
 It is **JSON** rather than YAML on purpose — the repo has no YAML parser, so
@@ -273,7 +273,7 @@ DAYS=30 pnpm funnel:agents
 **curl**
 
 ```bash
-curl -X POST https://protocolbanks.com/api/v1/agent/orders \
+curl -X POST https://www.protocolbanks.com/api/v1/agent/orders \
   -H "Authorization: Bearer pb_…" -H "Content-Type: application/json" \
   -d '{"coin":"BTC","side":"long","sizeUsd":150,"reason":"signal-v3"}'
 ```
@@ -295,7 +295,7 @@ import os, requests
 
 key = os.environ["PB_KEY"]
 r = requests.post(
-    "https://protocolbanks.com/api/v1/agent/orders",
+    "https://www.protocolbanks.com/api/v1/agent/orders",
     headers={"Authorization": f"Bearer {key}"},
     json={"coin": "BTC", "side": "long", "sizeUsd": 150},
     timeout=30,

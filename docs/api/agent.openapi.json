@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "https://protocolbanks.com/api",
+      "url": "https://www.protocolbanks.com/api",
       "description": "Production"
     },
     {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GET /.well-known/agent.json
  *
  * Standard discovery endpoint for the platform's own Agent Card.
@@ -15,7 +15,7 @@ export async function GET() {
   const baseUrl =
     process.env.AGENT_CARD_BASE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    'https://app.protocolbanks.com'
+    'https://www.protocolbanks.com'
 
   const card = getPlatformAgentCard(baseUrl)
 

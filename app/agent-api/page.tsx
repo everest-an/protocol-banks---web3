@@ -99,7 +99,7 @@ export default function AgentsPage() {
 
           <pre className="mt-6 overflow-x-auto rounded-lg border border-[#E4E2DD] bg-white p-5 font-mono text-xs leading-relaxed text-[#111111]">
 {`export PB_KEY=pb_…
-curl -s https://protocolbanks.com/api/v1/agent/state \\
+curl -s https://www.protocolbanks.com/api/v1/agent/state \\
   -H "Authorization: Bearer $PB_KEY"`}
           </pre>
 
@@ -108,7 +108,7 @@ curl -s https://protocolbanks.com/api/v1/agent/state \\
             fill, the fee and what the daily cap still allows.
           </p>
           <pre className="mt-4 overflow-x-auto rounded-lg border border-[#E4E2DD] bg-white p-5 font-mono text-xs leading-relaxed text-[#111111]">
-{`curl -s https://protocolbanks.com/api/v1/agent/orders \\
+{`curl -s https://www.protocolbanks.com/api/v1/agent/orders \\
   -H "Authorization: Bearer $PB_KEY" -H "Content-Type: application/json" \\
   -d '{"coin":"BTC","side":"long","sizeUsd":20}'
 
@@ -180,7 +180,7 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
             </table>
           </div>
           <p className="mt-4 text-xs text-[#6F6B64]">
-            Base URL <span className="font-mono">https://protocolbanks.com/api/v1/agent</span>. Every call is logged;
+            Base URL <span className="font-mono">https://www.protocolbanks.com/api/v1/agent</span>. Every call is logged;
             orders are metered at 8 bps of notional.
           </p>
         </section>
@@ -233,7 +233,7 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
           </p>
           <pre className="mt-5 overflow-x-auto rounded-lg border border-[#E4E2DD] bg-white p-5 font-mono text-xs leading-relaxed text-[#111111]">
 {`const call = (path, body) =>
-  fetch(\`https://protocolbanks.com/api/v1/agent\${path}\`, {
+  fetch(\`https://www.protocolbanks.com/api/v1/agent\${path}\`, {
     method: body ? "POST" : "GET",
     headers: {
       Authorization: \`Bearer \${process.env.PB_KEY}\`,

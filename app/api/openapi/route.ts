@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GET /api/openapi
  *
  * Returns a lightweight OpenAPI 3.1 spec for AI agent consumption.
@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || 'https://app.protocolbanks.com'
+    process.env.NEXT_PUBLIC_APP_URL || 'https://www.protocolbanks.com'
 
   const spec = {
     openapi: '3.1.0',

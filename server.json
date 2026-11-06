@@ -7,7 +7,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://protocolbanks.com/api/mcp"
+      "url": "https://www.protocolbanks.com/api/mcp"
     }
   ]
 }

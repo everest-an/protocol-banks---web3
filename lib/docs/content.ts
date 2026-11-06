@@ -18,18 +18,18 @@ export interface DocPage {
 }
 
 const STATE_CURL = [
-  'curl -s https://protocolbanks.com/api/v1/agent/state \\',
+  'curl -s https://www.protocolbanks.com/api/v1/agent/state \\',
   '  -H "Authorization: Bearer $PB_KEY"',
 ].join("\n")
 
 const ORDER_CURL = [
-  'curl -s https://protocolbanks.com/api/v1/agent/orders \\',
+  'curl -s https://www.protocolbanks.com/api/v1/agent/orders \\',
   '  -H "Authorization: Bearer $PB_KEY" -H "Content-Type: application/json" \\',
   '  -d \'{"coin":"BTC","side":"long","sizeUsd":20}\'',
 ].join("\n")
 
 const INVOICE_CURL = [
-  'curl -s https://protocolbanks.com/api/v1/agent/invoice \\',
+  'curl -s https://www.protocolbanks.com/api/v1/agent/invoice \\',
   '  -H "Authorization: Bearer $PB_KEY" -H "Content-Type: application/json" \\',
   '  -d \'{"to":"0xabc…","amount":25,"description":"agent work"}\'',
 ].join("\n")
@@ -250,7 +250,7 @@ const EN: DocPage[] = [
     blocks: [
       {
         kind: "p",
-        text: "Base URL: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_… Reads require the read permission; writes require write.",
+        text: "Base URL: https://www.protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_… Reads require the read permission; writes require write.",
       },
       {
         kind: "table",
@@ -568,7 +568,7 @@ const ZH: DocPage[] = [
     blocks: [
       {
         kind: "p",
-        text: "Base URL：https://protocolbanks.com/api/v1/agent —— 认证：Authorization: Bearer pb_…。读操作需要 read 权限，写操作需要 write。",
+        text: "Base URL：https://www.protocolbanks.com/api/v1/agent —— 认证：Authorization: Bearer pb_…。读操作需要 read 权限，写操作需要 write。",
       },
       {
         kind: "table",

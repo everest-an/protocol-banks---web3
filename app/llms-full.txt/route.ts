@@ -113,7 +113,7 @@ Protocol Bank is agent-native: any MCP host (Claude Desktop / Claude Code /
 Cursor) or web MCP client can operate it through tools instead of HTTP calls.
 
 MCP transports:
-- Hosted (Streamable HTTP): POST https://protocolbanks.com/api/mcp
+- Hosted (Streamable HTTP): POST https://www.protocolbanks.com/api/mcp
   Public tools: list_supported_tokens, get_payment_quote, estimate_gas,
   compare_chain_fees. Everything else needs a JWT Bearer token.
 - Local stdio: pnpm mcp:stdio (env MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS);
@@ -136,12 +136,12 @@ Trading tools:
 
 ## Agent API (for AI agents and the products that run them)
 
-Base: https://protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
+Base: https://www.protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
 or a dashboard agent key (agent_...), which resolves to the owner and a policy
 derived from the agent type, or to an explicit policy on the agent.
 Docs: https://protocolbanks.com/docs (overview) · /docs/quickstart · /docs/api ·
 /docs/concepts · /docs/security · Chinese: /zh/docs
-Contract: https://protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1, CORS-open)
+Contract: https://www.protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1, CORS-open)
 Keys and policy: https://protocolbanks.com/settings/api-keys
 Walkthrough: https://protocolbanks.com/agent-api — PB_KEY=pb_... pnpm example:agent
 Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools
