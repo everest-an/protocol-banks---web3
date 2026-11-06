@@ -156,7 +156,7 @@ export default function BestBotsGuide() {
             </p>
             <p className="mt-3">
               <Link href="/agent-api" className="text-primary underline">
-                Judge it yourself — paper trading is free →
+                Build with the Agent API →
               </Link>
             </p>
           </section>
