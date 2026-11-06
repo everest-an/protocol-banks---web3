@@ -6,7 +6,7 @@ const LABELS: Record<DocLocale, Record<string, string>> = {
   en: {
     architecture: "How a call flows",
     architectureCaption:
-      "The key's policy is checked before the risk envelope, and both are checked before an order reaches the venue. Pay, swap and invoice never move money on the platform.",
+      "The key's policy is checked before the risk envelope, and both are checked before an order reaches the venue. Pay executes only from the payer's signed EIP-3009 authorization; swap and invoice prepare something the agent signs.",
     agent: "Your agent",
     agentSub: "LangChain · AI SDK · MCP",
     api: "Agent API",
@@ -57,7 +57,7 @@ const LABELS: Record<DocLocale, Record<string, string>> = {
   zh: {
     architecture: "一次调用如何流动",
     architectureCaption:
-      "Key 策略先于风险包络校验，两者都通过后订单才会到达交易场所。pay、swap 与 invoice 在平台侧不移动资金。",
+      "Key 策略先于风险包络校验，两者都通过后订单才会到达交易场所。pay 仅凭付款人签名的 EIP-3009 授权执行；swap 与 invoice 返回待签名内容。",
     agent: "你的 Agent",
     agentSub: "LangChain · AI SDK · MCP",
     api: "Agent API",
