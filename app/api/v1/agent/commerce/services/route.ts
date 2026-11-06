@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+﻿import { NextResponse } from "next/server"
 import { withAgentAuth, type AgentRequest } from "@/lib/agent/auth"
 import { CommerceError, createService, listServices } from "@/lib/agent/commerce"
 
@@ -21,7 +21,8 @@ async function getHandler(request: AgentRequest) {
 async function postHandler(request: AgentRequest) {
   try {
     const body = await request.json()
-    const service = await createService(request.ownerAddress as string, request.agentId, body)
+    const agentId = request.apiKey?.id?.startsWith("agent:") ? request.apiKey.id.slice("agent:".length) : undefined
+    const service = await createService(request.ownerAddress as string, agentId, body)
     return NextResponse.json({ ok: true, service }, { status: 201 })
   } catch (error) {
     return failure(error)
@@ -38,3 +39,4 @@ function failure(error: unknown) {
 
 export const GET = withAgentAuth(getHandler, "read")
 export const POST = withAgentAuth(postHandler, "pay")
+
