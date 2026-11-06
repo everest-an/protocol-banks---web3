@@ -1,158 +1,75 @@
 ﻿import type { Metadata } from "next"
-import Link from "next/link"
+import { GuideArticle } from "@/components/guides/guide-article"
 
 export const metadata: Metadata = {
-  title: "AI Trading Strategies Explained: For Agent Builders",
+  title: "AI Trading Strategies: For Agent Builders",
   description:
-    "How AI trading strategies actually work: momentum scores, funding-rate carry, mean reversion, and the risk controls that separate a real system from a black box.",
+    "Momentum, funding carry and mean reversion are strategies the builder supplies. The control plane enforces the limits and audit; we do not sell returns.",
+  alternates: { canonical: "https://protocolbanks.com/guides/ai-trading-strategies" },
   openGraph: {
-    title: "AI Trading Strategies Explained: For Agent Builders",
+    title: "AI Trading Strategies: For Agent Builders",
     description:
-      "The signals behind AI trading: risk-adjusted momentum, funding-rate carry, and why transparent strategies beat black boxes.",
+      "What an agent can execute, what it cannot enforce, and why the policy layer matters more than another signal.",
   },
 }
 
-const STRATEGIES = [
+const SECTIONS = [
   {
-    name: "Momentum",
-    what: "Assets that have been trending tend to keep trending for a while. A risk-adjusted momentum score measures trend strength divided by volatility — strong trends score high, choppy noise scores low.",
-    why: "Simple, well-studied, and explainable — every entry can be justified with a number.",
+    heading: "Strategies are yours, not the platform's",
+    paragraphs: [
+      "Protocol Bank does not sell a strategy, a fund or a return. The builder supplies the signal; the Agent API supplies the account, the policy and the execution. That separation matters: the model can be wrong without being able to widen its own limits.",
+      "Common agent strategies include momentum (a direction score over recent price action), funding carry (the sign and size of the perpetual funding rate), and mean reversion (a move away from a reference). Each is a hypothesis, not a guarantee.",
+    ],
   },
   {
-    name: "Funding carry",
-    what: "Perpetual markets charge a funding rate between longs and shorts. When funding is strongly negative, shorts pay longs — holding long earns the carry.",
-    why: "A slow, persistent edge that compounds when combined with a directional filter.",
+    heading: "What the execution layer can enforce",
+    paragraphs: [
+      "A strategy can ask for anything; the server decides. Before an order reaches Hyperliquid, the key policy checks the operation, per-call cap, daily cap and coin allowlist. The platform risk envelope then checks position sizing, leverage, stop-loss, and the daily loss breakers.",
+    ],
+    bullets: [
+      "A size above the key cap is a 403; the policy is not negotiable by the model.",
+      "A position or breaker refusal is a 409; the request is final.",
+      "One position per market, with stop-loss and take-profit attached to every position.",
+      "The daily cap is summed from metered calls, not from what the model claims.",
+    ],
   },
   {
-    name: "Mean reversion",
-    what: "Prices that spike far from their average tend to snap back. The strategy buys dips and sells rips within a range.",
-    why: "Works in sideways markets but needs hard stop-losses (it fails in strong trends).",
+    heading: "How to test a strategy as a builder",
+    paragraphs: [
+      "Run the strategy in the sandbox first: real market data, simulated money, the same endpoints. Watch not only PnL but the refusals, the sizing after a cap clamp, and the behaviour when a breaker trips. Then go live with a budget whose loss you accept.",
+      "A backtest is not a promise. If a strategy loses in backtest, do not market its returns; use the control layer to bound the risk and keep looking for a signal that survives.",
+    ],
   },
   {
-    name: "Market making",
-    what: "Placing bids and asks around the mid price to earn the spread.",
-    why: "High frequency, needs deep infrastructure — usually the last strategy to add.",
+    heading: "The builder's takeaway",
+    paragraphs: [
+      "Spend your research time on the signal. Spend your integration time on the policy, the refusal paths and the audit. The latter is what lets an agent run unattended without the owner watching every call.",
+    ],
   },
 ]
 
 const FAQ = [
   {
-    q: "Which AI trading strategy is best for beginners?",
-    a: "Momentum with hard stop-losses — it's transparent, easy to understand, and every trade has an explicit reason. Paper trade it first to see the behavior before risking capital.",
+    q: "Does Protocol Bank provide a profitable trading strategy?",
+    a: "No. We provide the execution and policy layer. The strategy is the builder's; no strategy guarantees profit, and a backtest is not a promise.",
   },
   {
-    q: "Do AI trading strategies guarantee profit?",
-    a: "No. Every strategy has losing periods and can fail in changing market regimes. The goal is a positive expected value with controlled downside — not certainty.",
+    q: "Can the agent change its own strategy limits?",
+    a: "No. allowedOps, maxNotionalUsd, dailyCapUsd and allowedCoins live on the key and are enforced server-side. The agent cannot widen them; the owner edits them in Settings.",
   },
   {
-    q: "What makes a strategy trustworthy?",
-    a: "Transparency (you understand the signal), explicit risk controls (stop-losses, position caps), and realistic expectations about drawdowns.",
+    q: "What happens when a strategy exceeds a limit?",
+    a: "The request is refused before it reaches the venue: 403 for the key policy, 409 for the platform risk envelope. The refusal is final for that request.",
   },
 ]
 
-export default function StrategiesGuide() {
+export default function Page() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            dateModified: "2026-08-25",
-            inLanguage: "en",
-            mainEntity: FAQ.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          }),
-        }}
-      />
-      <div className="container mx-auto px-4 py-12 sm:py-16 max-w-3xl">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Protocol Bank
-        </Link>
-        <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          AI Trading Strategies: What an Agent Can Execute
-        </h1>
-        <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
-
-        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
-          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            The most effective AI trading strategy for most people combines <strong>momentum</strong> (trend-following via
-            z-scores) with <strong>funding-rate carry</strong> — simple, transparent, and easy to reason about. Complex
-            models are harder to trust and often not more profitable. Whatever the strategy, the key is non-custodial
-            execution: the AI can trade within your budget but can never withdraw.
-          </p>
-        </div>
-
-        <div className="space-y-8 text-foreground/90 leading-relaxed">
-          <section>
-            <h2 className="text-2xl font-bold mb-3">What trading strategies does the AI use?</h2>
-            <div className="space-y-4">
-              {STRATEGIES.map((s) => (
-                <div key={s.name} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                  <h3 className="font-semibold mb-1.5">{s.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-2">{s.what}</p>
-                  <p className="text-sm">
-                    <span className="font-medium">Why it&apos;s used:</span> {s.why}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">Which strategies does Protocol Bank actually run?</h2>
-            <p>
-              The robust leg combines <strong>momentum (60%)</strong> and <strong>funding carry (40%)</strong> over
-              Hyperliquid&apos;s top-12 perpetuals by volume. The experimental leg explores additional factors with
-              small allocations — but the production signal stays simple, transparent, and risk-limited.
-            </p>
-            <ul className="list-disc pl-6 mt-2 space-y-1.5">
-              <li>Entry: combined score above a calibrated threshold</li>
-              <li>Exit: +2.5% take-profit, -2.5% stop-loss, or signal fade</li>
-              <li>Position: ~15% of budget, max 3 concurrent</li>
-              <li>Daily circuit breakers: 5% stops new entries, 8% closes all</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">Why transparency beats black boxes</h2>
-            <p>
-              A strategy you can explain is a strategy you can trust and improve. When the AI says{" "}
-              <em>&quot;opened BTC long (momentum z=1.6, funding -0.001%/h)&quot;</em>, you can verify it against market
-              data. Black boxes ask for blind faith.
-            </p>
-            <p className="mt-3">
-              <Link href="/guides/best-ai-trading-bots" className="text-primary underline">
-                See the evaluation checklist →
-              </Link>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">FAQ</h2>
-            <div className="space-y-4">
-              {FAQ.map((f) => (
-                <div key={f.q} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                  <h3 className="font-semibold mb-1.5">{f.q}</h3>
-                  <p className="text-sm text-muted-foreground">{f.a}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <p className="text-sm text-muted-foreground">
-            Educational content, not financial advice.{" "}
-            <Link href="/risk-disclosure" className="underline">
-              Risk Disclosure
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+    <GuideArticle
+      title="AI Trading Strategies: What an Agent Can Execute"
+      lead="A strategy is a hypothesis the builder supplies. The control layer decides whether the agent may act on it. This guide separates the two so a bad signal cannot become an unbounded loss."
+      sections={SECTIONS}
+      faq={FAQ}
+    />
   )
 }

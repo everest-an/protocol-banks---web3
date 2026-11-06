@@ -1,154 +1,75 @@
 ﻿import type { Metadata } from "next"
-import Link from "next/link"
+import { GuideArticle } from "@/components/guides/guide-article"
 
 export const metadata: Metadata = {
   title: "Hyperliquid Trading Bot: Non-Custodial Agent Execution",
   description:
-    "How Hyperliquid agent wallets enable non-custodial trading bots: approveAgent permissions, momentum and funding-carry signals, and how to run an AI trading agent with paper trading first.",
+    "How to build a Hyperliquid trading bot with the Agent API: approveAgent trading-only rights, server-enforced caps, and audit. Bring your own strategy.",
+  alternates: { canonical: "https://protocolbanks.com/guides/hyperliquid-trading-bot" },
   openGraph: {
     title: "Hyperliquid Trading Bot: Non-Custodial Agent Execution",
     description:
-      "How trading-only agent wallets on Hyperliquid let an AI trade your budget without ever being able to withdraw it.",
+      "The builder's flow: agent wallet approval, scoped API key, policy caps and receipts — without custody.",
   },
 }
 
-const FAQ = [
+const SECTIONS = [
   {
-    q: "Can a Hyperliquid trading bot withdraw my funds?",
-    a: "Not if it uses a trading-only agent wallet. approveAgent grants an agent permission to trade on your account, not to withdraw. Withdrawals require your own wallet signature, and you can revoke the agent at any time.",
+    heading: "Why Hyperliquid for an agent",
+    paragraphs: [
+      "Hyperliquid is a Layer 1 for perpetual futures with an on-chain order book and deep liquidity. For an agent, the important primitive is the agent wallet: the account owner can approve a separate wallet with trading rights only, via EIP-712 approveAgent.",
+      "That means the trading bot does not need the owner's key. It can place and cancel orders, and it cannot withdraw. The funded trading budget is the maximum the agent can lose through trading.",
+    ],
   },
   {
-    q: "How do I run a trading bot on Hyperliquid?",
-    a: "Fund your Hyperliquid account with USDC, approve a trading-only agent wallet, and let the bot run a strategy (such as momentum plus funding carry). Start with paper trading to validate the strategy before risking real funds.",
+    heading: "The trading-only wallet",
+    paragraphs: [
+      "approveAgent separates trading from withdrawal at the wallet boundary. A prompt injection, a bug or a loop can still trade badly, but it cannot move the budget out. The owner can revoke the wallet at any time.",
+      "Protocol Bank adds a second boundary in front of the wallet: the key policy. The agent's API key carries the allowed operations, per-call cap, daily cap and coin allowlist; a violation is refused before the order reaches Hyperliquid.",
+    ],
   },
   {
-    q: "What strategies work on Hyperliquid trading bots?",
-    a: "Common approaches are momentum (risk-adjusted trend scores), funding-rate carry, and market-making. Simple, transparent strategies with hard stop-losses and daily circuit breakers are easier to trust than black-box models.",
+    heading: "Build flow",
+    paragraphs: [
+      "Create the key and keep the read-only policy until the integration is ready. Test in the sandbox with real market data. When the strategy behaves, the owner approves the agent wallet with trading-only rights; the same endpoints go live.",
+    ],
+    bullets: [
+      "GET /api/v1/agent/state for account, positions, activity and policy.",
+      "POST /api/v1/agent/orders with coin, side, sizeUsd and a reason.",
+      "The platform risk envelope applies position sizing, stop-loss/take-profit and daily breakers.",
+      "An uncertain submission is reported as 409 and reconciled by client-order-id; it is never blindly retried.",
+    ],
+  },
+  {
+    heading: "Failure modes to plan for",
+    paragraphs: [
+      "A venue outage affects trading, not the owner's withdrawal ability. A model error is bounded by the key cap and the risk envelope. An uncertain order is an ops problem: surface it to the owner, do not retry it. A strategy that loses is still a strategy problem; the control layer does not make it profitable.",
+    ],
   },
 ]
 
-export default function HyperliquidBotGuide() {
+const FAQ = [
+  {
+    q: "Does a Hyperliquid agent wallet need the owner's private key?",
+    a: "No. The owner approves a separate agent wallet with trading-only permissions (approveAgent). The bot uses that wallet; withdrawals still require the owner.",
+  },
+  {
+    q: "Can a Hyperliquid bot withdraw funds?",
+    a: "Not a trading-only agent wallet. It can place and cancel orders; it cannot withdraw. The owner can revoke it at any time.",
+  },
+  {
+    q: "How do I build a Hyperliquid bot with Protocol Bank?",
+    a: "Create an API key and policy, test in the sandbox, approve the trading-only Hyperliquid wallet, then call the same Agent API endpoints live. The SDK, MCP server and OpenAPI contract are available for integration.",
+  },
+]
+
+export default function Page() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            dateModified: "2026-08-25",
-            inLanguage: "en",
-            mainEntity: FAQ.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          }),
-        }}
-      />
-      <div className="container mx-auto px-4 py-12 sm:py-16 max-w-3xl">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Protocol Bank
-        </Link>
-        <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Hyperliquid Trading Bot: Non-Custodial Agent Execution
-        </h1>
-        <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
-
-        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
-          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            A Hyperliquid trading bot automates trading on Hyperliquid perpetual markets. The key architectural risk
-            point is <strong>key custody</strong>: a non-custodial bot uses <strong>trading-only agent wallets</strong>
-            approved via EIP-712 — it can open and close positions but has no withdrawal rights. Combined with
-            stop-losses and circuit breakers, the bot's worst case is capped to the budget you allocate, and you can
-            revoke it on-chain at any time.
-          </p>
-        </div>
-
-        <div className="space-y-8 text-foreground/90 leading-relaxed">
-          <section>
-            <h2 className="text-2xl font-bold mb-3">Why Hyperliquid is the natural home for AI trading</h2>
-            <p>
-              Hyperliquid is a performant Layer 1 built for perpetual futures with deep liquidity, low latency, and —
-              critically — a native <strong>agent wallet</strong> system. That system is what makes non-custodial
-              trading bots possible: you can delegate trading without ever delegating withdrawals.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">The key primitive: approveAgent</h2>
-            <p>
-              With one signed message (EIP-712, signed in MetaMask), you approve an <em>agent address</em> on your
-              account. That agent can:
-            </p>
-            <ul className="list-disc pl-6 mt-2 space-y-2">
-              <li>Place and cancel orders on your behalf</li>
-              <li>Trade within the account&apos;s equity</li>
-              <li className="font-medium">Never withdraw — withdrawal rights remain exclusively yours</li>
-            </ul>
-            <p className="mt-3">
-              Revocation is equally simple: remove the agent, and it loses trading ability instantly.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">What Protocol Bank&apos;s agent actually does</h2>
-            <p>
-              The agent runs two transparent signals over the top-12 Hyperliquid perpetuals by 24h volume:
-            </p>
-            <ul className="list-disc pl-6 mt-2 space-y-2">
-              <li>
-                <strong>Momentum</strong> — 24h risk-adjusted return z-score (trend strength divided by volatility)
-              </li>
-              <li>
-                <strong>Funding carry</strong> — the size and direction of Hyperliquid&apos;s hourly funding rate
-              </li>
-            </ul>
-            <p className="mt-3">
-              Risk is enforced before every order: ±2.5% take-profit/stop-loss, ~15% position sizing, max 3 concurrent
-              positions, and daily circuit breakers (5% stops new entries, 8% closes all).
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">Start with paper trading</h2>
-            <p>
-              The agent can run on real Hyperliquid market data with simulated money — same signals, same fills
-              model, zero risk. Watch it for a week before going live.
-            </p>
-            <p className="mt-3">
-              <Link href="/agent-api" className="text-primary underline">
-                Build with the Agent API →
-              </Link>{" "}
-              ·{" "}
-              <Link href="/guides/ai-crypto-trading" className="text-primary underline">
-                Beginner&apos;s guide
-              </Link>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">FAQ</h2>
-            <div className="space-y-4">
-              {FAQ.map((f) => (
-                <div key={f.q} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                  <h3 className="font-semibold mb-1.5">{f.q}</h3>
-                  <p className="text-sm text-muted-foreground">{f.a}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <p className="text-sm text-muted-foreground">
-            Educational content, not financial advice. Read the{" "}
-            <Link href="/risk-disclosure" className="underline">
-              Risk Disclosure
-            </Link>
-            .
-          </p>
-        </div>
-      </div>
-    </div>
+    <GuideArticle
+      title="Hyperliquid Trading Bot: Non-Custodial Agent Execution"
+      lead="A Hyperliquid bot needs two things: a wallet that can trade and a boundary that stops it from doing anything else. approveAgent provides the first; the Agent API policy provides the second."
+      sections={SECTIONS}
+      faq={FAQ}
+    />
   )
 }

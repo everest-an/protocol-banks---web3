@@ -1,145 +1,76 @@
 ﻿import type { Metadata } from "next"
-import Link from "next/link"
+import { GuideArticle } from "@/components/guides/guide-article"
 
 export const metadata: Metadata = {
   title: "Crypto Paper Trading: A Sandbox for Agent Builders (2026)",
   description:
-    "What crypto paper trading is, why it's the safest way to test an AI trading agent, and how to paper trade on real Hyperliquid market data with simulated money.",
+    "Paper trading runs the same Agent API against real market data and simulated money. Test the policy, the refusals and the integration before going live.",
+  alternates: { canonical: "https://protocolbanks.com/guides/crypto-paper-trading" },
   openGraph: {
     title: "Crypto Paper Trading: A Sandbox for Agent Builders",
     description:
-      "Paper trading runs an AI agent on live market data with simulated money — the zero-risk way to validate a strategy before going live.",
+      "The zero-risk path to test an agent: same endpoints, real market data, simulated fills, and a policy you can exercise before funding a live account.",
   },
 }
 
-const FAQ = [
+const SECTIONS = [
   {
-    q: "What is crypto paper trading?",
-    a: "Paper trading simulates trades using real market data and a virtual balance. You test strategies, learn execution mechanics, and measure performance — without risking real money.",
+    heading: "What paper trading is",
+    paragraphs: [
+      "Paper trading uses real market data and simulated money. The agent scans, decides and “fills” without a live order. For a builder, this is the integration environment: it exercises auth, policy, order payloads, fills and the refusal path without risking a budget.",
+      "Protocol Bank's sandbox is the same Agent API. Paper and live share the endpoints; the difference is the account mode and the wallet approval.",
+    ],
   },
   {
-    q: "How is paper trading different from live trading?",
-    a: "The prices, signals, and fills model are identical; only the money is simulated. The main difference in live mode is real slippage, funding costs, and psychological pressure.",
+    heading: "What to test before going live",
+    paragraphs: [
+      "Do not just watch PnL. Test the parts that only fail under stress.",
+    ],
+    bullets: [
+      "A valid order below the cap returns a fill and remainingTodayUsd.",
+      "A size above the key cap returns 403 before the venue; the agent cannot widen the policy.",
+      "A second order on a held market returns 409; the refusal is final.",
+      "A daily breaker trip changes the account state; resume/stop controls behave as expected.",
+      "The usage log and receipt match the calls the agent made.",
+    ],
   },
   {
-    q: "How long should I paper trade before going live?",
-    a: "At least one to two weeks, ideally covering both calm and volatile market conditions. Look at drawdowns, win rate, and how the strategy behaves in stress — not just total return.",
+    heading: "Going live without changing the code",
+    paragraphs: [
+      "When the integration behaves, the owner approves the Hyperliquid agent wallet with trading-only rights. The same endpoints now execute live. The wallet can place and cancel orders, never withdraw; the policy still caps every call.",
+      "Keep the first live budget small. Paper trading is not a promise of live results: fills, funding and slippage differ, and the strategy can still lose.",
+    ],
+  },
+  {
+    heading: "Paper trading for agent platforms",
+    paragraphs: [
+      "For a platform, the sandbox is also the demo: each new agent can start in paper mode, show the owner the policy and the refusal path, then graduate to live when the owner approves the wallet. No separate environment to maintain.",
+    ],
   },
 ]
 
-export default function PaperTradingGuide() {
+const FAQ = [
+  {
+    q: "Is paper trading the same as live trading?",
+    a: "No. It uses real market data and simulated fills; funding, slippage and live venue behaviour differ. It is the integration and policy test, not a prediction of returns.",
+  },
+  {
+    q: "Does paper trading need a funded wallet?",
+    a: "No. The sandbox account runs with simulated money. You create a key and call the same endpoints; the cockpit is a demo of that account.",
+  },
+  {
+    q: "How do I switch an agent to live?",
+    a: "The owner approves a Hyperliquid agent wallet with trading-only rights. The same Agent API calls then execute live, still under the key policy and platform risk envelope.",
+  },
+]
+
+export default function Page() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            dateModified: "2026-08-25",
-            inLanguage: "en",
-            mainEntity: FAQ.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          }),
-        }}
-      />
-      <div className="container mx-auto px-4 py-12 sm:py-16 max-w-3xl">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Protocol Bank
-        </Link>
-        <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Crypto Paper Trading: A Sandbox for Agent Builders
-        </h1>
-        <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
-
-        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
-          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            Paper trading runs a trading strategy on <strong>real market data with simulated money</strong> — you watch
-            the agent scan markets, open and close positions, and enforce stop-losses, all with zero real funds at
-            risk. It's the safest way to verify a strategy before going live. Look for paper mode that uses the exact
-            same agent and risk engine as live trading, so what you see is what you'd actually get.
-          </p>
-        </div>
-
-        <div className="space-y-8 text-foreground/90 leading-relaxed">
-          <section>
-            <h2 className="text-2xl font-bold mb-3">What is crypto paper trading?</h2>
-            <p>
-              Paper trading is a simulation: your account gets a virtual balance, trades execute at real market prices,
-              and fees and slippage are modeled — but no real money moves. It&apos;s the standard way professional
-              traders validate a system before risking capital.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">Why paper trade an AI agent first</h2>
-            <ul className="list-disc pl-6 space-y-2">
-              <li>
-                <strong>See the strategy&apos;s real behavior</strong> — win rate, drawdowns, how it reacts to
-                volatility — on live market data.
-              </li>
-              <li>
-                <strong>Learn to read the signals</strong> — understand why the agent enters and exits before real
-                money depends on it.
-              </li>
-              <li>
-                <strong>Build trust in the safety rails</strong> — watch stop-losses and circuit breakers fire in
-                practice, not in theory.
-              </li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">How to paper trade with Protocol Bank</h2>
-            <ol className="list-decimal pl-6 space-y-2">
-              <li>Open the demo cockpit — no wallet needed for the demo account.</li>
-              <li>The agent scans real Hyperliquid markets and executes simulated trades automatically.</li>
-              <li>Watch the plain-language activity feed: every entry, exit, and risk decision explained.</li>
-              <li>Connect your wallet for your own private paper account before considering live mode.</li>
-            </ol>
-            <p className="mt-3">
-              <Link href="/agent-api" className="text-primary underline">
-                Try the sandbox →
-              </Link>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">When to go live</h2>
-            <p>
-              After at least a week or two, if you understand the strategy, accept its drawdowns, and are comfortable
-              losing the entire budget you plan to allocate — then consider live mode with a small amount.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">FAQ</h2>
-            <div className="space-y-4">
-              {FAQ.map((f) => (
-                <div key={f.q} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                  <h3 className="font-semibold mb-1.5">{f.q}</h3>
-                  <p className="text-sm text-muted-foreground">{f.a}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <p className="text-sm text-muted-foreground">
-            Related:{" "}
-            <Link href="/guides/ai-crypto-trading" className="underline">
-              AI crypto trading guide
-            </Link>{" "}
-            ·{" "}
-            <Link href="/guides/is-ai-trading-safe" className="underline">
-              Is AI trading safe?
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+    <GuideArticle
+      title="Crypto Paper Trading: A Sandbox for Agent Builders"
+      lead="Use the sandbox to test the policy, the refusals and the integration — not to predict returns. The same Agent API moves to live when the owner approves the trading-only wallet."
+      sections={SECTIONS}
+      faq={FAQ}
+    />
   )
 }

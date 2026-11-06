@@ -1,145 +1,70 @@
 ﻿import type { Metadata } from "next"
-import Link from "next/link"
+import { GuideArticle } from "@/components/guides/guide-article"
 
 export const metadata: Metadata = {
   title: "What is Hyperliquid? The Venue Behind Agent Trading",
   description:
-    "Hyperliquid explained: a performant Layer 1 for perpetual futures with deep liquidity, agent wallets with trading-only permissions, and why it's the natural venue for AI trading.",
+    "Hyperliquid explained for agent builders: a Layer 1 for perpetual futures, on-chain order book, agent wallets with trading-only permissions and why it is the first execution adapter.",
+  alternates: { canonical: "https://protocolbanks.com/guides/what-is-hyperliquid" },
   openGraph: {
     title: "What is Hyperliquid? The Venue Behind Agent Trading",
     description:
-      "How Hyperliquid's agent wallet system enables non-custodial AI trading with trading-only permissions.",
+      "Perpetual futures, an on-chain order book and agent wallets — the venue an AI trading agent can use without custody.",
   },
 }
 
-const FAQ = [
+const SECTIONS = [
   {
-    q: "What is Hyperliquid used for?",
-    a: "Hyperliquid is a Layer 1 blockchain purpose-built for perpetual futures trading with deep liquidity and low latency. It also hosts spot markets and a general-purpose EVM (HyperEVM) for DeFi applications.",
+    heading: "The short version",
+    paragraphs: [
+      "Hyperliquid is a Layer 1 blockchain built for perpetual futures. Orders live in an on-chain order book; the venue handles matching, funding and settlement. For an agent, the key feature is the agent wallet: an owner-approved wallet with trading rights only.",
+      "It is the first execution adapter in Protocol Bank because the trading-only primitive matches the product: an agent can trade a budget without a withdrawal path.",
+    ],
   },
   {
-    q: "What are Hyperliquid agent wallets?",
-    a: "Agent wallets (API wallets) are addresses you approve to act on your account. They can trade but, by default, cannot withdraw — which makes them the foundation for non-custodial trading bots.",
+    heading: "What an agent can do there",
+    paragraphs: [
+      "Through the Agent API, an agent reads account state and places one order per market. The platform risk envelope applies position sizing, leverage, stop-loss/take-profit and daily breakers before the order reaches Hyperliquid.",
+      "The agent does not need the owner's private key. The owner approves the agent wallet separately and can revoke it.",
+    ],
   },
   {
-    q: "How do I deposit into Hyperliquid?",
-    a: "Deposit USDC from Arbitrum via the bridge (MetaMask). Your Hyperliquid address matches your EVM wallet address.",
+    heading: "Risks to understand",
+    paragraphs: [
+      "Perpetual futures are leveraged. Funding, liquidation, slippage and gaps can lose the budget; a stop-loss is not a guarantee. A venue outage can make trading unavailable, although the owner's withdrawal path remains independent.",
+      "Hyperliquid is one venue. The control layer is designed to add adapters later, but today the trading path is Hyperliquid-specific.",
+    ],
+  },
+  {
+    heading: "How to start",
+    paragraphs: [
+      "Create an Agent API key, keep the read-only policy, and use the sandbox against real Hyperliquid market data. When the integration is ready, approve the trading-only wallet and go live with a small budget.",
+    ],
   },
 ]
 
-export default function HyperliquidGuide() {
+const FAQ = [
+  {
+    q: "Is Hyperliquid a DEX?",
+    a: "It is a Layer 1 for perpetual futures with an on-chain order book. Trades settle on Hyperliquid, and the owner keeps custody of the account.",
+  },
+  {
+    q: "Can an agent withdraw from Hyperliquid?",
+    a: "Not with a trading-only agent wallet. The wallet can place and cancel orders; withdrawals require the owner's own signature.",
+  },
+  {
+    q: "Does Protocol Bank support other venues?",
+    a: "Hyperliquid is the first trading adapter. The control layer is designed for more venues, but the current trading path is Hyperliquid.",
+  },
+]
+
+export default function Page() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            dateModified: "2026-08-25",
-            inLanguage: "en",
-            mainEntity: FAQ.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          }),
-        }}
-      />
-      <div className="container mx-auto px-4 py-12 sm:py-16 max-w-3xl">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Protocol Bank
-        </Link>
-        <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          What is Hyperliquid? The Venue Behind Agent Trading
-        </h1>
-        <p className="text-muted-foreground mb-8">Last updated: August 2026 · 5 min read</p>
-
-        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
-          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            Hyperliquid is a decentralized perpetual futures exchange (perp DEX) — a high-performance order book for
-            perps with sub-millisecond matching and its own L1. Its most interesting feature for builders is{" "}
-            <strong>agent wallets</strong>: you can grant an automated agent <strong>trading-only permissions</strong>,
-            so a bot can trade on your behalf without ever being able to withdraw. That's what makes non-custodial AI
-            trading on Hyperliquid possible.
-          </p>
-        </div>
-
-        <div className="space-y-8 text-foreground/90 leading-relaxed">
-          <section>
-            <h2 className="text-2xl font-bold mb-3">Hyperliquid in one paragraph</h2>
-            <p>
-              Hyperliquid is a Layer 1 blockchain designed for <strong>perpetual futures trading</strong>: deep
-              liquidity, sub-second settlement, and a full on-chain order book. It&apos;s become the venue of choice for
-              serious perp traders — and, thanks to its account model, for non-custodial automation.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">The account model that enables safe automation</h2>
-            <p>Three primitives matter for AI trading:</p>
-            <ul className="list-disc pl-6 mt-2 space-y-2">
-              <li>
-                <strong>Main account</strong> — your deposits and withdrawals. Only you can sign withdrawals.
-              </li>
-              <li>
-                <strong>Agent wallets</strong> — addresses you approve (one signed message) that can trade on your
-                behalf but cannot withdraw.
-              </li>
-              <li>
-                <strong>Sub-accounts</strong> — for larger traders, hard-separated budgets that can be pulled back to
-                the main account anytime.
-              </li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">Why this matters for AI trading</h2>
-            <p>
-              Because agent wallets are trading-only by design, an AI can manage your positions around the clock
-              without ever being able to move funds off the exchange. Combined with explicit risk controls, the worst
-              case is the budget you allocated — not your account.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">Try it without risk</h2>
-            <p>
-              Protocol Bank&apos;s agent runs on Hyperliquid&apos;s most liquid markets. Paper trading uses real market
-              data with simulated money:
-            </p>
-            <p className="mt-3">
-              <Link href="/agent-api" className="text-primary underline">
-                Try the sandbox →
-              </Link>{" "}
-              ·{" "}
-              <Link href="/guides/hyperliquid-trading-bot" className="text-primary underline">
-                Hyperliquid bot guide
-              </Link>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">FAQ</h2>
-            <div className="space-y-4">
-              {FAQ.map((f) => (
-                <div key={f.q} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                  <h3 className="font-semibold mb-1.5">{f.q}</h3>
-                  <p className="text-sm text-muted-foreground">{f.a}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <p className="text-sm text-muted-foreground">
-            Educational content, not financial advice.{" "}
-            <Link href="/risk-disclosure" className="underline">
-              Risk Disclosure
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+    <GuideArticle
+      title="What is Hyperliquid? The Venue Behind Agent Trading"
+      lead="A performant perp venue with agent wallets. This is what an AI trading agent actually connects to, and why the trading-only boundary is the reason it is the first adapter."
+      sections={SECTIONS}
+      faq={FAQ}
+    />
   )
 }

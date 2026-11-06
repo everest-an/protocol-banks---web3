@@ -1,186 +1,78 @@
 ﻿import type { Metadata } from "next"
-import Link from "next/link"
+import { GuideArticle } from "@/components/guides/guide-article"
 
 export const metadata: Metadata = {
   title: "Best AI Trading Bots 2026: Non-Custodial Agent Controls",
   description:
-    "How to evaluate AI trading bots in 2026: custody model, withdrawal rights, strategy transparency, and risk controls. Non-custodial agents vs custodial funds compared.",
+    "How to evaluate AI trading bots and agent platforms: custody, withdrawal rights, server-enforced caps, audit and venue support. No return rankings.",
+  alternates: { canonical: "https://protocolbanks.com/guides/best-ai-trading-bots" },
   openGraph: {
     title: "Best AI Trading Bots 2026: Non-Custodial Agent Controls",
     description:
-      "The evaluation framework for AI trading bots: who holds your funds, can the bot withdraw, is the strategy transparent, and what risk controls exist.",
+      "The evaluation framework for agent trading: who can move funds, what the server enforces, and what is actually logged.",
   },
 }
 
-const COMPARISON = [
+const SECTIONS = [
   {
-    dimension: "Who holds your funds?",
-    custodial: "The platform holds deposits in its own wallets",
-    nonCustodial: "Funds stay in your own account structure",
+    heading: "“Best” depends on who is liable",
+    paragraphs: [
+      "A trading bot is not a single product. It is a model, a strategy, a wallet and an execution path. The question that matters for an agent platform is: if the model is wrong, who can move the money, and what stops it?",
+      "That is why a return ranking is the wrong comparison. A high-return account with withdrawal rights is a different risk object from a lower-return account behind a trading-only wallet and a server-enforced cap.",
+    ],
   },
   {
-    dimension: "Can the bot withdraw?",
-    custodial: "Yes — you trust the operator completely",
-    nonCustodial: "No — trading-only permissions, withdrawals require your signature",
+    heading: "The evaluation checklist",
+    paragraphs: [
+      "Use the same checklist for any bot, framework or agent platform. The answers should be in the documentation, not in a sales call.",
+    ],
+    bullets: [
+      "Custody: does the platform hold the funds, or does the owner?",
+      "Withdrawal rights: can the agent withdraw, or only trade?",
+      "Policy: are ops, per-call cap, daily cap and allowlist enforced server-side?",
+      "Audit: is every call, fill and refusal recorded and exportable?",
+      "Venue: which markets, and what happens during a venue outage?",
+      "Integration: API, SDK, MCP, or a human-only UI?",
+      "Revocation: can the owner stop the agent instantly?",
+    ],
   },
   {
-    dimension: "Strategy transparency",
-    custodial: "Often a black box",
-    nonCustodial: "Every trade explained in plain language",
+    heading: "Where Protocol Bank fits",
+    paragraphs: [
+      "Protocol Bank is the control layer, not a ranked strategy. It gives each agent a scoped key and a policy, a trading-only Hyperliquid wallet and receipts. The cockpit is a demo; the Agent API is the product.",
+      "If a bot cannot answer the checklist above, a higher historical return does not make it safer. If it can, the return is still the strategy's problem — not the control layer's promise.",
+    ],
   },
   {
-    dimension: "Maximum loss",
-    custodial: "Can exceed your deposit (leverage, liquidation rules)",
-    nonCustodial: "Your trading budget — visible on screen",
-  },
-  {
-    dimension: "Stopping it",
-    custodial: "Request withdrawal and wait",
-    nonCustodial: "One-click pause, emergency stop, on-chain revocation",
+    heading: "A note on comparisons",
+    paragraphs: [
+      "We do not publish a “best bots” ranking, and we do not use our own strategy's PnL as proof. A list that ranks by returns is an advertisement, not due diligence. Compare the controls first, then the signal.",
+    ],
   },
 ]
 
 const FAQ = [
   {
-    q: "What should I look for in an AI trading bot?",
-    a: "Four things: custody (do you keep control of your funds?), withdrawal rights (can the bot move money out?), strategy transparency (do you know why it trades?), and risk controls (stop-losses, position caps, circuit breakers).",
+    q: "What is the best AI trading bot in 2026?",
+    a: "There is no single best bot. Compare custody, withdrawal rights, server-enforced caps, audit, venue support, integration and revocation. A return ranking alone is not due diligence.",
   },
   {
-    q: "Are non-custodial trading bots safer?",
-    a: "Structurally yes: the bot can never withdraw your funds and you can revoke it anytime. Trading losses are still possible, so budget them explicitly.",
+    q: "Is a non-custodial bot safer?",
+    a: "Non-custody removes the platform's ability to move your funds, but the strategy can still lose the budget. Trading-only permissions and server caps bound the loss; they do not make trading risk-free.",
   },
   {
-    q: "Do AI trading bots actually make money?",
-    a: "Some do, most don't, and past performance never guarantees future returns. Treat any bot as an automation tool with hard risk limits — never as a guaranteed income source.",
+    q: "Does Protocol Bank rank other bots?",
+    a: "No. We publish the evaluation framework and our own control layer. We do not sell or rank returns.",
   },
 ]
 
-export default function BestBotsGuide() {
+export default function Page() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            dateModified: "2026-08-25",
-            inLanguage: "en",
-            mainEntity: FAQ.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          }),
-        }}
-      />
-      <div className="container mx-auto px-4 py-12 sm:py-16 max-w-3xl">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Protocol Bank
-        </Link>
-        <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          Best AI Trading Bots 2026: Non-Custodial Agent Controls
-        </h1>
-        <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
-
-        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
-          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            When comparing AI trading bots, the single most important question is <strong>who holds the funds</strong>.
-            A non-custodial bot trades through a <strong>trading-only agent wallet</strong> — it can enter and exit
-            positions but has no withdrawal rights. That's more important than claimed win rates. Look for transparent
-            trade explanations, enforced stop-losses, and free paper trading you can verify before committing money.
-          </p>
-        </div>
-
-        <div className="space-y-8 text-foreground/90 leading-relaxed">
-          <section>
-            <h2 className="text-2xl font-bold mb-3">What makes an AI trading bot safe?</h2>
-            <p>
-              &quot;Best AI trading bot&quot; lists usually rank marketing, not architecture. The single most important
-              question is: <strong>who holds your funds, and what can the bot do with them?</strong> Everything else —
-              returns, features, fees — comes second.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">What's the difference between custodial and non-custodial bots?</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left py-2 pr-4 font-semibold">Dimension</th>
-                    <th className="text-left py-2 pr-4 font-semibold">Custodial</th>
-                    <th className="text-left py-2 font-semibold">Non-custodial</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARISON.map((row) => (
-                    <tr key={row.dimension} className="border-b border-white/5 align-top">
-                      <td className="py-2.5 pr-4 font-medium">{row.dimension}</td>
-                      <td className="py-2.5 pr-4 text-muted-foreground">{row.custodial}</td>
-                      <td className="py-2.5">{row.nonCustodial}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">What four questions should you ask any bot?</h2>
-            <ol className="list-decimal pl-6 space-y-2">
-              <li>
-                <strong>Custody:</strong> do your funds stay in your own account, or are you depositing into the
-                platform&apos;s wallets?
-              </li>
-              <li>
-                <strong>Withdrawal rights:</strong> can the bot move money off the platform, or is it trading-only?
-              </li>
-              <li>
-                <strong>Transparency:</strong> do you see why each trade happened, or is it a black box?
-              </li>
-              <li>
-                <strong>Risk controls:</strong> are stop-losses, position caps, and circuit breakers enforced before
-                orders — or are they suggestions?
-              </li>
-            </ol>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">How Protocol Bank answers those questions</h2>
-            <p>
-              Non-custodial (funds stay in your Hyperliquid account). Trading-only agent wallet (no withdrawals, ever).
-              Fully transparent (every trade logged in plain language). Hard risk controls (±2.5% stop-losses, position
-              caps, daily circuit breakers).
-            </p>
-            <p className="mt-3">
-              <Link href="/agent-api" className="text-primary underline">
-                Build with the Agent API →
-              </Link>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">FAQ</h2>
-            <div className="space-y-4">
-              {FAQ.map((f) => (
-                <div key={f.q} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                  <h3 className="font-semibold mb-1.5">{f.q}</h3>
-                  <p className="text-sm text-muted-foreground">{f.a}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <p className="text-sm text-muted-foreground">
-            Educational content, not financial advice.{" "}
-            <Link href="/risk-disclosure" className="underline">
-              Risk Disclosure
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+    <GuideArticle
+      title="Best AI Trading Bots 2026: What Actually Matters"
+      lead="Rank bots by who can move the money and what the server enforces — not by a screenshot of returns. This is the checklist an agent platform should apply before it gives an agent a wallet."
+      sections={SECTIONS}
+      faq={FAQ}
+    />
   )
 }

@@ -1,167 +1,75 @@
 import type { Metadata } from "next"
-import Link from "next/link"
+import { GuideArticle } from "@/components/guides/guide-article"
 
 export const metadata: Metadata = {
   title: "AI Crypto Trading: A Builder's Guide to Agent Controls (2026)",
   description:
-    "How non-custodial AI crypto trading bots work, the safety guardrails that protect your funds, and how to start with paper trading on real market data.",
+    "How AI agent trading works for builders: scoped keys, server-enforced caps, trading-only wallets and audit. Build with the Agent API; the cockpit is a demo.",
+  alternates: { canonical: "https://protocolbanks.com/guides/ai-crypto-trading" },
   openGraph: {
-    title: "AI Crypto Trading: A Builder's Guide to Agent Controls (2026)",
+    title: "AI Crypto Trading: A Builder's Guide to Agent Controls",
     description:
-      "How non-custodial AI trading works: trading-only agent wallets, risk guardrails, and how to start paper trading on real market data.",
+      "The builder's stack for agent trading: one key per agent, policy caps, a trading-only wallet, and receipts. Bring your own strategy.",
   },
 }
 
-const FAQ = [
+const SECTIONS = [
   {
-    q: "What is AI crypto trading?",
-    a: "AI crypto trading uses automated algorithms to scan markets, generate trading signals, and execute trades. A non-custodial AI trading agent holds trading-only permissions — it can open and close positions but can never withdraw funds from your account.",
+    heading: "What “AI crypto trading” actually is",
+    paragraphs: [
+      "An AI agent does not hold an edge by itself. It reads market data, forms a decision and calls an execution interface. The hard part is not the model call; it is giving the agent a wallet and an API key without letting a hallucination, a prompt injection or a loop drain the account.",
+      "That is why agent trading is a stack, not a prompt: the owner wallet, a trading-only agent wallet, a scoped API key, a server-enforced policy and an audit trail. The model decides; the execution layer decides what the model is allowed to do.",
+    ],
   },
   {
-    q: "Can an AI trading bot withdraw my crypto?",
-    a: "Not with the right architecture. On Hyperliquid, agent wallets are approved with trading-only permissions (approveAgent). The AI can trade within your budget but has no withdrawal rights — you can also revoke its access at any time.",
+    heading: "The builder's stack",
+    paragraphs: [
+      "Protocol Bank gives each agent its own credential. The owner sets the operations (read / trade / pay / swap), a per-call cap, a daily cap and a coin allowlist. A policy violation is refused before the order reaches the venue.",
+    ],
+    bullets: [
+      "Trading-only Hyperliquid agent wallet: it can place and cancel orders, and cannot withdraw.",
+      "A key policy the agent cannot widen; the owner edits it in Settings → API Keys.",
+      "Paper and live share the same endpoints, so the integration test is the production path.",
+      "Every call, fill and refusal is recorded; a receipt closes the loop.",
+    ],
   },
   {
-    q: "How much money do I need to start AI trading?",
-    a: "Nothing, if you start with paper trading — simulated money on real market data. For live mode you fund a trading budget you are comfortable risking; the budget is also your maximum possible loss.",
+    heading: "How to build with it",
+    paragraphs: [
+      "Create a key, keep the starting read-only policy, and call GET /api/v1/agent/state in the sandbox. Place one order below the cap, then raise the policy only when the integration behaves. When the owner approves the Hyperliquid agent wallet, the same code moves to live; the wallet is still trading-only.",
+      "Bring your own strategy. The platform does not sell alpha, a fund or a return; it enforces the limits around whatever signal the agent produces.",
+    ],
   },
   {
-    q: "Is AI crypto trading profitable?",
-    a: "No strategy guarantees profit. AI trading executes a strategy (momentum and funding-carry signals, for example) with stop-losses and circuit breakers — but crypto markets are volatile and losses are possible. Past performance never guarantees future results.",
-  },
-  {
-    q: "What are the risks of AI crypto trading?",
-    a: "The main risks are market volatility, liquidation, exchange outages, and software bugs. A responsible setup enforces per-trade stop-losses, position caps, and daily loss circuit breakers — and limits the AI to a trading budget that you choose.",
+    heading: "What this guide does not claim",
+    paragraphs: [
+      "No strategy guarantees profit. Automated trading can lose the entire trading budget, and a backtest is not a promise. The value of the control layer is that the loss is bounded by the budget and the policy the owner chose — not that the strategy wins.",
+    ],
   },
 ]
 
-export default function AiCryptoTradingGuide() {
+const FAQ = [
+  {
+    q: "Can an AI trading agent withdraw my crypto?",
+    a: "Not with a trading-only agent wallet. On Hyperliquid the owner approves a wallet with trading rights only (approveAgent); it can place and cancel orders and cannot withdraw. The owner can revoke it.",
+  },
+  {
+    q: "Do I have to give the agent my private key?",
+    a: "No. The agent gets an API key scoped to the account and a policy; execution uses the trading-only agent wallet. The platform never holds the owner's keys.",
+  },
+  {
+    q: "How do I test an AI trading agent safely?",
+    a: "Start in the sandbox: real market data, simulated money, the same endpoints. Test the policy and the refusal path, then approve the agent wallet and go live with a budget you can lose.",
+  },
+]
+
+export default function Page() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            dateModified: "2026-08-25",
-            inLanguage: "en",
-            mainEntity: FAQ.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          }),
-        }}
-      />
-      <div className="container mx-auto px-4 py-12 sm:py-16 max-w-3xl">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Protocol Bank
-        </Link>
-        <h1 className="text-3xl sm:text-4xl font-bold mt-4 mb-4 tracking-tight">
-          AI Crypto Trading: What Builders Need to Know
-        </h1>
-        <p className="text-muted-foreground mb-8">Last updated: August 2026 · 6 min read</p>
-
-        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-5 mb-8">
-          <p className="text-sm font-semibold text-primary mb-1">TL;DR</p>
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            AI crypto trading uses software to scan markets and execute trades automatically. A non-custodial setup
-            keeps funds in your own wallet and grants the AI <strong>trading-only permissions</strong> — it can open and
-            close positions but can never withdraw. With stop-losses, position caps, and daily circuit breakers, the
-            worst case is the budget you allocate. Start free with paper trading on real market data.
-          </p>
-        </div>
-
-        <div className="space-y-8 text-foreground/90 leading-relaxed">
-          <section>
-            <h2 className="text-2xl font-bold mb-3">What is AI crypto trading?</h2>
-            <p>
-              AI crypto trading means letting software analyze markets and execute trades automatically. Instead of
-              watching charts all day, you define a budget and rules — the AI handles scanning, signals, and execution.
-            </p>
-            <p className="mt-3">
-              Most people hear &quot;trading bot&quot; and picture a black box that takes your money. The better design is
-              the opposite: a <strong>non-custodial agent</strong> that can trade within a budget you choose, but can
-              never withdraw your funds, and can be stopped or revoked at any moment.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">How non-custodial AI trading works</h2>
-            <ol className="list-decimal pl-6 space-y-2">
-              <li>
-                <strong>Connect your wallet</strong> — sign in with MetaMask (SIWE, no password, keys never leave your
-                device).
-              </li>
-              <li>
-                <strong>Fund a trading budget</strong> — deposit USDC to Hyperliquid. This budget is the maximum the AI
-                can trade — and your maximum possible loss.
-              </li>
-              <li>
-                <strong>Approve a trading-only agent wallet</strong> — one EIP-712 signature in MetaMask grants the AI
-                permission to trade, not withdraw.
-              </li>
-              <li>
-                <strong>The AI trades, you watch</strong> — every trade appears in a plain-language feed with the reason
-                behind it.
-              </li>
-            </ol>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">What strategy does the AI use?</h2>
-            <p>
-              Protocol Bank&apos;s robust leg uses two signals over Hyperliquid&apos;s most liquid perpetual markets:
-            </p>
-            <ul className="list-disc pl-6 mt-2 space-y-2">
-              <li>
-                <strong>Momentum</strong> — a 24-hour risk-adjusted trend score (mean return divided by volatility).
-              </li>
-              <li>
-                <strong>Funding carry</strong> — the direction and size of Hyperliquid&apos;s hourly funding rate.
-              </li>
-            </ul>
-            <p className="mt-3">
-              Every position carries a ±2.5% stop-loss/take-profit, position sizes are capped, and daily loss circuit
-              breakers pause or close trading automatically.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">How to start (risk-free)</h2>
-            <p>
-              Start with <strong>paper trading</strong>: the agent runs on real market data with simulated money. Watch
-              it scan, trade, and explain itself for a week. If you like what you see, go live with a small budget.
-            </p>
-            <p className="mt-3">
-              <Link href="/agent-api" className="text-primary underline">
-                Build with the Agent API →
-              </Link>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-3">FAQ</h2>
-            <div className="space-y-4">
-              {FAQ.map((f) => (
-                <div key={f.q} className="rounded-xl border border-white/10 dark:border-white/5 bg-white/50 dark:bg-black/20 p-5">
-                  <h3 className="font-semibold mb-1.5">{f.q}</h3>
-                  <p className="text-sm text-muted-foreground">{f.a}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <p className="text-sm text-muted-foreground">
-            Read the full{" "}
-            <Link href="/risk-disclosure" className="underline">
-              Risk Disclosure
-            </Link>{" "}
-            before trading with real funds.
-          </p>
-        </div>
-      </div>
-    </div>
+    <GuideArticle
+      title="AI Crypto Trading: What Builders Need to Know"
+      lead="The model decides. The execution layer decides what the model is allowed to do. Here is the builder's stack for giving an AI agent a trading account without giving it the ability to drain it."
+      sections={SECTIONS}
+      faq={FAQ}
+    />
   )
 }
