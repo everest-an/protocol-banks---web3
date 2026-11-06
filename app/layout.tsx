@@ -106,6 +106,9 @@ export default function RootLayout({
             The product UI is English-only by design, so the page opts out of
             machine translation instead of shipping a crash. */}
         <meta name="google" content="notranslate" />
+        <link rel="alternate" type="application/json" href="/.well-known/agent.json" />
+        <link rel="alternate" type="text/plain" href="/llms.txt" />
+        <link rel="alternate" type="application/vnd.oai.openapi+json" href="/api/agent.openapi.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

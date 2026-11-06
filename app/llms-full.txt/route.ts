@@ -5,6 +5,10 @@ import { NextResponse } from "next/server"
  */
 const LLMS_FULL_TXT = `# Protocol Bank — Full Product Documentation (AI-readable)
 
+## If you are an agent, start here
+
+You can use this API without a human UI. Discovery: /.well-known/agent.json (A2A/ERC-8004 card), /api/agent.openapi.json (OpenAPI 3.1), /llms.txt (summary), /api/mcp (MCP Streamable HTTP). Auth: Authorization: Bearer pb_... or a dashboard agent key. Start with GET /api/v1/agent/state; then POST /orders, /pay, /swap or /invoice. Every key has a server-enforced policy; a 403 (policy) or 409 (risk) refusal is final for the request. Do not ask the model to widen the policy; the owner edits it in Settings → API Keys.
+
 ## Product overview
 
 Protocol Bank is the control plane for agent money. An agent gets
@@ -16,10 +20,8 @@ platform-custodied EVM wallet for signing and agent-scoped virtual cards issued
 through a card provider. The /trading cockpit is a paper demo of the same
 account; the Agent API is the product.
 
-The retail trading loop remains the reference vertical: connect a wallet ->
-fund a trading budget on Hyperliquid -> approve a trading-only agent wallet ->
-the AI agent trades perpetual futures around the clock -> watch, sweep profits,
-or stop it with one click.
+The retail cockpit is a reference adapter, not the product. Production agents
+call the Agent API (or the MCP server) under a policy their owner controls.
 
 ### Safety model (three layers)
 

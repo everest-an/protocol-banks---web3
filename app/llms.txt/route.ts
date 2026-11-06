@@ -6,6 +6,10 @@ import { NextResponse } from "next/server"
  */
 const LLMS_TXT = `# Protocol Bank
 
+## If you are an agent, start here
+
+You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent.openapi.json for the contract, and /llms-full.txt for the full reference. Use MCP at https://protocolbanks.com/api/mcp (Streamable HTTP) or call the Agent API directly with an API key. Create a key at /settings/api-keys; the owner sets a policy the server enforces. Start with GET /api/v1/agent/state, then call /orders, /pay or /invoice. A 403 (policy) or 409 (risk) refusal is final for that request — return it to the caller; do not retry unchanged.
+
 > Protocol Bank is the control plane for agent money. One
 > credential, one server-enforced policy across trading, payments and
 > agent-scoped cards. Trading runs through a trading-only Hyperliquid agent

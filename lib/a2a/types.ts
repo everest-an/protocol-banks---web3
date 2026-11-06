@@ -12,9 +12,12 @@ import { z } from 'zod'
 /**
  * Generate a DID for an EVM address using the PKH method.
  * Format: did:pkh:eip155:<chainId>:<address>
+ * An agent-scoped DID URL adds a fragment so two agents owned by the same
+ * wallet do not collide on the unique `did` column.
  */
-export function generateDid(address: string, chainId: number = 1): string {
-  return `did:pkh:eip155:${chainId}:${address.toLowerCase()}`
+export function generateDid(address: string, chainId: number = 1, agentId?: string): string {
+  const base = `did:pkh:eip155:${chainId}:${address.toLowerCase()}`
+  return agentId ? `${base}#${encodeURIComponent(agentId)}` : base
 }
 
 /**
@@ -22,7 +25,7 @@ export function generateDid(address: string, chainId: number = 1): string {
  * Returns null if the DID format is invalid.
  */
 export function extractAddressFromDid(did: string): string | null {
-  const match = did.match(/^did:pkh:eip155:\d+:(0x[a-fA-F0-9]{40})$/)
+  const match = did.match(/^did:pkh:eip155:\d+:(0x[a-fA-F0-9]{40})(?:#.*)?$/)
   return match ? match[1].toLowerCase() : null
 }
 
@@ -30,15 +33,15 @@ export function extractAddressFromDid(did: string): string | null {
  * Extract chain ID from a PKH DID.
  */
 export function extractChainIdFromDid(did: string): number | null {
-  const match = did.match(/^did:pkh:eip155:(\d+):0x[a-fA-F0-9]{40}$/)
+  const match = did.match(/^did:pkh:eip155:(\d+):0x[a-fA-F0-9]{40}(?:#.*)?$/)
   return match ? parseInt(match[1], 10) : null
 }
 
 // ─── Zod Schemas ────────────────────────────────────────────────────
 
 export const didSchema = z.string().regex(
-  /^did:pkh:eip155:\d+:0x[a-fA-F0-9]{40}$/,
-  'Invalid DID format. Expected: did:pkh:eip155:<chainId>:<address>'
+  /^did:pkh:eip155:\d+:0x[a-fA-F0-9]{40}(?:#[A-Za-z0-9._~:%+-]+)?$/,
+  'Invalid DID format. Expected: did:pkh:eip155:<chainId>:<address>[#agent]'
 )
 
 export const agentSkillSchema = z.object({
@@ -89,43 +92,62 @@ export type AgentCard = z.infer<typeof agentCardSchema>
 export type AgentSkill = z.infer<typeof agentSkillSchema>
 export type AgentCapabilities = z.infer<typeof agentCapabilitiesSchema>
 
-/** Platform's default Agent Card — describes Protocol Banks as a payment agent */
+/** Platform's default Agent Card — describes Protocol Bank as the agent money control plane */
 export function getPlatformAgentCard(baseUrl: string): AgentCard {
   return {
     did: generateDid('0x0000000000000000000000000000000000000001', 1),
-    name: 'Protocol Banks Payment Agent',
-    description: 'Non-custodial stablecoin payment infrastructure. Supports USDC/USDT across Ethereum, Base, Polygon, Arbitrum, Optimism, and TRON.',
-    version: '1.0',
+    name: 'Protocol Bank — Agent Money Control Plane',
+    description:
+      'Execution and policy for AI agents: one key per agent, server-enforced caps and allowlist, trading-only Hyperliquid wallet, EIP-3009 payments, audit receipts.',
+    version: '2.0',
     url: baseUrl,
     capabilities: {
       skills: [
         {
+          id: 'agent_execution',
+          name: 'Agent Execution with Policy',
+          description:
+            'Read state, place orders and prepare/execute payments under a policy the server enforces. A 403/409 refusal is final.',
+          tags: ['agent', 'policy', 'execution', 'limits', 'audit'],
+          examples: ['Read my account state', 'Place a $20 BTC long', 'Prepare a $25 USDC payment'],
+        },
+        {
+          id: 'trading',
+          name: 'Hyperliquid Trading',
+          description:
+            'Trading runs through a trading-only agent wallet: it can place and cancel orders and cannot withdraw.',
+          tags: ['trading', 'hyperliquid', 'perpetuals', 'non-custodial'],
+          examples: ['Open a BTC long with a $50 cap', 'Close the ETH position'],
+        },
+        {
           id: 'payment',
-          name: 'Stablecoin Payment',
-          description: 'Send stablecoin payments to any wallet address across multiple chains.',
-          tags: ['payment', 'usdc', 'usdt', 'stablecoin', 'cross-chain'],
-          examples: ['Send 100 USDC to 0x...', 'Transfer 500 USDT on Base'],
+          name: 'EIP-3009 Payment',
+          description:
+            'The payer signs an EIP-3009 authorization; the relayer submits it and pays gas. The platform never holds funds.',
+          tags: ['payment', 'usdc', 'eip-3009', 'stablecoin'],
+          examples: ['Pay 100 USDC on Base', 'Pay an invoice with USDC'],
         },
         {
           id: 'invoice',
           name: 'Invoice Creation',
-          description: 'Create invoices for receiving payments with QR codes and payment links.',
+          description: 'Create a pending invoice and a payable link for the payer.',
           tags: ['invoice', 'receive', 'billing'],
-          examples: ['Create invoice for $250', 'Generate payment link'],
+          examples: ['Create an invoice for $250'],
         },
         {
-          id: 'batch_payment',
-          name: 'Batch Payment',
-          description: 'Send payments to multiple recipients in a single transaction.',
-          tags: ['batch', 'payroll', 'bulk'],
-          examples: ['Pay 10 employees', 'Distribute rewards to holders'],
+          id: 'agent_cards',
+          name: 'Agent-Scoped Cards',
+          description:
+            'Virtual Visa cards scoped to one agent, issued by a provider after KYB, with freeze/close and budget controls.',
+          tags: ['cards', 'spend', 'visa', 'agent'],
+          examples: ['Issue a card for this agent', 'Freeze the agent card'],
         },
         {
           id: 'x402',
           name: 'x402 Micropayment',
-          description: 'HTTP 402-based machine-to-machine micropayments.',
+          description: 'HTTP 402 machine-to-machine payments for API and compute access.',
           tags: ['x402', 'micropayment', 'api', 'machine-to-machine'],
-          examples: ['Pay-per-API-call', 'Streaming payment for AI compute'],
+          examples: ['Pay per API call', 'Pay for agent compute'],
         },
       ],
       supported_protocols: ['a2a', 'mcp', 'x402'],
