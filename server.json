@@ -3,7 +3,7 @@
   "name": "io.github.everest-an/protocol-banks",
   "title": "Protocol Banks",
   "description": "Control plane for agent money: server-enforced limits and non-custodial execution.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "remotes": [
     {
       "type": "streamable-http",
@@ -11,3 +11,4 @@
     }
   ]
 }
+
