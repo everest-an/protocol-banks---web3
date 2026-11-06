@@ -42,6 +42,7 @@ import { usePaymentHistory } from "@/hooks/use-payment-history"
 import { BalanceDistribution } from "@/components/balance-distribution"
 import { BalanceActivity } from "@/components/balance-activity"
 import { WalletOnchainActivity } from "@/components/wallet-onchain-activity"
+import { AgentPaymentActivity } from "@/components/agent-payment-activity"
 import { categorizeTransaction, CATEGORY_COLORS, calculateRunway, type Category } from "@/lib/business-logic"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import type { TokenBalance } from "@/types"
@@ -553,6 +554,10 @@ export default function BalancesPage() {
         )}
 
         {/* ══════════ Tabs (only when there is balance) ══════════ */}
+        {isConnected && !isDemoMode && activeAddress && (
+          <AgentPaymentActivity wallet={activeAddress} isDemoMode={isDemoMode} />
+        )}
+
         {hasBalance && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
@@ -635,7 +640,7 @@ export default function BalancesPage() {
                             </div>
                             <div className="flex items-center gap-3">
                               <span className="text-sm" style={{ fontVariantNumeric: "tabular-nums" }}>
-                                {hideBalance ? "****" : `$${formatUSD(t.totalUSD, 0)}`}
+                                {hideBalance ? "****" : `$${formatUSD(t.totalUSD, 2)}`}
                               </span>
                               <span className="text-xs text-muted-foreground w-12 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
                                 {t.percentage.toFixed(1)}%
@@ -695,7 +700,7 @@ export default function BalancesPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Stablecoins</p>
                         <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {hideBalance ? "****" : `$${formatUSD(stablecoinTotal, 0)}`}
+                          {hideBalance ? "****" : `$${formatUSD(stablecoinTotal, 2)}`}
                         </p>
                       </div>
                     </div>
@@ -710,7 +715,7 @@ export default function BalancesPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Volatile Assets</p>
                         <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {hideBalance ? "****" : `$${formatUSD(volatileTotal, 0)}`}
+                          {hideBalance ? "****" : `$${formatUSD(volatileTotal, 2)}`}
                         </p>
                       </div>
                     </div>
@@ -902,7 +907,7 @@ export default function BalancesPage() {
                           </div>
                           <div className="text-right">
                             <p className="font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                              ${hideBalance ? "****" : formatUSD(chain.totalUSD, 0)}
+                              ${hideBalance ? "****" : formatUSD(chain.totalUSD, 2)}
                             </p>
                           </div>
                         </div>
@@ -940,7 +945,7 @@ export default function BalancesPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Burn Rate (30d)</p>
                         <p className="text-lg font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {hideBalance ? "****" : `$${formatUSD(moneyMovement.burnRate, 0)}`}
+                          {hideBalance ? "****" : `$${formatUSD(moneyMovement.burnRate, 2)}`}
                         </p>
                       </div>
                     </div>
@@ -1048,7 +1053,7 @@ export default function BalancesPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                                    {hideBalance ? "****" : `$${formatUSD(cat.value, 0)}`}
+                                    {hideBalance ? "****" : `$${formatUSD(cat.value, 2)}`}
                                   </span>
                                   <span className="text-xs text-muted-foreground w-10 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
                                     {pct.toFixed(0)}%
@@ -1079,13 +1084,13 @@ export default function BalancesPage() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">This Month</p>
                       <p className="text-2xl font-bold font-mono" style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {hideBalance ? "****" : `$${formatUSD(paymentStats.thisMonth, 0)}`}
+                        {hideBalance ? "****" : `$${formatUSD(paymentStats.thisMonth, 2)}`}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Last Month</p>
                       <p className="text-2xl font-bold font-mono" style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {hideBalance ? "****" : `$${formatUSD(paymentStats.lastMonth, 0)}`}
+                        {hideBalance ? "****" : `$${formatUSD(paymentStats.lastMonth, 2)}`}
                       </p>
                     </div>
                   </div>

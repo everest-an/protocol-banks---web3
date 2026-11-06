@@ -123,6 +123,12 @@ async function handler(request: AgentRequest) {
 
     const existing = await getAgentPaymentByNonce(authorization.nonce)
     if (existing) {
+      if (existing.owner_address.toLowerCase() !== wallet.toLowerCase()) {
+        return NextResponse.json(
+          { ok: false, error: "this authorization nonce has already been used" },
+          { status: 409 },
+        )
+      }
       return NextResponse.json({
         ok: true,
         payment: paymentView(existing),
@@ -145,6 +151,12 @@ async function handler(request: AgentRequest) {
     })
 
     if (!created) {
+      if (record.owner_address.toLowerCase() !== wallet.toLowerCase()) {
+        return NextResponse.json(
+          { ok: false, error: "this authorization nonce has already been used" },
+          { status: 409 },
+        )
+      }
       return NextResponse.json({
         ok: true,
         payment: paymentView(record),
@@ -212,36 +224,40 @@ async function handler(request: AgentRequest) {
       if (failed) {
         void webhookTriggerService.triggerPaymentFailed(wallet, paymentEventData(failed))
       }
+      const failedView = failed ? paymentView(failed) : null
       if (/authorization is used|already used|invalid signature|expired/i.test(message)) {
-        return NextResponse.json({ ok: false, error: message.slice(0, 300) }, { status: 409 })
+        return NextResponse.json({ ok: false, error: message.slice(0, 300), payment: failedView }, { status: 409 })
       }
       if (/Relayer not configured/i.test(message)) {
-        return NextResponse.json({ error: "payments are not configured on this deployment" }, { status: 503 })
+        return NextResponse.json({ error: "payments are not configured on this deployment", payment: failedView }, { status: 503 })
       }
       console.error("[agent/pay] submit failed:", error)
       return NextResponse.json(
-        { ok: false, error: "the relayer could not submit the payment", message: message.slice(0, 300) },
+        { ok: false, error: "the payment was rejected by the chain", message: message.slice(0, 300), payment: failedView },
         { status: 502 },
       )
     }
   }
 
   const built = buildPaymentIntent({ from: wallet, to, amountUsd, token, chain })
-  const executable = built.ok ? built.intent.executable : false
+  if (!built.ok) {
+    return NextResponse.json({ error: built.error }, { status: 400 })
+  }
+  const executable = built.intent.executable
 
   return NextResponse.json({
     ok: true,
     intent: {
       kind: EVM_ADDRESS.test(to) ? "evm-transfer" : "solana-transfer",
       to,
-      token: built.ok ? built.intent.token : token,
-      chain: built.ok ? built.intent.chain : chain,
+      token: built.intent.token,
+      chain: built.intent.chain,
       amountUsd,
       memo,
       remainingTodayUsd: remaining(amountUsd),
-      chainId: built.ok ? built.intent.chainId : null,
-      authorization: built.ok ? built.intent.authorization : null,
-      typedData: built.ok ? built.intent.typedData : null,
+      chainId: built.intent.chainId,
+      authorization: built.intent.authorization,
+      typedData: built.intent.typedData,
       executable,
     },
     note: executable

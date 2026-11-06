@@ -16,18 +16,26 @@ const DemoContext = createContext<DemoContextType | undefined>(undefined)
 const TEST_MODE_STORAGE_KEY = "protocol-bank-test-mode"
 
 export function DemoProvider({ children }: { children: ReactNode }) {
-  // Default to test mode when no wallet is connected; restore from localStorage if available
-  const [isDemoMode, setIsDemoMode] = useState(true)
+  const [isDemoMode, setIsDemoMode] = useState(false)
   const [demoModeBlocked, setDemoModeBlocked] = useState(false)
   const [demoBlockReason, setDemoBlockReason] = useState<string | null>(null)
   const [walletConnected, setWalletConnectedState] = useState(false)
 
-  // Restore persisted test mode preference on mount
   useEffect(() => {
-    const stored = localStorage.getItem(TEST_MODE_STORAGE_KEY)
-    if (stored !== null) {
-      setIsDemoMode(stored === "true")
+    let hasSavedWallet = false
+    try {
+      const saved = JSON.parse(localStorage.getItem("connected_wallets") || "{}")
+      hasSavedWallet = Object.values(saved).some(Boolean)
+    } catch {
+      hasSavedWallet = false
     }
+    if (hasSavedWallet) {
+      setIsDemoMode(false)
+      localStorage.setItem(TEST_MODE_STORAGE_KEY, "false")
+      return
+    }
+    const stored = localStorage.getItem(TEST_MODE_STORAGE_KEY)
+    setIsDemoMode(stored === null ? true : stored === "true")
   }, [])
 
   // Persist test mode changes to localStorage

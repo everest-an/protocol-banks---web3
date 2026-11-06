@@ -76,12 +76,18 @@ export function validateCSRFToken(request: NextRequest): {
 const ALLOWED_ORIGINS = [
   "https://protocol-banks.vercel.app",
   "https://protocol-banks.com",
+  "https://protocolbanks.com",
+  "https://www.protocolbanks.com",
   process.env.NEXT_PUBLIC_APP_URL,
 ].filter(Boolean) as string[]
 
 // Allow localhost in development
 if (process.env.NODE_ENV === "development") {
   ALLOWED_ORIGINS.push("http://localhost:3000", "http://127.0.0.1:3000")
+}
+
+if (process.env.ALLOW_INSECURE_HEADER_AUTH === "true") {
+  ALLOWED_ORIGINS.push("http://localhost:3204", "http://127.0.0.1:3204")
 }
 
 /**

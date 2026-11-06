@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { createPublicClient, http, formatUnits, type Address } from "viem"
+import { createPublicClient, fallback, http, formatUnits, type Address } from "viem"
 import { mainnet, polygon, arbitrum, base, optimism, bsc } from "viem/chains"
 import type { WalletBalance, TokenBalance, ChainDistribution, TokenDistribution } from "@/types"
 import { useTokenPrices, getTokenPrice } from "@/hooks/use-token-prices"
@@ -19,12 +19,42 @@ const erc20Abi = [
 
 // Chain configurations with RPC endpoints
 const CHAINS = [
-  { chain: mainnet, name: "Ethereum", nativeSymbol: "ETH", rpc: "https://eth.llamarpc.com" },
-  { chain: polygon, name: "Polygon", nativeSymbol: "MATIC", rpc: "https://polygon.llamarpc.com" },
-  { chain: arbitrum, name: "Arbitrum", nativeSymbol: "ETH", rpc: "https://arbitrum.llamarpc.com" },
-  { chain: base, name: "Base", nativeSymbol: "ETH", rpc: "https://base.llamarpc.com" },
-  { chain: optimism, name: "Optimism", nativeSymbol: "ETH", rpc: "https://optimism.llamarpc.com" },
-  { chain: bsc, name: "BNB Chain", nativeSymbol: "BNB", rpc: "https://bsc.llamarpc.com" },
+  {
+    chain: mainnet,
+    name: "Ethereum",
+    nativeSymbol: "ETH",
+    rpcs: ["https://ethereum-rpc.publicnode.com", "https://eth.merkle.io"],
+  },
+  {
+    chain: polygon,
+    name: "Polygon",
+    nativeSymbol: "MATIC",
+    rpcs: ["https://polygon-bor-rpc.publicnode.com", "https://polygon-rpc.com"],
+  },
+  {
+    chain: arbitrum,
+    name: "Arbitrum",
+    nativeSymbol: "ETH",
+    rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
+  },
+  {
+    chain: base,
+    name: "Base",
+    nativeSymbol: "ETH",
+    rpcs: ["https://mainnet.base.org", "https://base.publicnode.com"],
+  },
+  {
+    chain: optimism,
+    name: "Optimism",
+    nativeSymbol: "ETH",
+    rpcs: ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
+  },
+  {
+    chain: bsc,
+    name: "BNB Chain",
+    nativeSymbol: "BNB",
+    rpcs: ["https://bsc-rpc.publicnode.com", "https://bsc-dataseed.binance.org"],
+  },
 ]
 
 // Common tokens with their addresses on different chains
@@ -154,12 +184,12 @@ export function useBalance(options: UseBalanceOptions = {}) {
       const chainTotals: Record<number, { totalUSD: number; tokenCount: number }> = {}
       const address = walletAddress as Address
 
-      // Fetch balances for each chain in parallel
-      const chainPromises = CHAINS.map(async ({ chain, name, nativeSymbol, rpc }) => {
+      const chainFailures: string[] = []
+      const chainPromises = CHAINS.map(async ({ chain, name, nativeSymbol, rpcs }) => {
         try {
           const client = createPublicClient({
             chain,
-            transport: http(rpc),
+            transport: fallback(rpcs.map((rpc) => http(rpc, { timeout: 12000 }))),
           })
 
           // Fetch native token balance
@@ -226,11 +256,23 @@ export function useBalance(options: UseBalanceOptions = {}) {
             }
           }
         } catch (chainError) {
+          chainFailures.push(name)
           console.warn(`[v0] Failed to fetch balances on ${name}:`, chainError)
         }
       })
 
-      await Promise.all(chainPromises)
+      await Promise.race([
+        Promise.all(chainPromises),
+        new Promise<void>((resolve) => setTimeout(resolve, 12_000)),
+      ])
+
+      if (tokens.length === 0) {
+        setError(
+          chainFailures.length > 0
+            ? `Could not reach balance RPCs: ${chainFailures.join(", ")}`
+            : "Balance RPCs timed out; tap Refresh to retry.",
+        )
+      }
 
       // Calculate totals
       const totalUSD = tokens.reduce((sum, t) => sum + t.balanceUSD, 0)
