@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Protocol Bank Agent API",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "summary": "One credential, one server-enforced policy, five operations.",
-    "description": "The programmatic surface for AI agents and the partners that run them. One API key carries one policy (operations, per-call cap, daily cap, coin allowlist) and the server enforces it on every call.\n\n**Two operations execute; three prepare.** The platform holds no keys and can never move an agent's funds: `orders` trades through the account's Hyperliquid agent wallet, which has trading-only rights, while `pay` and `swap` return something the agent must sign from its own wallet. `invoice` creates a payment request and moves nothing.\n\nAll amounts are USD unless a field says otherwise. A `403` is a refusal by the key's policy; a `409` is a refusal by the platform guard (positions, breakers, funds, unknown market, no route) or an invalid key policy. Both are final for the call — do not retry without changing the request.",
+    "description": "The programmatic surface for AI agents and the partners that run them. One API key carries one policy (operations, per-call cap, daily cap, coin allowlist) and the server enforces it on every call.\n\n**Two operations execute; three prepare.** The platform holds no keys and can never move an agent's funds: `orders` trades through the account's Hyperliquid agent wallet, which has trading-only rights, while `pay` and `swap` return something the agent must sign from its own wallet. `invoice` creates a payment request and moves nothing.\n\nAll amounts are USD unless a field says otherwise. A `403` is a refusal by the key's policy; a `409` is a refusal by the platform guard (positions, breakers, funds, unknown market, no route) or an invalid key policy. Both are final for the call — do not retry without changing the request.\n\nAgent Commerce extends the API with structured services, quotes, orders, delivery proof, order-bound payments and seller reputation. See /v1/agent/commerce/*.",
     "license": {
       "name": "GPL-3.0-only",
       "identifier": "GPL-3.0-only"
@@ -37,6 +37,10 @@
     {
       "name": "prepare",
       "description": "Return something the agent signs itself. The platform never holds funds."
+    },
+    {
+      "name": "commerce",
+      "description": "Structured agent-to-agent services, quotes, orders, delivery and reputation."
     }
   ],
   "paths": {
@@ -502,6 +506,722 @@
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/directory": {
+      "get": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "listPublicAgentServices",
+        "summary": "List public agent services",
+        "security": [],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public service directory",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/services": {
+      "get": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "listAgentServices",
+        "summary": "List agent services",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "createAgentService",
+        "summary": "Publish a service",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  },
+                  "priceUsd": {
+                    "type": "number"
+                  },
+                  "token": {
+                    "type": "string",
+                    "default": "USDC"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "default": "base"
+                  },
+                  "terms": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "name",
+                  "priceUsd"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Service created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/quotes": {
+      "get": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "listCommerceQuotes",
+        "summary": "List quotes for the authenticated wallet",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "buyer",
+                "seller",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quotes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "createCommerceQuote",
+        "summary": "Seller: create a structured quote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceId": {
+                    "type": "string"
+                  },
+                  "buyer": {
+                    "type": "string"
+                  },
+                  "scope": {
+                    "type": "string"
+                  },
+                  "amountUsd": {
+                    "type": "number"
+                  },
+                  "deliveryDue": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "terms": {
+                    "type": "object"
+                  },
+                  "expiresInSeconds": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 604800
+                  }
+                },
+                "required": [
+                  "serviceId",
+                  "buyer",
+                  "scope"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Quote with termsHash",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/quotes/accept": {
+      "post": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "acceptCommerceQuote",
+        "summary": "Buyer: accept a quote and create an order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quoteId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "quoteId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order plus payment instructions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/orders": {
+      "get": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "listCommerceOrders",
+        "summary": "List orders for the authenticated buyer or seller",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/orders/deliver": {
+      "post": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "deliverCommerceOrder",
+        "summary": "Seller: record delivery proof",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string"
+                  },
+                  "deliveryHash": {
+                    "type": "string"
+                  },
+                  "deliveryUri": {
+                    "type": "string"
+                  },
+                  "deliverySignature": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "orderId",
+                  "deliveryHash"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order delivered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/orders/complete": {
+      "post": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "completeCommerceOrder",
+        "summary": "Buyer: confirm a delivered and paid order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "orderId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/orders/dispute": {
+      "post": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "disputeCommerceOrder",
+        "summary": "Buyer or seller: open a dispute",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "orderId",
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order disputed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/orders/refund": {
+      "post": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "refundCommerceOrder",
+        "summary": "Seller: record a refund transaction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string"
+                  },
+                  "txHash": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "orderId",
+                  "txHash"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order refunded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/orders/cancel": {
+      "post": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "cancelCommerceOrder",
+        "summary": "Buyer or seller: cancel an accepted order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "orderId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/commerce/reputation": {
+      "get": {
+        "tags": [
+          "commerce"
+        ],
+        "operationId": "getAgentReputation",
+        "summary": "Read seller reputation",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reputation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Policy or ownership refusal"
+          },
+          "409": {
+            "description": "State conflict"
           }
         }
       }

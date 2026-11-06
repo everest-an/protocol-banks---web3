@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verifyCronAuth } from "@/lib/cron-auth"
 import { paymentEventData, reconcileAgentPayments } from "@/lib/agent/payment-store"
+import { markOrderPaid, releaseOrderPayment } from "@/lib/agent/commerce"
 import { webhookTriggerService } from "@/lib/services/webhook-trigger-service"
 
 export const dynamic = "force-dynamic"
@@ -23,6 +24,13 @@ export async function GET(request: NextRequest) {
     for (const change of changes) {
       try {
         const data = paymentEventData(change.payment)
+        if (change.payment.order_id) {
+          if (change.status === "confirmed") {
+            await markOrderPaid(change.payment.order_id, change.payment.id).catch(() => {})
+          } else {
+            await releaseOrderPayment(change.payment.order_id, change.payment.id).catch(() => {})
+          }
+        }
         if (change.status === "confirmed") {
           await webhookTriggerService.triggerPaymentCompleted(change.payment.owner_address, data)
         } else {

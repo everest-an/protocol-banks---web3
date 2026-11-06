@@ -1,4 +1,4 @@
-﻿import { createHash } from "crypto"
+import { createHash } from "crypto"
 import { verifyMessage } from "viem"
 import { prisma } from "@/lib/prisma"
 import { webhookTriggerService } from "@/lib/services/webhook-trigger-service"
@@ -318,7 +318,9 @@ export async function deliverOrder(owner: string, id: string, input: Record<stri
   const row = await prisma.agentOrder.findUnique({ where: { id } })
   if (!row) throw new CommerceError(404, "order not found")
   if (row.seller_address !== owner.toLowerCase()) throw new CommerceError(403, "only the seller can deliver")
-  if (!["accepted", "paid"].includes(row.status)) throw new CommerceError(409, `order is ${row.status}`)
+  if (!["accepted", "paid", "payment_pending"].includes(row.status)) {
+    throw new CommerceError(409, `order is ${row.status}`)
+  }
   const deliveryHash = text(input.deliveryHash, "deliveryHash")
   if (!HASH.test(deliveryHash)) throw new CommerceError(400, "deliveryHash must be a sha256 hash")
   const deliveryUri = typeof input.deliveryUri === "string" ? input.deliveryUri.slice(0, 1000) : null
@@ -335,7 +337,7 @@ export async function deliverOrder(owner: string, id: string, input: Record<stri
   const updated = await prisma.agentOrder.update({
     where: { id },
     data: {
-      status: "delivered",
+      status: row.status === "payment_pending" ? "payment_pending" : "delivered",
       delivery_hash: deliveryHash,
       delivery_uri: deliveryUri,
       delivery_signature: deliverySignature,
@@ -412,10 +414,35 @@ export async function cancelOrder(owner: string, id: string) {
   return view
 }
 
+export async function reserveOrderPayment(orderId: string, paymentId: string): Promise<boolean> {
+  const result = await prisma.agentOrder.updateMany({
+    where: {
+      id: orderId,
+      payment_id: null,
+      status: { in: ["accepted", "delivered"] },
+    },
+    data: { payment_id: paymentId, status: "payment_pending" },
+  })
+  return result.count === 1
+}
+
+export async function releaseOrderPayment(orderId: string, paymentId: string): Promise<boolean> {
+  const order = await prisma.agentOrder.findUnique({ where: { id: orderId } })
+  if (!order || order.payment_id !== paymentId || order.status !== "payment_pending") return false
+  const result = await prisma.agentOrder.updateMany({
+    where: { id: orderId, payment_id: paymentId, status: "payment_pending" },
+    data: {
+      payment_id: null,
+      status: order.delivered_at ? "delivered" : "accepted",
+    },
+  })
+  return result.count === 1
+}
+
 export async function markOrderPaid(orderId: string, paymentId: string): Promise<boolean> {
   const result = await prisma.agentOrder.updateMany({
-    where: { id: orderId, status: { in: ["accepted", "delivered"] }, payment_id: null },
-    data: { status: "paid", payment_id: paymentId, paid_at: new Date() },
+    where: { id: orderId, payment_id: paymentId, status: "payment_pending" },
+    data: { status: "paid", paid_at: new Date() },
   })
   if (result.count !== 1) return false
   const order = await prisma.agentOrder.findUnique({ where: { id: orderId } })
@@ -428,10 +455,9 @@ export async function getPaymentOrder(owner: string, orderId: string) {
   if (!row) throw new CommerceError(404, "order not found")
   const wallet = owner.toLowerCase()
   if (row.buyer_address !== wallet) throw new CommerceError(403, "only the buyer can pay this order")
-  if (!["accepted", "delivered"].includes(row.status)) {
+  if (!["accepted", "delivered", "payment_pending"].includes(row.status)) {
     throw new CommerceError(409, `order is ${row.status}`)
   }
-  if (row.payment_id) throw new CommerceError(409, "order already has a confirmed payment")
   return row
 }
 

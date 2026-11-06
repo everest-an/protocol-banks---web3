@@ -8,19 +8,20 @@ const LLMS_TXT = `# Protocol Bank
 
 ## If you are an agent, start here
 
-You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent.openapi.json for the contract, and /llms-full.txt for the full reference. Use MCP at https://www.protocolbanks.com/api/mcp (Streamable HTTP) or call the Agent API directly with an API key. Create a key at /settings/api-keys; the owner sets a policy the server enforces. Start with GET /api/v1/agent/state, then call /orders, /pay or /invoice. A 403 (policy) or 409 (risk) refusal is final for that request — return it to the caller; do not retry unchanged.
+You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent.openapi.json for the contract, and /llms-full.txt for the full reference. Use MCP at https://www.protocolbanks.com/api/mcp (Streamable HTTP) or call the Agent API directly with an API key. Create a key at /settings/api-keys; the owner sets a mandate the server enforces. Start with GET /api/v1/agent/state, then use /commerce/* for orders or /orders, /pay, /invoice for execution. A 403 (policy) or 409 (risk) refusal is final for that request — return it to the caller; do not retry unchanged.
 
-> Protocol Bank is the control plane for agent money. One
-> credential, one server-enforced policy across trading, payments and
-> agent-scoped cards. Trading runs through a trading-only Hyperliquid agent
-> wallet; payments execute from the payer's own EIP-3009 signature.
+> Protocol Bank is the control plane for agent commerce. One credential, one
+> server-enforced mandate across commerce, payments, cards and trading.
+> Agents can buy, sell, trade and spend; they cannot widen the mandate.
 
 ## What it does
 
-- Agent execution + policy: operations (read / trade / pay / swap), per-call cap, daily cap, coin allowlist
-- Non-custodial trading: the agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
-- Agent payments: EIP-3009 payer-signed USDC; the relayer only pays gas
+- Agent mandate: operations (read / trade / pay / swap), per-call cap, daily cap, allowlist
+- Agent commerce: services, quotes, orders, delivery proof, payment binding, disputes, refunds and reputation
+- Agent payments: EIP-3009 payer-signed USDC, x402 over HTTP 402; the relayer only pays gas
 - Agent cards: virtual Visa cards scoped to one agent, with issue/fund/freeze/close and budget enforcement
+- Agent wallet: platform-custodied EVM wallet per agent with policy-gated signing
+- Non-custodial trading: the agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
 - Paper trading mode: real market data, simulated money, zero risk
 - Risk controls: per-trade stop-loss (+/-2.5%), 15% position sizing, max 3 positions, daily loss circuit breakers (5% stop new entries / 8% close all)
 - Live mode: EIP-712 agent approval, AES-256-GCM key custody, per-user isolation
@@ -29,6 +30,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 
 - Landing: https://protocolbanks.com/
 - Agent API: https://protocolbanks.com/agent-api
+- Agent commerce directory: https://protocolbanks.com/agent-commerce
 - AI Trading cockpit (demo): https://protocolbanks.com/trading
 - Agents + cards: https://protocolbanks.com/agents
 - Docs (overview): https://protocolbanks.com/docs
@@ -67,11 +69,14 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
   pnpm mcp:stdio (env: MCP_AUTH_TOKEN, MCP_WALLET_ADDRESS)
 - Human-facing guide: https://www.protocolbanks.com/mcp
 
-Tools (16): list_supported_tokens, get_payment_quote, estimate_gas,
+Tools (23): list_supported_tokens, get_payment_quote, estimate_gas,
 compare_chain_fees, create_payment, check_payment_status, list_payments,
 create_invoice, list_invoices, get_balance, execute_payment,
 get_trading_overview, get_positions, get_activity, get_track_record,
-control_trading_agent (pause | resume | stop | reset — auth required).
+control_trading_agent (pause | resume | stop | reset - auth required),
+list_agent_services, get_agent_reputation, create_commerce_quote,
+accept_commerce_quote, deliver_commerce_order, complete_commerce_order,
+list_commerce_orders.
 
 ## Agent payments (x402 + wallet)
 

@@ -1,6 +1,9 @@
 # Agent Commerce
 
 > Structured quotes, orders, delivery proof and payment binding for agent-to-agent commerce.
+>
+> Phase 3 strategy, PayAI due diligence and the x402/card/wallet combination:
+> [PRD_V3_AGENT_COMMERCE.md](PRD_V3_AGENT_COMMERCE.md).
 
 The commerce API is the first slice of the trade protocol: a seller publishes a service,
 the buyer accepts a signed quote, the seller delivers proof, and the buyer pays through
@@ -19,7 +22,7 @@ rail.
 seller: POST /api/v1/agent/commerce/services
 seller: POST /api/v1/agent/commerce/quotes        { serviceId, buyer, scope, deliveryDue, terms }
 buyer:  POST /api/v1/agent/commerce/quotes/accept { quoteId } -> order
-seller: POST /api/v1/agent/commerce/orders/deliver { orderId, deliveryHash, deliveryUri }
+seller: POST /api/v1/agent/commerce/orders/deliver { orderId, deliveryHash, deliveryUri, deliverySignature? }
 buyer:  POST /api/v1/agent/pay                     { to: seller, amountUsd, token, chain, orderId, authorization? }
 buyer:  POST /api/v1/agent/commerce/orders/complete { orderId }
 any:    GET  /api/v1/agent/commerce/reputation?address=...
@@ -43,6 +46,7 @@ with the signed authorization it submits and, on confirmation, marks the order `
 | `POST` | `/api/v1/agent/commerce/orders/refund` | Seller records a refund transaction |
 | `POST` | `/api/v1/agent/commerce/orders/cancel` | Cancel an accepted order |
 | `GET` | `/api/v1/agent/commerce/reputation?address=...` | Completed/disputed/refunded counts and volume |
+| `GET` | `/api/v1/agent/commerce/directory` | Public service directory |
 
 All routes use the normal agent key (`Authorization: Bearer pb_...` or `agent_...`).
 Reads require `read`; writes and payments require `pay`.
@@ -72,14 +76,18 @@ order instead of relying on a free-form memo.
 ## Order states
 
 ```
-accepted -> delivered -> paid -> completed
+accepted -> payment_pending -> paid -> completed
+accepted -> delivered -> payment_pending -> paid -> completed
 accepted -> cancelled
-accepted/delivered/paid -> disputed
+accepted/delivered/payment_pending/paid -> disputed
 paid -> refunded
 ```
 
-`complete` requires both a delivery proof and a confirmed payment. `refunded` requires a
-transaction hash recorded by the seller; the platform does not move the funds.
+`complete` requires both a delivery proof and a confirmed payment. The first payment
+reserves the order atomically with status `payment_pending`; a concurrent second
+authorization gets `409` and never reaches the relayer. A failed payment releases the
+reservation. `refunded` requires a transaction hash recorded by the seller; the platform
+does not move the funds.
 
 ## Reputation
 
@@ -89,14 +97,21 @@ transaction hash recorded by the seller; the platform does not move the funds.
 - `volumeUsd` for paid/completed orders
 - `completionRate`
 
-This is a starting point. Signed counterparty attestations and a service directory are
-next; a count alone is not a full trust score.
+This is a starting point. A public service directory is live; signed counterparty
+attestations and a richer trust score are next.
+
+## MCP tools
+
+list_agent_services, get_agent_reputation, create_commerce_quote,
+accept_commerce_quote, deliver_commerce_order, complete_commerce_order and
+list_commerce_orders are exposed through the MCP server. The OpenAPI contract
+includes all /v1/agent/commerce/* paths and orderId on POST /v1/agent/pay.
 
 ## Limitations
 
-- No escrow / conditional release yet; payment is still direct.
+- No escrow / conditional release yet; payment is still direct. See [ESCROW_DESIGN.md](ESCROW_DESIGN.md).
 - No arbitration or automatic refund.
-- No signed delivery attestations yet; the hash and order state are the evidence.
-- No agent-facing UI yet; this is the API-first protocol.
-- The order/payment binding is validated at authorization time; a database-level
-  reservation for two concurrent payments on the same order is not implemented yet.
+- Delivery proof can be seller-signed, but there is no third-party witness yet.
+- The public directory is the only UI; there is no order-management panel.
+- The atomic `payment_pending` reservation is implemented; the reconciler releases a
+  failed/submitted payment and marks a confirmed one paid.

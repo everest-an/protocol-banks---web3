@@ -46,6 +46,30 @@ import {
 } from './tools/balance-tools'
 
 import {
+  listAgentServicesTool,
+  createCommerceQuoteTool,
+  acceptCommerceQuoteTool,
+  deliverCommerceOrderTool,
+  completeCommerceOrderTool,
+  listCommerceOrdersTool,
+  getAgentReputationTool,
+  listAgentServicesSchema,
+  createCommerceQuoteSchema,
+  acceptCommerceQuoteSchema,
+  deliverCommerceOrderSchema,
+  completeCommerceOrderSchema,
+  listCommerceOrdersSchema,
+  getAgentReputationSchema,
+  handleListAgentServices,
+  handleCreateCommerceQuote,
+  handleAcceptCommerceQuote,
+  handleDeliverCommerceOrder,
+  handleCompleteCommerceOrder,
+  handleListCommerceOrders,
+  handleGetAgentReputation,
+} from './tools/commerce-tools'
+
+import {
   getTradingOverviewTool,
   getPositionsTool,
   getActivityTool,
@@ -320,6 +344,97 @@ export function createMcpServer(getAuthContext: () => McpAuthContext) {
     async () => {
       const data = await handleTokenListResource()
       return { contents: [{ uri: tokenListResource.uri, text: JSON.stringify(data, null, 2), mimeType: 'application/json' }] }
+    }
+  )
+
+  server.registerTool(
+    listAgentServicesTool.name,
+    { title: listAgentServicesTool.name, description: listAgentServicesTool.description, inputSchema: listAgentServicesSchema },
+    async (args) => {
+      try {
+        const result = await handleListAgentServices(args as { category?: string; q?: string; limit?: number })
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    getAgentReputationTool.name,
+    { title: getAgentReputationTool.name, description: getAgentReputationTool.description, inputSchema: getAgentReputationSchema },
+    async (args) => {
+      try {
+        const result = await handleGetAgentReputation(args as { address: string })
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    createCommerceQuoteTool.name,
+    { title: createCommerceQuoteTool.name, description: createCommerceQuoteTool.description, inputSchema: createCommerceQuoteSchema },
+    async (args) => {
+      try {
+        const result = await handleCreateCommerceQuote(args as Record<string, unknown>, getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    acceptCommerceQuoteTool.name,
+    { title: acceptCommerceQuoteTool.name, description: acceptCommerceQuoteTool.description, inputSchema: acceptCommerceQuoteSchema },
+    async (args) => {
+      try {
+        const result = await handleAcceptCommerceQuote(args as { quoteId: string }, getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    deliverCommerceOrderTool.name,
+    { title: deliverCommerceOrderTool.name, description: deliverCommerceOrderTool.description, inputSchema: deliverCommerceOrderSchema },
+    async (args) => {
+      try {
+        const result = await handleDeliverCommerceOrder(args as Record<string, unknown>, getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    completeCommerceOrderTool.name,
+    { title: completeCommerceOrderTool.name, description: completeCommerceOrderTool.description, inputSchema: completeCommerceOrderSchema },
+    async (args) => {
+      try {
+        const result = await handleCompleteCommerceOrder(args as { orderId: string }, getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
+    }
+  )
+
+  server.registerTool(
+    listCommerceOrdersTool.name,
+    { title: listCommerceOrdersTool.name, description: listCommerceOrdersTool.description, inputSchema: listCommerceOrdersSchema },
+    async (args) => {
+      try {
+        const result = await handleListCommerceOrders(args as { id?: string }, getAuthContext())
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+      } catch (err) {
+        return { content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }], isError: true }
+      }
     }
   )
 

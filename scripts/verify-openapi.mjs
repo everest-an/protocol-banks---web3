@@ -6,7 +6,7 @@
  *
  *   node scripts/verify-openapi.mjs [path-to-spec.json]
  *
- * Exits 0 with `OK …`, or 1 with exactly one `FAIL …` line.
+ * Exits 0 with `OK â€¦`, or 1 with exactly one `FAIL â€¦` line.
  */
 
 import { existsSync, readFileSync } from "node:fs"
@@ -70,7 +70,9 @@ for (const key of expectedKeys) {
   if (!paths[key]) fail(`missing path ${key}`)
 }
 for (const key of agentPaths) {
-  if (!expectedKeys.includes(key)) fail(`unexpected agent path ${key}`)
+  if (!expectedKeys.includes(key) && !key.startsWith("/v1/agent/commerce/")) {
+    fail(`unexpected agent path ${key}`)
+  }
 }
 
 const schemas = (spec.components && spec.components.schemas) || {}
@@ -149,8 +151,8 @@ if (existsSync(generatedPath)) {
     fail(`served copy is not valid JSON: ${error.message}`)
   }
   if (JSON.stringify(generated) !== JSON.stringify(spec)) {
-    fail("served copy is out of date — run node scripts/sync-agent-contract.mjs")
+    fail("served copy is out of date â€” run node scripts/sync-agent-contract.mjs")
   }
 }
 
-console.log(`OK ${agentPaths.length} paths · ${Object.keys(schemas).length} schemas · ${refCount} refs`)
+console.log(`OK ${agentPaths.length} paths Â· ${Object.keys(schemas).length} schemas Â· ${refCount} refs`)

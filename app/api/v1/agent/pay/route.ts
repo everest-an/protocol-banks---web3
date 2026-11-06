@@ -16,7 +16,7 @@ import { getTokenAddress } from "@/lib/erc3009"
 import { submitTransferWithAuthorization } from "@/lib/services/relayer-submit"
 import { webhookTriggerService } from "@/lib/services/webhook-trigger-service"
 import { recordEvent } from "@/lib/analytics/events"
-import { CommerceError, getPaymentOrder, markOrderPaid } from "@/lib/agent/commerce"
+import { CommerceError, getPaymentOrder, markOrderPaid, releaseOrderPayment, reserveOrderPayment } from "@/lib/agent/commerce"
 
 /**
  * POST /api/v1/agent/pay
@@ -155,6 +155,10 @@ async function handler(request: AgentRequest) {
         await markOrderPaid(order.id, existing.id).catch((error) => {
           console.warn("[agent/pay] order mark-paid failed:", error instanceof Error ? error.message : String(error))
         })
+      } else if (order && existing.status === "failed") {
+        await releaseOrderPayment(order.id, existing.id).catch((error) => {
+          console.warn("[agent/pay] order release failed:", error instanceof Error ? error.message : String(error))
+        })
       }
       return NextResponse.json({
         ok: true,
@@ -185,12 +189,36 @@ async function handler(request: AgentRequest) {
           { status: 409 },
         )
       }
+      if (order && record.status === "confirmed") {
+        await markOrderPaid(order.id, record.id).catch((error) => {
+          console.warn("[agent/pay] order mark-paid failed:", error instanceof Error ? error.message : String(error))
+        })
+      } else if (order && record.status === "failed") {
+        await releaseOrderPayment(order.id, record.id).catch((error) => {
+          console.warn("[agent/pay] order release failed:", error instanceof Error ? error.message : String(error))
+        })
+      }
       return NextResponse.json({
         ok: true,
         payment: paymentView(record),
         note: "this authorization nonce was already submitted",
         remainingTodayUsd: remaining(amountUsd),
       })
+    }
+
+    if (order) {
+      const reserved = await reserveOrderPayment(order.id, record.id)
+      if (!reserved) {
+        const failed = await markAgentPaymentFailed(record.id, "order payment already in progress").catch(() => null)
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "another payment is already in progress for this order",
+            payment: failed ? paymentView(failed) : null,
+          },
+          { status: 409 },
+        )
+      }
     }
 
     try {
@@ -222,6 +250,7 @@ async function handler(request: AgentRequest) {
         void webhookTriggerService.triggerPaymentCompleted(wallet, paymentEventData(final))
       } else if (chainStatus === "failed") {
         final = await markAgentPaymentFailed(record.id, "transaction reverted")
+        if (order) await releaseOrderPayment(order.id, final.id).catch(() => {})
         void webhookTriggerService.triggerPaymentFailed(wallet, paymentEventData(final))
       }
 
@@ -254,6 +283,7 @@ async function handler(request: AgentRequest) {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       const failed = await markAgentPaymentFailed(record.id, message).catch(() => null)
+      if (order) await releaseOrderPayment(order.id, record.id).catch(() => {})
       if (failed) {
         void webhookTriggerService.triggerPaymentFailed(wallet, paymentEventData(failed))
       }
