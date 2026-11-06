@@ -299,6 +299,7 @@ model AgentPayment {
   amount_units  String
   nonce         String   @unique
   tx_hash       String?  @unique
+  order_id      String?
   status        String   @default("pending")
   error         String?
   memo          String?
@@ -308,7 +309,83 @@ model AgentPayment {
 
   @@index([owner_address, created_at])
   @@index([status, created_at])
+  @@index([order_id])
   @@map("agent_payments")
+}
+
+model AgentService {
+  id            String   @id @default(cuid())
+  owner_address String
+  agent_id      String?
+  name          String
+  description   String?
+  category      String?
+  endpoint      String?
+  price_usd     Float
+  token         String   @default("USDC")
+  chain         String   @default("base")
+  terms         Json?
+  active        Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([owner_address, active])
+  @@index([category, active])
+  @@map("agent_services")
+}
+
+model AgentQuote {
+  id             String    @id @default(cuid())
+  service_id     String
+  seller_address String
+  buyer_address  String
+  amount_usd     Float
+  token          String
+  chain          String
+  scope          String
+  delivery_due   DateTime?
+  terms          Json
+  terms_hash     String
+  status         String    @default("open")
+  expires_at     DateTime
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  @@index([buyer_address, status])
+  @@index([seller_address, status])
+  @@index([service_id])
+  @@map("agent_quotes")
+}
+
+model AgentOrder {
+  id             String    @id @default(cuid())
+  quote_id       String    @unique
+  service_id     String
+  buyer_address  String
+  seller_address String
+  amount_usd     Float
+  token          String
+  chain          String
+  scope          String
+  terms_hash     String
+  status         String    @default("accepted")
+  payment_id     String?
+  delivery_hash  String?
+  delivery_uri   String?
+  delivery_signature String?
+  dispute_reason String?
+  refund_tx_hash String?
+  created_at     DateTime  @default(now())
+  accepted_at    DateTime  @default(now())
+  delivered_at   DateTime?
+  paid_at        DateTime?
+  completed_at   DateTime?
+  updated_at     DateTime  @updatedAt
+
+  @@index([buyer_address, status])
+  @@index([seller_address, status])
+  @@index([service_id])
+  @@map("agent_orders")
 }
 
 model WebhookDelivery {
@@ -528,13 +605,13 @@ model SubscriptionPayment {
 /// row whose validity window covers the charge date and then marks it used.
 ///
 /// Every column below exists in the database (scripts/030, scripts/034). Do not
-/// remove fields to "simplify" the model â€” `prisma db push` would drop the real
+/// remove fields to "simplify" the model Ã¢â‚¬â€ `prisma db push` would drop the real
 /// columns, taking the stored signatures with them.
 model SubscriptionAuthorization {
   id                String    @id @default(uuid())
   subscription_id   String
   /// The ERC-3009 tuple below is optional because rows created before migration
-  /// 034 predate these columns. A row without the full tuple cannot be charged â€”
+  /// 034 predate these columns. A row without the full tuple cannot be charged Ã¢â‚¬â€
   /// the executor skips it rather than submitting a signature that would revert.
   user_address      String?
   recipient_address String?
@@ -1522,8 +1599,8 @@ model MonthlyFeeSummary {
 // ============================================================================
 
 /**
- * æ”¯ä»˜å¤„ç†é˜Ÿåˆ—ä»»åŠ¡
- * ç”¨äºŽ Redis é˜Ÿåˆ—çš„æŒä¹…åŒ–å¤‡ä»½å’ŒçŠ¶æ€è·Ÿè¸ª
+ * Ã¦â€Â¯Ã¤Â»ËœÃ¥Â¤â€žÃ§Ââ€ Ã©ËœÅ¸Ã¥Ë†â€”Ã¤Â»Â»Ã¥Å Â¡
+ * Ã§â€Â¨Ã¤ÂºÅ½ Redis Ã©ËœÅ¸Ã¥Ë†â€”Ã§Å¡â€žÃ¦Å’ÂÃ¤Â¹â€¦Ã¥Å’â€“Ã¥Â¤â€¡Ã¤Â»Â½Ã¥â€™Å’Ã§Å Â¶Ã¦â‚¬ÂÃ¨Â·Å¸Ã¨Â¸Âª
  */
 model PaymentQueueJob {
   id            String    @id @default(cuid())
@@ -1533,7 +1610,7 @@ model PaymentQueueJob {
   status        String    @default("pending") // pending, processing, completed, failed
   attempts      Int       @default(0)
   max_attempts  Int       @default(3)
-  priority      Int       @default(10) // 1-10, æ•°å­—è¶Šå°ä¼˜å…ˆçº§è¶Šé«˜
+  priority      Int       @default(10) // 1-10, Ã¦â€¢Â°Ã¥Â­â€”Ã¨Â¶Å Ã¥Â°ÂÃ¤Â¼ËœÃ¥â€¦Ë†Ã§ÂºÂ§Ã¨Â¶Å Ã©Â«Ëœ
   error_message String?   @db.Text
   created_at    DateTime  @default(now())
   processed_at  DateTime?
@@ -1545,8 +1622,8 @@ model PaymentQueueJob {
 }
 
 /**
- * è‡ªåŠ¨ç”Ÿæ¯å­˜æ¬¾è®°å½•
- * è·Ÿè¸ªå•†æˆ·åœ¨ JustLend çš„å­˜æ¬¾å’Œæ”¶ç›Š
+ * Ã¨â€¡ÂªÃ¥Å Â¨Ã§â€Å¸Ã¦ÂÂ¯Ã¥Â­ËœÃ¦Â¬Â¾Ã¨Â®Â°Ã¥Â½â€¢
+ * Ã¨Â·Å¸Ã¨Â¸ÂªÃ¥â€¢â€ Ã¦Ë†Â·Ã¥Å“Â¨ JustLend Ã§Å¡â€žÃ¥Â­ËœÃ¦Â¬Â¾Ã¥â€™Å’Ã¦â€Â¶Ã§â€ºÅ 
  */
 model YieldDeposit {
   id            String    @id @default(cuid())
@@ -1567,8 +1644,8 @@ model YieldDeposit {
 }
 
 /**
- * åŒºå—ä¿¡æ¯ç¼“å­˜
- * ç”¨äºŽåŒºå—é‡ç»„æ£€æµ‹
+ * Ã¥Å’ÂºÃ¥Ââ€”Ã¤Â¿Â¡Ã¦ÂÂ¯Ã§Â¼â€œÃ¥Â­Ëœ
+ * Ã§â€Â¨Ã¤ÂºÅ½Ã¥Å’ÂºÃ¥Ââ€”Ã©â€¡ÂÃ§Â»â€žÃ¦Â£â‚¬Ã¦Âµâ€¹
  */
 model BlockInfo {
   block_number Int      @id
@@ -1583,8 +1660,8 @@ model BlockInfo {
 }
 
 /**
- * å®¡è®¡æ—¥å¿—å¢žå¼º
- * è®°å½•å¯ç–‘äº¤æ˜“å’Œå®‰å…¨äº‹ä»¶
+ * Ã¥Â®Â¡Ã¨Â®Â¡Ã¦â€”Â¥Ã¥Â¿â€”Ã¥Â¢Å¾Ã¥Â¼Âº
+ * Ã¨Â®Â°Ã¥Â½â€¢Ã¥ÂÂ¯Ã§â€“â€˜Ã¤ÂºÂ¤Ã¦Ëœâ€œÃ¥â€™Å’Ã¥Â®â€°Ã¥â€¦Â¨Ã¤Âºâ€¹Ã¤Â»Â¶
  */
 model SecurityAuditLog {
   id            String   @id @default(cuid())
@@ -1672,7 +1749,7 @@ model FiatOrder {
 }
 
 // ============================================================================
-// Enterprise Ledger System (æ€»è´¦ç³»ç»Ÿ)
+// Enterprise Ledger System (Ã¦â‚¬Â»Ã¨Â´Â¦Ã§Â³Â»Ã§Â»Å¸)
 // ============================================================================
 
 /// User balance ledger - cached balance per user/token/chain
@@ -1744,7 +1821,7 @@ model IdempotencyKey {
 }
 
 // ============================================================================
-// Batch Payment Items (æ‰¹é‡æ”¯ä»˜æ˜Žç»†)
+// Batch Payment Items (Ã¦â€°Â¹Ã©â€¡ÂÃ¦â€Â¯Ã¤Â»ËœÃ¦ËœÅ½Ã§Â»â€ )
 // ============================================================================
 
 /// Individual items within a batch payment - tracks each recipient separately
@@ -1776,7 +1853,7 @@ model BatchItem {
 }
 
 // ============================================================================
-// Cross-Chain Transaction State Machine (è·¨é“¾äº¤æ˜“çŠ¶æ€æœº)
+// Cross-Chain Transaction State Machine (Ã¨Â·Â¨Ã©â€œÂ¾Ã¤ÂºÂ¤Ã¦Ëœâ€œÃ§Å Â¶Ã¦â‚¬ÂÃ¦Å“Âº)
 // ============================================================================
 
 /// Cross-chain transaction tracking with full state machine
@@ -1835,7 +1912,7 @@ model CrossChainStateTransition {
 }
 
 // ============================================================================
-// Settlement & Reconciliation (æ¸…ç®—å¯¹è´¦)
+// Settlement & Reconciliation (Ã¦Â¸â€¦Ã§Â®â€”Ã¥Â¯Â¹Ã¨Â´Â¦)
 // ============================================================================
 
 /// Settlement records - periodic reconciliation between on-chain and off-chain
@@ -1867,7 +1944,7 @@ model SettlementRecord {
 }
 
 // ============================================================================
-// Risk Control & Compliance (é£ŽæŽ§ä¸Žåˆè§„)
+// Risk Control & Compliance (Ã©Â£Å½Ã¦Å½Â§Ã¤Â¸Å½Ã¥ÂË†Ã¨Â§â€ž)
 // ============================================================================
 
 /// Risk assessment for transactions
@@ -1914,10 +1991,10 @@ model ComplianceCheck {
 }
 
 // ============================================================================
-// Virtual Card Issuance (è™šæ‹Ÿå¡å‘è¡Œ â€” Powered by Yativo)
+// Virtual Card Issuance (Ã¨â„¢Å¡Ã¦â€¹Å¸Ã¥ÂÂ¡Ã¥Ââ€˜Ã¨Â¡Å’ Ã¢â‚¬â€ Powered by Yativo)
 // ============================================================================
 /// Virtual Visa cards issued via Yativo, funded by USDC/USDT deposits.
-/// Flow: User deposits USDC â†’ Yativo USD balance â†’ Issue virtual card â†’ Spend globally
+/// Flow: User deposits USDC Ã¢â€ â€™ Yativo USD balance Ã¢â€ â€™ Issue virtual card Ã¢â€ â€™ Spend globally
 model UserVirtualCard {
   id               String   @id @default(uuid())
   /// Wallet address of the card owner
@@ -1979,7 +2056,7 @@ model AgentVirtualCard {
 }
 
 // ============================================================================
-// AI Trading (live mode) ï¿½ per-user isolation
+// AI Trading (live mode) Ã¯Â¿Â½ per-user isolation
 // ============================================================================
 
 /// One row per user wallet that has onboarded to live AI trading.
@@ -2014,7 +2091,7 @@ model TradingAccount {
   public_track_record Boolean   @default(false)
   /// Telegram binding: the user's private chat that receives this account's
   /// trading progress. Linked with a one-time code the signed-in cockpit
-  /// generates (t.me/ProtocolTraderBot?start=<code>) â€” ownership is proven by
+  /// generates (t.me/ProtocolTraderBot?start=<code>) Ã¢â‚¬â€ ownership is proven by
   /// the SIWE session that created the code, so nobody can bind someone
   /// else's wallet.
   telegram_chat_id        String?   @unique
@@ -2059,7 +2136,7 @@ model TradeRecord {
 
 /// Product analytics for the acquisition funnel: one row per event, written by
 /// lib/analytics/events.ts. The wallet is only attached when the request is
-/// authenticated for it â€” never taken from the request body.
+/// authenticated for it Ã¢â‚¬â€ never taken from the request body.
 model UsageEvent {
   id         String   @id @default(uuid())
   name       String

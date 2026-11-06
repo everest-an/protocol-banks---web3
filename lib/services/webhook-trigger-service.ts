@@ -127,6 +127,10 @@ export class WebhookTriggerService {
     await this.triggerEvent(ownerAddress, 'payment.failed', data);
   }
 
+  async triggerCommerce(ownerAddress: string, event: WebhookEvent, data: Record<string, any>): Promise<void> {
+    await this.triggerEvent(ownerAddress, event, data);
+  }
+
   // ============================================
   // Batch Payment Events
   // ============================================

@@ -124,6 +124,13 @@ export const WEBHOOK_EVENTS = [
   "subscription.payment_due",
   "subscription.payment_completed",
   "subscription.cancelled",
+  "commerce.quote_accepted",
+  "commerce.order_delivered",
+  "commerce.order_paid",
+  "commerce.order_completed",
+  "commerce.order_disputed",
+  "commerce.order_refunded",
+  "commerce.order_cancelled",
 ] as const
 
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]

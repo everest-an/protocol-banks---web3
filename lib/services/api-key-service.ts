@@ -239,10 +239,19 @@ export class APIKeyService {
     const keyHash = hashAPIKeySecret(secret);
 
     try {
-      // Look up by hash
-      const key = await prisma.apiKey.findUnique({
-        where: { key_hash: keyHash }
-      });
+      let key: Awaited<ReturnType<typeof prisma.apiKey.findUnique>> = null
+      let lookupError: unknown = null
+      for (let attempt = 0; attempt < 3 && !key; attempt++) {
+        try {
+          key = await prisma.apiKey.findUnique({
+            where: { key_hash: keyHash }
+          })
+        } catch (error) {
+          lookupError = error
+          if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)))
+        }
+      }
+      if (!key && lookupError) throw lookupError
 
       if (!key) {
         return { valid: false, error: 'API key not found' };
@@ -260,14 +269,15 @@ export class APIKeyService {
         }
       }
 
-      // Update last_used_at and usage_count
-      await prisma.apiKey.update({
+      void prisma.apiKey.update({
         where: { id: key.id },
         data: {
           last_used_at: new Date(),
           usage_count: { increment: 1 }
         }
-      });
+      }).catch((error: unknown) => {
+        console.warn('[api-key] usage update failed:', error instanceof Error ? error.message : String(error))
+      })
 
       return { valid: true, key: this.mapToType(key) };
     } catch (error) {

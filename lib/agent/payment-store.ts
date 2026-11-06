@@ -32,6 +32,7 @@ export interface CreateAgentPaymentInput {
   amountUnits: string
   nonce: string
   memo?: string
+  orderId?: string
 }
 
 export interface PaymentChange {
@@ -50,6 +51,7 @@ export function paymentView(payment: AgentPayment) {
     token: payment.token,
     chain: payment.chain,
     memo: payment.memo,
+    orderId: payment.order_id ?? null,
     error: payment.error,
     createdAt: payment.created_at.toISOString(),
     confirmedAt: payment.confirmed_at?.toISOString() ?? null,
@@ -65,6 +67,7 @@ export function paymentEventData(payment: AgentPayment) {
     token_symbol: payment.token,
     chain_id: payment.chain_id,
     tx_hash: payment.tx_hash ?? undefined,
+    order_id: payment.order_id ?? undefined,
     status: payment.status,
     created_at: payment.created_at.toISOString(),
   }
@@ -89,6 +92,7 @@ export async function createAgentPayment(
         amount_units: input.amountUnits,
         nonce: input.nonce,
         memo: input.memo,
+        order_id: input.orderId,
         status: "pending",
       },
     })

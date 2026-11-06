@@ -23,7 +23,14 @@ export type WebhookEvent =
   | 'subscription.payment_due'
   | 'subscription.payment_completed'
   | 'subscription.payment_failed'
-  | 'subscription.cancelled';
+  | 'subscription.cancelled'
+  | 'commerce.quote_accepted'
+  | 'commerce.order_delivered'
+  | 'commerce.order_paid'
+  | 'commerce.order_completed'
+  | 'commerce.order_disputed'
+  | 'commerce.order_refunded'
+  | 'commerce.order_cancelled';
 
 export interface Webhook {
   id: string;

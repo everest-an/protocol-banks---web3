@@ -16,6 +16,7 @@ import { getTokenAddress } from "@/lib/erc3009"
 import { submitTransferWithAuthorization } from "@/lib/services/relayer-submit"
 import { webhookTriggerService } from "@/lib/services/webhook-trigger-service"
 import { recordEvent } from "@/lib/analytics/events"
+import { CommerceError, getPaymentOrder, markOrderPaid } from "@/lib/agent/commerce"
 
 /**
  * POST /api/v1/agent/pay
@@ -62,6 +63,7 @@ async function handler(request: AgentRequest) {
     token?: unknown
     chain?: unknown
     memo?: unknown
+    orderId?: unknown
     authorization?: AuthorizationBody
   }
   try {
@@ -81,7 +83,27 @@ async function handler(request: AgentRequest) {
 
   const token = typeof body.token === "string" && body.token.trim() ? body.token.trim().toUpperCase() : "USDC"
   const chain = typeof body.chain === "string" && body.chain.trim() ? body.chain.trim().toLowerCase() : "base"
-  const memo = typeof body.memo === "string" ? body.memo.slice(0, 140) : undefined
+  let memo = typeof body.memo === "string" ? body.memo.slice(0, 140) : undefined
+  const orderId = typeof body.orderId === "string" && body.orderId.trim() ? body.orderId.trim() : undefined
+  let order: Awaited<ReturnType<typeof getPaymentOrder>> | null = null
+  if (orderId) {
+    try {
+      order = await getPaymentOrder(wallet, orderId)
+    } catch (error) {
+      if (error instanceof CommerceError) {
+        return NextResponse.json({ ok: false, error: error.message }, { status: error.status })
+      }
+      console.error("[agent/pay] order lookup failed:", error)
+      return NextResponse.json({ error: "order lookup failed" }, { status: 500 })
+    }
+    if (order.seller_address !== to.toLowerCase()) {
+      return NextResponse.json({ error: "order seller does not match the destination" }, { status: 400 })
+    }
+    if (Math.abs(order.amount_usd - amountUsd) > 0.000001 || order.token !== token || order.chain !== chain) {
+      return NextResponse.json({ error: "payment does not match the order amount, token or chain" }, { status: 400 })
+    }
+    memo = `order:${order.id}`
+  }
 
   const allowed = evaluatePolicy(policy, { op: "pay", notionalUsd: amountUsd, coin: token }, spent)
   if (!allowed.ok) return NextResponse.json({ ok: false, error: allowed.reason }, { status: 403 })
@@ -129,6 +151,11 @@ async function handler(request: AgentRequest) {
           { status: 409 },
         )
       }
+      if (order && existing.status === "confirmed") {
+        await markOrderPaid(order.id, existing.id).catch((error) => {
+          console.warn("[agent/pay] order mark-paid failed:", error instanceof Error ? error.message : String(error))
+        })
+      }
       return NextResponse.json({
         ok: true,
         payment: paymentView(existing),
@@ -148,6 +175,7 @@ async function handler(request: AgentRequest) {
       amountUnits: checked.value.toString(),
       nonce: authorization.nonce,
       memo,
+      orderId: order?.id,
     })
 
     if (!created) {
@@ -186,6 +214,11 @@ async function handler(request: AgentRequest) {
       let final = submitted
       if (chainStatus === "confirmed") {
         final = await markAgentPaymentConfirmed(record.id)
+        if (order) {
+          await markOrderPaid(order.id, final.id).catch((error) => {
+            console.warn("[agent/pay] order mark-paid failed:", error instanceof Error ? error.message : String(error))
+          })
+        }
         void webhookTriggerService.triggerPaymentCompleted(wallet, paymentEventData(final))
       } else if (chainStatus === "failed") {
         final = await markAgentPaymentFailed(record.id, "transaction reverted")
@@ -256,6 +289,8 @@ async function handler(request: AgentRequest) {
       memo,
       remainingTodayUsd: remaining(amountUsd),
       chainId: built.intent.chainId,
+      orderId: order?.id ?? null,
+      termsHash: order?.terms_hash ?? null,
       authorization: built.intent.authorization,
       typedData: built.intent.typedData,
       executable,

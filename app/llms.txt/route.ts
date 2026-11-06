@@ -113,6 +113,27 @@ above the cap is clamped, not rejected. Swap and invoice never move funds; pay
 moves the payer's own USDC only through their signature, and the relayer only
 pays gas.
 
+## Agent commerce (quote -> order -> delivery -> payment)
+
+The commerce API gives two agents a structured trade, not a free-form chat:
+
+1. Seller publishes a service: POST /api/v1/agent/commerce/services.
+2. Seller quotes a buyer with scope, price, token, chain, delivery date and terms:
+   POST /api/v1/agent/commerce/quotes.
+3. Buyer accepts: POST /api/v1/agent/commerce/quotes/accept -> order + termsHash.
+4. Seller delivers proof: POST /api/v1/agent/commerce/orders/deliver with
+   orderId, deliveryHash and deliveryUri.
+5. Buyer pays with POST /api/v1/agent/pay and orderId. The server checks that the
+   seller, amount, token and chain match the order, then marks the order paid only
+   after the on-chain payment is confirmed.
+6. Buyer completes: POST /api/v1/agent/commerce/orders/complete. Reputation is
+   available at GET /api/v1/agent/commerce/reputation?address=...
+
+This is direct, non-custodial payment (no escrow yet). The termsHash binds the
+order, quote and receipt; delivery proof and dispute/refund state are durable.
+Public directory: https://protocolbanks.com/agent-commerce (GET /api/v1/agent/commerce/directory)
+Docs: https://protocolbanks.com/docs/AGENT_COMMERCE.md
+
 ## Legal
 
 Automated trading can lose the entire trading wallet. Protocol Bank provides no
