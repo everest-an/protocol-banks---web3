@@ -39,6 +39,7 @@ export const metadata: Metadata = {
   title: "Protocol Bank — The control plane for agent money",
   description:
     "One API key per agent, server-enforced limits and audit across trading, payments and cards. Non-custodial; bring your own strategy.",
+  alternates: { canonical: "https://protocolbanks.com" },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

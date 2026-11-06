@@ -5,8 +5,8 @@ import { getDocPage } from "@/lib/docs/content"
 const page = getDocPage("en", "overview")!
 
 export const metadata: Metadata = {
-  title: `${page.title} — Protocol Bank docs`,
-  description: page.description,
+  title: "Agent API docs — the control plane for agent money",
+  description: "Overview, quickstart, concepts, API reference and security for the Protocol Bank Agent API.",
   alternates: {
     canonical: "https://protocolbanks.com/docs",
     languages: {

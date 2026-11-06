@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Media Kit - Protocol Bank",
   description:
     "Brand assets, boilerplate copy, and usage guidelines for Protocol Bank — the control plane for agent money.",
+  alternates: { canonical: "https://protocolbanks.com/media-kit" },
 }
 
 const BOILERPLATES = [

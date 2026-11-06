@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Track Record — Protocol Bank",
   description:
     "An anonymized record of demo/test and live accounts. A transparency page, not a performance promise or investment advice.",
+  alternates: { canonical: "https://protocolbanks.com/live-track-record" },
 }
 
 /**
