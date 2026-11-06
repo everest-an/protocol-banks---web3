@@ -83,6 +83,20 @@ describe('DID Utilities', () => {
       expect(did).toContain(':137:')
     })
 
+    it('should scope a DID to an agent without changing the owner address', () => {
+      const did = generateDid(validAddress, 1, 'agent-001')
+      expect(did).toBe(`did:pkh:eip155:1:${validAddress}#agent-001`)
+      expect(didSchema.safeParse(did).success).toBe(true)
+      expect(extractAddressFromDid(did)).toBe(validAddress)
+      expect(extractChainIdFromDid(did)).toBe(1)
+    })
+
+    it('should produce different DIDs for two agents of the same owner', () => {
+      const a = generateDid(validAddress, 1, 'agent-a')
+      const b = generateDid(validAddress, 1, 'agent-b')
+      expect(a).not.toBe(b)
+    })
+
     it('(property) generated DIDs pass the schema validation', () => {
       fc.assert(
         fc.property(
@@ -162,8 +176,11 @@ describe('getPlatformAgentCard', () => {
   it('should return a valid Agent Card', () => {
     const card = getPlatformAgentCard('https://app.protocolbanks.com')
 
-    expect(card.name).toBe('Protocol Banks Payment Agent')
-    expect(card.capabilities.skills).toHaveLength(4)
+    expect(card.name).toBe('Protocol Bank — Agent Money Control Plane')
+    expect(card.capabilities.skills).toHaveLength(6)
+    expect(card.capabilities.skills.map((skill) => skill.id)).toEqual(
+      expect.arrayContaining(['agent_execution', 'trading', 'payment', 'x402']),
+    )
     expect(card.capabilities.supported_protocols).toContain('a2a')
     expect(card.capabilities.supported_protocols).toContain('mcp')
     expect(card.supported_tokens).toContain('USDC')
