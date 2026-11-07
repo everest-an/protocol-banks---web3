@@ -11,6 +11,7 @@ async function deploy() {
     await token.getAddress(),
     owner.address,
     resolver.address,
+    10n * USDC,
   );
   await escrow.waitForDeployment();
   await token.mint(buyer.address, 100n * USDC);
@@ -203,6 +204,29 @@ describe("AgentEscrow", () => {
     expect(await ctx.token.balanceOf(ctx.buyer.address)).to.equal(100n * USDC);
     const order = await ctx.escrow.orders(orderId);
     expect(order.state).to.equal(5);
+  });
+
+  it("lets the seller claim after the delivery deadline grace period", async () => {
+    const ctx = await deploy();
+    const orderId = ethers.id("order-timeout");
+    const amount = 4n * USDC;
+    const due = Number(await now()) + 60;
+    await ctx.escrow.connect(ctx.buyer).createOrder(orderId, ctx.seller.address, amount, due, ethers.id("terms"));
+    await fund(ctx, orderId, amount);
+    await ctx.escrow.connect(ctx.seller).markDelivered(orderId, ethers.id("timeout-delivery"));
+    await ethers.provider.send("evm_increaseTime", [8 * 24 * 60 * 60]);
+    await ethers.provider.send("evm_mine", []);
+    await ctx.escrow.connect(ctx.seller).claimAfterDelivery(orderId);
+    expect(await ctx.token.balanceOf(ctx.seller.address)).to.equal(amount);
+    const order = await ctx.escrow.orders(orderId);
+    expect(order.state).to.equal(4);
+  });
+
+  it("rejects an order above the configured cap", async () => {
+    const ctx = await deploy();
+    await expect(
+      ctx.escrow.connect(ctx.buyer).createOrder(ethers.id("order-cap"), ctx.seller.address, 11n * USDC, 0, ethers.id("terms")),
+    ).to.be.revertedWith("amount above cap");
   });
 
   it("cancels an unfunded order and rejects non-buyer funding", async () => {

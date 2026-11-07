@@ -10,7 +10,8 @@ async function main() {
   const balance = await ethers.provider.getBalance(deployer.address);
   if (balance === 0n) throw new Error(`${deployer.address} has no native gas on ${network.name}`);
 
-  const escrow = await (await ethers.getContractFactory("AgentEscrow")).deploy(token, owner, resolver);
+  const maxOrderAmount = BigInt(process.env.AGENT_ESCROW_MAX_ORDER_UNITS || "10000000");
+  const escrow = await (await ethers.getContractFactory("AgentEscrow")).deploy(token, owner, resolver, maxOrderAmount);
   await escrow.waitForDeployment();
   const address = await escrow.getAddress();
 

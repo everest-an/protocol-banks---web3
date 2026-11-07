@@ -53,6 +53,7 @@ contract AgentEscrow is EIP712, ReentrancyGuard, Ownable {
 
     IERC20 public immutable token;
     address public resolver;
+    uint256 public maxOrderAmount;
 
     mapping(bytes32 => Order) public orders;
     mapping(bytes32 => uint256) public actionNonces;
@@ -66,17 +67,21 @@ contract AgentEscrow is EIP712, ReentrancyGuard, Ownable {
     event OrderResolved(bytes32 indexed orderId, bool releasedToSeller, bytes32 resolutionHash);
     event OrderCancelled(bytes32 indexed orderId);
     event ResolverChanged(address indexed resolver);
+    event MaxOrderAmountChanged(uint256 maxOrderAmount);
+    event OrderClaimedAfterTimeout(bytes32 indexed orderId, address indexed seller, uint256 amount);
 
     modifier onlyResolver() {
         require(msg.sender == resolver, "not resolver");
         _;
     }
 
-    constructor(address token_, address owner_, address resolver_) EIP712("Protocol Bank Agent Escrow", "1") Ownable(owner_) {
+    constructor(address token_, address owner_, address resolver_, uint256 maxOrderAmount_) EIP712("Protocol Bank Agent Escrow", "1") Ownable(owner_) {
         require(token_ != address(0), "token required");
         require(resolver_ != address(0), "resolver required");
+        require(maxOrderAmount_ > 0, "cap required");
         token = IERC20(token_);
         resolver = resolver_;
+        maxOrderAmount = maxOrderAmount_;
     }
 
     function createOrder(
@@ -89,6 +94,7 @@ contract AgentEscrow is EIP712, ReentrancyGuard, Ownable {
         require(orders[orderId].state == State.None, "order exists");
         require(seller != address(0) && seller != msg.sender, "bad seller");
         require(amount > 0, "bad amount");
+        require(amount <= maxOrderAmount, "amount above cap");
         orders[orderId] = Order({
             buyer: msg.sender,
             seller: seller,
@@ -197,9 +203,27 @@ contract AgentEscrow is EIP712, ReentrancyGuard, Ownable {
         emit OrderCancelled(orderId);
     }
 
+    function claimAfterDelivery(bytes32 orderId) external nonReentrant {
+        Order storage order = orders[orderId];
+        require(msg.sender == order.seller, "not seller");
+        require(order.state == State.Delivered, "not delivered");
+        require(order.deliveryDue > 0, "no delivery deadline");
+        require(block.timestamp >= uint256(order.deliveryDue) + 7 days, "claim too early");
+        order.state = State.Released;
+        token.safeTransfer(order.seller, order.amount);
+        emit OrderClaimedAfterTimeout(orderId, order.seller, order.amount);
+    }
+
+    function setMaxOrderAmount(uint256 next) external onlyOwner {
+        require(next > 0, "cap required");
+        maxOrderAmount = next;
+        emit MaxOrderAmountChanged(next);
+    }
+
     function setResolver(address next) external onlyOwner {
         require(next != address(0), "resolver required");
         resolver = next;
         emit ResolverChanged(next);
     }
 }
+

@@ -1,4 +1,4 @@
-# Escrow Design — Agent Commerce
+﻿# Escrow Design â€” Agent Commerce
 
 > Status: contract and Hardhat tests exist (`contracts/contracts/AgentEscrow.sol`,
 > `contracts/test/AgentEscrow.test.ts`); not deployed, not audited, and not wired
@@ -36,12 +36,12 @@ funds path.
 
 ## 3. Roles
 
-- **Buyer** — funds the order, signs release/refund decisions.
-- **Seller** — delivers proof; can request release.
-- **Resolver** — a multisig or independent arbitrator that resolves a disputed
+- **Buyer** â€” funds the order, signs release/refund decisions.
+- **Seller** â€” delivers proof; can request release.
+- **Resolver** â€” a multisig or independent arbitrator that resolves a disputed
   order. This is a deliberate trust point; publish the policy and the signer set.
-- **Relayer** — submits transactions and pays gas; never holds funds.
-- **Platform** — creates off-chain terms, stores `termsHash`, relays signed
+- **Relayer** â€” submits transactions and pays gas; never holds funds.
+- **Platform** â€” creates off-chain terms, stores `termsHash`, relays signed
   transactions, emits events and reconciles. It cannot move funds without a
   buyer signature or a resolver decision.
 
@@ -196,3 +196,4 @@ Ship the direct order flow with atomic payment reservation now. Build the escrow
 contract as a separate, audited rail; do not mix it into the current payment
 path or call the current flow escrow. The first escrow pilot should be a small
 set of business buyers/sellers with a published resolver and a hard cap.
+
