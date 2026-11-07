@@ -36,9 +36,9 @@ const aeonik = localFont({
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" })
 
 export const metadata: Metadata = {
-  title: "Protocol Bank — The control plane for agent money",
+  title: "Protocol Bank — The control plane for agent commerce",
   description:
-    "One API key per agent, server-enforced limits and audit across trading, payments and cards. Non-custodial; bring your own strategy.",
+    "One credential, one server-enforced mandate across commerce, payments and trading, with cards coming soon. Agents can buy, sell, trade and spend within limits they cannot widen.",
   alternates: { canonical: "https://protocolbanks.com" },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -62,8 +62,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    title: "Protocol Bank — The control plane for agent money",
-    description: "One key per agent. Server-enforced limits. Audit on every call.",
+    title: "Protocol Bank — The control plane for agent commerce",
+    description: "One credential. One server-enforced mandate. Audit on every call.",
     siteName: "Protocol Bank",
     url: "https://protocolbanks.com",
     images: [
@@ -71,15 +71,15 @@ export const metadata: Metadata = {
         url: "https://protocolbanks.com/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Protocol Bank — the control plane for agent money.",
+        alt: "Protocol Bank — the control plane for agent commerce.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Protocol Bank — The control plane for agent money",
+    title: "Protocol Bank — The control plane for agent commerce",
     description:
-      "Give an agent money it can use but never drain: server-enforced caps, allowlists and audit across trading, payments and cards.",
+      "Give an agent a mandate it can use but cannot widen: server-enforced caps, allowlists, commerce orders, trading and audit; cards are coming soon.",
     images: ["https://protocolbanks.com/og-image.png"],
   },
 }
@@ -127,7 +127,7 @@ export default function RootLayout({
                   url: "https://protocolbanks.com",
                   inLanguage: "en",
                   description:
-                    "The control plane for agent money: one key per agent, server-enforced limits, non-custodial execution and audit.",
+                    "The control plane for agent commerce: one credential per agent, server-enforced mandates, commerce orders, non-custodial execution and audit.",
                 },
                 {
                   "@type": "SoftwareApplication",
@@ -138,7 +138,7 @@ export default function RootLayout({
                   inLanguage: "en",
                   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
                   description:
-                    "One API key gives an agent a trading and payments account under a server-enforced policy: operations, per-call cap, daily cap and allowlist. Trading runs through a trading-only wallet; payments execute only from a signed authorization; the platform holds no funds.",
+                    "One credential gives an agent a commerce, payments and trading account under a server-enforced mandate: operations, per-call cap, daily cap and allowlist. Orders bind seller, amount and terms; payments execute from a signed authorization; cards are coming soon and will consume the agent budget; the platform holds no funds.",
                 },
                 {
                   "@type": "Organization",
@@ -147,7 +147,7 @@ export default function RootLayout({
                   inLanguage: "en",
                   logo: "https://protocolbanks.com/logo.png",
                   description:
-                    "Protocol Bank builds the control plane for agent money: scoped keys, server-enforced limits, non-custodial execution and audit across trading, payments and cards.",
+                    "Protocol Bank builds the control plane for agent commerce: scoped credentials, server-enforced mandates, commerce orders, non-custodial execution and audit across payments and trading, with cards coming soon.",
                 },
               ],
             }),

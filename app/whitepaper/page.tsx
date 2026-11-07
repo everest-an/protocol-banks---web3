@@ -3,9 +3,9 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Whitepaper — the control plane for agent money",
+  title: "Whitepaper — the control plane for agent commerce",
   description:
-    "The architecture of Protocol Bank: agent identity, server-enforced limits, non-custodial execution, x402/EIP-3009 payments and audit.",
+    "The architecture of Protocol Bank: agent identity, server-enforced mandates, commerce orders, agent authorization, cards, non-custodial x402/EIP-3009 payments and audit.",
   alternates: { canonical: "https://protocolbanks.com/whitepaper" },
 }
 
@@ -16,16 +16,17 @@ export default function WhitepaperPage() {
         <div className="mb-8 sm:mb-12 border-b border-border pb-8 sm:pb-12">
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-500/20">
-              Version 2.1
+              Version 3.0
             </span>
-            <span className="text-muted-foreground text-xs uppercase tracking-wider">Updated Mar 2026</span>
+            <span className="text-muted-foreground text-xs uppercase tracking-wider">Updated Nov 2026</span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6 tracking-tight text-foreground">
             Protocol Banks Whitepaper
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-            The control plane for agent money: identity, policy, limits, audit and non-custodial execution across
-            trading, payments and cards. A technical deep dive into x402, EIP-3009, A2A/MCP and agent authorization.
+            The control plane for agent commerce: identity, mandate, commerce orders, agent authorization, cards,
+            audit and non-custodial execution across trading, payments and cards. A technical deep dive into x402, EIP-3009,
+            A2A/MCP and agent authorization.
           </p>
           <p className="mt-4 max-w-2xl text-sm text-muted-foreground">
             The product is the Agent API. The cockpit is a demo. This paper is the protocol and architecture reference.
@@ -54,16 +55,16 @@ export default function WhitepaperPage() {
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">1. Executive Summary</h2>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
             As decentralized organizations (DAOs) and AI agents become dominant economic actors, the traditional banking
-            stack is becoming obsolete. Protocol Banks introduces a programmable control plane for agent money:
-            identity, policy, limits, audit and non-custodial execution. By making every agent action authorized,
-            bounded and verifiable, Protocol Banks enables safe financial operations for the next generation of digital
-            enterprises.
+            stack is becoming obsolete. Protocol Banks introduces a programmable control plane for agent commerce:
+            identity, mandate, commerce orders, agent authorization, cards, audit and non-custodial execution. By making every
+            agent action authorized, bounded and verifiable, Protocol Banks enables safe financial operations for the
+            next generation of digital enterprises.
           </p>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
-            In v2.0, Protocol Banks evolves into the <strong className="text-foreground">control plane for agent money</strong> &mdash;
-            any AI agent can discover our services (ERC-8004), authenticate with on-chain identity (SIWE),
-            communicate via signed messages (A2A Protocol), and call policy-scoped execution tools directly (MCP
-            Server).
+            In v3.0, Protocol Banks becomes the <strong className="text-foreground">control plane for agent commerce</strong> &mdash;
+            an agent can discover services (ERC-8004/A2A), accept a quote, deliver proof, pay through EIP-3009 or x402,
+            spend on an agent-scoped card, trade through a trading-only wallet, and leave an auditable receipt. The
+            mandate &mdash; not the model, not the facilitator &mdash; decides what is allowed.
           </p>
 
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">2. The &ldquo;x402&rdquo; Protocol</h2>
@@ -93,7 +94,27 @@ export default function WhitepaperPage() {
             </ul>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">3. Market Analysis</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">3. Agent Commerce</h2>
+          <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
+            Payments alone do not make a market. The commerce layer adds the order: a seller publishes a service, the
+            buyer accepts a signed quote, the seller records delivery proof, and the buyer pays with the order id.
+          </p>
+          <pre className="overflow-x-auto rounded-lg border border-border bg-muted p-4 sm:p-5 font-mono text-xs sm:text-sm leading-relaxed text-foreground mb-6 sm:mb-8">
+{`seller  POST /commerce/services
+seller  POST /commerce/quotes        { serviceId, buyer, scope, deliveryDue, terms }
+buyer   POST /commerce/quotes/accept { quoteId }        -> order
+seller  POST /commerce/orders/deliver { orderId, deliveryHash, deliveryUri }
+buyer   POST /agent/pay               { to: seller, amountUsd, orderId, authorization }
+buyer   POST /commerce/orders/complete { orderId }`}
+          </pre>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
+            The order carries a canonical <code className="text-xs">termsHash</code> over seller, buyer, amount, token,
+            chain, scope and delivery due date. The payment intent echoes the <code className="text-xs">orderId</code>{" "}
+            and <code className="text-xs">termsHash</code>, so a receipt can be checked against the order instead of a
+            free-form memo. Payment is direct today; escrow and conditional release are the next rail.
+          </p>
+
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">4. Market Analysis</h2>
           <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
             Modern Web3 finance teams face a &ldquo;fragmentation trilemma&rdquo; that hinders adoption:
           </p>
@@ -116,31 +137,36 @@ export default function WhitepaperPage() {
             </div>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">4. Product Architecture</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">5. Product Architecture</h2>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">
-            Protocol Banks acts as a non-custodial overlay. We do not hold funds; we orchestrate them.
+            Protocol Banks is a control plane, not a bank. Payments move from the payer&apos;s wallet or the provider&apos;s
+            card balance; the platform orchestrates the mandate, the wallet, the order and the audit.
           </p>
           <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 text-sm sm:text-base text-muted-foreground list-disc pl-5 sm:pl-6">
             <li>
-              <strong className="text-foreground">Unified Batch Engine:</strong> Smart routing logic that bundles
-              transactions to minimize gas fees and administrative time. Go payout-engine for 500+ TPS throughput.
+              <strong className="text-foreground">Agent Mandate:</strong> one credential, server-enforced operations,
+              per-call cap, daily cap, allowlist, revoke and audit.
             </li>
             <li>
-              <strong className="text-foreground">Local-First Privacy:</strong> &ldquo;Wallet Tags&rdquo; and financial metadata are
-              encrypted locally or via RLS policies, ensuring your supplier list remains your trade secret.
+              <strong className="text-foreground">Agent Commerce:</strong> services, quotes, orders, delivery proof,
+              payment binding, disputes, refunds and reputation.
             </li>
             <li>
-              <strong className="text-foreground">Agent-Ready APIs:</strong> Full REST API with API key authentication,
-              budget management, payment proposals, auto-execute rules, and webhook notifications.
+              <strong className="text-foreground">Trading Agent Wallet:</strong> a Hyperliquid wallet approved with
+              EIP-712 <code className="text-xs">approveAgent</code>; it can trade, never withdraw.
             </li>
             <li>
-              <strong className="text-foreground">Multi-Chain Support:</strong> 9 blockchains (Ethereum, Polygon, Arbitrum,
+              <strong className="text-foreground">Agent Cards:</strong> one virtual card per agent, issued through
+              Yativo or Rain; the issuer holds the card balance.
+            </li>
+            <li>
+              <strong className="text-foreground">Multi-Chain Rails:</strong> 9 blockchains (Ethereum, Polygon, Arbitrum,
               Base, Optimism, BNB Chain, Solana, Bitcoin, TRON) with unified address detection and network-specific optimization.
             </li>
           </ul>
 
           {/* Section 5: AI-Native Architecture */}
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">5. AI-Native Architecture</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">6. AI-Native Architecture</h2>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
             Protocol Banks v2.0 is designed from the ground up as <strong className="text-foreground">AI-native payment infrastructure</strong>.
             Any AI agent &mdash; whether a Claude MCP client, an autonomous trading bot, or a DAO treasury manager &mdash;
@@ -191,7 +217,7 @@ export default function WhitepaperPage() {
           </div>
 
           {/* Section 6: Authentication Flow */}
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">6. AI Agent Authentication</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">7. AI Agent Authentication</h2>
           <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
             Protocol Banks implements a three-step SIWE (Sign-In with Ethereum) authentication flow that allows
             AI agents to log in autonomously using only their private key:
@@ -231,7 +257,7 @@ export default function WhitepaperPage() {
           </div>
 
           {/* Section 7: Agent Communication */}
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">7. Agent-to-Agent Communication</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">8. Agent-to-Agent Communication</h2>
           <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
             The A2A Protocol enables standardized, cryptographically secured communication between AI agents.
             External agents can request payments, get quotes, and track transactions &mdash; all through signed JSON-RPC 2.0 messages.
@@ -268,7 +294,7 @@ export default function WhitepaperPage() {
           </p>
 
           {/* Section 8: MCP Integration */}
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">8. MCP Server Integration</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">9. MCP Server Integration</h2>
           <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
             The Model Context Protocol (MCP) server allows any compatible AI model &mdash; Claude, GPT, or custom agents &mdash;
             to directly invoke payment tools as native function calls. This eliminates the need for wrapper code or API clients.

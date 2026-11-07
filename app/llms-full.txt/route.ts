@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 
 /**
  * llms-full.txt — full product documentation for AI crawlers.
@@ -7,18 +7,18 @@ const LLMS_FULL_TXT = `# Protocol Bank — Full Product Documentation (AI-readab
 
 ## If you are an agent, start here
 
-You can use this API without a human UI. Discovery: /.well-known/agent.json (A2A/ERC-8004 card), /api/agent.openapi.json (OpenAPI 3.1), /llms.txt (summary), /api/mcp (MCP Streamable HTTP). Auth: Authorization: Bearer pb_... or a dashboard agent key. Start with GET /api/v1/agent/state; then POST /orders, /pay, /swap or /invoice. Every key has a server-enforced policy; a 403 (policy) or 409 (risk) refusal is final for the request. Do not ask the model to widen the policy; the owner edits it in Settings → API Keys.
+You can use this API without a human UI. Discovery: /.well-known/agent.json (A2A/ERC-8004 card), /api/agent.openapi.json (OpenAPI 3.1), /llms.txt (summary), /api/mcp (MCP Streamable HTTP). Auth: Authorization: Bearer pb_... or a dashboard agent key. Start with GET /api/v1/agent/state; then use /commerce/* for orders, or POST /orders, /pay, /swap or /invoice for execution. Every key has a server-enforced mandate; a 403 (policy) or 409 (risk) refusal is final for the request. Do not ask the model to widen the mandate; the owner edits it in Settings → API Keys.
 
 ## Product overview
 
-Protocol Bank is the control plane for agent money. An agent gets
+Protocol Bank is the control plane for agent commerce. An agent gets
 one credential; the server enforces which operations it may perform
-(read / trade / pay / swap), a per-call cap, a daily cap and a coin allowlist.
-Trading runs through a trading-only Hyperliquid agent wallet; payments execute
-from the payer's own EIP-3009 authorization; each agent can also have a
-platform-custodied EVM wallet for signing; card issuing is coming soon while
-provider onboarding completes. The /trading cockpit is a paper demo of the same
-account; the Agent API is the product.
+(read / trade / pay / swap), a per-call cap, a daily cap and an allowlist.
+Commerce orders bind a seller, amount, token, delivery terms and a termsHash;
+payments execute from the payer's own EIP-3009 authorization or x402; each
+agent can have an agent-scoped virtual card once a card provider is live; cards are coming soon.
+Trading runs through a trading-only Hyperliquid agent wallet. The /trading cockpit is a paper demo of the same account; the
+Agent API is the product.
 
 The retail cockpit is a reference adapter, not the product. Production agents
 call the Agent API (or the MCP server) under a policy their owner controls.
@@ -144,22 +144,24 @@ Docs: https://protocolbanks.com/docs (overview) · /docs/quickstart · /docs/api
 Contract: https://www.protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1, CORS-open)
 Keys and policy: https://protocolbanks.com/settings/api-keys
 Walkthrough: https://protocolbanks.com/agent-api — PB_KEY=pb_... pnpm example:agent
+Commerce directory: https://protocolbanks.com/agent-commerce
 Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools
 (tool manifest for the Vercel AI SDK, LangChain, OpenAI and Anthropic)
 
-Only /orders executes: it trades through a Hyperliquid agent wallet with
+/orders executes: it trades through a Hyperliquid agent wallet with
 trading-only rights (it can place and cancel orders, never withdraw). /pay
 prepares an EIP-712 intent and executes when the caller POSTs back a signed
 EIP-3009 authorization (EVM USDC) — the payer's own USDC moves and the relayer
 only pays gas. /swap and /invoice prepare something the agent signs itself.
 
-- GET /state — mode, equity, positions, activity, the Hyperliquid agent wallet status (tradingOnly, never withdrawable), the platform-custodied wallet, and the key's policy with spentTodayUsd
+- GET /state — mode, equity, positions, activity, the Hyperliquid agent wallet status (tradingOnly, never withdrawable), and the key's policy with spentTodayUsd
 - POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee + remainingTodayUsd
 - POST /pay — { to, amountUsd, token?, chain?, memo? } -> an intent + typedData; add the authorization object { ...message, v, r, s } to execute (relayer submits; the payer's own USDC moves)
 - POST /swap — { from, to, amount, amountUsd, slippage? } -> quote + transaction to sign
 - POST /invoice — { to, amount, token?, chain?, description?, expiresInHours? } -> pending invoice + paymentLink (/pay?invoice=...&sig=...); read settlement back with GET /api/invoice?id=...&sig=...
-- GET /wallet — platform-custodied EVM wallet status (requires an agent_... key)
-- POST /wallet/sign — { kind: "message", message } or { kind: "typedData", domain, types, value } -> signature; typed data is limited to TransferWithAuthorization, ReceiveWithAuthorization and Permit and requires the pay operation
+- POST /commerce/services, /commerce/quotes, /commerce/quotes/accept — publish a service, create a quote, accept it into an order
+- POST /commerce/orders/deliver, /complete, /dispute, /refund — delivery proof, completion, dispute, refund
+- GET /commerce/orders, /commerce/reputation — order state and seller reputation
 
 Policy, enforced by the server (the agent cannot widen it): allowedOps
 (read | pay | swap | trade), maxNotionalUsd per call, dailyCapUsd per UTC day,
@@ -174,23 +176,6 @@ uncertain submission), 429 rate limit (100 requests/minute per IP). Pay adds 502
 deployment). An order that reaches the venue without a confirmed response is
 recorded and resolved by client-order-id reconciliation — never retried.
 
-## Agent wallets (platform-custodied)
-
-Each agent can have a platform-generated EVM wallet. The private key is encrypted
-with AES-256-GCM using AGENT_WALLET_SECRET and is never returned by any endpoint.
-Create/rotate/revoke from the agent dashboard (owner session) or read and sign
-with a dashboard agent key.
-
-- GET /api/v1/agent/wallet — address, status, canSign (agent key required; pb_ keys answer 409)
-- POST /api/v1/agent/wallet/sign — personal_sign, or allowlisted EIP-712 typed data
-- POST /api/agents/[id]/wallet — { action: "create" | "rotate" | "revoke" } (owner session)
-- POST /api/agents/[id]/wallet/sign — owner-session signing for testing
-
-Typed data is limited to TransferWithAuthorization, ReceiveWithAuthorization and
-Permit, and requires the key's pay operation. The server signs but does not
-broadcast. Revoking clears local key material; funds already at the address are
-not moved. If AGENT_WALLET_SECRET is missing, creation/signing answers 503.
-
 ## Agent cards (virtual Visa, agent-scoped; coming soon)
 
 Agent cards are in provider onboarding (Yativo today; the
@@ -199,15 +184,12 @@ by the issuing partner; funding is wallet-signed where the provider supports it.
 
 - GET /api/agents/[id]/virtual-cards — list the agent's cards
 - POST /api/agents/[id]/virtual-cards — { initialAmount, label? } -> issue
-- GET /api/agents/[id]/virtual-cards/[cardId] — status, last4, balance
-- PATCH /api/agents/[id]/virtual-cards/[cardId] — fund | withdraw | activate | freeze | unfreeze | terminate
-- DELETE /api/agents/[id]/virtual-cards/[cardId] — close the card
 
-If the agent has a USDC budget, issuing and funding a card checks and deducts
-that budget. PAN/CVV are held by the issuer; the app shows the last 4 digits
-unless the provider exposes a card-details endpoint. Provider credentials
-(YATIVO_API_KEY/YATIVO_API_SECRET or RAIN_API_KEY) are required; without them
-the endpoints answer 503 instead of fabricating a card.
+Card issuance and lifecycle depend on the provider. PAN/CVV are held by the
+issuer; the app shows the last 4 digits unless the provider exposes a
+card-details endpoint. Provider credentials (YATIVO_API_KEY/YATIVO_API_SECRET or
+RAIN_API_KEY) are required; without them the endpoints answer 503 instead of
+fabricating a card.
 
 Billing: executed trades are metered at PARTNER_FEE_BPS (default 8 bps of
 notional); every order response carries remainingTodayUsd.
@@ -230,4 +212,3 @@ export async function GET() {
     headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" },
   })
 }
-

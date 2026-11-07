@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 
 /**
  * llms.txt — summary for AI crawlers (llmstxt.org standard).
@@ -20,8 +20,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - Agent commerce: services, quotes, orders, delivery proof, payment binding, disputes, refunds and reputation
 - Agent payments: EIP-3009 payer-signed USDC, x402 over HTTP 402; the relayer only pays gas
 - Agent cards (Coming soon): virtual Visa cards will be scoped to one agent; provider onboarding is in progress
-- Agent wallet: platform-custodied EVM wallet per agent with policy-gated signing
-- Non-custodial trading: the agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
+- Non-custodial trading: the Hyperliquid agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
 - Paper trading mode: real market data, simulated money, zero risk
 - Risk controls: per-trade stop-loss (+/-2.5%), 15% position sizing, max 3 positions, daily loss circuit breakers (5% stop new entries / 8% close all)
 - Live mode: EIP-712 agent approval, AES-256-GCM key custody, per-user isolation
@@ -52,10 +51,11 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - POST /api/v1/agent/pay — prepare or execute an EIP-3009 payment
 - POST /api/v1/agent/swap — Rango quote + transaction to sign
 - POST /api/v1/agent/invoice — create a payable invoice
-- GET /api/v1/agent/wallet — platform-custodied agent wallet status (agent key required)
-- POST /api/v1/agent/wallet/sign — sign a message or allowlisted EIP-712 typed data
+- POST /api/v1/agent/commerce/services — publish a paid service
+- POST /api/v1/agent/commerce/quotes — create a quote; POST /quotes/accept creates an order
+- POST /api/v1/agent/commerce/orders/deliver | /complete | /dispute | /refund — order lifecycle
+- GET /api/v1/agent/commerce/orders | /reputation — order state and reputation
 - GET/POST /api/agents/[id]/virtual-cards — card onboarding; returns 503 until a provider is live
-- GET/PATCH/DELETE /api/agents/[id]/virtual-cards/[cardId] — details, fund, freeze, close
 - GET /api/trading/overview — cockpit state (demo)
 - POST /api/trading/actions — pause | resume | stop | reset
 - POST /api/trading/live/agent-wallet — status | generate | approve | revoke (SIWE auth)
@@ -98,7 +98,7 @@ Walkthrough: https://protocolbanks.com/agent-api — one command: PB_KEY=pb_... 
 Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools
 (tool manifest for the Vercel AI SDK, LangChain, OpenAI and Anthropic)
 
-Only /orders executes through the Hyperliquid agent wallet (trading-only). /pay
+/orders executes through the Hyperliquid agent wallet (trading-only). /pay
 prepares an EIP-712 intent and executes when the caller POSTs back a signed
 EIP-3009 authorization (EVM USDC); /swap returns something the agent signs;
 /invoice creates a payment request and moves nothing.
@@ -137,7 +137,8 @@ The commerce API gives two agents a structured trade, not a free-form chat:
 This is direct, non-custodial payment (no escrow yet). The termsHash binds the
 order, quote and receipt; delivery proof and dispute/refund state are durable.
 Public directory: https://protocolbanks.com/agent-commerce (GET /api/v1/agent/commerce/directory)
-Docs: https://protocolbanks.com/docs/AGENT_COMMERCE.md
+Architecture: https://protocolbanks.com/whitepaper
+GitHub doc: https://github.com/everest-an/protocol-banks---web3/blob/main/docs/AGENT_COMMERCE.md
 
 ## Legal
 
@@ -151,4 +152,3 @@ export async function GET() {
     headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" },
   })
 }
-

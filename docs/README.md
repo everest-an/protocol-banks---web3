@@ -1,7 +1,7 @@
 # Documentation Hub
 
 Everything you need to understand, build, and legally operate Protocol Bank —
-the AI automated trading product. Start here and follow the links.
+the control plane for agent commerce. Start here and follow the links.
 
 ---
 
@@ -10,6 +10,9 @@ the AI automated trading product. Start here and follow the links.
 | Document | What it covers |
 |---|---|
 | [PRD v2 — AI Trading](PRD_V2_AI_TRADING.md) | Product spec: positioning, cockpit design, wallet architecture, strategy & risk parameters, implementation status |
+| [PRD v3 — Agent Commerce](PRD_V3_AGENT_COMMERCE.md) | Phase 3 strategy: PayAI due diligence, Agent Commerce control plane, x402/card/wallet combination, roadmap and KPIs |
+| [Agent Commerce API](AGENT_COMMERCE.md) | Services, quotes, orders, delivery proof, payment binding, disputes, refunds, reputation |
+| [Escrow Design](ESCROW_DESIGN.md) | Design-only: contract escrow, roles, interface and legal limits |
 | [Product Guide](PRODUCT_GUIDE.md) | **Full functional reference**: every surface, what it does, how to use it, and its limits |
 | [Feature Review](FEATURE_REVIEW.md) | **Custody model per feature** (non-custodial vs platform-held), verification status, and the open structural risk |
 | [Go-Live Checklist](GO_LIVE_CHECKLIST.md) | Step-by-step first real-money run + troubleshooting |
@@ -71,7 +74,7 @@ the AI automated trading product. Start here and follow the links.
 
 | Document | What it covers |
 |---|---|
-| [AGENT_API.md](AGENT_API.md) | The programmatic surface: auth, the key policy (ops, per-call cap, daily cap, allowlist), five endpoints, error semantics, billing |
+| [AGENT_API.md](AGENT_API.md) | The programmatic surface: auth, the mandate, execution + commerce + wallet, error semantics, billing |
 | [AGENT_CASES.md](AGENT_CASES.md) | Four worked technical cases with real requests and responses — a framework tool with a cap, invoice reconciliation, x402 interop, and the runaway-agent limits |
 | [AGENT_TOOLS.md](AGENT_TOOLS.md) | The tool manifest (`@everestan/protocolbanks-agent-tools`) and adapters for the Vercel AI SDK, LangChain, OpenAI and Anthropic |
 | [Open client (MIT)](https://github.com/everest-an/protocolbanks-sdk) | SDK, tool manifest, MCP proxy and framework starters — open source |

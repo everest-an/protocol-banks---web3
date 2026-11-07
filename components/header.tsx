@@ -14,6 +14,7 @@ import {
   BookOpen,
   Code2,
   Tag,
+  ShoppingBag,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -52,6 +53,7 @@ export function Header() {
 
   const navItems = [
     { href: "/agent-api", label: "Agent API", icon: Code2 },
+    { href: "/agent-commerce", label: "Commerce", icon: ShoppingBag },
     { href: "/docs", label: "Docs", icon: BookOpen },
     { href: "/pricing", label: "Pricing", icon: Tag },
     { href: "/trading", label: "Demo", icon: Bot },

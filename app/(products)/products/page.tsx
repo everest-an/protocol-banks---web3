@@ -33,7 +33,7 @@ export default function ProductsPage() {
           </Link>
         </div>
 
-        {/* Featured: AI Agents */}
+        {/* Featured: Agent Commerce */}
         <GlassCard className="bg-gradient-to-br from-yellow-500/10 via-background to-purple-500/10 border-yellow-500/20 overflow-hidden">
           <GlassCardContent className="pt-6 pb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -43,19 +43,19 @@ export default function ProductsPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-lg">AI-Powered Payments</h3>
+                    <h3 className="font-semibold text-lg">Agent Commerce</h3>
                     <Badge className="bg-yellow-500/20 text-yellow-600">New</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground max-w-md">
-                    Enable autonomous payments with session keys. Perfect for AI agents,
-                    automated trading bots, and smart contract integrations.
+                    Give an agent one credential and a server-enforced mandate across commerce,
+                    payments and trading; cards coming soon. Orders, quotes, delivery proof and receipts.
                   </p>
                 </div>
               </div>
-              <Link href="/agents">
+              <Link href="/agent-api">
                 <Button className="gap-2 bg-yellow-500 hover:bg-yellow-600 text-black">
                   <Zap className="h-4 w-4" />
-                  Try AI Agents
+                  Read the Agent API
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </Link>

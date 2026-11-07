@@ -1,41 +1,48 @@
-# Protocol Bank — AI 自动交易产品白皮书
+# Protocol Bank — Agent Commerce 控制面白皮书
 
-**版本:** 3.0.0
-**日期:** 2026-08
+**版本:** 3.1.0
+**日期:** 2026-11
 
 ---
 
 ## 一、执行摘要
 
-Protocol Bank 是一款面向普通加密用户的 **AI 自动交易产品**。用户连接钱包、设定交易预算、批准一个仅有交易权限的 agent 钱包后，AI 代理在 Hyperliquid 永续合约市场全天候自动交易，全程透明可审计、风险内建、随时可撤销。
+Protocol Bank 是面向 AI Agent 的 **Agent Commerce 控制面**。一个 agent 凭证，一套由服务端强制的 mandate，覆盖 **commerce / payments / cards / trading**：可执行的操作、单笔上限、每日上限、白名单、预算与审计。Agent 可以购买服务、接受报价、交付证明、付款、刷卡或交易，但无法放宽 mandate，也无法掏空账户。
 
-与传统"智能投顾"的关键区别：
+与传统支付网关和纯 x402 Facilitator 的关键区别：
 
-| 传统产品 | Protocol Bank |
+| 传统产品 / Facilitator | Protocol Bank |
 |---|---|
-| 资金托管，用户让渡控制权 | **非托管**：资金在用户自己的 Hyperliquid 账户结构内 |
-| 黑盒策略，用户不知道在交易什么 | **全透明**：每个信号、每笔交易、每个理由都用自然语言呈现 |
-| 无上限风险敞口 | **最大亏损写在屏幕上**（= 交易钱包余额），止损/熔断内建于每笔订单 |
-| 无法紧急停止 | **一键暂停 / 紧急停止 / 链上撤销** |
+| 只处理支付管道 | **控制面**：凭证、策略、预算、钱包、卡、订单、对账 |
+| 模型可以自己决定花多少 | **mandate 在服务端强制**，模型无法放宽 |
+| 支付与订单脱节 | **订单绑定**：seller、amount、token、termsHash、orderId |
+| 卡和钱包各自为政 | **一个 agent 一个钱包、一张卡、一套预算** |
+| 出问题只有 tx hash | **审计、争议、退款、声誉、对账** |
 
 ## 二、产品架构
 
 ```
-用户 (MetaMask/SIWE 登录)
- ├── 主钱包（Hyperliquid 主账户）—— 充值/提现，AI 永不可触
- └── 交易钱包（预算）—— AI 唯一可操作的额度，即最大亏损
-        └── agent 钱包 —— 交易权限，无提现权限，随时可撤销
+Agent / Merchant / Marketplace
+        │
+        ▼
+Agent API
+  credential · mandate · budget · audit
+        │
+        ├── Commerce   services · quotes · orders · delivery · reputation
+        ├── Payments   EIP-3009 · x402 · invoice · batch · subscription
+        ├── Cards      Yativo / Rain · agent-scoped · budgeted
+        └── Trading    Hyperliquid trading-only agent wallet
+        │
+        ▼
+Settlement & reconciliation
+  on-chain verify · idempotency · ledger · webhooks
 ```
 
-三层护栏：
+四种 rail 共享同一个凭证、同一套预算和同一个审计流。Trading 是参考垂直，不是产品边界。
 
-1. **链上层**：agent 钱包在 Hyperliquid 上仅批准交易权限（approveAgent），物理上无法提现
-2. **平台风控层**：每笔订单前强制执行 —— 单仓 15% / 最多 3 仓 / 止盈止损 ±2.5% / 日亏 5% 停新单、8% 清仓熔断 / 滑点与手续费建模
-3. **用户控制层**：Pause / Emergency Stop / Reset / 链上撤销
+## 三、参考垂直：AI Trading
 
-## 三、策略说明（v1：稳健腿）
-
-v1 策略刻意选择"数学上站得住的简单策略"，而非黑盒模型：
+v1 的交易策略刻意选择"数学上站得住的简单策略"，而非黑盒模型：
 
 **信号组合**（60% 动量 + 40% 资金费率）：
 
@@ -48,33 +55,56 @@ v1 策略刻意选择"数学上站得住的简单策略"，而非黑盒模型：
 - 入场：|综合分数| ≥ 0.45；离场：止盈 +2.5% / 止损 -2.5% / 信号反向衰减
 - 成本建模：taker 费 4bps + 滑点 5bps 计入每次模拟/真实成交
 
-**实验腿（规划中）**：AlphaGPT 式因子挖掘（Transformer 生成公式 + 回测评分）作为小仓位实验，验证期后渐进放开。
+这条垂直用于证明 mandate、预算、审计和 trading-only 钱包可以产品化；它不代表 Protocol Bank 只做交易。
 
-## 四、安全模型
+## 四、Agent Commerce
 
-- **认证**：SIWE（EIP-4361）+ JWT 会话；服务端强制身份匹配
-- **密钥托管**：agent 私钥 AES-256-GCM 加密存储，每用户独立，绝不混用；生产环境配置 TRADING_KEY_SECRET（64 位 hex）否则 live 模式拒绝启动
-- **签名正确性**：Hyperliquid EIP-712 签名（phantom-agent L1 方案 + ApproveAgent 用户签名）手工字节级实现，7 项离线单测验证 digest 往返与防重放
-- **用户隔离**：TradingAccount / TradeRecord 按钱包地址隔离，Agent 密钥文件按用户隔离
-- **审计**：全部 AI 决策记录活动流，可追溯
+支付本身不构成市场，订单才是。Commerce API 增加：
 
-## 五、代币经济与商业模式
+1. 卖家发布服务（价格、token、链、条款）
+2. 买家接受签名报价，生成订单
+3. 卖家提交交付证明（hash / URI / 签名）
+4. 买家通过 `pay` 携带 `orderId` 付款
+5. 订单进入 paid / completed / disputed / refunded，并累计声誉
 
-v1 不发行代币。商业模式（规划中）：策略表现费（高于水位线的收益分成）或订阅制。利润提取流程已内建于驾驶舱（Withdraw Profit 一键从交易钱包 pull 回主钱包）。
+订单携带 canonical `termsHash`（seller、buyer、amount、token、chain、scope、deliveryDue、terms）。付款 intent 回显 `orderId` 和 `termsHash`，收据可以对照订单验证，而不是依赖自由文本 memo。
 
-## 六、路线图
+**当前限制**：没有 escrow / 条件释放；付款是直接的；争议和退款是记录，不是自动仲裁。Escrow 是 Phase 3 的下一条 rail。
+
+## 五、安全模型
+
+- **认证**：SIWE（EIP-4361）+ JWT；服务端强制身份匹配
+- **Mandate**：API key / agent key 上的 ops、单笔、每日、白名单；服务端强制，调用方无法放宽
+- **非托管支付**：EIP-3009 由付款方签名，relayer 只付 gas；平台不持有资金
+- **Trading-only**：Hyperliquid agent 钱包仅交易权限，物理上无法提现
+- **Agent 钱包**：平台托管 EVM 钱包，AES-256-GCM 加密；这是热钱包，生产建议 KMS/HSM 或 MPC
+- **Cards**：由 Yativo / Rain 发行，卡余额由发卡方持有；开卡/充值/结算消耗 agent 预算
+- **审计**：每次调用、订单、付款、卡事件写入活动流；RLS 在数据库层隔离租户
+- **撤销**：暂停、轮换 key、冻结卡、链上撤销 agent
+
+## 六、商业模式
+
+- 订阅：Builder / Growth / Scale
+- 按量：执行订单 8 bps；无订阅时按月结算
+- Cards：发卡/充值/结算服务费（provider 成本另计）
+- Commerce：订单/分账/企业服务费（规划中）
+
+我们不发行代币；价值来自真实 TPV、商户留存、预算与合规，而不是叙事。
+
+## 七、路线图
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| v1 已交付 | 驾驶舱、paper 引擎、live 签名与批准流、风控、用户隔离 schema、CI/测试/部署 | ✅ |
-| v1.5 | 小额 Beta（真钱包批准流验证）、通知系统、live 执行循环实战验证 | 🔜 |
-| v2 | 子账户硬分离（$10 万量用户）、实验腿因子挖掘、Polymarket 扩展 | 📋 |
-| v3 | 利润自动提取规则、策略市场/分享 | 📋 |
+| v1 已交付 | Agent API、驾驶舱、paper 引擎、live 签名与批准流、风控、用户隔离、CI/测试/部署 | ✅ |
+| v2 | Agent 钱包、Agent 卡（Yativo/Rain）、Rain KYC/contract/issue、卡 webhook、预算扣减 | ✅ |
+| v3.0 | Commerce API 可信化、escrow 设计、PayAI/CDP/Cloudflare Facilitator 适配、3 个灯塔客户 | 🔜 |
+| v3.1 | Payment Splitting、多 Agent 订单、争议/仲裁、企业子账户 | 📋 |
+| v3.2 | Agent 金融基础设施、跨链结算、合规、Marketplace | 📋 |
 
-## 七、风险提示
+## 八、风险提示
 
-自动交易可能导致交易钱包全部损失。AI 是自动化工具而非收益保证，历史表现不代表未来结果。Protocol Bank 不持有金融牌照，不提供投资建议。详见平台内《风险披露》（/risk-disclosure）与《服务条款》（/terms）。
-
----
-
-*本白皮书随产品迭代更新。技术细节以代码和 PRD（docs/PRD_V2_AI_TRADING.md）为准。*
+- 自动交易可能导致交易钱包全部损失；AI 是工具，不是收益保证
+- Agent 钱包是热钱包；卡余额由 provider 持有，不是银行存款
+- Commerce 尚无 escrow；付款是直接的，争议需要人工处理
+- x402 Facilitator 会商品化；护城河在 mandate、预算、钱包、卡、对账和信任
+- 本白皮书是技术与产品说明，不构成投资建议

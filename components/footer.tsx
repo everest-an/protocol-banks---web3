@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare, TrendingUp, Image as ImageIcon, Terminal, Send } from "lucide-react"
+import { Github, Twitter, HelpCircle, Mail, FileText, BookOpen, MessagesSquare, TrendingUp, Image as ImageIcon, Terminal, Send, ShoppingBag } from "lucide-react"
 import Image from "next/image"
 
 export function Footer() {
@@ -16,7 +16,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-              The control plane for agent money — one key per agent, server-enforced limits, non-custodial.
+              The control plane for agent commerce — one credential, server-enforced mandates across commerce, payments and trading, with cards coming soon.
             </p>
           </div>
 
@@ -42,6 +42,15 @@ export function Footer() {
                 >
                   <FileText className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                   <span className="truncate">Product Guide</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/agent-commerce"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
+                >
+                  <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate">Agent Commerce</span>
                 </Link>
               </li>
               <li>

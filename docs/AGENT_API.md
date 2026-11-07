@@ -1,12 +1,13 @@
 # Agent API — reference
 
 The programmatic surface for AI agents and the products that run them: one
-credential, one policy the server enforces, five endpoints.
+credential, one server-enforced mandate across commerce, payments and trading.
 
 **`orders` executes. `pay` prepares, or executes when the caller supplies a
 signed EIP-3009 authorization.** The platform holds no keys, so trading runs
 through a Hyperliquid agent wallet (trading-only rights); `swap` and `invoice`
-never move money on the platform.
+never move money on the platform. Commerce orders bind the payment to a seller,
+amount and `termsHash`; cards are coming soon and will be agent-scoped and budgeted.
 
 | Operation | Endpoint | Executes? |
 |---|---|---|
@@ -15,11 +16,13 @@ never move money on the platform.
 | `invoice` | `POST /api/v1/agent/invoice` | no (creates a payment request) |
 | `pay` | `POST /api/v1/agent/pay` | **optional** (executes with a signed EIP-3009 authorization, EVM USDC) |
 | `swap` | `POST /api/v1/agent/swap` | no (returns a quote + transaction) |
+| `commerce` | `/api/v1/agent/commerce/*` | no (order state; payment is a separate `pay` call) |
 
 ### The contract
 
 [`api/agent.openapi.json`](api/agent.openapi.json) is the machine-readable
-version of this document: OpenAPI 3.1, all five paths, the policy schema with
+version of this document: OpenAPI 3.1, the five execution paths plus the commerce
+paths, the policy schema with
 its clamp ranges, one response per error class with a real example body, and
 the exact field names each route returns. It is also served at
 **`https://www.protocolbanks.com/api/agent.openapi.json`** (CORS-open), so tooling

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Protocol Banks is an enterprise-grade crypto payment infrastructure providing non-custodial, multi-chain payment solutions with advanced security features including Shamir Secret Sharing, hardware wallet support, and multi-signature workflows.
+Protocol Banks is the control plane for agent commerce: one credential, one server-enforced mandate across commerce, payments, cards and trading. Agents can buy services, accept quotes, deliver proof, pay through EIP-3009/x402, spend on agent-scoped cards, and trade through a trading-only Hyperliquid wallet. The legacy enterprise payment suite (batch payments, invoices, subscriptions, acquiring, vendors) remains available as Business rails.
 
 **Tech Stack:**
 - **Frontend:** Next.js 15 (App Router), TypeScript 5, Tailwind CSS v4, shadcn/ui

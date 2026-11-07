@@ -12,16 +12,18 @@
 
 ## 0. One-paragraph product
 
-Protocol Bank is an **execution and policy layer for AI agents**, built on
-Hyperliquid. One API key gives an agent a trading and payments account under a
-policy the server enforces — which operations (read/trade/pay/swap), a per-call
-cap, a daily cap, a coin allowlist. Trading runs through a **trading-only agent
-wallet** (EIP-712 `approveAgent`): it can place and cancel orders, and can never
-withdraw. `pay` prepares an EIP-712 intent and can execute it from the payer's
-signed authorization (EVM USDC); `swap` returns a transaction the agent signs.
-The cockpit is a paper demo of the same account; the API is the product.
+Protocol Bank is the **control plane for agent commerce**. One credential gives
+an agent a mandate the server enforces across **commerce, payments, cards and
+trading** — which operations (read/trade/pay/swap), a per-call cap, a daily cap,
+an allowlist, budgets and audit. Commerce orders bind a seller, amount, token
+and `termsHash`; `pay` can execute from the payer's signed EIP-3009
+authorization or x402; cards are coming soon and will be agent-scoped and provider-issued;
+trading runs through a **trading-only Hyperliquid wallet** (EIP-712
+`approveAgent`) that can place and cancel orders and can never withdraw. The
+cockpit is a paper demo of one rail; the API is the product.
 
-Positioning & milestones → [PRD_V2_AI_TRADING.md](PRD_V2_AI_TRADING.md)
+Positioning & milestones → [PRD_V3_AGENT_COMMERCE.md](PRD_V3_AGENT_COMMERCE.md)
+and [PRD_V2_AI_TRADING.md](PRD_V2_AI_TRADING.md)
 
 ---
 
@@ -29,8 +31,9 @@ Positioning & milestones → [PRD_V2_AI_TRADING.md](PRD_V2_AI_TRADING.md)
 
 | Surface | Route | Purpose |
 |---|---|---|
-| Landing | `/` | Execution + policy for AI agents; sandbox and API CTAs |
-| Agent API | `/agent-api` | The product: five endpoints, policy, quickstart |
+| Landing | `/` | Control plane for agent commerce; sandbox and API CTAs |
+| Agent API | `/agent-api` | The product: mandate, commerce, payments, wallet, trading (cards coming soon) |
+| Agent Commerce | `/agent-commerce`, `/api/v1/agent/commerce/*` | Directory + services, quotes, orders, delivery proof, disputes, refunds, reputation |
 | Docs | `/docs`, `/zh/docs` | Overview, quickstart, concepts, API, security (EN/中文) |
 | Pricing | `/pricing` | Plans, caps, per-order fee |
 | Demo cockpit | `/trading` | A paper agent the same API drives |
@@ -46,9 +49,11 @@ Positioning & milestones → [PRD_V2_AI_TRADING.md](PRD_V2_AI_TRADING.md)
 
 ## 2. The Agent API (the product)
 
-One API key gives an agent a trading and payments account under a policy the
-server enforces. Five endpoints; only `orders` executes. The cockpit in §3 is
-its demo.
+One credential gives an agent a commerce, payments and trading account; cards are coming soon
+under a mandate the server enforces. Five execution endpoints; `orders` executes
+through the trading wallet, `pay` executes only when the caller supplies a signed
+authorization, and commerce runs under `/commerce/*`. The cockpit in §3 is one
+rail's demo.
 
 ### 2.1 The key and the policy
 
@@ -73,6 +78,12 @@ refusal). A refusal is final for the request. `pay` is metered against the daily
 cap but carries no per-order fee; a used EIP-3009 nonce answers 409. Full
 reference: [AGENT_API.md](AGENT_API.md) and the served contract at
 `/api/agent.openapi.json`.
+
+The commerce endpoints live under `/api/v1/agent/commerce/*`: services, quotes,
+orders, delivery proof, disputes, refunds and reputation. The order stores a
+canonical `termsHash`; `pay` accepts `orderId` and binds the payment to the
+order's seller, amount and token. Escrow is not live yet; payment is direct.
+Full reference: [AGENT_COMMERCE.md](AGENT_COMMERCE.md).
 
 ### 2.3 Sandbox and live
 
@@ -361,7 +372,8 @@ $100/call, $500/day) until someone edits it.
 
 ### 12.2 The Agent API
 
-Five endpoints under `/api/v1/agent/*`:
+Five execution endpoints under `/api/v1/agent/*`; commerce lives under
+`/commerce/*` and is documented in [AGENT_COMMERCE.md](AGENT_COMMERCE.md):
 
 | Endpoint | Operation | Executes? |
 |---|---|---|
@@ -370,10 +382,13 @@ Five endpoints under `/api/v1/agent/*`:
 | `POST /pay` | `pay` | no — returns an intent to sign |
 | `POST /swap` | `swap` | no — returns a quote to sign |
 | `POST /invoice` | `pay` | no — pending invoice + `paymentLink` |
+| `/commerce/*` | `pay` | no — order state; payment is a separate `pay` call |
 
-The platform holds no keys, so only `orders` can move value; `pay` and `swap`
-return something the agent signs itself, and `invoice` is a payment request the
-payer settles through the returned link (read it back with `GET /api/invoice?id=…&sig=…`).
+`orders` executes through the trading-only wallet; `pay` executes when the
+caller supplies a signed EIP-3009 authorization; `swap` returns a quote to sign;
+`invoice` is a payment request the payer settles through the returned link (read
+it back with `GET /api/invoice?id=…&sig=…`). Commerce orders bind the payment to
+the seller, amount, token and `termsHash`.
 
 Walk it with one command: `PB_KEY=pb_… pnpm example:agent` (add `--invoice`).
 The machine-readable contract is [api/agent.openapi.json](api/agent.openapi.json);
@@ -393,8 +408,10 @@ executes, and the tool descriptions tell the model not to retry a refusal — se
 | [GO_LIVE_CHECKLIST.md](GO_LIVE_CHECKLIST.md) | Step-by-step first live run + troubleshooting |
 | [SECURITY_THREAT_MODEL.md](SECURITY_THREAT_MODEL.md) | Assets, trust boundaries, known limitations |
 | [MCP.md](MCP.md) | MCP setup and tool reference |
-| [AGENT_API.md](AGENT_API.md) | Agent API: auth, the key policy, five endpoints, errors, billing |
-| [Agent API contract](api/agent.openapi.json) | OpenAPI 3.1 for the five agent endpoints — policy schema, error classes, real examples |
+| [AGENT_API.md](AGENT_API.md) | Agent API: auth, mandate, execution + commerce + wallet, errors, billing |
+| [AGENT_COMMERCE.md](AGENT_COMMERCE.md) | Commerce: services, quotes, orders, delivery proof, payment binding, reputation |
+| [Agent API contract](api/agent.openapi.json) | OpenAPI 3.1 for the execution + commerce paths — policy schema, error classes, real examples |
+| [ESCROW_DESIGN.md](ESCROW_DESIGN.md) | Design-only escrow contract, roles, interface and legal limits |
 | [AGENT_CASES.md](AGENT_CASES.md) | Four worked technical cases (framework tool, invoices, x402, runaway limits) |
 | [AGENT_TOOLS.md](AGENT_TOOLS.md) | The tool manifest and adapters for the Vercel AI SDK, LangChain, OpenAI and Anthropic |
 | [PARTNERS.md](PARTNERS.md) | Partner integration guide (curl, SDK, sandbox, per-order billing) |

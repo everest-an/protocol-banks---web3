@@ -4,14 +4,14 @@ import { ArrowRight } from "lucide-react"
 import { TrackView } from "@/components/track-view"
 
 export const metadata: Metadata = {
-    title: "Agent API — the control plane for agent money",
+  title: "Agent API — the control plane for agent commerce",
   description:
-    "One credential, one policy the server enforces — operations, per-call cap, daily cap, coin allowlist — across five endpoints. Trading executes through a trading-only agent wallet; pay executes with a signed EIP-3009 authorization, and swap/invoice return what the agent signs itself. Sandbox in paper mode.",
+    "One credential, one mandate the server enforces — commerce orders, payments and trading; cards are coming soon. Services, quotes, orders, delivery proof and reputation; EIP-3009 and x402 payments; cards in provider onboarding; a trading-only Hyperliquid wallet. Sandbox in paper mode.",
   alternates: { canonical: "https://protocolbanks.com/agent-api" },
   openGraph: {
-  title: "Agent API — the control plane for agent money",
+    title: "Agent API — the control plane for agent commerce",
     description:
-      "One credential, one server-enforced policy. Give an AI agent a trading budget it cannot exceed and a key it cannot widen.",
+      "One credential, one server-enforced mandate across commerce, payments and trading, with cards coming soon. Agents can buy, sell, trade and spend within limits they cannot widen.",
     url: "https://protocolbanks.com/agent-api",
     type: "article",
   },
@@ -32,6 +32,17 @@ const ENDPOINTS = [
   { method: "POST", path: "/invoice", op: "pay", executesLabel: "no", note: "pending invoice + paymentLink" },
 ]
 
+const COMMERCE = [
+  { method: "POST / GET", path: "/commerce/services", note: "publish or list a paid service" },
+  { method: "POST / GET", path: "/commerce/quotes", note: "create or list a quote (termsHash)" },
+  { method: "POST", path: "/commerce/quotes/accept", note: "buyer accepts; creates an order" },
+  { method: "POST", path: "/commerce/orders/deliver", note: "seller records delivery proof" },
+  { method: "POST", path: "/commerce/orders/complete", note: "buyer confirms paid + delivered" },
+  { method: "POST", path: "/commerce/orders/dispute", note: "open a dispute" },
+  { method: "POST", path: "/commerce/orders/refund", note: "seller records a refund tx" },
+  { method: "GET", path: "/commerce/reputation", note: "completed/disputed/refunded + volume" },
+]
+
 const ERRORS = [
   { status: "400", meaning: "malformed body, bad address, non-positive amount" },
   { status: "401", meaning: "missing or invalid key" },
@@ -49,14 +60,14 @@ export default function AgentsPage() {
       <div className="mx-auto w-full max-w-6xl md:border-x border-[#E4E2DD] px-6 md:px-10 py-16 sm:py-20">
         <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ agent api ]</p>
         <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05] uppercase max-w-3xl">
-          Your agent can move money. It can never drain the account.
+          Your agent can buy, sell, trade and spend. It can never drain the account.
         </h1>
         <p className="mt-6 text-lg text-[#6F6B64] leading-relaxed max-w-[62ch]">
-          One credential, one <span className="text-[#111111] font-medium">policy the server enforces</span> —
-          operations, per-call cap, daily cap, coin allowlist. Five endpoints. Trading executes through a
-          Hyperliquid agent wallet with <span className="text-[#111111] font-medium">trading-only rights</span>;
-          pay executes from a signed EIP-3009 authorization, and swap and invoice return what the agent signs
-          itself, because the platform holds no keys.
+          One credential, one <span className="text-[#111111] font-medium">mandate the server enforces</span> —
+          operations, per-call cap, daily cap, allowlist. Commerce orders bind seller, amount and termsHash;
+          payments execute from a signed EIP-3009 authorization or x402; cards are coming soon; trading
+          executes through a Hyperliquid wallet with{" "}
+          <span className="text-[#111111] font-medium">trading-only rights</span>.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -186,6 +197,44 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
         </section>
 
         <section className="mt-16 border-t border-[#E4E2DD] pt-10">
+          <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ commerce ]</p>
+          <p className="text-sm text-[#6F6B64] leading-relaxed max-w-[72ch]">
+            The commerce API is the order layer: a seller publishes a service, the buyer accepts a signed quote, the
+            seller records delivery proof, and the buyer pays through <span className="font-mono text-xs">/pay</span>{" "}
+            with <span className="font-mono text-xs">orderId</span>. The payment is bound to the order&apos;s seller,
+            amount, token and <span className="font-mono text-xs">termsHash</span>.{" "}
+            <Link href="/agent-commerce" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
+              Browse the public directory
+            </Link>
+            .
+          </p>
+          <div className="mt-5 overflow-x-auto rounded-lg border border-[#E4E2DD] bg-white">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-[#E4E2DD] font-mono text-[11px] uppercase tracking-[0.06em] text-[#6F6B64]">
+                <tr>
+                  <th className="px-4 py-3">Endpoint</th>
+                  <th className="px-4 py-3">Returns</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMMERCE.map((row) => (
+                  <tr key={row.path + row.method} className="border-b border-[#F0EEE9] last:border-0">
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {row.method} {row.path}
+                    </td>
+                    <td className="px-4 py-3 text-[#6F6B64]">{row.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-xs text-[#6F6B64]">
+            No escrow yet: payment is direct, and the order keeps the delivery proof, state and reputation. Escrow
+            and conditional release are the next rail.
+          </p>
+        </section>
+
+        <section className="mt-16 border-t border-[#E4E2DD] pt-10">
           <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ sandbox → live ]</p>
           <p className="text-sm text-[#6F6B64] leading-relaxed max-w-[72ch]">
             A key that belongs to a paper account trades at mark ± slippage with simulated money — same endpoints,
@@ -228,8 +277,8 @@ PB_KEY=pb_… pnpm example:agent --invoice`}
           <p className="text-sm text-[#6F6B64] leading-relaxed max-w-[72ch]">
             The API is a tool call. Wrap it in whatever your agent already uses — LangChain, the Vercel AI SDK, CrewAI,
             Mastra, or a raw function. <span className="text-[#111111] font-medium">@everestan/protocolbanks-agent-tools</span>{" "}
-            ships the five operations as JSON-Schema tool definitions with OpenAI and Anthropic converters, so one
-            manifest covers every framework. The server enforces the cap, so the model can ask for anything:
+            ships the execution operations as JSON-Schema tool definitions with OpenAI and Anthropic converters, so
+            one manifest covers every framework. The server enforces the mandate, so the model can ask for anything:
           </p>
           <pre className="mt-5 overflow-x-auto rounded-lg border border-[#E4E2DD] bg-white p-5 font-mono text-xs leading-relaxed text-[#111111]">
 {`const call = (path, body) =>
@@ -274,7 +323,7 @@ const order = await call("/orders", { coin: "BTC", side: "long", sizeUsd: 20 })`
               <Link href="/docs/quickstart" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">
                 /docs/quickstart
               </Link>{" "}
-              <span className="text-[#6F6B64]">— a key, a fill and an invoice in five minutes</span>
+              <span className="text-[#6F6B64]">— a key, an order and a payment in five minutes</span>
             </li>
             <li>
               <Link href="/docs/api" className="underline decoration-[#C9C6BF] underline-offset-2 hover:text-[#111111]">

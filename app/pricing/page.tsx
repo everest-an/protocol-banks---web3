@@ -4,9 +4,9 @@ import { ArrowRight, Check } from "lucide-react"
 import { PlanCheckoutButton } from "@/components/plan-checkout-button"
 
 export const metadata: Metadata = {
-  title: "Pricing — agent execution with a server-enforced cap",
+  title: "Pricing — agent commerce with a server-enforced mandate",
   description:
-    "Start free in paper mode. Plans for teams that trade live: per-call and daily caps, more keys, priority support. No plan? Pay 8 bps on executed notional.",
+    "Start free in sandbox. Plans for teams putting agents into production: commerce, payments and trading under one mandate, with cards in onboarding. Per-call and daily caps, more keys, priority support. No plan? Pay 8 bps on executed notional.",
   alternates: { canonical: "https://protocolbanks.com/pricing" },
 }
 
@@ -23,7 +23,7 @@ const PLANS = [
       "1 API key",
       "Paper account ($500 simulated)",
       "$50 per call · $200 per day",
-      "state · orders · pay · swap · invoice",
+      "commerce · state · orders · pay · swap · invoice",
       "Community support (GitHub issues)",
     ],
   },
@@ -31,13 +31,13 @@ const PLANS = [
     name: "Builder",
     price: "$199",
     period: "per month",
-    blurb: "One team, live trading, a real budget on the line.",
+    blurb: "One team, live execution and commerce, a real budget on the line.",
     cta: { label: "Subscribe", href: "/settings/api-keys" },
     checkout: "builder" as const,
     featured: false,
     features: [
       "3 API keys",
-      "Live trading (approved agent wallet)",
+      "Live trading + commerce orders",
       "$500 per call · $5,000 per day",
       "Usage + fee report per key",
       "Email support, 2 business days",
@@ -55,6 +55,7 @@ const PLANS = [
       "10 API keys",
       "$2,500 per call · $50,000 per day",
       "Coin allowlists per key",
+      "Agent cards - provider onboarding (coming soon)",
       "Monthly invoice + usage export",
       "Priority support, 1 business day",
     ],
@@ -63,13 +64,14 @@ const PLANS = [
     name: "Scale",
     price: "from $4,999",
     period: "per month",
-    blurb: "White-label execution, custom caps, an SLA.",
+    blurb: "White-label execution, custom mandates, an SLA.",
     cta: { label: "Talk to us", href: "/contact" },
     checkout: null,
     featured: false,
     features: [
       "Unlimited keys",
-      "Custom caps and risk envelope",
+      "Custom mandates, caps and risk envelope",
+      "Agent commerce + trading; cards coming soon",
       "Onboarding + runbook",
       "Named contact, SLA agreed in the order form",
       "Invoice or annual contract",
@@ -80,6 +82,8 @@ const PLANS = [
 const COMPARE = [
   { feature: "API keys", sandbox: "1", builder: "3", growth: "10", scale: "Unlimited" },
   { feature: "Mode", sandbox: "Paper", builder: "Paper + live", growth: "Paper + live", scale: "Paper + live" },
+  { feature: "Commerce orders", sandbox: "✓", builder: "✓", growth: "✓", scale: "✓" },
+  { feature: "Agent cards", sandbox: "—", builder: "Soon", growth: "Soon", scale: "Custom" },
   { feature: "Per-call cap", sandbox: "$50", builder: "$500", growth: "$2,500", scale: "Custom" },
   { feature: "Daily cap", sandbox: "$200", builder: "$5,000", growth: "$50,000", scale: "Custom" },
   { feature: "Per-key coin allowlist", sandbox: "—", builder: "✓", growth: "✓", scale: "✓" },
@@ -101,6 +105,14 @@ const FAQ = [
     a: "Yes. Sandbox runs the same endpoints against a paper account with real market data and simulated fills. The policy is enforced the same way, so the same code goes live unchanged once the agent wallet is approved.",
   },
   {
+    q: "What is the Agent Commerce API?",
+    a: "A seller publishes a service, the buyer accepts a signed quote, the seller records delivery proof, and the buyer pays with the order id. The order carries a termsHash over seller, amount, token and delivery terms; payment is bound to that order. Escrow is not live yet; payment is direct.",
+  },
+  {
+    q: "Are agent cards included?",
+    a: "Agent cards are in provider onboarding and are coming soon. The provider will hold the card balance; availability will depend on KYB and your plan.",
+  },
+  {
     q: "How are caps enforced?",
     a: "On the server, per key: operations, per-call cap, daily cap, coin allowlist. A call over the cap is refused with 403 and never reaches the venue. The plan sets the ceiling; you choose the numbers under it.",
   },
@@ -116,7 +128,7 @@ export default function PricingPage() {
       <div className="mx-auto w-full max-w-6xl md:border-x border-[#E4E2DD] px-6 md:px-10 py-16 sm:py-20">
         <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ pricing ]</p>
         <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05] uppercase max-w-3xl">
-          Pay for execution. Not for hope.
+          Pay for execution and commerce. Not for hope.
         </h1>
         <p className="mt-6 text-lg text-[#6F6B64] leading-relaxed max-w-[62ch]">
           Sandbox is free and runs the real API against simulated money. When you are ready to move real money, a plan

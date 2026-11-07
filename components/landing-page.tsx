@@ -23,49 +23,55 @@ interface LandingPageProps {
 const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Create a key, set the policy",
-    text: "Choose the operations, a per-call cap, a daily cap and a coin allowlist. The server enforces them on every call — the agent cannot widen them.",
+    title: "Create a key, set the mandate",
+    text: "Choose the operations, a per-call cap, a daily cap and an allowlist. The server enforces them on every call — the agent cannot widen them.",
   },
   {
     step: "02",
-    title: "Call the sandbox",
-    text: "The same five endpoints against a paper account with real market data. Place an order, read the fill, watch a $5,000 request get a 403.",
+    title: "Open an order or call the API",
+    text: "Publish a service, accept a quote, or call trade / pay / swap directly. The order binds the seller, amount, token and termsHash.",
   },
   {
     step: "03",
-    title: "Approve the wallet, go live",
-    text: "Approve a Hyperliquid agent wallet with trading-only rights. The same code goes live; the wallet can trade, never withdraw.",
+    title: "Settle, spend or trade",
+    text: "Payments execute from a signed EIP-3009 authorization, cards are coming soon, and trading runs through a trading-only Hyperliquid wallet.",
   },
 ]
 
 const FEATURES = [
   {
     icon: Shield,
-    title: "A cap the model cannot raise",
-    text: "The policy lives on the key and is checked before an order reaches the venue. A prompt injection, a bug or a loop cannot raise it.",
+    title: "A mandate the model cannot widen",
+    text: "The policy lives on the key and is checked before an order or payment is executed. A prompt injection, a bug or a loop cannot raise it.",
   },
   {
-    icon: Lock,
-    title: "Trading-only rights",
-    text: "The agent wallet can place and cancel orders; it cannot withdraw. The funded budget is the maximum loss, written on screen.",
+    icon: Check,
+    title: "Commerce with receipts",
+    text: "Services, quotes, orders, delivery proof and reputation. The payment is bound to the order's seller, amount, token and termsHash.",
   },
   {
     icon: Zap,
     title: "Payments without custody",
-    text: "Pay executes only from a signed EIP-3009 authorization; swap returns a transaction the agent signs. The platform never holds funds.",
+    text: "Pay executes only from a signed EIP-3009 authorization; x402 settles over HTTP 402. The platform never holds the funds.",
+  },
+  {
+    icon: Lock,
+    title: "Cards per agent",
+    text: "Cards are coming soon. When live, one card per agent, issued through a provider; the issuer holds the balance.",
   },
   {
     icon: Check,
     title: "Open client, closed core",
-    text: "The SDK, tool manifest and MCP proxy are MIT. The policy and risk engine stay hosted: you integrate, not fork.",
+    text: "The SDK, tool manifest and MCP proxy are MIT. The mandate, wallet and risk engine stay hosted: you integrate, not fork.",
   },
 ]
 
 const SAFETY_CHECKLIST = [
-  { label: "Policy enforcement", status: "Server-side" },
+  { label: "Mandate enforcement", status: "Server-side" },
   { label: "Model can raise the cap", status: "Never" },
-  { label: "Agent withdrawal rights", status: "None" },
+  { label: "Commerce orders", status: "termsHash" },
   { label: "Payments", status: "Payer-signed" },
+  { label: "Cards", status: "Coming soon" },
   { label: "Revocation", status: "Instant" },
   { label: "Audit", status: "Per call" },
 ]
@@ -159,22 +165,22 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         {/* Hero */}
         <section className="pt-14 pb-20 sm:pt-20 sm:pb-24">
           <div className="flex items-center justify-between font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">
-            <span>PB V2.0</span>
-            <span className="hidden sm:block">non-custodial · the control plane for agent money</span>
+            <span>PB V3.0</span>
+            <span className="hidden sm:block">non-custodial · the control plane for agent commerce</span>
           </div>
 
           <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-16 items-center mt-12 sm:mt-16">
             <div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] uppercase">
-                Your agent can move money.
+                Your agent can buy, sell, trade and spend.
                 <br />
                 <span className="text-primary">It can never drain the account.</span>
               </h1>
               <p className="mt-7 text-lg text-[#6F6B64] leading-relaxed max-w-[52ch]">
-                One API key per agent, with a policy the server enforces — operations, per-call cap, daily cap and
-                allowlist across trading, payments and cards. Trading runs through a trading-only Hyperliquid wallet;
-                payments execute only from a signed EIP-3009 authorization. Non-custodial by design; bring your own
-                strategy.
+                One credential, one mandate the server enforces — commerce, payments, cards and trading. Commerce
+                orders bind the seller, amount and delivery; payments execute from signed EIP-3009 authorizations;
+                cards are coming soon; trading runs through a trading-only Hyperliquid wallet. Non-custodial
+                by design; bring your own strategy.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-9">
@@ -216,6 +222,12 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                 <span aria-hidden className="hidden sm:block w-px h-3.5 bg-[#E4E2DD]" />
                 <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">TRADES ON</span>
                 <BrandChip src="/brands/hyperliquid.png" name="Hyperliquid" />
+                <span aria-hidden className="hidden sm:block w-px h-3.5 bg-[#E4E2DD]" />
+                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">SETTLES WITH</span>
+                <span className="font-mono text-[11px] text-[#6F6B64]">x402 · EIP-3009</span>
+                <span aria-hidden className="hidden sm:block w-px h-3.5 bg-[#E4E2DD]" />
+                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">CARDS (SOON)</span>
+                <span className="font-mono text-[11px] text-[#6F6B64]">Yativo / Rain</span>
               </div>
             </div>
 
@@ -230,37 +242,37 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
           <Reveal>
             <Label>what it is</Label>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight max-w-3xl">
-              The control plane for agent money.
+              The control plane for agent commerce.
             </h2>
             <p className="mt-4 text-lg text-[#6F6B64] leading-relaxed max-w-[68ch]">
-              Protocol Bank gives every agent a scoped API key, a server-enforced budget and an audit receipt.
-              The agent can trade or pay; it cannot move funds out, raise its own limit or hide a call. You bring
-              the strategy; we provide the controls.
+              Protocol Bank gives every agent a scoped credential, a server-enforced mandate and an audit receipt.
+              The agent can buy services, pay, spend on a card or trade; it cannot exceed the mandate, move funds
+              out, raise its own limit or hide a call. You bring the strategy; we provide the controls.
             </p>
           </Reveal>
 
           <div className="mt-10 grid md:grid-cols-3 gap-4">
             {[
               {
-                tag: "[ trading · live ]",
-                title: "Trading control",
-                text: "Per-order and daily caps, coin allowlist, trading-only Hyperliquid wallet. The agent can place and cancel; it cannot withdraw.",
-                href: "/agent-api",
-                cta: "Read the API",
+                tag: "[ commerce · live ]",
+                title: "Commerce control",
+                text: "Services, quotes, orders, delivery proof, payment binding and reputation. The order carries a termsHash; the payment carries the orderId.",
+                href: "/agent-commerce",
+                cta: "Browse the directory",
               },
               {
-                tag: "[ spend · x402 now · cards soon ]",
-                title: "Spend control",
-                text: "One budget per agent for API/cloud spend; allowlist, freeze and receipts. Cards via a provider after KYB.",
+                tag: "[ spend · x402 now · cards coming soon ]",
+                title: "Spend & cards",
+                text: "One mandate per agent for API/cloud spend; allowlist and receipts. Cards are coming soon through Yativo or Rain; when live they are scoped to that agent.",
                 href: "/agent-api",
                 cta: "See the endpoints",
               },
               {
-                tag: "[ enterprise · design partner ]",
-                title: "Governance",
-                text: "Identity, approvals, audit export and SSO/VPC for teams putting agents into production.",
-                href: "/contact",
-                cta: "Talk to us",
+                tag: "[ trading · live ]",
+                title: "Trading control",
+                text: "Per-order and daily caps, coin allowlist, trading-only Hyperliquid wallet. The agent can place and cancel; it cannot withdraw.",
+                href: "/trading",
+                cta: "Watch the demo",
               },
             ].map((item) => (
               <Reveal key={item.title}>
@@ -287,10 +299,10 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
           <Reveal>
             <Label>how it works</Label>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight max-w-2xl">
-              From a key to a live agent in three steps
+              From a key to a governed agent in three steps
             </h2>
             <p className="mt-4 text-lg text-[#6F6B64] leading-relaxed max-w-[60ch]">
-              No SDK required. The same five endpoints move from sandbox to live without a code change.
+              No SDK required. The same credential moves from sandbox to live without a code change.
             </p>
           </Reveal>
 
@@ -310,29 +322,30 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
           <Reveal>
             <Label>what you control</Label>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight max-w-2xl">
-              Three ways to put an agent on a leash
+              One mandate. Every rail.
             </h2>
             <p className="mt-4 text-lg text-[#6F6B64] leading-relaxed max-w-[60ch]">
-              Start with trading; add spend control; use the same policy and audit for enterprise governance.
+              Commerce orders, payments, cards and trading share the same credential, mandate and audit trail.
+              Trading remains the reference vertical; the mandate is the product.
             </p>
           </Reveal>
 
           <div className="mt-14 grid md:grid-cols-3 gap-4">
             <Reveal>
               <div className="rounded-lg border border-[#E4E2DD] bg-white p-6 h-full flex flex-col">
-                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ trading · live ]</span>
-                <h3 className="mt-3 text-base font-semibold">Trading control</h3>
+                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ commerce · live ]</span>
+                <h3 className="mt-3 text-base font-semibold">Commerce</h3>
                 <p className="mt-2 text-sm text-[#6F6B64] leading-relaxed flex-1">
-                  Per-order and daily caps, coin allowlist, and a trading-only Hyperliquid wallet. The agent can place
-                  and cancel; it cannot withdraw.
+                  Services, quotes, orders, delivery proof and reputation. The order binds seller, amount, token and
+                  termsHash; the payment carries the orderId.
                 </p>
-                <Link href="/agent-api" className="mt-6 w-fit">
+                <Link href="/agent-commerce" className="mt-6 w-fit">
                   <Button
                     variant="outline"
                     size="sm"
                     className="rounded-md border-[#E4E2DD] bg-transparent text-[#111111] hover:bg-[#F7F6F3]"
                   >
-                    Read the API
+                    Browse the directory
                   </Button>
                 </Link>
               </div>
@@ -340,18 +353,18 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
 
             <Reveal>
               <div className="rounded-lg border border-[#111111] bg-white p-6 h-full flex flex-col">
-                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ spend · x402 now · cards soon ]</span>
-                <h3 className="mt-3 text-base font-semibold">Spend control</h3>
+                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ payments · x402 + EIP-3009 ]</span>
+                <h3 className="mt-3 text-base font-semibold">Payments</h3>
                 <p className="mt-2 text-sm text-[#6F6B64] leading-relaxed flex-1">
-                  One budget per agent for API and cloud spend, with allowlist, freeze and receipts. Cards via a
-                  provider after KYB.
+                  Pay, invoice, subscriptions and x402 over HTTP 402. The payer signs; the relayer only submits and
+                  pays gas. The platform never holds the funds.
                 </p>
-                <Link href="/pricing" className="mt-6 w-fit">
+                <Link href="/agent-api" className="mt-6 w-fit">
                   <Button
                     size="sm"
                     className="rounded-md bg-neutral-900 text-neutral-50 hover:bg-neutral-800"
                   >
-                    See plans
+                    See the endpoints
                   </Button>
                 </Link>
               </div>
@@ -359,18 +372,19 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
 
             <Reveal>
               <div className="rounded-lg border border-[#E4E2DD] bg-white p-6 h-full flex flex-col">
-                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ enterprise · design partner ]</span>
-                <h3 className="mt-3 text-base font-semibold">Governance</h3>
+                <span className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ cards · coming soon ]</span>
+                <h3 className="mt-3 text-base font-semibold">Cards</h3>
                 <p className="mt-2 text-sm text-[#6F6B64] leading-relaxed flex-1">
-                  Identity, approvals, audit export and SSO/VPC for teams putting agents into production.
+                  Cards are in provider onboarding and are coming soon. When live, one virtual card per agent; the
+                  agent budget is the ceiling. Availability depends on provider KYB.
                 </p>
-                <Link href="/contact" className="mt-6">
+                <Link href="/agents" className="mt-6">
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-fit rounded-md border-[#E4E2DD] bg-transparent text-[#111111] hover:bg-[#F7F6F3]"
                   >
-                    Talk to us
+                    Open agents
                   </Button>
                 </Link>
               </div>
@@ -392,12 +406,12 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
             <Reveal>
               <Label>security model</Label>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-                The agent can act. It can never move funds out.
+                The agent can act. It can never exceed the mandate.
               </h2>
               <p className="mt-4 text-lg text-[#6F6B64] leading-relaxed">
-                Trading runs through a trading-only Hyperliquid wallet; payments execute only from a signed
-                authorization. The key&apos;s policy decides what each agent may do, and the permission can be
-                revoked instantly.
+                Commerce orders bind the seller, amount and termsHash; payments execute only from a signed
+                authorization; cards are coming soon; trading runs through a trading-only wallet. The
+                mandate is server-side and revocable instantly.
               </p>
               <div className="mt-8 space-y-4">
                 {FEATURES.map((f) => (
@@ -438,11 +452,12 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         <section className="border-t border-[#E4E2DD] py-20 sm:py-24">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <Reveal>
-              <Label>the demo cockpit</Label>
+              <Label>the demo cockpit · one rail</Label>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Every move, explained</h2>
               <p className="text-lg text-[#6F6B64] leading-relaxed mb-6">
-                The paper agent your API key can drive: balance, equity curve, positions, and a plain-language feed.
-                This is the demo; the product is the API. The same account is available at GET /v1/agent/state.
+                The paper trading agent is one rail the same credential can drive: balance, equity curve, positions,
+                and a plain-language feed. This is the demo; the product is the API. The same account is available
+                at GET /v1/agent/state.
               </p>
               <ul className="space-y-3">
                 {[
@@ -547,8 +562,8 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
                   From $199 <span className="text-base font-normal text-[#6F6B64]">/ month</span>
                 </p>
                 <p className="text-sm text-[#6F6B64] mt-2 leading-relaxed">
-                  One key per agent; policy across trading and spend. Builder $199, Growth $999, Scale $4,999 — or
-                  8 bps pay-as-you-go.
+                  One key per agent; mandate across commerce, payments and trading, with cards coming soon. Builder $199, Growth
+                  $999, Scale $4,999 — or 8 bps pay-as-you-go.
                 </p>
               </div>
             </div>
@@ -568,11 +583,11 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
         <section className="border-t border-[#E4E2DD] py-20 sm:py-28">
           <Reveal className="max-w-3xl">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              Give your agent money. Keep the rules.
+              Give your agent a mandate. Keep control.
             </h2>
             <p className="mt-4 text-lg text-[#6F6B64] max-w-xl leading-relaxed">
-              One key per agent, server-enforced limits across trading, payments and cards. Start in the sandbox;
-              bring your own strategy.
+              One credential, server-enforced mandates across commerce, payments and trading, with cards coming soon. Start in the
+              sandbox; bring your own strategy.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-9">
               <Link
