@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+﻿import { NextResponse } from "next/server"
 
 /**
  * llms.txt — summary for AI crawlers (llmstxt.org standard).
@@ -11,7 +11,7 @@ const LLMS_TXT = `# Protocol Bank
 You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent.openapi.json for the contract, and /llms-full.txt for the full reference. Use MCP at https://www.protocolbanks.com/api/mcp (Streamable HTTP) or call the Agent API directly with an API key. Create a key at /settings/api-keys; the owner sets a mandate the server enforces. Start with GET /api/v1/agent/state, then use /commerce/* for orders or /orders, /pay, /invoice for execution. A 403 (policy) or 409 (risk) refusal is final for that request — return it to the caller; do not retry unchanged.
 
 > Protocol Bank is the control plane for agent commerce. One credential, one
-> server-enforced mandate across commerce, payments, cards and trading.
+> server-enforced mandate across commerce, payments and trading; cards are coming soon.
 > Agents can buy, sell, trade and spend; they cannot widen the mandate.
 
 ## What it does
@@ -32,7 +32,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - Agent API: https://protocolbanks.com/agent-api
 - Agent commerce directory: https://protocolbanks.com/agent-commerce
 - AI Trading cockpit (demo): https://protocolbanks.com/trading
-- Agents + cards: https://protocolbanks.com/agents
+- Agents + cards (Coming soon): https://protocolbanks.com/agents
 - Docs (overview): https://protocolbanks.com/docs
 - Docs (quickstart): https://protocolbanks.com/docs/quickstart
 - Docs (API reference): https://protocolbanks.com/docs/api
@@ -54,7 +54,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - POST /api/v1/agent/invoice — create a payable invoice
 - GET /api/v1/agent/wallet — platform-custodied agent wallet status (agent key required)
 - POST /api/v1/agent/wallet/sign — sign a message or allowlisted EIP-712 typed data
-- GET/POST /api/agents/[id]/virtual-cards — list/issue agent cards
+- GET/POST /api/agents/[id]/virtual-cards — card onboarding; returns 503 until a provider is live
 - GET/PATCH/DELETE /api/agents/[id]/virtual-cards/[cardId] — details, fund, freeze, close
 - GET /api/trading/overview — cockpit state (demo)
 - POST /api/trading/actions — pause | resume | stop | reset
@@ -151,3 +151,4 @@ export async function GET() {
     headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" },
   })
 }
+

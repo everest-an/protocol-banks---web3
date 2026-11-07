@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+﻿import { NextResponse } from "next/server"
 
 /**
  * llms-full.txt — full product documentation for AI crawlers.
@@ -191,9 +191,9 @@ Permit, and requires the key's pay operation. The server signs but does not
 broadcast. Revoking clears local key material; funds already at the address are
 not moved. If AGENT_WALLET_SECRET is missing, creation/signing answers 503.
 
-## Agent cards (virtual Visa, agent-scoped)
+## Agent cards (virtual Visa, agent-scoped; coming soon)
 
-Agent cards are issued per agent through a card provider (Yativo today; the
+Agent cards are in provider onboarding (Yativo today; the
 Rain client is implemented and awaits a partner key). The card balance is held
 by the issuing partner; funding is wallet-signed where the provider supports it.
 
@@ -230,3 +230,4 @@ export async function GET() {
     headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" },
   })
 }
+
