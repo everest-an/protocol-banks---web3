@@ -461,7 +461,7 @@ function IssueCardModal({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function CardPage() {
+function CardPageContent() {
   const { isConnected, address, chainId, signERC3009Authorization } = useUnifiedWallet()
   const { toast } = useToast()
 
@@ -738,15 +738,6 @@ export default function CardPage() {
   ]
 
   // ─── Render ────────────────────────────────────────────────────────────────
-
-  if (process.env.NEXT_PUBLIC_CARDS_LIVE !== "true") {
-    return (
-      <ComingSoon
-        feature="Virtual cards"
-        description="Card issuing is in provider onboarding and KYB. No card is issued and no balance moves until the provider is live."
-      />
-    )
-  }
 
   return (
     <main className="min-h-screen bg-background">
@@ -1175,4 +1166,17 @@ export default function CardPage() {
       />
     </main>
   )
+}
+
+export default function CardPage() {
+  if (process.env.NEXT_PUBLIC_CARDS_LIVE !== "true") {
+    return (
+      <ComingSoon
+        feature="Virtual cards"
+        description="Card issuing is in provider onboarding and KYB. No card is issued and no balance moves until the provider is live."
+      />
+    )
+  }
+
+  return <CardPageContent />
 }
