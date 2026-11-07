@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { ComingSoon } from "@/components/coming-soon"
 import {
   CreditCard, Shield, Globe, Zap, Check, ArrowRight, Smartphone, Lock,
   ChevronRight, Sparkles, Eye, EyeOff, Snowflake, RefreshCw, Copy,
@@ -737,6 +738,15 @@ export default function CardPage() {
   ]
 
   // ─── Render ────────────────────────────────────────────────────────────────
+
+  if (process.env.NEXT_PUBLIC_CARDS_LIVE !== "true") {
+    return (
+      <ComingSoon
+        feature="Virtual cards"
+        description="Card issuing is in provider onboarding and KYB. No card is issued and no balance moves until the provider is live."
+      />
+    )
+  }
 
   return (
     <main className="min-h-screen bg-background">

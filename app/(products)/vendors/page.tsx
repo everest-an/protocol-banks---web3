@@ -256,6 +256,7 @@ export default function VendorsPage() {
     category: "",
     tier: "vendor",
     chain: "Ethereum",
+    tags: "",
   })
 
   const displayVendors = isDemoMode ? demoVendors : vendors
@@ -416,6 +417,7 @@ export default function VendorsPage() {
       category: vendor.category || "",
       tier: vendor.tier || "vendor",
       chain: vendor.chain || "Ethereum",
+      tags: (vendor.tags || []).join(", "),
     })
     setEditMode(true)
     setDialogOpen(true)
@@ -514,6 +516,7 @@ export default function VendorsPage() {
           category: formData.category,
           tier: formData.tier,
           chain: formData.chain,
+          tags: formData.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
         }
         if (addressChangeSignature) {
           body.address_change_signature = addressChangeSignature
@@ -543,6 +546,7 @@ export default function VendorsPage() {
             category: formData.category,
             tier: formData.tier,
             chain: formData.chain,
+            tags: formData.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
             created_by: wallet,
           }),
         })
@@ -556,7 +560,7 @@ export default function VendorsPage() {
       setDialogOpen(false)
       setEditMode(false)
       setEditingVendor(null)
-      setFormData({ name: "", wallet_address: "", ens_name: "", email: "", notes: "", category: "", tier: "vendor", chain: "Ethereum" })
+      setFormData({ name: "", wallet_address: "", ens_name: "", email: "", notes: "", category: "", tier: "vendor", chain: "Ethereum", tags: "" })
       loadVendors()
     } catch (err: any) {
       console.error("[v0] Failed to save contact:", err)
@@ -601,7 +605,7 @@ export default function VendorsPage() {
     if (!open) {
       setEditMode(false)
       setEditingVendor(null)
-      setFormData({ name: "", wallet_address: "", ens_name: "", email: "", notes: "", category: "", tier: "vendor", chain: "Ethereum" })
+      setFormData({ name: "", wallet_address: "", ens_name: "", email: "", notes: "", category: "", tier: "vendor", chain: "Ethereum", tags: "" })
     }
   }
 
@@ -749,6 +753,15 @@ export default function VendorsPage() {
                         placeholder="contact@example.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="tags">Tags</Label>
+                      <Input
+                        id="tags"
+                        placeholder="preferred, qa, net-30"
+                        value={formData.tags}
+                        onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -906,6 +919,7 @@ export default function VendorsPage() {
                   category: "",
                   tier: "vendor",
                   chain: "Ethereum",
+                  tags: "",
                 })
                 setDialogOpen(true)
               }}
@@ -984,6 +998,13 @@ export default function VendorsPage() {
                               </Badge>
                             )}
                           </div>
+                          {vendor.tags?.length ? (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {vendor.tags.slice(0, 4).map((tag) => (
+                                <Badge key={tag} variant="secondary" className="text-[10px] h-4 px-1">{tag}</Badge>
+                              ))}
+                            </div>
+                          ) : null}
                           
                           {/* Row 3: Address + Mobile Tags */}
                           <div className="flex items-center gap-2 mt-0.5">

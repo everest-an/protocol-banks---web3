@@ -172,6 +172,17 @@ export async function PUT(
         sanitizedUpdates.notes = sanitized || null
       }
 
+      if (updates.tags !== undefined) {
+        if (!Array.isArray(updates.tags)) {
+          return NextResponse.json({ error: "tags must be an array" }, { status: 400 })
+        }
+        sanitizedUpdates.tags = updates.tags
+          .filter((tag: unknown): tag is string => typeof tag === "string")
+          .map((tag: string) => tag.trim())
+          .filter(Boolean)
+          .slice(0, 20)
+      }
+
       // Pass through safe fields
       const safeFields = ["ens_name", "email", "category", "tier", "chain", "contact_email", "contact_name", "company_name"]
       for (const field of safeFields) {

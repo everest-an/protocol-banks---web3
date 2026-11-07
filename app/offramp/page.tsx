@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { ComingSoon } from "@/components/coming-soon"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { useDemo } from "@/contexts/demo-context"
 import { authHeaders } from "@/lib/authenticated-fetch"
@@ -152,6 +153,15 @@ export default function OfframpPage() {
   }
 
   const currencySymbol = CURRENCIES.find(c => c.code === targetCurrency)?.symbol || "$"
+
+  if (process.env.NEXT_PUBLIC_OFFRAMP_LIVE !== "true") {
+    return (
+      <ComingSoon
+        feature="Off-ramp"
+        description="Sell crypto for fiat. Provider onboarding and settlement tests are still in progress, so no quote is shown and no funds are accepted."
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">

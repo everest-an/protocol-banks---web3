@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server"
+﻿import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import {
   validateAndChecksumAddress,
@@ -88,6 +88,7 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
       category,
       tier,
       chain,
+      tags,
       created_by,
     } = body
 
@@ -135,6 +136,13 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
         category: category || null,
         tier: tier || "vendor",
         chain: chain || "Ethereum",
+        tags: Array.isArray(tags)
+          ? tags
+              .filter((tag: unknown): tag is string => typeof tag === "string")
+              .map((tag: string) => tag.trim())
+              .filter(Boolean)
+              .slice(0, 20)
+          : [],
         created_by: creatorValidation.checksummed!,
         integrity_hash: "", // Will be set after we have the ID
       },
@@ -173,3 +181,4 @@ export const POST = withAuth(async (request: NextRequest, callerAddress: string)
     return NextResponse.json({ error: error.message || "Failed to create vendor" }, { status: 500 })
   }
 }, { component: 'vendors' })
+
