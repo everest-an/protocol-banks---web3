@@ -190,10 +190,24 @@ stream.
 - Testnet/fork E2E: EIP-3009 funding, release, refund, expiry, double-spend,
   reentrancy, wrong signer, wrong amount, resolver rotation.
 
+## 8b. Test deployment (Base mainnet, unaudited)
+
+- Address: `0x5f306B5a133e379D3EB621d4b521066D35fb1414`
+- Token: Base USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
+- Owner/resolver: relayer test EOA `0xBB14Dd923A28DBEB6BA86801DA38CdE60b72D35b`
+- `maxOrderAmount`: 1 USDC
+- Test order: `0xf17f77e476241a04817a1914b25408f1adf7e0da5b9d17daa649017870eb113e`
+- Test flow: create / fund / deliver / release; seller +0.01 USDC, escrow 0
+- Release tx: `0x70f6cdf80d608aa903241a9ff7847f9bbb118ec5ea63fb9df41f9b80a70eb594`
+- Status: **test only**; not audited, not exposed in the dashboard, resolver is a single EOA, cap is $1.
+
+Do not treat this as a production escrow. The next deployment must use an audited contract and a multisig resolver.
+
 ## 9. Recommendation
 
 Ship the direct order flow with atomic payment reservation now. Build the escrow
 contract as a separate, audited rail; do not mix it into the current payment
 path or call the current flow escrow. The first escrow pilot should be a small
 set of business buyers/sellers with a published resolver and a hard cap.
+
 
