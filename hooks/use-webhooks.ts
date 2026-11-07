@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { authHeaders } from "@/lib/authenticated-fetch"
 
 // ============================================
 // Types
@@ -87,12 +89,12 @@ class ApiError extends Error {
   }
 }
 
-async function apiRequest<T>(url: string, options?: RequestInit): Promise<T> {
+async function apiRequest<T>(url: string, options?: RequestInit, wallet?: string | null): Promise<T> {
   const response = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...authHeaders(wallet, options?.headers as Record<string, string> | undefined),
     },
   })
 
@@ -140,17 +142,28 @@ export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
 // ============================================
 
 export function useWebhooks(): UseWebhooksReturn {
+  const { address } = useUnifiedWallet()
+  const request = useCallback(
+    function request<T>(url: string, options?: RequestInit): Promise<T> {
+      return apiRequest<T>(url, options, address)
+    },
+    [address],
+  )
   const [webhooks, setWebhooks] = useState<Webhook[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Load webhooks
   const loadWebhooks = useCallback(async () => {
+    if (!address) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
 
     try {
-      const response = await apiRequest<{ success: boolean; webhooks: Webhook[] }>(
+      const response = await request<{ success: boolean; webhooks: Webhook[] }>(
         "/api/webhooks"
       )
       setWebhooks(response.webhooks || [])
@@ -161,11 +174,11 @@ export function useWebhooks(): UseWebhooksReturn {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [request, address])
 
   // Create webhook
   const createWebhook = useCallback(async (params: CreateWebhookParams): Promise<CreateWebhookResult> => {
-    const response = await apiRequest<{
+    const response = await request<{
       success: boolean
       webhook: Webhook
       secret: string
@@ -180,11 +193,11 @@ export function useWebhooks(): UseWebhooksReturn {
       webhook: response.webhook,
       secret: response.secret,
     }
-  }, [])
+  }, [request])
 
   // Update webhook
   const updateWebhook = useCallback(async (id: string, params: UpdateWebhookParams): Promise<void> => {
-    const response = await apiRequest<{ success: boolean; webhook: Webhook }>(
+    const response = await request<{ success: boolean; webhook: Webhook }>(
       `/api/webhooks/${id}`,
       {
         method: "PUT",
@@ -195,20 +208,20 @@ export function useWebhooks(): UseWebhooksReturn {
     setWebhooks((prev) =>
       prev.map((w) => (w.id === id ? response.webhook : w))
     )
-  }, [])
+  }, [request])
 
   // Delete webhook
   const deleteWebhook = useCallback(async (id: string): Promise<void> => {
-    await apiRequest<{ success: boolean }>(`/api/webhooks/${id}`, {
+    await request<{ success: boolean }>(`/api/webhooks/${id}`, {
       method: "DELETE",
     })
 
     setWebhooks((prev) => prev.filter((w) => w.id !== id))
-  }, [])
+  }, [request])
 
   // Test webhook
   const testWebhook = useCallback(async (id: string): Promise<TestWebhookResult> => {
-    const response = await apiRequest<{
+    const response = await request<{
       success: boolean
       status_code?: number
       response_time_ms?: number
@@ -223,16 +236,16 @@ export function useWebhooks(): UseWebhooksReturn {
       response_time_ms: response.response_time_ms,
       error: response.error,
     }
-  }, [])
+  }, [request])
 
   // Get deliveries
   const getDeliveries = useCallback(async (id: string): Promise<WebhookDelivery[]> => {
-    const response = await apiRequest<{ success: boolean; deliveries: WebhookDelivery[] }>(
+    const response = await request<{ success: boolean; deliveries: WebhookDelivery[] }>(
       `/api/webhooks/${id}/deliveries`
     )
 
     return response.deliveries || []
-  }, [])
+  }, [request])
 
   // Load on mount
   useEffect(() => {

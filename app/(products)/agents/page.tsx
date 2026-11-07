@@ -145,13 +145,15 @@ export default function AgentsPage() {
   const loadAgents = async () => {
     setLoading(true)
     try {
-      if (isDemoMode || !address) {
-        setAgents(demoAgents)
+      if (!address) {
+        setAgents(isDemoMode ? demoAgents : [])
       } else {
-        const response = await fetch(`/api/agents?owner=${address}`)
+        const response = await fetch(`/api/agents?owner=${address}`, { headers: authHeaders(address) })
         if (response.ok) {
           const data = await response.json()
           setAgents(data.agents || [])
+        } else {
+          setAgents([])
         }
       }
     } catch (error) {

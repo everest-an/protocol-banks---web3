@@ -509,7 +509,7 @@ export default function BalancesPage() {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight break-all" style={{ fontVariantNumeric: "tabular-nums" }}>
-                  <span className="font-mono">${displayBalance}</span>
+                  <span className="font-mono">{error && !balance?.tokens?.length ? "Unavailable" : `$${displayBalance}`}</span>
                 </h2>
               </div>
 
@@ -524,8 +524,16 @@ export default function BalancesPage() {
           </GlassCardContent>
         </GlassCard>
 
-        {/* ══════════ Empty State: Add Funds CTA ══════════ */}
-        {!hasBalance && !loading && (
+        {!hasBalance && !loading && error && (
+          <GlassCard className="border-dashed">
+            <GlassCardContent className="flex flex-col items-center justify-center py-10 text-center">
+              <h3 className="text-lg font-semibold mb-2">Balance unavailable</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-sm">The RPCs did not answer. This is not a zero balance.</p>
+              <Button variant="outline" onClick={handleRefresh} className="gap-2"><RefreshCw className="h-4 w-4" /> Retry</Button>
+            </GlassCardContent>
+          </GlassCard>
+        )}
+        {!hasBalance && !loading && !error && (
           <GlassCard className="border-dashed">
             <GlassCardContent className="flex flex-col items-center justify-center py-12 text-center">
               <div className="p-4 rounded-full bg-primary/10 mb-4">

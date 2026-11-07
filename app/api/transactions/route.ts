@@ -4,7 +4,7 @@ import { addSecurityHeaders, validateOrigin } from "@/lib/security/security-midd
 
 // Etherscan V2: one host + one key serves every chain (selected with
 // `chainid`). The route used to query a single chain's ERC-20 transfers and
-// then filter down to USDT/USDC/DAI — which is why a real wallet's history
+// then filter down to USDT/USDC/DAI â€” which is why a real wallet's history
 // looked empty. It now returns native transfers AND ERC-20 transfers across
 // the chains the product supports, newest first.
 const ETHERSCAN_V2 = "https://api.etherscan.io/v2/api"
@@ -54,8 +54,8 @@ async function explorerList(chainId: string, action: "txlist" | "tokentx", addre
 }
 
 /**
- * PUBLIC endpoint. On-chain history is public blockchain data — every explorer
- * shows it for any address — so it loads without a wallet sign-in. The old
+ * PUBLIC endpoint. On-chain history is public blockchain data â€” every explorer
+ * shows it for any address â€” so it loads without a wallet sign-in. The old
  * auth requirement was inherited friction, not a privacy control (it also
  * silently 401'd whenever a visitor had merely connected, which is why the
  * dashboard looked empty).
@@ -70,10 +70,10 @@ export async function GET(request: NextRequest) {
   const address = searchParams.get("address")
   const chainParam = searchParams.get("chainId")
 
-  // Abuse guard: this public endpoint fans out to 6 chains × 2 queries
+  // Abuse guard: this public endpoint fans out to 6 chains Ã— 2 queries
   // against a metered Etherscan key.
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
-  const rate = checkRateLimit({ maxRequests: 12, windowMs: 60_000, identifier: `tx-history:${ip}` })
+  const rate = checkRateLimit({ maxRequests: 60, windowMs: 60_000, identifier: `tx-history:${ip}` })
   if (!rate.allowed) {
     return addSecurityHeaders(NextResponse.json({ error: "Too many requests - please retry shortly." }, { status: 429 }))
   }

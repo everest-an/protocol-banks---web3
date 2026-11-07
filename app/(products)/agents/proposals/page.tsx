@@ -43,10 +43,12 @@ export default function ProposalsPage() {
     setLoading(true)
     try {
       const statusParam = filter === 'all' ? '' : `&status=${filter}`
-      const response = await fetch(`/api/agents/proposals?owner=${address}${statusParam}`)
+      const response = await fetch(`/api/agents/proposals?owner=${address}${statusParam}`, { headers: authHeaders(address) })
       if (response.ok) {
         const data = await response.json()
         setProposals(data.proposals || [])
+      } else {
+        setProposals([])
       }
     } catch (error) {
       console.error("Failed to load proposals:", error)
