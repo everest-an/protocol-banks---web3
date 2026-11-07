@@ -19,7 +19,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - Agent mandate: operations (read / trade / pay / swap), per-call cap, daily cap, allowlist
 - Agent commerce: services, quotes, orders, delivery proof, payment binding, disputes, refunds and reputation
 - Agent payments: EIP-3009 payer-signed USDC, x402 over HTTP 402; the relayer only pays gas
-- Agent cards: virtual Visa cards scoped to one agent, with issue/fund/freeze/close and budget enforcement
+- Agent cards (Coming soon): virtual Visa cards will be scoped to one agent; provider onboarding is in progress
 - Agent wallet: platform-custodied EVM wallet per agent with policy-gated signing
 - Non-custodial trading: the agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
 - Paper trading mode: real market data, simulated money, zero risk

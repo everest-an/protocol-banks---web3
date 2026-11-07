@@ -16,8 +16,8 @@ one credential; the server enforces which operations it may perform
 (read / trade / pay / swap), a per-call cap, a daily cap and a coin allowlist.
 Trading runs through a trading-only Hyperliquid agent wallet; payments execute
 from the payer's own EIP-3009 authorization; each agent can also have a
-platform-custodied EVM wallet for signing and agent-scoped virtual cards issued
-through a card provider. The /trading cockpit is a paper demo of the same
+platform-custodied EVM wallet for signing; card issuing is coming soon while
+provider onboarding completes. The /trading cockpit is a paper demo of the same
 account; the Agent API is the product.
 
 The retail cockpit is a reference adapter, not the product. Production agents
