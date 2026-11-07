@@ -1,9 +1,10 @@
 # Security Threat Model
 
-> Scope: the AI trading product (paper + live), the agent wallet flow, and the
-> MCP server. Written in the "state the limits openly" style — a security doc
-> that only lists strengths is marketing, not security.
-> Last updated: September 2026.
+> Scope: the AI trading product (paper + live), the Hyperliquid agent wallet
+> flow, platform-custodied agent wallets, agent cards, and the MCP server.
+> Written in the "state the limits openly" style — a security doc that only
+> lists strengths is marketing, not security.
+> Last updated: November 2026.
 
 ## 1. Assets and trust boundaries
 
@@ -11,9 +12,11 @@
 |---|---|---|
 | User's main wallet funds | User's own wallet (never custodied) | Only the user |
 | Trading budget | User's Hyperliquid account | User + the approved agent (trade-only) |
-| Agent private key | AES-256-GCM encrypted at rest (DB/TradingAccount) | The server process holding `TRADING_KEY_SECRET` |
+| Trading agent private key | AES-256-GCM encrypted at rest (DB/TradingAccount) | The server process holding `TRADING_KEY_SECRET` |
+| Custodial agent wallet key | AES-256-GCM encrypted at rest (DB/file fallback) | The server process holding `AGENT_WALLET_SECRET` |
 | SIWE session JWT | Client (Authorization header) | The user's browser |
 | `TRADING_KEY_SECRET` | Server env (Vercel) | Anyone with server env access |
+| `AGENT_WALLET_SECRET` | Server env (Vercel) | Anyone with server env access |
 | MCP access | Local stdio process | Whoever runs it on their machine |
 
 **Core structural property:** the agent holds **trading-only** permissions on
@@ -63,6 +66,19 @@ attacker obtains **both** the database and the secret, they obtain agent keys.
 What that buys them: trading rights inside users' Hyperliquid accounts — not
 withdrawals. Rotating the secret requires re-approval of agents (agents remain
 valid on-chain; only our local encrypted copies become unreadable).
+
+### 3.3a Platform-custodied agent wallets are a real custody boundary
+The per-agent wallet is generated server-side and its private key is encrypted
+with `AGENT_WALLET_SECRET` (AES-256-GCM). Unlike the Hyperliquid trading agent,
+this wallet **can** move funds — the server holding the secret can sign with it.
+The current controls are: agent ownership checks, a per-agent key, policy-gated
+typed-data signing (`TransferWithAuthorization`, `ReceiveWithAuthorization`,
+`Permit` — note that `Permit` can grant a token allowance), and an activity log
+for every signature. They are not a substitute
+for HSM/KMS-backed custody: production deployments should move
+`AGENT_WALLET_SECRET` into a KMS/HSM or an MPC provider, and should treat this
+wallet as a hot wallet with limited funds. Revoking it clears the local key
+material but does not move any funds already at the address.
 
 ### 3.4 The agent can lose money by trading badly
 Trading-only permissions mean "cannot withdraw", **not** "cannot lose". The

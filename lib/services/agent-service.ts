@@ -24,6 +24,7 @@ export interface AutoExecuteRules {
   allowed_tokens?: string[];
   allowed_recipients?: string[];
   allowed_chains?: number[];
+  policy?: unknown;
 }
 
 export interface Agent {
@@ -55,6 +56,7 @@ export interface CreateAgentInput {
   webhook_url?: string;
   auto_execute_enabled?: boolean;
   auto_execute_rules?: AutoExecuteRules;
+  policy?: unknown;
   rate_limit_per_minute?: number;
 }
 
@@ -67,6 +69,7 @@ export interface UpdateAgentInput {
   status?: AgentStatus;
   auto_execute_enabled?: boolean;
   auto_execute_rules?: AutoExecuteRules;
+  policy?: unknown;
   rate_limit_per_minute?: number;
 }
 
@@ -159,6 +162,12 @@ export const agentService = {
     }
 
     const now = new Date();
+    const autoExecuteRules = input.auto_execute_rules || input.policy !== undefined
+      ? {
+          ...(input.auto_execute_rules ?? {}),
+          ...(input.policy !== undefined ? { policy: input.policy } : {}),
+        }
+      : undefined;
     const agentData = {
       owner_address: input.owner_address.toLowerCase(),
       name: input.name.trim(),
@@ -171,7 +180,7 @@ export const agentService = {
       webhook_secret_hash: webhookSecretHash,
       status: 'active' as AgentStatus,
       auto_execute_enabled: input.auto_execute_enabled || false,
-      auto_execute_rules: input.auto_execute_rules,
+      auto_execute_rules: autoExecuteRules,
       rate_limit_per_minute: input.rate_limit_per_minute || 60,
     };
 
@@ -356,7 +365,12 @@ export const agentService = {
         }
         if (input.status !== undefined) updates.status = input.status;
         if (input.auto_execute_enabled !== undefined) updates.auto_execute_enabled = input.auto_execute_enabled;
-        if (input.auto_execute_rules !== undefined) updates.auto_execute_rules = input.auto_execute_rules;
+        if (input.auto_execute_rules !== undefined || input.policy !== undefined) {
+          updates.auto_execute_rules = {
+            ...(input.auto_execute_rules ?? agent.auto_execute_rules ?? {}),
+            ...(input.policy !== undefined ? { policy: input.policy } : {}),
+          };
+        }
         if (input.rate_limit_per_minute !== undefined) updates.rate_limit_per_minute = input.rate_limit_per_minute;
 
         // Update in database
@@ -401,7 +415,12 @@ export const agentService = {
       }
       if (input.status !== undefined) agent.status = input.status;
       if (input.auto_execute_enabled !== undefined) agent.auto_execute_enabled = input.auto_execute_enabled;
-      if (input.auto_execute_rules !== undefined) agent.auto_execute_rules = input.auto_execute_rules;
+      if (input.auto_execute_rules !== undefined || input.policy !== undefined) {
+        agent.auto_execute_rules = {
+          ...(input.auto_execute_rules ?? agent.auto_execute_rules ?? {}),
+          ...(input.policy !== undefined ? { policy: input.policy } : {}),
+        };
+      }
       if (input.rate_limit_per_minute !== undefined) agent.rate_limit_per_minute = input.rate_limit_per_minute;
 
       agent.updated_at = new Date();

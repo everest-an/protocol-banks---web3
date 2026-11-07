@@ -318,16 +318,49 @@ RAIN_WEBHOOK_SECRET=
 
 ### Open work after credentials arrive
 - [ ] Yativo: confirm `/auth/token` works and re-issue the key pair; set `YATIVO_CUSTOMER_ID`
-- [ ] Rain: run the sandbox KYC → contract → issue flow; store `userId` per owner
-- [ ] Card webhooks: authorisation/decline → `AgentActivity` and budget reconciliation
-- [ ] PAN/CVV: confirm the provider's details flow; never log plaintext
+- [x] Rain: KYC → contract → issue APIs implemented (`rain-agent-card.service.ts`)
+- [x] Rain: encrypted PAN/CVC relay implemented (`/secrets` with `x-rain-session-id`)
+- [ ] Rain: run the sandbox KYC → contract → issue flow with a real key
+- [x] Card webhooks: `/api/webhooks/rain-agent` and `/auth` verify HMAC, log to `AgentActivity`, enforce the agent budget and deduct on settlement
+- [ ] Register the webhook URLs in the Rain dashboard and test with a sandbox event
 - [ ] Card controls: map freeze/unfreeze to the provider endpoint (or document local-only)
 - [ ] Reconciliation: match provider settlement reports to `AgentVirtualCard.balance`
 - [ ] KYC UI: collect owner/agent data required by the provider
 
 ---
 
-## 7. What the company must do
+## 7. Local prefill script (optional)
+
+The script opens both official forms in a real browser, fills the known company
+fields, and stops before submission. It never clicks Submit and cannot solve
+Yativo's Turnstile.
+
+```bash
+npx playwright install chromium
+
+# PowerShell
+$env:PB_FIRST_NAME="..."
+$env:PB_LAST_NAME="..."
+$env:PB_EMAIL="..."
+$env:PB_PHONE="..."
+$env:PB_TITLE="Director"
+$env:PB_LINKEDIN="https://www.linkedin.com/in/..."
+
+node scripts/prefill-card-applications.mjs
+```
+
+What it fills:
+
+- **Yativo**: product = Card Issuing, first/last name, email, phone, company
+  name, website, “What are you trying to do?”
+- **Rain**: first/last name, business email, job title, LinkedIn, company name;
+  if all personal fields are present it also advances to step 2 and fills
+  website, company description and city.
+
+The browser stays open. Complete the Turnstile on Yativo and the remaining Rain
+steps yourself, review every field, then submit.
+
+## 8. What the company must do
 
 1. Choose the entity that will contract with the provider.
 2. Complete KYB and sign the provider agreement.

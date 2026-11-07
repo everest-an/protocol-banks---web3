@@ -328,6 +328,64 @@ Plan caps are enforced server-side: a key's own policy is clamped to the plan's
 per-call and daily caps, and the key count is checked at creation. Paid plans
 replace the 8 bps per-order fee.
 
+### 12. Agent wallet custody (platform-custodied)
+
+Each agent can have a platform-generated EVM wallet. The private key is encrypted
+with AES-256-GCM before it is stored; the API never returns it.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `AGENT_WALLET_SECRET` | yes | 64 hex characters. Generate with `openssl rand -hex 32`. Use a dedicated secret, not `TRADING_KEY_SECRET`. In production, move this to a KMS/HSM. |
+| `AGENT_WALLET_STATE_DIR` | optional | Directory for the local file fallback (default `.data/agent-wallets`, `/tmp` on read-only filesystems). |
+
+Without `AGENT_WALLET_SECRET`, wallet creation/signing answers **503** instead of
+storing a key with a weak secret. In non-production only, `TRADING_KEY_SECRET`
+is accepted as a fallback.
+
+Apply the table if your database predates the model:
+
+```bash
+psql "$DATABASE_URL" -f scripts/036_agent_wallets.sql
+# or: pnpm prisma db push
+```
+
+### 13. Card provider (Yativo / Rain)
+
+Agent-scoped virtual cards can be issued through Yativo or Rain. The default is
+Yativo; set `CARD_PROVIDER=rain` to use Rain for new agent cards.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `CARD_PROVIDER` | optional | `yativo` (default) or `rain`. |
+| `YATIVO_API_KEY` / `YATIVO_API_SECRET` | for Yativo | API key pair from the Yativo dashboard. |
+| `YATIVO_CUSTOMER_ID` | for Yativo | Activated customer id for card creation. |
+| `RAIN_API_KEY` | for Rain | Partner API key. |
+| `RAIN_API_URL` | optional | Defaults to the Rain dev sandbox. |
+| `RAIN_WEBHOOK_SECRET` | for Rain webhooks | Verify inbound card events. |
+| `CARD_PROVIDER_STATE_DIR` | optional | Local fallback for the Rain KYC account mapping (default `.data/card-provider-accounts`, `/tmp` on read-only filesystems). |
+
+Apply the provider-account table if your database predates the model:
+
+```bash
+psql "$DATABASE_URL" -f scripts/037_card_provider_accounts.sql
+# or: pnpm prisma db push
+```
+
+Rain flow: KYC (`/api/agents/[id]/virtual-cards/rain/kyc`) → deposit contract
+(`.../rain/contract`) → issue (`POST .../virtual-cards` with
+`provider: "rain"`). Encrypted PAN/CVC are relayed at
+`.../virtual-cards/[cardId]/secrets` with an `x-rain-session-id` header; the
+browser must decrypt them, the server never sees plaintext.
+
+Register these Rain webhooks (HMAC-SHA256 over `<timestamp>.<body>` with
+`RAIN_WEBHOOK_SECRET`, headers `X-Rain-Signature` / `X-Rain-Timestamp`):
+
+- `POST /api/webhooks/rain-agent` — card status, transactions and settlements
+- `POST /api/webhooks/rain-agent/auth` — real-time authorization; declines when
+  the agent is inactive or its USDC budget cannot cover the amount
+- Settlements deduct the agent's USDC budget; every event is written to
+  `AgentActivity`
+
 ## How to Add Variables in v0
 
 1. Open your project in v0

@@ -12,15 +12,20 @@ import { agentCardService } from '@/lib/services/agent-card-service'
 import { createAgentCardSchema, formatValidationError } from '@/lib/validations/agent-card'
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
-  const card = await agentCardService.getCard(id)
-  if (!card) {
-    return NextResponse.json({ error: 'Agent Card not found' }, { status: 404 })
-  }
-  return NextResponse.json(agentCardService.toPublicCard(card))
+  return withAuth(async (_req, address) => {
+    const { id } = await params
+    const card = await agentCardService.getCard(id)
+    if (!card) {
+      return NextResponse.json({ error: 'Agent Card not found' }, { status: 404 })
+    }
+    if (card.owner_address.toLowerCase() !== address.toLowerCase()) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+    }
+    return NextResponse.json(agentCardService.toPublicCard(card))
+  }, { component: 'agents-id-card' })(request)
 }
 
 export async function PUT(

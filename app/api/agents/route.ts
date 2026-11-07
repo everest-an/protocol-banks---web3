@@ -56,6 +56,7 @@ export const POST = withAuth(async (req: NextRequest, ownerAddress: string) => {
       webhook_url: body.webhook_url,
       auto_execute_enabled: body.auto_execute_enabled || false,
       auto_execute_rules: body.auto_execute_rules,
+      policy: body.policy,
       rate_limit_per_minute: body.rate_limit_per_minute || 60,
     };
 

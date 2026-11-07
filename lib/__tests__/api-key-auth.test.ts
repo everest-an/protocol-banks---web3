@@ -6,12 +6,21 @@
 import * as fc from 'fast-check';
 import {
   extractAPIKeyFromHeader,
+  validateAPIKey,
   checkPermissions,
   checkAllowedIP,
   checkAllowedOrigin,
 } from '../middleware/api-key-auth';
 import { generateAPIKeySecret, type APIKey, type Permission } from '../services/api-key-service';
+import { agentService } from '../services/agent-service';
 import { createMockRequest, createAuthenticatedRequest } from '../test-utils';
+
+jest.mock('../services/agent-service', () => ({
+  agentService: {
+    validate: jest.fn(),
+    updateLastActive: jest.fn(),
+  },
+}));
 
 // ============================================
 // Mock API Key Factory
@@ -79,7 +88,7 @@ describe('API Key Auth Middleware - Property Tests', () => {
     it('should return null for Bearer tokens that are not API keys', () => {
       fc.assert(
         fc.property(
-          fc.string({ minLength: 1, maxLength: 100 }).filter(s => !s.startsWith('pb_')),
+          fc.string({ minLength: 1, maxLength: 100 }).filter(s => !s.startsWith('pb_') && !s.startsWith('agent_')),
           (token) => {
             const request = createMockRequest({
               headers: { 'Authorization': `Bearer ${token}` },
@@ -245,6 +254,66 @@ describe('API Key Auth Middleware - Unit Tests', () => {
         headers: { 'Authorization': 'Bearer jwt_token_here' },
       });
       expect(extractAPIKeyFromHeader(request)).toBeNull();
+    });
+
+    it('should extract an agent key', () => {
+      const request = createAuthenticatedRequest({ apiKey: 'agent_abc123' });
+      expect(extractAPIKeyFromHeader(request)).toBe('agent_abc123');
+    });
+  });
+
+  describe('validateAPIKey with an agent credential', () => {
+    const mockedAgentService = agentService as unknown as {
+      validate: jest.Mock;
+      updateLastActive: jest.Mock;
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('maps an active trading agent to a policy-scoped read/write key', async () => {
+      mockedAgentService.validate.mockResolvedValue({
+        valid: true,
+        agent: {
+          id: 'agent-1',
+          owner_address: '0x' + '2'.repeat(40),
+          name: 'Trading agent',
+          type: 'trading',
+          status: 'active',
+          api_key_hash: 'hash',
+          api_key_prefix: 'agent_abc',
+          auto_execute_enabled: true,
+          auto_execute_rules: null,
+          rate_limit_per_minute: 60,
+          created_at: new Date('2026-01-01'),
+          updated_at: new Date('2026-01-01'),
+        },
+      });
+
+      const result = await validateAPIKey('agent_abc123');
+
+      expect(result.authenticated).toBe(true);
+      expect(result.ownerAddress).toBe('0x' + '2'.repeat(40));
+      expect(result.apiKey?.id).toBe('agent:agent-1');
+      expect(result.apiKey?.permissions).toEqual(['read', 'write']);
+      expect(result.apiKey?.policy).toMatchObject({
+        allowedOps: ['read', 'trade'],
+      });
+      expect(mockedAgentService.updateLastActive).toHaveBeenCalledWith('agent-1');
+    });
+
+    it('rejects an inactive agent credential', async () => {
+      mockedAgentService.validate.mockResolvedValue({
+        valid: false,
+        error: 'Agent is paused',
+      });
+
+      const result = await validateAPIKey('agent_abc123');
+
+      expect(result.authenticated).toBe(false);
+      expect(result.statusCode).toBe(401);
+      expect(result.error).toBe('Agent is paused');
     });
   });
 

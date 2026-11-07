@@ -10,7 +10,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/middleware/api-auth'
-import { yativoClient } from '@/lib/services/yativo-client.service'
+import { yativoClient, isYativoConfigError } from '@/lib/services/yativo-client.service'
 
 export async function GET(request: NextRequest) {
   return withAuth(async (req) => {
@@ -33,12 +33,16 @@ export async function GET(request: NextRequest) {
         note: 'Send USDC/USDT to this address to fund your card balance. Funds are available within 1-3 minutes.',
       })
     } catch (err) {
-      // The upstream issuer (Yativo) refused or is not provisioned. Keep the
-      // detail in the server log: the previous version handed the caller the
-      // upstream URL and response body, and reported a provider problem as a
-      // 500 — i.e. as a bug in this service.
       console.error('[cards] deposit address lookup failed:', err)
-      return NextResponse.json({ error: 'Card funding is temporarily unavailable' }, { status: 502 })
+      const status = isYativoConfigError(err) ? 503 : 502
+      return NextResponse.json(
+        {
+          error: status === 503
+            ? 'Card funding is unavailable: the provider credentials are missing or rejected.'
+            : 'Card funding is temporarily unavailable',
+        },
+        { status },
+      )
     }
   }, { component: 'cards-deposit' })(request)
 }

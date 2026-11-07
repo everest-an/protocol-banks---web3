@@ -23,21 +23,22 @@ export async function POST(request: NextRequest) {
 
   const { did } = parsed.data
 
-  // 1. Check local database
+  const address = extractAddressFromDid(did)
   const localCard = await agentCardService.getCardByDid(did)
-  if (localCard) {
+
+  if (localCard?.is_public) {
     return NextResponse.json({
       source: 'local',
       card: agentCardService.toPublicCard(localCard),
     })
   }
 
-  // 2. DID resolved but no card — return info about the address
-  const address = extractAddressFromDid(did)
   return NextResponse.json({
     source: 'none',
     did,
     address,
-    message: 'No Agent Card found for this DID. The agent may not have registered yet.',
+    message: localCard
+      ? 'This Agent Card is private.'
+      : 'No Agent Card found for this DID. The agent may not have registered yet.',
   })
 }

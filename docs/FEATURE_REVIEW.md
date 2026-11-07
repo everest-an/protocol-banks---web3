@@ -138,3 +138,8 @@ enforced by the database itself (`RLS_MODE=enforce`), not just by query filters.
 It is still **not** accurate for **cards** and **off-ramp** (provider custody),
 nor for batch items on tokens without EIP-3009 support (the legacy
 relayer-funded path); keep that distinction visible in the marketing copy.
+
+The product position is the **execution and policy layer for AI agents**.
+Trading is the reference vertical; payments, swaps and cards are rails under
+the same server-enforced policy. Cards are explicitly a **provider-custodied
+rail** (the issuer holds the balance), not a non-custodial wallet.

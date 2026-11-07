@@ -100,6 +100,7 @@ export async function PUT(
       if (body.status !== undefined) input.status = body.status;
       if (body.auto_execute_enabled !== undefined) input.auto_execute_enabled = body.auto_execute_enabled;
       if (body.auto_execute_rules !== undefined) input.auto_execute_rules = body.auto_execute_rules;
+      if (body.policy !== undefined) input.policy = body.policy;
       if (body.rate_limit_per_minute !== undefined) input.rate_limit_per_minute = body.rate_limit_per_minute;
 
       const agent = await agentService.update(id, ownerAddress, input);

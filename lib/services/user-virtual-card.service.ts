@@ -11,6 +11,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { yativoClient, type YativoFundingToken } from './yativo-client.service'
+import { normalizeCardStatus, isCardClosed, type CardStatus } from './card-status'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ export interface VirtualCardPublic {
   provider: 'YATIVO'
   providerCardId: string
   last4: string | null
-  status: string
+  status: CardStatus
   balance: number
   currency: string
   label: string | null
@@ -60,7 +61,7 @@ function toPublic(card: {
     provider: 'YATIVO',
     providerCardId: card.provider_card_id,
     last4: card.last4,
-    status: card.status,
+    status: normalizeCardStatus(card.status),
     balance: card.balance,
     currency: card.currency,
     label: card.label,
@@ -111,16 +112,17 @@ export const userVirtualCardService = {
       name_on_card: input.label ?? 'Protocol Banks Card',
     })
 
-    // Extract card data from Yativo API response wrapper
     const yativoCard = response.data
+    const providerCardId = yativoCard.id ?? yativoCard.card_id
+    if (!providerCardId) throw new Error('Card provider did not return a card id')
 
     const dbCard = await prisma.userVirtualCard.create({
       data: {
         owner_address: input.ownerAddress.toLowerCase(),
         card_provider: 'YATIVO',
-        provider_card_id: yativoCard.id ?? yativoCard.card_id ?? '',
+        provider_card_id: providerCardId,
         last4: yativoCard.last4 ?? yativoCard.card_number?.slice(-4) ?? null,
-        status: yativoCard.status ?? 'active',
+        status: normalizeCardStatus(yativoCard.status),
         balance: yativoCard.balance ?? input.initialAmount,
         currency: yativoCard.currency ?? 'USD',
         label: input.label ?? null,
@@ -151,10 +153,11 @@ export const userVirtualCardService = {
       cvv: null as string | null,
       expiryMonth: null as string | null,
       expiryYear: null as string | null,
-      status: dbCard.status,
+      status: normalizeCardStatus(dbCard.status),
       balance: dbCard.balance,
       currency: dbCard.currency,
       label: dbCard.label,
+      detailsAvailable: false,
     }
   },
 
@@ -166,7 +169,7 @@ export const userVirtualCardService = {
     const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: input.cardId } })
     if (!dbCard) throw new Error('Card not found')
     if (dbCard.owner_address !== input.ownerAddress.toLowerCase()) throw new Error('Not authorized')
-    if (dbCard.status === 'terminated') throw new Error('Cannot fund a terminated card')
+    if (isCardClosed(dbCard.status)) throw new Error('Cannot fund a closed card')
 
     const response = await yativoClient.fundCard({
       card_id: dbCard.provider_card_id,
@@ -217,7 +220,7 @@ export const userVirtualCardService = {
 
     await prisma.userVirtualCard.update({
       where: { id: cardId },
-      data: { status: 'terminated', balance: 0, updated_at: new Date() },
+      data: { status: 'CLOSED', balance: 0, updated_at: new Date() },
     })
 
     return { success: true }
@@ -232,7 +235,7 @@ export const userVirtualCardService = {
     const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: cardId } })
     if (!dbCard) throw new Error('Card not found')
     if (dbCard.owner_address !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
-    if (dbCard.status === 'terminated') throw new Error('Cannot freeze a terminated card')
+    if (isCardClosed(dbCard.status)) throw new Error('Cannot freeze a closed card')
 
     const updatedDbCard = await prisma.userVirtualCard.update({
       where: { id: cardId },
@@ -249,7 +252,7 @@ export const userVirtualCardService = {
     const dbCard = await prisma.userVirtualCard.findUnique({ where: { id: cardId } })
     if (!dbCard) throw new Error('Card not found')
     if (dbCard.owner_address !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
-    if (dbCard.status !== 'FROZEN') throw new Error('Card is not frozen')
+    if (normalizeCardStatus(dbCard.status) !== 'FROZEN') throw new Error('Card is not frozen')
 
     // Re-activate on Yativo side
     try {
@@ -287,7 +290,7 @@ export const userVirtualCardService = {
           where: { id: cardId },
           data: {
             balance: matchingCard.balance ?? dbCard.balance,
-            status: matchingCard.status ?? dbCard.status,
+            status: normalizeCardStatus(matchingCard.status ?? dbCard.status),
             last4: matchingCard.last4 ?? matchingCard.card_number?.slice(-4) ?? dbCard.last4,
             updated_at: new Date(),
           },
@@ -314,7 +317,7 @@ export const userVirtualCardService = {
 
     const updatedDbCard = await prisma.userVirtualCard.update({
       where: { id: cardId },
-      data: { status: response.data?.status ?? 'active', updated_at: new Date() },
+      data: { status: normalizeCardStatus(response.data?.status ?? 'active'), updated_at: new Date() },
     })
 
     return toPublic(updatedDbCard)

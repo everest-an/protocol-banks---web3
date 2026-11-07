@@ -11,13 +11,16 @@ import { agentCardService } from '@/lib/services/agent-card-service'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
 
+  const limit = Math.min(Math.max(Number.parseInt(searchParams.get('limit') || '20', 10) || 20, 1), 100)
+  const offset = Math.max(Number.parseInt(searchParams.get('offset') || '0', 10) || 0, 0)
+
   const result = await agentCardService.listPublicCards({
     skill: searchParams.get('skill') || undefined,
     token: searchParams.get('token') || undefined,
     chain: searchParams.get('chain') || undefined,
     protocol: searchParams.get('protocol') as 'a2a' | 'mcp' | 'x402' | undefined,
-    limit: Math.min(parseInt(searchParams.get('limit') || '20'), 100),
-    offset: parseInt(searchParams.get('offset') || '0'),
+    limit,
+    offset,
   })
 
   return NextResponse.json({

@@ -869,7 +869,30 @@ model Agent {
   webhook_deliveries AgentWebhookDelivery[]
   card               AgentCard?
   virtualCard        AgentVirtualCard?
+  wallet             AgentWallet?
   @@map("agents")
+}
+
+model AgentWallet {
+  id                    String   @id @default(uuid())
+  agent_id              String   @unique
+  owner_address         String
+  address               String   @unique
+  chain_type            String   @default("EVM")
+  encrypted_private_key String?
+  key_iv                String?
+  key_tag               String?
+  key_version           Int      @default(1)
+  status                String   @default("active")
+  label                 String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  agent Agent @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
+  @@index([owner_address])
+  @@index([status])
+  @@map("agent_wallets")
 }
 
 model AgentBudget {
@@ -2020,6 +2043,20 @@ model UserVirtualCard {
   @@index([status])
   @@index([provider_card_id])
   @@map("user_virtual_cards")
+}
+
+model CardProviderAccount {
+  id               String   @id @default(uuid())
+  owner_address    String   @unique
+  provider         String   @default("RAIN")
+  provider_user_id String
+  status           String   @default("pending")
+  raw_status       String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([provider])
+  @@map("card_provider_accounts")
 }
 
 /// Virtual Visa cards assigned to individual AI agents (linked to AgentCard identity).

@@ -11,6 +11,20 @@
 
 import { prisma } from '@/lib/prisma'
 import { yativoClient, type YativoFundingToken } from './yativo-client.service'
+import { normalizeCardStatus, isCardClosed, type CardStatus } from './card-status'
+import { budgetService } from './budget-service'
+
+async function reserveBudget(agentId: string, amount: number): Promise<string | undefined> {
+  const budgets = await budgetService.list(agentId)
+  const matching = budgets.find((b) => b.token.toUpperCase() === 'USDC' && !b.chain_id)
+  if (!matching) return undefined
+
+  const availability = await budgetService.checkAvailability(agentId, String(amount), 'USDC')
+  if (!availability.available || !availability.budget) {
+    throw new Error(availability.reason ?? 'Insufficient agent budget')
+  }
+  return availability.budget.id
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -34,7 +48,7 @@ export interface VirtualCardPublic {
   provider: string
   providerCardId: string
   last4: string | null
-  status: string
+  status: CardStatus
   balance: number
   currency: string
   label: string | null
@@ -63,7 +77,7 @@ function toPublicCard(card: {
     provider: card.card_provider,
     providerCardId: card.provider_card_id,
     last4: card.last4,
-    status: card.status,
+    status: normalizeCardStatus(card.status),
     balance: card.balance,
     currency: card.currency,
     label: card.label,
@@ -99,29 +113,35 @@ export const virtualCardService = {
   async createCard(input: CreateVirtualCardInput): Promise<VirtualCardPublic> {
     // 1. Verify the agent exists and belongs to the owner
     const agent = await prisma.agent.findFirst({
-      where: { id: input.agentId, owner_address: input.ownerAddress },
+      where: { id: input.agentId, owner_address: input.ownerAddress.toLowerCase() },
     })
     if (!agent) {
       throw new Error('Agent not found or not authorized')
     }
 
-    // 2. Issue the card via Yativo API
+    const budgetId = await reserveBudget(input.agentId, input.initialAmount)
+
     const response = await yativoClient.createCard({
       amount: input.initialAmount,
       name_on_card: input.label ?? `${agent.name} Card`,
     })
 
-    const yativoCard = response.data
+    if (budgetId) {
+      await budgetService.deductBudget(budgetId, String(input.initialAmount))
+    }
 
-    // 3. Persist the card record in our database
+    const yativoCard = response.data
+    const providerCardId = yativoCard.id ?? yativoCard.card_id
+    if (!providerCardId) throw new Error('Card provider did not return a card id')
+
     const dbCard = await prisma.agentVirtualCard.create({
       data: {
         agent_id: input.agentId,
-        owner_address: input.ownerAddress,
+        owner_address: input.ownerAddress.toLowerCase(),
         card_provider: 'YATIVO',
-        provider_card_id: yativoCard.id ?? yativoCard.card_id ?? '',
+        provider_card_id: providerCardId,
         last4: yativoCard.last4 ?? yativoCard.card_number?.slice(-4) ?? null,
-        status: yativoCard.status ?? 'active',
+        status: normalizeCardStatus(yativoCard.status),
         balance: yativoCard.balance ?? input.initialAmount,
         currency: yativoCard.currency ?? 'USD',
         label: input.label ?? `${agent.name} Card`,
@@ -137,7 +157,7 @@ export const virtualCardService = {
   async listCards(agentId: string, ownerAddress: string): Promise<VirtualCardPublic[]> {
     // Verify ownership
     const agent = await prisma.agent.findFirst({
-      where: { id: agentId, owner_address: ownerAddress },
+      where: { id: agentId, owner_address: ownerAddress.toLowerCase() },
     })
     if (!agent) throw new Error('Agent not found or not authorized')
 
@@ -159,7 +179,7 @@ export const virtualCardService = {
     })
 
     if (!dbCard) throw new Error('Card not found')
-    if (dbCard.agent.owner_address !== ownerAddress) {
+    if (dbCard.agent.owner_address.toLowerCase() !== ownerAddress.toLowerCase()) {
       throw new Error('Not authorized to access this card')
     }
 
@@ -179,14 +199,17 @@ export const virtualCardService = {
 
     return {
       id: dbCard.id,
+      agentId: dbCard.agent_id,
+      provider: dbCard.card_provider,
       last4: dbCard.last4,
       pan: null as string | null,
       cvv: null as string | null,
       expiryMonth: null as string | null,
       expiryYear: null as string | null,
-      status: dbCard.status,
+      status: normalizeCardStatus(dbCard.status),
       balance: dbCard.balance,
       currency: dbCard.currency,
+      detailsAvailable: dbCard.card_provider === 'RAIN',
     }
   },
 
@@ -201,15 +224,21 @@ export const virtualCardService = {
     })
 
     if (!dbCard) throw new Error('Card not found')
-    if (dbCard.agent.owner_address !== input.ownerAddress) {
+    if (dbCard.agent.owner_address.toLowerCase() !== input.ownerAddress.toLowerCase()) {
       throw new Error('Not authorized to fund this card')
     }
-    if (dbCard.status === 'terminated') throw new Error('Cannot fund a terminated card')
+    if (isCardClosed(dbCard.status)) throw new Error('Cannot fund a closed card')
+
+    const budgetId = await reserveBudget(dbCard.agent_id, input.amount)
 
     const response = await yativoClient.fundCard({
       card_id: dbCard.provider_card_id,
       amount: input.amount,
     })
+
+    if (budgetId) {
+      await budgetService.deductBudget(budgetId, String(input.amount))
+    }
 
     const newBalance = response.data?.balance ?? (dbCard.balance + input.amount)
 
@@ -232,13 +261,13 @@ export const virtualCardService = {
     })
 
     if (!dbCard) throw new Error('Card not found')
-    if (dbCard.agent.owner_address !== ownerAddress) throw new Error('Not authorized')
+    if (dbCard.agent.owner_address.toLowerCase() !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
 
     const response = await yativoClient.activateCard(dbCard.provider_card_id)
 
     const updatedDbCard = await prisma.agentVirtualCard.update({
       where: { id: cardId },
-      data: { status: response.data?.status ?? 'active', updated_at: new Date() },
+      data: { status: normalizeCardStatus(response.data?.status ?? 'active'), updated_at: new Date() },
     })
 
     return toPublicCard(updatedDbCard)
@@ -255,7 +284,7 @@ export const virtualCardService = {
     })
 
     if (!dbCard) throw new Error('Card not found')
-    if (dbCard.agent.owner_address !== ownerAddress) throw new Error('Not authorized')
+    if (dbCard.agent.owner_address.toLowerCase() !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
 
     const response = await yativoClient.withdrawFromCard(dbCard.provider_card_id, amount)
 
@@ -280,15 +309,56 @@ export const virtualCardService = {
     })
 
     if (!dbCard) throw new Error('Card not found')
-    if (dbCard.agent.owner_address !== ownerAddress) throw new Error('Not authorized')
+    if (dbCard.agent.owner_address.toLowerCase() !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
 
     await yativoClient.terminateCard(dbCard.provider_card_id)
 
     await prisma.agentVirtualCard.update({
       where: { id: cardId },
-      data: { status: 'terminated', balance: 0, updated_at: new Date() },
+      data: { status: 'CLOSED', balance: 0, updated_at: new Date() },
     })
 
     return { success: true }
+  },
+
+  async freezeCard(cardId: string, ownerAddress: string): Promise<VirtualCardPublic> {
+    const dbCard = await prisma.agentVirtualCard.findFirst({
+      where: { id: cardId },
+      include: { agent: { select: { owner_address: true } } },
+    })
+
+    if (!dbCard) throw new Error('Card not found')
+    if (dbCard.agent.owner_address.toLowerCase() !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
+    if (isCardClosed(dbCard.status)) throw new Error('Cannot freeze a closed card')
+
+    const updated = await prisma.agentVirtualCard.update({
+      where: { id: cardId },
+      data: { status: 'FROZEN', updated_at: new Date() },
+    })
+
+    return toPublicCard(updated)
+  },
+
+  async unfreezeCard(cardId: string, ownerAddress: string): Promise<VirtualCardPublic> {
+    const dbCard = await prisma.agentVirtualCard.findFirst({
+      where: { id: cardId },
+      include: { agent: { select: { owner_address: true } } },
+    })
+
+    if (!dbCard) throw new Error('Card not found')
+    if (dbCard.agent.owner_address.toLowerCase() !== ownerAddress.toLowerCase()) throw new Error('Not authorized')
+    if (normalizeCardStatus(dbCard.status) !== 'FROZEN') throw new Error('Card is not frozen')
+
+    try {
+      await yativoClient.activateCard(dbCard.provider_card_id)
+    } catch {
+    }
+
+    const updated = await prisma.agentVirtualCard.update({
+      where: { id: cardId },
+      data: { status: 'ACTIVE', updated_at: new Date() },
+    })
+
+    return toPublicCard(updated)
   },
 }

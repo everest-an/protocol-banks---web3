@@ -56,7 +56,7 @@ export const agentCardService = {
       throw new Error('Not authorized to manage this agent')
     }
 
-    const did = generateDid(ownerAddress, chainId)
+    const did = generateDid(ownerAddress, chainId, agentId)
 
     return prisma.agentCard.create({
       data: {

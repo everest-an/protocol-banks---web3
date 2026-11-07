@@ -5,6 +5,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { APIKeyService, type APIKey, type Permission } from '@/lib/services/api-key-service';
+import { agentService, type Agent } from '@/lib/services/agent-service';
 
 // ============================================
 // Types
@@ -56,13 +57,45 @@ export function extractAPIKeyFromHeader(request: NextRequest): string | null {
   }
 
   const token = authHeader.slice(API_KEY_PREFIX.length).trim();
-  
-  // Check if it's an API key (starts with pb_)
-  if (!token.startsWith('pb_')) {
+
+  if (!token.startsWith('pb_') && !token.startsWith('agent_')) {
     return null;
   }
 
   return token;
+}
+
+function agentPolicy(agent: Agent): unknown {
+  const rules = agent.auto_execute_rules as Record<string, unknown> | null | undefined
+  if (rules && typeof rules === 'object' && rules.policy) return rules.policy
+
+  if (agent.type === 'trading') {
+    return { allowedOps: ['read', 'trade'], maxNotionalUsd: 100, dailyCapUsd: 500, allowedCoins: [] }
+  }
+  if (agent.type === 'payroll' || agent.type === 'expense' || agent.type === 'subscription') {
+    return { allowedOps: ['read', 'pay', 'swap'], maxNotionalUsd: 500, dailyCapUsd: 2000, allowedCoins: [] }
+  }
+  return { allowedOps: ['read'], maxNotionalUsd: 50, dailyCapUsd: 200, allowedCoins: [] }
+}
+
+function agentToAPIKey(agent: Agent): APIKey {
+  return {
+    id: `agent:${agent.id}`,
+    name: agent.name,
+    key_hash: agent.api_key_hash,
+    key_prefix: agent.api_key_prefix,
+    owner_address: agent.owner_address,
+    permissions: ['read', 'write'],
+    policy: agentPolicy(agent),
+    rate_limit_per_minute: agent.rate_limit_per_minute,
+    rate_limit_per_day: 10000,
+    allowed_ips: [],
+    allowed_origins: [],
+    usage_count: 0,
+    is_active: agent.status === 'active',
+    created_at: agent.created_at.toISOString(),
+    updated_at: agent.updated_at.toISOString(),
+  }
 }
 
 /**
@@ -70,22 +103,41 @@ export function extractAPIKeyFromHeader(request: NextRequest): string | null {
  */
 export async function validateAPIKey(apiKeySecret: string): Promise<AuthResult> {
   const apiKeyService = new APIKeyService();
-  
+
   const result = await apiKeyService.validate(apiKeySecret);
-  
-  if (!result.valid || !result.key) {
+
+  if (result.valid && result.key) {
+    return {
+      authenticated: true,
+      apiKey: result.key,
+      ownerAddress: result.key.owner_address,
+      authMethod: 'api_key',
+    };
+  }
+
+  if (apiKeySecret.startsWith('agent_')) {
+    const agentResult = await agentService.validate(apiKeySecret);
+    if (agentResult.valid && agentResult.agent) {
+      const key = agentToAPIKey(agentResult.agent);
+      await agentService.updateLastActive(agentResult.agent.id);
+      return {
+        authenticated: true,
+        apiKey: key,
+        ownerAddress: key.owner_address,
+        authMethod: 'api_key',
+      };
+    }
     return {
       authenticated: false,
-      error: result.error || 'Invalid API key',
+      error: agentResult.error || 'Invalid agent API key',
       statusCode: 401,
     };
   }
 
   return {
-    authenticated: true,
-    apiKey: result.key,
-    ownerAddress: result.key.owner_address,
-    authMethod: 'api_key',
+    authenticated: false,
+    error: result.error || 'Invalid API key',
+    statusCode: 401,
   };
 }
 
@@ -237,6 +289,8 @@ export async function logAPIKeyUsage(
   statusCode: number,
   responseTimeMs: number
 ): Promise<void> {
+  if (apiKey.id.startsWith('agent:')) return
+
   const apiKeyService = new APIKeyService();
   
   await apiKeyService.logUsage({

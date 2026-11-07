@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import { Bot, ArrowLeft, Save, Plus, Trash2, DollarSign, Clock, TrendingUp, RefreshCw, Eye, EyeOff, Copy, AlertTriangle } from "lucide-react"
+import { Bot, ArrowLeft, Save, Plus, Trash2, DollarSign, Clock, TrendingUp, RefreshCw, Eye, EyeOff, Copy, AlertTriangle, CreditCard, Snowflake, Wallet } from "lucide-react"
 import Link from "next/link"
 
 interface Agent {
@@ -24,20 +24,50 @@ interface Agent {
   status: 'active' | 'paused' | 'deactivated'
   webhook_url?: string
   auto_execute_enabled: boolean
-  auto_execute_max_amount?: string
-  auto_execute_whitelist?: string[]
-  auto_execute_allowed_tokens?: string[]
+  auto_execute_rules?: {
+    max_single_amount?: string
+    max_daily_amount?: string
+    allowed_tokens?: string[]
+    allowed_recipients?: string[]
+    allowed_chains?: number[]
+    policy?: unknown
+  }
   created_at: string
 }
 
 interface Budget {
   id: string
-  token_address: string
-  token_symbol: string
-  max_amount: string
+  token: string
+  amount: string
   used_amount: string
+  remaining_amount: string
   period: 'daily' | 'weekly' | 'monthly' | 'total'
   period_start: string
+  period_end?: string
+}
+
+interface AgentVirtualCard {
+  id: string
+  provider: string
+  providerCardId: string
+  last4: string | null
+  status: 'ACTIVE' | 'FROZEN' | 'CLOSED' | 'PENDING'
+  balance: number
+  currency: string
+  label: string | null
+  agentId: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface AgentWallet {
+  address: string
+  chainType: 'EVM'
+  status: 'active' | 'revoked'
+  label: string | null
+  createdAt: string
+  updatedAt: string
+  canSign: boolean
 }
 
 interface Activity {
@@ -46,6 +76,9 @@ interface Activity {
   details: Record<string, unknown>
   created_at: string
 }
+
+const CARDS_LIVE = process.env.NEXT_PUBLIC_CARDS_LIVE === "true"
+const AGENT_WALLET_LIVE = process.env.NEXT_PUBLIC_AGENT_WALLET_LIVE === "true"
 
 export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -56,6 +89,12 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const [agent, setAgent] = useState<Agent | null>(null)
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
+  const [cards, setCards] = useState<AgentVirtualCard[]>([])
+  const [wallet, setWallet] = useState<AgentWallet | null>(null)
+  const [walletConfigured, setWalletConfigured] = useState(true)
+  const [walletBusy, setWalletBusy] = useState<string | null>(null)
+  const [walletMessage, setWalletMessage] = useState("Sign in to Protocol Bank")
+  const [walletSignature, setWalletSignature] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [rotating, setRotating] = useState(false)
@@ -75,11 +114,18 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const [newBudgetAmount, setNewBudgetAmount] = useState("")
   const [newBudgetPeriod, setNewBudgetPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'total'>('monthly')
 
+  // Agent card form
+  const [newCardAmount, setNewCardAmount] = useState("")
+  const [newCardLabel, setNewCardLabel] = useState("")
+  const [cardBusy, setCardBusy] = useState<string | null>(null)
+
   useEffect(() => {
     if (address && id) {
       loadAgent()
       loadBudgets()
       loadActivities()
+      loadCards()
+      loadWallet()
     }
   }, [address, id])
 
@@ -93,8 +139,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         setDescription(data.agent.description || "")
         setWebhookUrl(data.agent.webhook_url || "")
         setAutoExecuteEnabled(data.agent.auto_execute_enabled)
-        setAutoExecuteMaxAmount(data.agent.auto_execute_max_amount || "")
-        setWhitelist(data.agent.auto_execute_whitelist?.join("\n") || "")
+        setAutoExecuteMaxAmount(data.agent.auto_execute_rules?.max_single_amount || "")
+        setWhitelist(data.agent.auto_execute_rules?.allowed_recipients?.join("\n") || "")
       }
     } catch (error) {
       console.error("Failed to load agent:", error)
@@ -127,6 +173,85 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  const loadCards = async () => {
+    try {
+      const response = await fetch(`/api/agents/${id}/virtual-cards`, {
+        headers: authHeaders(address),
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setCards(data.cards || [])
+      }
+    } catch (error) {
+      console.error("Failed to load cards:", error)
+    }
+  }
+
+  const loadWallet = async () => {
+    try {
+      const response = await fetch(`/api/agents/${id}/wallet`, {
+        headers: authHeaders(address),
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setWallet(data.wallet || null)
+        setWalletConfigured(data.configured !== false)
+      }
+    } catch (error) {
+      console.error("Failed to load wallet:", error)
+    }
+  }
+
+  const handleWalletAction = async (action: "create" | "rotate" | "revoke") => {
+    if (!address) return
+    setWalletBusy(action)
+    try {
+      const response = await fetch(`/api/agents/${id}/wallet`, {
+        method: "POST",
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
+        body: JSON.stringify({ action }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error ?? "Wallet operation failed")
+      setWallet(data?.wallet ?? null)
+      setWalletSignature(null)
+      await loadWallet()
+      toast({ title: `Wallet ${action} succeeded` })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Wallet operation failed",
+        variant: "destructive",
+      })
+    } finally {
+      setWalletBusy(null)
+    }
+  }
+
+  const handleSignMessage = async () => {
+    if (!address || !walletMessage) return
+    setWalletBusy("sign")
+    try {
+      const response = await fetch(`/api/agents/${id}/wallet/sign`, {
+        method: "POST",
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
+        body: JSON.stringify({ kind: "message", message: walletMessage }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error ?? "Signing failed")
+      setWalletSignature(data.signature)
+      toast({ title: "Message signed" })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Signing failed",
+        variant: "destructive",
+      })
+    } finally {
+      setWalletBusy(null)
+    }
+  }
+
   const handleSave = async () => {
     if (!address || !agent) return
     setSaving(true)
@@ -136,13 +261,15 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         method: 'PUT',
         headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          owner_address: address,
           name,
           description,
           webhook_url: webhookUrl || undefined,
           auto_execute_enabled: autoExecuteEnabled,
-          auto_execute_max_amount: autoExecuteMaxAmount || undefined,
-          auto_execute_whitelist: whitelist.split("\n").filter(Boolean),
+          auto_execute_rules: {
+            ...(agent.auto_execute_rules ?? {}),
+            max_single_amount: autoExecuteMaxAmount || undefined,
+            allowed_recipients: whitelist.split("\n").map((s) => s.trim()).filter(Boolean),
+          },
         }),
       })
 
@@ -194,9 +321,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         method: 'POST',
         headers: authHeaders(address, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          owner_address: address,
-          token_symbol: newBudgetToken,
-          max_amount: newBudgetAmount,
+          token: newBudgetToken,
+          amount: newBudgetAmount,
           period: newBudgetPeriod,
         }),
       })
@@ -235,6 +361,59 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         description: "Failed to delete budget",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleCreateCard = async () => {
+    if (!address || !newCardAmount) return
+    setCardBusy("create")
+    try {
+      const response = await fetch(`/api/agents/${id}/virtual-cards`, {
+        method: "POST",
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          initialAmount: Number(newCardAmount),
+          label: newCardLabel || undefined,
+        }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error ?? "Failed to issue card")
+      setNewCardAmount("")
+      setNewCardLabel("")
+      await loadCards()
+      toast({ title: "Card issued" })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to issue card",
+        variant: "destructive",
+      })
+    } finally {
+      setCardBusy(null)
+    }
+  }
+
+  const handleCardAction = async (cardId: string, action: string, amount?: number) => {
+    if (!address) return
+    setCardBusy(cardId)
+    try {
+      const response = await fetch(`/api/agents/${id}/virtual-cards/${cardId}`, {
+        method: "PATCH",
+        headers: authHeaders(address, { "Content-Type": "application/json" }),
+        body: JSON.stringify({ action, ...(amount !== undefined ? { amount } : {}) }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error ?? "Card action failed")
+      await loadCards()
+      toast({ title: `Card ${action} succeeded` })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Card action failed",
+        variant: "destructive",
+      })
+    } finally {
+      setCardBusy(null)
     }
   }
 
@@ -299,6 +478,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         <TabsList>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="budgets">Budgets</TabsTrigger>
+          {AGENT_WALLET_LIVE && <TabsTrigger value="wallet">Wallet</TabsTrigger>}
+          {CARDS_LIVE && <TabsTrigger value="cards">Cards</TabsTrigger>}
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
@@ -500,12 +681,16 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                   </TableHeader>
                   <TableBody>
                     {budgets.map((budget) => {
-                      const remaining = parseFloat(budget.max_amount) - parseFloat(budget.used_amount)
-                      const usagePercent = (parseFloat(budget.used_amount) / parseFloat(budget.max_amount)) * 100
+                      const limit = parseFloat(budget.amount) || 0
+                      const used = parseFloat(budget.used_amount) || 0
+                      const remaining = budget.remaining_amount !== undefined
+                        ? parseFloat(budget.remaining_amount)
+                        : limit - used
+                      const usagePercent = limit > 0 ? (used / limit) * 100 : 0
                       return (
                         <TableRow key={budget.id}>
-                          <TableCell className="font-medium">{budget.token_symbol}</TableCell>
-                          <TableCell>{budget.max_amount}</TableCell>
+                          <TableCell className="font-medium">{budget.token}</TableCell>
+                          <TableCell>{budget.amount}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {budget.used_amount}
@@ -542,6 +727,239 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
             </GlassCardContent>
           </GlassCard>
         </TabsContent>
+
+        {AGENT_WALLET_LIVE && (<TabsContent value="wallet">
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Agent Wallet
+              </GlassCardTitle>
+              <GlassCardDescription>
+                Platform-custodied EVM wallet for this agent. The private key is encrypted at rest with AES-256-GCM; the agent signs under its policy.
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-5">
+              {!walletConfigured && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-600">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>AGENT_WALLET_SECRET is not configured. Set a 64-hex secret on the server before creating wallets.</span>
+                </div>
+              )}
+
+              {wallet ? (
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 rounded-lg border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Address</div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <code className="text-sm font-mono break-all">{wallet.address}</code>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => {
+                            navigator.clipboard.writeText(wallet.address)
+                            toast({ title: "Address copied" })
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {wallet.chainType} · created {new Date(wallet.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                    <Badge variant={wallet.status === "active" ? "default" : "destructive"}>
+                      {wallet.status}
+                    </Badge>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {wallet.status === "active" ? (
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleWalletAction("revoke")}
+                        disabled={walletBusy === "revoke"}
+                      >
+                        {walletBusy === "revoke" ? "Revoking..." : "Revoke key material"}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleWalletAction("rotate")}
+                        disabled={walletBusy === "rotate"}
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${walletBusy === "rotate" ? "animate-spin" : ""}`} />
+                        {walletBusy === "rotate" ? "Rotating..." : "Rotate to a new address"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    No wallet yet. Create one address for this agent; the private key stays encrypted on the server and is never returned by the API.
+                  </p>
+                  <Button
+                    onClick={() => handleWalletAction("create")}
+                    disabled={!walletConfigured || walletBusy === "create"}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {walletBusy === "create" ? "Creating..." : "Create agent wallet"}
+                  </Button>
+                </div>
+              )}
+
+              {wallet?.status === "active" && (
+                <div className="space-y-3 border-t pt-4">
+                  <div>
+                    <Label>Sign a message</Label>
+                    <Textarea
+                      value={walletMessage}
+                      onChange={(e) => setWalletMessage(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleSignMessage}
+                    disabled={!walletMessage || walletBusy === "sign"}
+                  >
+                    {walletBusy === "sign" ? "Signing..." : "Sign with agent wallet"}
+                  </Button>
+                  {walletSignature && (
+                    <div className="rounded-lg bg-muted p-3">
+                      <div className="text-xs text-muted-foreground mb-1">Signature</div>
+                      <code className="text-xs break-all">{walletSignature}</code>
+                    </div>
+                  )}
+                </div>
+              )}
+            </GlassCardContent>
+          </GlassCard>
+        </TabsContent>
+        )}
+
+        {CARDS_LIVE && (<TabsContent value="cards">
+          <GlassCard>
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Agent Cards
+              </GlassCardTitle>
+              <GlassCardDescription>
+                Issue a virtual Visa card for this agent. The issuing partner holds the card balance.
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-6">
+              <div className="flex flex-col gap-3 rounded-lg bg-muted p-4 sm:flex-row sm:items-end">
+                <div className="flex-1">
+                  <Label>Initial amount (USD)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="10000"
+                    value={newCardAmount}
+                    onChange={(e) => setNewCardAmount(e.target.value)}
+                    placeholder="100"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label>Label</Label>
+                  <Input
+                    value={newCardLabel}
+                    onChange={(e) => setNewCardLabel(e.target.value)}
+                    placeholder="Agent card"
+                  />
+                </div>
+                <Button
+                  onClick={handleCreateCard}
+                  disabled={!newCardAmount || cardBusy === "create"}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {cardBusy === "create" ? "Issuing..." : "Issue card"}
+                </Button>
+              </div>
+
+              {cards.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  No card issued for this agent yet.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Card</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cards.map((card) => (
+                      <TableRow key={card.id}>
+                        <TableCell>
+                          <div className="font-medium">•••• {card.last4 ?? "----"}</div>
+                          <div className="text-xs text-muted-foreground">{card.label || card.provider}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={card.status === "ACTIVE" ? "default" : card.status === "CLOSED" ? "destructive" : "secondary"}>
+                            {card.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>${card.balance.toFixed(2)} {card.currency}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={cardBusy === card.id || card.status === "CLOSED"}
+                              onClick={() => {
+                                const amount = window.prompt("Amount to add (USD)", "50")
+                                if (amount) handleCardAction(card.id, "fund", Number(amount))
+                              }}
+                            >
+                              Fund
+                            </Button>
+                            {card.status === "FROZEN" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={cardBusy === card.id}
+                                onClick={() => handleCardAction(card.id, "unfreeze")}
+                              >
+                                Unfreeze
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={cardBusy === card.id || card.status === "CLOSED"}
+                                onClick={() => handleCardAction(card.id, "freeze")}
+                              >
+                                <Snowflake className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              disabled={cardBusy === card.id || card.status === "CLOSED"}
+                              onClick={() => handleCardAction(card.id, "terminate")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </GlassCardContent>
+          </GlassCard>
+        </TabsContent>
+        )}
 
         <TabsContent value="activity">
           <GlassCard>

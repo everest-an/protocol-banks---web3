@@ -103,6 +103,7 @@ describe('Agent Card Service', () => {
       expect(mockPrisma.agentCard.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           agent_id: agentId,
+          did: `did:pkh:eip155:1:${ownerAddress}#${agentId}`,
           display_name: 'Test Agent',
           owner_address: ownerAddress,
           is_public: true,

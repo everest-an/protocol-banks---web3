@@ -64,6 +64,18 @@ const rows: Row[] = [
     blocks: "card issuing via Rain (alternative to Yativo)",
   },
   {
+    area: "Agent wallet custody",
+    ready:
+      has("AGENT_WALLET_SECRET") ||
+      (process.env.NODE_ENV !== "production" && has("TRADING_KEY_SECRET")),
+    detail: has("AGENT_WALLET_SECRET")
+      ? "set"
+      : process.env.NODE_ENV !== "production" && has("TRADING_KEY_SECRET")
+        ? "dev fallback: TRADING_KEY_SECRET"
+        : "missing",
+    blocks: "platform-custodied agent wallets (503)",
+  },
+  {
     area: "Asset distribution",
     ready: has("ASSET_DISTRIBUTOR_ADDRESS", "ASSET_DISTRIBUTOR_PRIVATE_KEY"),
     detail: has("ASSET_DISTRIBUTOR_ADDRESS", "ASSET_DISTRIBUTOR_PRIVATE_KEY") ? "set" : "missing",

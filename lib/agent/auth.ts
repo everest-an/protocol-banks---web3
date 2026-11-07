@@ -14,6 +14,7 @@ export interface AgentRequest extends AuthenticatedRequest {
   agentPolicy?: AgentPolicy
   agentPlan?: PlanId
   spentTodayUsd?: number
+  agentId?: string
 }
 
 /** Sum of today's metered notional for a wallet. A lookup failure must not
@@ -63,6 +64,9 @@ export function withAgentAuth(
       req.agentPolicy = effectivePolicy
       req.agentPlan = planState.plan
       req.spentTodayUsd = await spentTodayUsd(wallet)
+      if (req.apiKey?.id.startsWith("agent:")) {
+        req.agentId = req.apiKey.id.slice("agent:".length)
+      }
       return handler(req)
     })
   }, { requiredPermissions: op === "read" ? ["read"] : ["write"] })

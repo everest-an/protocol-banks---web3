@@ -113,6 +113,32 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Provider-gated surfaces stay closed until their explicit launch flag is set.
+  const cardsLive = process.env.NEXT_PUBLIC_CARDS_LIVE === "true"
+  const agentWalletLive = process.env.NEXT_PUBLIC_AGENT_WALLET_LIVE === "true"
+  const isCardsApi =
+    path === "/api/cards" ||
+    path.startsWith("/api/cards/") ||
+    path.includes("/virtual-cards") ||
+    path.startsWith("/api/webhooks/rain-agent")
+  const isAgentWalletApi =
+    path === "/api/v1/agent/wallet" ||
+    path.startsWith("/api/v1/agent/wallet/") ||
+    /^\/api\/agents\/[^/]+\/wallet(?:\/|$)/.test(path)
+
+  if (!cardsLive && isCardsApi) {
+    return NextResponse.json(
+      { error: "Cards are coming soon while provider onboarding completes." },
+      { status: 503, headers: response.headers },
+    )
+  }
+  if (!agentWalletLive && isAgentWalletApi) {
+    return NextResponse.json(
+      { error: "Agent wallets are coming soon." },
+      { status: 503, headers: response.headers },
+    )
+  }
+
   // Unknown docs slugs must 404 at the router. The root layout streams, so a
   // page-level notFound() would render the 404 UI with a 200 status.
   if (path === "/docs" || path.startsWith("/docs/") || path === "/zh/docs" || path.startsWith("/zh/docs/")) {
