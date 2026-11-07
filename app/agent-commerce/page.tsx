@@ -25,6 +25,9 @@ export default function AgentCommercePage() {
             <Link href="/docs" className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2.5 text-sm font-medium dark:border-white/15">
               Read the docs
             </Link>
+            <Link href="/agent-commerce/orders" className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2.5 text-sm font-medium dark:border-white/15">
+              Manage orders
+            </Link>
           </div>
         </div>
         <div className="mt-12">

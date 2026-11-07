@@ -48,7 +48,10 @@ interface Web3ContextType {
     to: string
     amount: string
     chainId?: number
-  }) => Promise<{ v: number; r: string; s: string; nonce: string; validAfter: number; validBefore: number }>
+    nonce?: string
+    validAfter?: number
+    validBefore?: number
+  }) => Promise<{ v: number; r: string; s: string; signature: string; nonce: string; validAfter: number; validBefore: number }>
   activeChain: ChainType
   setActiveChain: (chain: ChainType) => void
   isConnected: boolean

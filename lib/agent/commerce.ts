@@ -179,6 +179,15 @@ export async function listServices(input: { category?: string | null; q?: string
   return rows.map(serviceView)
 }
 
+export async function listOwnedServices(owner: string) {
+  const rows = await prisma.agentService.findMany({
+    where: { owner_address: owner.toLowerCase() },
+    orderBy: { created_at: "desc" },
+    take: 100,
+  })
+  return rows.map(serviceView)
+}
+
 export async function getService(id: string) {
   const row = await prisma.agentService.findUnique({ where: { id } })
   if (!row) throw new CommerceError(404, "service not found")
@@ -488,3 +497,4 @@ export async function getReputation(addressValue: string) {
     completionRate: total > 0 ? Number((completed / total).toFixed(4)) : null,
   }
 }
+

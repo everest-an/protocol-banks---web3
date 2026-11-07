@@ -34,7 +34,7 @@ export const tradingItems: ProductItem[] = [
   },
 ]
 
-// Wallet (account-level — merged from dashboard + balances)
+// Wallet (account-level â€” merged from dashboard + balances)
 export const overviewItems: ProductItem[] = [
   {
     href: "/balances",
@@ -43,10 +43,22 @@ export const overviewItems: ProductItem[] = [
     icon: CreditCard,
   },
   {
+    href: "/agent-commerce/orders",
+    title: "Agent Commerce",
+    description: "Services, quotes, orders and agent payments",
+    icon: ShoppingBag,
+  },
+  {
     href: "/card",
     title: "Card",
     description: "Virtual crypto debit card",
     icon: Wallet,
+  },
+  {
+    href: "/agent-api",
+    title: "Agent API",
+    description: "Commerce, payments, cards and trading under one mandate",
+    icon: Code,
   },
   {
     href: "/settings",
@@ -56,7 +68,7 @@ export const overviewItems: ProductItem[] = [
   },
 ]
 
-// Business (enterprise payments + analytics — consolidated, not hero)
+// Business (enterprise payments + analytics â€” consolidated, not hero)
 export const businessItems: ProductItem[] = [
   {
     href: "/analytics",
@@ -115,7 +127,7 @@ export const businessItems: ProductItem[] = [
   {
     href: "/agents",
     title: "Payment Agents",
-    description: "Autonomous payments with session keys",
+    description: "Agent budgets, wallets and cards",
     icon: Bot,
   },
   {
@@ -131,3 +143,4 @@ export const businessItems: ProductItem[] = [
     icon: Code,
   },
 ]
+

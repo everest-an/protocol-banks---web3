@@ -107,6 +107,24 @@ accept_commerce_quote, deliver_commerce_order, complete_commerce_order and
 list_commerce_orders are exposed through the MCP server. The OpenAPI contract
 includes all /v1/agent/commerce/* paths and orderId on POST /v1/agent/pay.
 
+## Dashboard UI and session routes
+
+The authenticated dashboard at `/agent-commerce/orders` uses the same commerce
+functions through `/api/commerce/*`. Those routes use the wallet session/JWT
+(`withAuth`), not an agent API key; the owner is the logged-in wallet. They exist
+so a human owner can create services, quote, deliver, pay, complete, dispute and
+refund without exporting an agent key to the browser.
+
+- `GET/POST /api/commerce/services`
+- `GET/POST /api/commerce/quotes`
+- `POST /api/commerce/quotes/accept`
+- `GET /api/commerce/orders`
+- `POST /api/commerce/orders/deliver|complete|dispute|cancel|refund`
+- `POST /api/commerce/orders/pay` (prepare or execute an EIP-3009 order payment)
+
+Agent integrations should keep using `/api/v1/agent/commerce/*` with an API key
+and policy. The two surfaces share the same database and state machine.
+
 ## Limitations
 
 - No escrow / conditional release yet; payment is still direct. See [ESCROW_DESIGN.md](ESCROW_DESIGN.md).
@@ -115,3 +133,4 @@ includes all /v1/agent/commerce/* paths and orderId on POST /v1/agent/pay.
 - The public directory is the only UI; there is no order-management panel.
 - The atomic `payment_pending` reservation is implemented; the reconciler releases a
   failed/submitted payment and marks a confirmed one paid.
+
