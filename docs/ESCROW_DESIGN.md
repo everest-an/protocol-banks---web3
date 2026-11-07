@@ -1,9 +1,10 @@
 # Escrow Design — Agent Commerce
 
-> Status: design only. No escrow contract is deployed, and the current commerce
-> flow is direct, non-custodial payment (buyer → seller), with an atomic order
-> payment reservation. Do not describe the product as escrow until this design is
-> implemented, tested, audited and legally reviewed.
+> Status: contract and Hardhat tests exist (`contracts/contracts/AgentEscrow.sol`,
+> `contracts/test/AgentEscrow.test.ts`); not deployed, not audited, and not wired
+> into the dashboard. The live commerce flow is still direct, non-custodial
+> payment with an atomic order payment reservation. Do not describe the product
+> as escrow until it is deployed, audited and legally reviewed.
 
 ## 1. Why escrow
 
