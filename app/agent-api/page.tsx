@@ -30,6 +30,7 @@ const ENDPOINTS = [
   { method: "POST", path: "/pay", op: "pay", executesLabel: "optional (signed auth)", note: "EIP-712 intent, or a submitted payment" },
   { method: "POST", path: "/swap", op: "swap", executesLabel: "no", note: "quote + transaction to sign" },
   { method: "POST", path: "/invoice", op: "pay", executesLabel: "no", note: "pending invoice + paymentLink" },
+  { method: "POST", path: "/llm", op: "pay", executesLabel: "yes (paid model)", note: "agent USDC budget -> OpenRouter / DeepSeek completion" },
 ]
 
 const COMMERCE = [

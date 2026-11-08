@@ -101,6 +101,7 @@ POST /api/v1/agent/pay
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
               <li>Public service directory and structured quotes</li>
               <li>Order-bound EIP-3009 and x402 payments in USDC</li>
+              <li>Paid model calls through the agent USDC budget (OpenRouter / DeepSeek)</li>
               <li>termsHash, delivery proof, disputes, refunds and reputation</li>
               <li>API keys, per-call caps, daily caps and audit</li>
             </ul>
