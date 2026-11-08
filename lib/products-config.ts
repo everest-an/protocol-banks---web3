@@ -49,6 +49,12 @@ export const overviewItems: ProductItem[] = [
     icon: ShoppingBag,
   },
   {
+    href: "/agents/fleet",
+    title: "Agent Fleet",
+    description: "Budgets, caps, status and spend across every agent",
+    icon: Users,
+  },
+  {
     href: "/card",
     title: "Card",
     description: "Virtual crypto debit card",
