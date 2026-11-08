@@ -36,6 +36,7 @@ import { PaymentGroupSelector } from "@/components/payment-group-selector"
 import { recordFee, calculateFee } from "@/lib/protocol-fees"
 import { sonicBranding } from "@/lib/sonic-branding"
 import { getVendorDisplayName } from "@/lib/utils"
+import { PaymentsNav } from "@/components/payments-nav"
 
 interface Invoice {
   invoice_id: string
@@ -850,6 +851,7 @@ function PaymentContent() {
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
+      <PaymentsNav />
       {/* Header with Initiate Payment button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

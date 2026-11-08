@@ -69,6 +69,7 @@ interface MultisigWallet {
   updated_at: string
 }
 import { publicBatchTransferService, TOKEN_ADDRESSES } from "@/lib/services/public-batch-transfer-service"
+import { PaymentsNav } from "@/components/payments-nav"
 import { getTokenAddress, isERC3009Supported } from "@/lib/erc3009"
 import { createWalletClient, createPublicClient, http, custom } from "viem"
 import { arbitrum, base, mainnet, polygon, bsc, type Chain } from "viem/chains"
@@ -1411,20 +1412,19 @@ export default function BatchPaymentPage() {
 
   return (
     <main className="container mx-auto py-4 sm:py-6 px-3 sm:px-4 max-w-7xl pb-24 md:pb-6">
+      <PaymentsNav />
       {/* Mode Toggle - REMOVED */}
 
       <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Business Payments</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Manage batch payments and auto-payments</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Batch and multi-recipient payments</p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "batch" | "auto" | "x402")} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+        <TabsList className="grid w-full grid-cols-1 lg:w-[180px]">
           <TabsTrigger value="batch">Batch Payment</TabsTrigger>
-          <TabsTrigger value="auto">Auto Payments</TabsTrigger>
-          <TabsTrigger value="x402">x402 Bill Pay</TabsTrigger>
         </TabsList>
 
         {/* Personal Mode - Subscription Management - REMOVED */}
@@ -1965,141 +1965,6 @@ export default function BatchPaymentPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="auto" className="space-y-6">
-          <Alert className="bg-blue-500/10 border-blue-500/20">
-            <Clock className="h-4 w-4 text-blue-500" />
-            <AlertTitle className="text-blue-500">Automated Payments</AlertTitle>
-            <AlertDescription className="text-muted-foreground">
-              Set up recurring payments to vendors. All auto-payments can be paused at any time.
-            </AlertDescription>
-          </Alert>
-
-          <GlassCard className="bg-card">
-            <GlassCardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <GlassCardTitle>Scheduled Auto-Payments</GlassCardTitle>
-                <GlassCardDescription>Manage recurring vendor payments</GlassCardDescription>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => {
-                  router.push("/subscriptions")
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Auto-Payment
-              </Button>
-            </GlassCardHeader>
-            <GlassCardContent>
-              <div className="space-y-3">
-                {displayAutoPayments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className={`flex items-center justify-between p-3 sm:p-4 rounded-lg border gap-2 ${
-                      payment.status === "paused" ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/30 border-border"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium flex items-center gap-2 flex-wrap text-sm sm:text-base">
-                          <span className="truncate">{payment.vendorName}</span>
-                          <Badge variant={payment.status === "active" ? "default" : "secondary"} className="text-xs">
-                            {payment.status}
-                          </Badge>
-                        </div>
-                        <div className="text-xs sm:text-sm text-muted-foreground">
-                          ${payment.amount} {payment.token} / {payment.frequency}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Next: {payment.nextPayment?.toLocaleDateString() || 'Not scheduled'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => toggleAutoPaymentStatus(payment.id)}>
-                        {payment.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 hidden sm:flex"
-                        onClick={() => router.push("/subscriptions")}
-                        title="Configure auto-payment"
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </GlassCardContent>
-          </GlassCard>
-        </TabsContent>
-
-        <TabsContent value="x402" className="space-y-6">
-          <Alert className="bg-purple-500/10 border-purple-500/20">
-            <LinkIcon className="h-4 w-4 text-purple-500" />
-            <AlertTitle className="text-purple-500">x402 Protocol</AlertTitle>
-            <AlertDescription className="text-muted-foreground">
-              Pay bills via payment links. Scan QR codes or paste x402 links to pay instantly.
-            </AlertDescription>
-          </Alert>
-
-          <GlassCard className="bg-card">
-            <GlassCardHeader>
-              <GlassCardTitle>Pay via Link</GlassCardTitle>
-              <GlassCardDescription>Enter an x402 payment link or scan QR code</GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Payment Link</Label>
-                <Input
-                  placeholder="x402://pay?..."
-                  className="font-mono"
-                  value={x402Link}
-                  onChange={(e) => setX402Link(e.target.value)}
-                />
-              </div>
-              <Button
-                className="w-full"
-                disabled={!x402Link.trim()}
-                onClick={() => {
-                  if (!x402Link.trim()) return
-                  try {
-                    const params = new URLSearchParams(x402Link.replace(/^x402:\/\/pay\?/, ""))
-                    const to = params.get("to") || params.get("recipient")
-                    const amount = params.get("amount")
-                    if (to && amount) {
-                      setRecipients([{
-                        id: Date.now().toString(),
-                        address: to,
-                        amount,
-                        vendorName: params.get("name") || "",
-                        vendorId: "",
-                        token: params.get("token") || "USDT",
-                        chain: selectedPaymentChain,
-                      }])
-                      setActiveTab("batch")
-                      setShowBatchForm(true)
-                      toast({ title: "Payment Loaded", description: `Loaded x402 payment to ${to}` })
-                      setX402Link("")
-                    } else {
-                      toast({ title: "Invalid Link", description: "Could not parse payment link. Expected x402://pay?to=...&amount=...", variant: "destructive" })
-                    }
-                  } catch {
-                    toast({ title: "Invalid Link", description: "Failed to parse payment link format", variant: "destructive" })
-                  }
-                }}
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Process Payment
-              </Button>
-            </GlassCardContent>
-          </GlassCard>
-        </TabsContent>
       </Tabs>
 
       <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>

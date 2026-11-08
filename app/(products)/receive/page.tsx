@@ -17,6 +17,7 @@ import { AddressVerificationDisplay } from "@/components/address-verification-di
 import { detectAddressType } from "@/lib/address-utils"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import { SUPPORTED_CHAINS } from "@/lib/tokens"
+import { PaymentsNav } from "@/components/payments-nav"
 
 function isValidAddress(address: string): boolean {
   const type = detectAddressType(address)
@@ -227,6 +228,7 @@ export default function ReceivePage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl">
+      <PaymentsNav />
       <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Receive Payments</h1>

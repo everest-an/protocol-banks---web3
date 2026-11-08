@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { PaymentsNav } from "@/components/payments-nav"
 import { useDemo } from "@/contexts/demo-context"
 import { useSubscriptions } from "@/hooks/use-subscriptions"
 import { AuthorizeDialog } from "@/components/subscriptions/authorize-dialog"
@@ -237,6 +238,7 @@ export default function SubscriptionsPage() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl space-y-6">
+        <PaymentsNav />
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

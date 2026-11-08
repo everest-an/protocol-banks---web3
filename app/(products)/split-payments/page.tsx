@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { SplitPaymentForm } from "@/components/split-payment-form"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { authHeaders } from "@/lib/authenticated-fetch"
+import { PaymentsNav } from "@/components/payments-nav"
 import { useDemo } from "@/contexts/demo-context"
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -513,6 +514,7 @@ export default function SplitPaymentsPage() {
 
   return (
     <div className="container mx-auto py-8 space-y-8 max-w-4xl">
+      <PaymentsNav />
       <div>
         <h1 className="text-3xl font-bold mb-2">Split Payments</h1>
         <p className="text-muted-foreground">

@@ -78,27 +78,9 @@ export const businessItems: ProductItem[] = [
   },
   {
     href: "/pay",
-    title: "Pay",
-    description: "Send crypto to any wallet address instantly",
+    title: "Payments",
+    description: "Single, batch, split, auto-pay and collect",
     icon: Send,
-  },
-  {
-    href: "/batch-payment",
-    title: "Batch Payment",
-    description: "Pay multiple recipients or split revenue",
-    icon: Users,
-  },
-  {
-    href: "/split-payments",
-    title: "Split Payments",
-    description: "Split bills and revenue sharing",
-    icon: SplitSquareHorizontal,
-  },
-  {
-    href: "/subscriptions",
-    title: "Auto Pay",
-    description: "Recurring payments & enterprise auto-pay",
-    icon: Clock,
   },
   {
     href: "/vendors",
@@ -111,12 +93,6 @@ export const businessItems: ProductItem[] = [
     title: "Transactions",
     description: "History, reconciliation, and analytics",
     icon: ArrowRightLeft,
-  },
-  {
-    href: "/receive",
-    title: "Payment Links",
-    description: "Generate QR codes and shareable links",
-    icon: LinkIcon,
   },
   {
     href: "/swap",
