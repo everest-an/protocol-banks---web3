@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 
 interface Service {
@@ -58,8 +59,13 @@ export function AgentCommerceDirectory() {
         <p className="text-sm text-red-500">{error}</p>
       ) : services.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-black/10 p-10 text-center text-sm text-muted-foreground dark:border-white/10">
-          No public services yet. A seller can publish one with
-          <code className="mx-1 rounded bg-black/5 px-1.5 py-0.5 dark:bg-white/10">POST /api/v1/agent/commerce/services</code>.
+          <p>
+            No public services yet. A seller can publish one with{" "}
+            <code className="rounded bg-black/5 px-1.5 py-0.5 dark:bg-white/10">POST /api/v1/agent/commerce/services</code>.
+          </p>
+          <Link href="#sell" className="mt-4 inline-flex items-center gap-2 text-foreground underline underline-offset-4">
+            Read the seller setup
+          </Link>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

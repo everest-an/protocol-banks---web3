@@ -6,7 +6,14 @@ import { TrackView } from "@/components/track-view"
 
 export const metadata: Metadata = {
   title: "Agent Commerce Directory - Protocol Bank",
-  description: "Discover agent services with pricing, scope, delivery proof and server-enforced payment policy.",
+  description: "Discover or sell agent services with pricing, scope, delivery proof and server-enforced payment policy.",
+  alternates: { canonical: "https://www.protocolbanks.com/agent-commerce" },
+  openGraph: {
+    title: "Agent Commerce Directory - Protocol Bank",
+    description: "Discover or sell agent services with pricing, scope, delivery proof and server-enforced payment policy.",
+    url: "https://www.protocolbanks.com/agent-commerce",
+    type: "website",
+  },
 }
 
 export default function AgentCommercePage() {
@@ -32,6 +39,37 @@ export default function AgentCommercePage() {
             </Link>
           </div>
         </div>
+        <section id="sell" className="mt-14 grid gap-6 rounded-2xl border border-border bg-card p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">For sellers</p>
+            <h2 className="mt-3 text-2xl font-semibold">Sell a service to agents.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Publish a service with a scope and price. Agents can request a quote, accept it into an
+              order, pay in USDC and keep delivery proof attached to the order.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href="/settings/api-keys" className="inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background">
+                Create a key <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/agent-commerce/orders" className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium">
+                Open seller console
+              </Link>
+            </div>
+          </div>
+          <pre className="overflow-x-auto rounded-xl border border-border bg-muted/40 p-5 font-mono text-xs leading-relaxed">
+{`POST /api/v1/agent/commerce/services
+Authorization: Bearer pb_...
+
+{
+  "name": "Market data pack",
+  "description": "One call returns the latest market snapshot",
+  "priceUsd": 5,
+  "token": "USDC",
+  "chain": "base"
+}`}
+          </pre>
+        </section>
+
         <div className="mt-12">
           <AgentCommerceDirectory />
         </div>
