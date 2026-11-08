@@ -19,7 +19,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - Agent mandate: operations (read / trade / pay / swap), per-call cap, daily cap, allowlist
 - Agent commerce: services, quotes, orders, delivery proof, payment binding, disputes, refunds and reputation
 - Agent payments: EIP-3009 payer-signed USDC, x402 over HTTP 402; the relayer only pays gas
-- Paid model calls: POST /api/v1/agent/llm charges the agent budget and returns an OpenRouter/DeepSeek completion
+- Paid model calls: POST /api/v1/agent/llm charges the agent budget or settles USDC on Base via an X-Payment x402 proof, then returns an OpenRouter/DeepSeek completion
 - Agent cards (Coming soon): virtual Visa cards will be scoped to one agent; provider onboarding is in progress
 - Non-custodial trading: the Hyperliquid agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
 - Paper trading mode: real market data, simulated money, zero risk

@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server"
+import { parseUnits } from "viem"
 import { withAgentAuth, type AgentRequest } from "@/lib/agent/auth"
 import { evaluatePolicy } from "@/lib/agent/policy"
 import { budgetService } from "@/lib/services/budget-service"
 import { agentActivityService } from "@/lib/services/agent-activity-service"
 import { recordEvent } from "@/lib/analytics/events"
+import { verifyPaymentAuthorization } from "@/lib/agent/pay"
+import { getTokenAddress } from "@/lib/erc3009"
+import { submitTransferWithAuthorization } from "@/lib/services/relayer-submit"
+import { createAgentPayment, getAgentPaymentByNonce, markAgentPaymentConfirmed, markAgentPaymentFailed, markAgentPaymentSubmitted } from "@/lib/agent/payment-store"
 import {
   callDeepSeek,
   callOpenRouter,
@@ -27,6 +32,137 @@ import {
  */
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
+
+const X402_CHAIN = "base"
+const X402_CHAIN_ID = 8453
+const X402_TOKEN = "USDC"
+
+function x402PayTo(): string | null {
+  return process.env.AGENT_LLM_PAY_TO || process.env.ASSET_DISTRIBUTOR_ADDRESS || null
+}
+
+function b64(value: unknown): string {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64")
+}
+
+function paymentRequired(priceUsd: number) {
+  const payTo = x402PayTo()
+  if (!payTo) {
+    return NextResponse.json({ error: "paid model calls are not configured (AGENT_LLM_PAY_TO missing)" }, { status: 503 })
+  }
+  const request = {
+    version: "1.0",
+    network: X402_CHAIN,
+    paymentAddress: payTo,
+    amount: priceUsd.toFixed(2),
+    token: X402_TOKEN,
+    chainId: X402_CHAIN_ID,
+    memo: "Protocol Bank paid model call",
+    expiresAt: Date.now() + 15 * 60_000,
+  }
+  const response = NextResponse.json({
+    error: "Payment Required",
+    paymentRequest: request,
+    accepts: [{
+      scheme: "exact",
+      network: X402_CHAIN,
+      maxAmountRequired: parseUnits(priceUsd.toFixed(6), 6).toString(),
+      resource: "/api/v1/agent/llm",
+      description: "One paid model call through Protocol Bank",
+      payTo,
+      asset: getTokenAddress(X402_CHAIN_ID, X402_TOKEN),
+    }],
+  }, { status: 402 })
+  response.headers.set("X-Payment-Request", b64(request))
+  return response
+}
+
+type X402Proof = {
+  from?: string
+  signature?: {
+    v?: number | string
+    r?: string
+    s?: string
+    nonce?: string
+    validAfter?: number | string
+    validBefore?: number | string
+  }
+}
+
+async function settleX402(header: string, owner: string, priceUsd: number) {
+  const payTo = x402PayTo()
+  if (!payTo) return { ok: false as const, error: "paid model calls are not configured", status: 503 }
+  let proof: X402Proof
+  try {
+    proof = JSON.parse(Buffer.from(header, "base64").toString("utf8")) as X402Proof
+  } catch {
+    return { ok: false as const, error: "invalid X-Payment header", status: 400 }
+  }
+  const signature = proof.signature
+  const from = proof.from || ""
+  if (!from || !signature?.r || !signature.s || !signature.nonce) {
+    return { ok: false as const, error: "X-Payment is missing signature fields", status: 400 }
+  }
+  const authorization = {
+    from,
+    to: payTo,
+    value: parseUnits(priceUsd.toFixed(6), 6).toString(),
+    validAfter: Number(signature.validAfter),
+    validBefore: Number(signature.validBefore),
+    nonce: signature.nonce,
+  }
+  const checked = await verifyPaymentAuthorization({
+    owner,
+    to: payTo,
+    amountUsd: priceUsd,
+    token: X402_TOKEN,
+    chain: X402_CHAIN,
+    authorization,
+    signature: { v: Number(signature.v), r: signature.r, s: signature.s },
+  })
+  if (!checked.ok) return { ok: false as const, error: checked.error, status: 400 }
+
+  const existing = await getAgentPaymentByNonce(authorization.nonce)
+  if (existing) return { ok: false as const, error: "this x402 payment was already used", status: 409 }
+
+  const { payment } = await createAgentPayment({
+    ownerAddress: owner,
+    fromAddress: authorization.from,
+    toAddress: payTo,
+    token: X402_TOKEN,
+    chain: X402_CHAIN,
+    chainId: X402_CHAIN_ID,
+    amountUsd: priceUsd,
+    amountUnits: authorization.value,
+    nonce: authorization.nonce,
+    memo: "x402:llm",
+  })
+
+  const tokenAddress = getTokenAddress(X402_CHAIN_ID, X402_TOKEN)
+  if (!tokenAddress) return { ok: false as const, error: "USDC is not configured on Base", status: 503 }
+  try {
+    const txHash = await submitTransferWithAuthorization({
+      chainId: X402_CHAIN_ID,
+      tokenAddress,
+      from: authorization.from,
+      to: payTo,
+      value: BigInt(authorization.value),
+      validAfter: authorization.validAfter,
+      validBefore: authorization.validBefore,
+      nonce: authorization.nonce,
+      v: checked.v,
+      r: checked.r,
+      s: checked.s,
+    })
+    await markAgentPaymentSubmitted(payment.id, txHash)
+    await markAgentPaymentConfirmed(payment.id)
+    return { ok: true as const, txHash, paymentId: payment.id }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "x402 settlement failed"
+    await markAgentPaymentFailed(payment.id, message).catch(() => {})
+    return { ok: false as const, error: message, status: 502 }
+  }
+}
 
 async function handler(request: AgentRequest) {
   const policy = request.agentPolicy!
@@ -70,22 +206,18 @@ async function handler(request: AgentRequest) {
   }
 
   const agentId = request.agentId
+  const xPayment = request.headers.get("x-payment")
   let budgetId: string | undefined
   let budgetRemaining: string | undefined
+  let x402Receipt: { txHash: string; paymentId: string } | undefined
 
-  if (agentId) {
+  if (xPayment) {
+    const settled = await settleX402(xPayment, request.ownerAddress as string, priceUsd)
+    if (!settled.ok) return NextResponse.json({ ok: false, error: settled.error, code: "x402_settlement_failed" }, { status: settled.status })
+    x402Receipt = { txHash: settled.txHash, paymentId: settled.paymentId }
+  } else if (agentId) {
     const availability = await budgetService.checkAvailability(agentId, priceUsd.toFixed(6), "USDC")
-    if (!availability.available || !availability.budget) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: availability.reason || "This agent has no active USDC budget for model calls.",
-          code: "budget_required",
-          priceUsd,
-        },
-        { status: 402 },
-      )
-    }
+    if (!availability.available || !availability.budget) return paymentRequired(priceUsd)
     budgetId = availability.budget.id
   }
 
@@ -147,7 +279,9 @@ async function handler(request: AgentRequest) {
       charge: {
         amountUsd: priceUsd,
         currency: "USDC",
-        kind: budgetId ? "agent_budget" : "policy_metered",
+        kind: x402Receipt ? "x402" : budgetId ? "agent_budget" : "policy_metered",
+        txHash: x402Receipt?.txHash,
+        paymentId: x402Receipt?.paymentId,
         budgetId,
         budgetRemaining,
       },

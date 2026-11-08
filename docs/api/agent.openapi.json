@@ -1238,7 +1238,7 @@
         ],
         "operationId": "callPaidModel",
         "summary": "Call an LLM through the platform OpenRouter gateway",
-        "description": "Policy pay is required. An agent-scoped key also needs an active USDC budget. The call is charged at AGENT_LLM_PRICE_USD (default $0.01) only after the provider answers; a provider failure is not charged. OpenRouter is tried first, then DeepSeek when OPENROUTER_API_KEY has no usable credits.",
+        "description": "Policy pay is required. An x402 challenge is returned when no agent budget is available; retry with an X-Payment proof to settle USDC on Base. An agent-scoped key with a USDC budget is charged internally at AGENT_LLM_PRICE_USD (default $0.01) only after the provider answers. OpenRouter is tried first, then DeepSeek when OpenRouter has no usable credits.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1361,7 +1361,7 @@
             }
           },
           "402": {
-            "description": "No active USDC budget or insufficient budget."
+            "description": "Payment Required: either an active budget is missing, or the x402 proof is absent/invalid. The body contains paymentRequest and accepts."
           },
           "403": {
             "description": "The key policy does not allow pay, or a cap would be exceeded."
@@ -1375,7 +1375,18 @@
           "503": {
             "description": "Neither OpenRouter nor the fallback provider is configured."
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-Payment",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Base64 x402 proof: { from, signature: { v, r, s, nonce, validAfter, validBefore } }. The payTo, token and amount come from the 402 challenge."
+          }
+        ]
       }
     }
   },

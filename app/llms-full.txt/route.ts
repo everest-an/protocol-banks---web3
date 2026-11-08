@@ -157,7 +157,7 @@ only pays gas. /swap and /invoice prepare something the agent signs itself.
 - GET /state — mode, equity, positions, activity, the Hyperliquid agent wallet status (tradingOnly, never withdrawable), and the key's policy with spentTodayUsd
 - POST /orders — { coin, side: "long"|"short", sizeUsd, reason? } -> executed fill + fee + remainingTodayUsd
 - POST /pay — { to, amountUsd, token?, chain?, memo? } -> an intent + typedData; add the authorization object { ...message, v, r, s } to execute (relayer submits; the payer's own USDC moves)
-- POST /llm - paid LLM call; requires the pay operation, an active USDC budget on agent keys, OpenRouter first and DeepSeek fallback
+- POST /llm - paid LLM call; requires pay, supports a USDC budget or an x402 X-Payment proof on Base, OpenRouter first and DeepSeek fallback
 - POST /swap — { from, to, amount, amountUsd, slippage? } -> quote + transaction to sign
 - POST /invoice — { to, amount, token?, chain?, description?, expiresInHours? } -> pending invoice + paymentLink (/pay?invoice=...&sig=...); read settlement back with GET /api/invoice?id=...&sig=...
 - POST /commerce/services, /commerce/quotes, /commerce/quotes/accept — publish a service, create a quote, accept it into an order
