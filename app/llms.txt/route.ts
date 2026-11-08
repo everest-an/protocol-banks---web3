@@ -19,6 +19,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - Agent mandate: operations (read / trade / pay / swap), per-call cap, daily cap, allowlist
 - Agent commerce: services, quotes, orders, delivery proof, payment binding, disputes, refunds and reputation
 - Agent payments: EIP-3009 payer-signed USDC, x402 over HTTP 402; the relayer only pays gas
+- Paid model calls: POST /api/v1/agent/llm charges the agent budget and returns an OpenRouter/DeepSeek completion
 - Agent cards (Coming soon): virtual Visa cards will be scoped to one agent; provider onboarding is in progress
 - Non-custodial trading: the Hyperliquid agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
 - Paper trading mode: real market data, simulated money, zero risk
@@ -49,6 +50,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - GET /api/v1/agent/state — account, policy, agent wallet status (trading-only)
 - POST /api/v1/agent/orders — execute a Hyperliquid order
 - POST /api/v1/agent/pay — prepare or execute an EIP-3009 payment
+- POST /api/v1/agent/llm - paid model call from the agent USDC budget (OpenRouter; DeepSeek fallback)
 - POST /api/v1/agent/swap — Rango quote + transaction to sign
 - POST /api/v1/agent/invoice — create a payable invoice
 - POST /api/v1/agent/commerce/services — publish a paid service

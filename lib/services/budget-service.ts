@@ -593,6 +593,52 @@ export class BudgetService {
   }
 
   /**
+   * Return a previously deducted amount (for example when a provider rejects
+   * a paid call before the user receives the result).
+   */
+  async refundBudget(budgetId: string, amount: string): Promise<AgentBudget> {
+    const refundAmount = parseFloat(amount)
+    if (isNaN(refundAmount) || refundAmount <= 0) {
+      throw new Error('amount must be a positive number')
+    }
+
+    if (useDatabaseStorage) {
+      const budget = await prisma.agentBudget.findUnique({ where: { id: budgetId } })
+      if (!budget) throw new Error('Budget not found')
+
+      const used = Math.max(0, parseFloat(budget.used_amount) - refundAmount)
+      const remaining = parseFloat(budget.remaining_amount) + refundAmount
+      const data = await prisma.agentBudget.update({
+        where: { id: budgetId },
+        data: {
+          used_amount: used.toString(),
+          remaining_amount: remaining.toString(),
+          updated_at: new Date(),
+        },
+      })
+      return {
+        ...data,
+        period: data.period as BudgetPeriod,
+        period_start: data.period_start,
+        period_end: data.period_end ? data.period_end : undefined,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      }
+    }
+
+    const budget = budgetStore.get(budgetId)
+    if (!budget) throw new Error('Budget not found')
+    const updatedBudget: AgentBudget = {
+      ...budget,
+      used_amount: Math.max(0, parseFloat(budget.used_amount) - refundAmount).toString(),
+      remaining_amount: (parseFloat(budget.remaining_amount) + refundAmount).toString(),
+      updated_at: new Date(),
+    }
+    budgetStore.set(budgetId, updatedBudget)
+    return updatedBudget
+  }
+
+  /**
    * Reset all expired periodic budgets
    * Returns count of reset budgets
    */

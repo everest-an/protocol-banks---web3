@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Protocol Bank Agent API",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "summary": "One credential, one server-enforced policy, five operations.",
     "description": "The programmatic surface for AI agents and the partners that run them. One API key carries one policy (operations, per-call cap, daily cap, coin allowlist) and the server enforces it on every call.\n\n**Two operations execute; three prepare.** The platform holds no keys and can never move an agent's funds: `orders` trades through the account's Hyperliquid agent wallet, which has trading-only rights, while `pay` and `swap` return something the agent must sign from its own wallet. `invoice` creates a payment request and moves nothing.\n\nAll amounts are USD unless a field says otherwise. A `403` is a refusal by the key's policy; a `409` is a refusal by the platform guard (positions, breakers, funds, unknown market, no route) or an invalid key policy. Both are final for the call — do not retry without changing the request.\n\nAgent Commerce extends the API with structured services, quotes, orders, delivery proof, order-bound payments and seller reputation. See /v1/agent/commerce/*.",
     "license": {
@@ -41,6 +41,10 @@
     {
       "name": "commerce",
       "description": "Structured agent-to-agent services, quotes, orders, delivery and reputation."
+    },
+    {
+      "name": "pay",
+      "description": "Spend from the server-enforced mandate."
     }
   ],
   "paths": {
@@ -1223,6 +1227,153 @@
           },
           "409": {
             "description": "State conflict"
+          }
+        }
+      }
+    },
+    "/v1/agent/llm": {
+      "post": {
+        "tags": [
+          "pay"
+        ],
+        "operationId": "callPaidModel",
+        "summary": "Call an LLM through the platform OpenRouter gateway",
+        "description": "Policy pay is required. An agent-scoped key also needs an active USDC budget. The call is charged at AGENT_LLM_PRICE_USD (default $0.01) only after the provider answers; a provider failure is not charged. OpenRouter is tried first, then DeepSeek when OPENROUTER_API_KEY has no usable credits.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "messages"
+                ],
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "role",
+                        "content"
+                      ],
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "system",
+                            "user",
+                            "assistant"
+                          ]
+                        },
+                        "content": {
+                          "type": "string",
+                          "maxLength": 20000
+                        }
+                      }
+                    }
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "OpenRouter model id; default is LLM_DEFAULT_MODEL."
+                  },
+                  "max_tokens": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2000,
+                    "default": 800
+                  },
+                  "temperature": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 2,
+                    "default": 0.2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Model completion and the agent-budget receipt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "openrouter",
+                        "deepseek"
+                      ]
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "usage": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "charge": {
+                      "type": "object",
+                      "properties": {
+                        "amountUsd": {
+                          "type": "number"
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "budgetId": {
+                          "type": "string"
+                        },
+                        "budgetRemaining": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "policy": {
+                      "type": "object",
+                      "properties": {
+                        "spentTodayUsd": {
+                          "type": "number"
+                        },
+                        "remainingTodayUsd": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "No active USDC budget or insufficient budget."
+          },
+          "403": {
+            "description": "The key policy does not allow pay, or a cap would be exceeded."
+          },
+          "429": {
+            "description": "Provider rate limit."
+          },
+          "502": {
+            "description": "Provider rejected the call; no budget is charged."
+          },
+          "503": {
+            "description": "Neither OpenRouter nor the fallback provider is configured."
           }
         }
       }
