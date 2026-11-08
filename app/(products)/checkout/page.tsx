@@ -91,7 +91,7 @@ function CheckoutContent() {
   const orderNo = searchParams.get("order");
   const brandColorParam = searchParams.get("brandColor");
   const logoParam = searchParams.get("logo");
-  const isDemo = !orderNo || orderNo === "demo";
+  const isDemo = orderNo === "demo";
 
   // Set branding from URL params
   useEffect(() => {
@@ -317,6 +317,26 @@ function CheckoutContent() {
     setShowNetworkSelection(false);
     setShowQRCode(true);
   };
+
+  if (!orderNo) {
+    return (
+      <div className="container max-w-md mx-auto py-20 px-4">
+        <GlassCard>
+          <GlassCardHeader>
+            <h2 className="text-lg font-semibold">Checkout link required</h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              Open this page from a merchant order or payment link.
+            </p>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <Button asChild className="w-full">
+              <Link href="/receive">Create a payment link</Link>
+            </Button>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
