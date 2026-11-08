@@ -30,6 +30,13 @@ interface AnalyticsResponse {
     lastActive: string
   }[]
   feedback: { at: string; page: string; wallet: string; message: string }[]
+  funnel?: {
+    events: Record<string, number>
+    services: number
+    quotes: number
+    orders: number
+    paymentLinks: number
+  }
 }
 
 export default function AdminAnalyticsPage() {
@@ -143,6 +150,38 @@ export default function AdminAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Acquisition funnel */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Acquisition funnel (last 30 days)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              ["Landing views", "landing_view"],
+              ["Pricing views", "pricing_view"],
+              ["Commerce views", "commerce_view"],
+              ["Use-case views", "use_case_view"],
+              ["API keys created", "api_key_created"],
+              ["Payment links created", "payment_link_created"],
+            ].map(([label, key]) => (
+              <div key={key} className="rounded-lg border border-border/60 p-3">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-1 text-2xl font-bold font-mono tabular-nums">
+                  {data.funnel?.events?.[key] ?? 0}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <span>Services: <strong className="text-foreground">{data.funnel?.services ?? 0}</strong></span>
+            <span>Quotes: <strong className="text-foreground">{data.funnel?.quotes ?? 0}</strong></span>
+            <span>Orders: <strong className="text-foreground">{data.funnel?.orders ?? 0}</strong></span>
+            <span>Payment links: <strong className="text-foreground">{data.funnel?.paymentLinks ?? 0}</strong></span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Paper accounts table */}
       <Card>

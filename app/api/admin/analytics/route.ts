@@ -112,6 +112,40 @@ export async function GET(request: NextRequest) {
 
   const activeTraders = paperAccounts.filter((a) => a.activityCount > 1).length
 
+  // Acquisition funnel: events are written by the client tracker and the
+  // server-side key/payment paths. Missing tables degrade to zeros.
+  let funnel = {
+    events: {} as Record<string, number>,
+    services: 0,
+    quotes: 0,
+    orders: 0,
+    paymentLinks: 0,
+  }
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const [groups, services, quotes, orders, paymentLinks] = await Promise.all([
+      prisma.usageEvent.groupBy({
+        by: ["name"],
+        where: { created_at: { gte: since } },
+        _count: { _all: true },
+      }),
+      prisma.agentService.count().catch(() => 0),
+      prisma.agentQuote.count().catch(() => 0),
+      prisma.agentOrder.count().catch(() => 0),
+      prisma.paymentLink.count().catch(() => 0),
+    ])
+    funnel = {
+      events: Object.fromEntries(groups.map((row) => [row.name, row._count._all])),
+      services,
+      quotes,
+      orders,
+      paymentLinks,
+    }
+  } catch {
+    // keep zeroed funnel when analytics storage is unavailable
+  }
+
   return NextResponse.json({
     totals: {
       paperAccounts: paperAccounts.length,
@@ -124,5 +158,6 @@ export async function GET(request: NextRequest) {
     paperAccounts,
     feedback: feedback.slice(0, 50),
     dbStats,
+    funnel,
   })
 }
