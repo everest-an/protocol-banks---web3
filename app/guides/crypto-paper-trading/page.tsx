@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Crypto Paper Trading: A Sandbox for Agent Builders (2026)",
   description:
     "Paper trading runs the same Agent API against real market data and simulated money. Test the policy, the refusals and the integration before going live.",
-  alternates: { canonical: "https://protocolbanks.com/guides/crypto-paper-trading" },
+  alternates: { canonical: "https://www.protocolbanks.com/guides/crypto-paper-trading" },
   openGraph: {
     title: "Crypto Paper Trading: A Sandbox for Agent Builders",
     description:

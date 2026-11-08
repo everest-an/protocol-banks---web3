@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Best AI Trading Bots 2026: Non-Custodial Agent Controls",
   description:
     "How to evaluate AI trading bots and agent platforms: custody, withdrawal rights, server-enforced caps, audit and venue support. No return rankings.",
-  alternates: { canonical: "https://protocolbanks.com/guides/best-ai-trading-bots" },
+  alternates: { canonical: "https://www.protocolbanks.com/guides/best-ai-trading-bots" },
   openGraph: {
     title: "Best AI Trading Bots 2026: Non-Custodial Agent Controls",
     description:

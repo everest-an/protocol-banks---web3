@@ -245,8 +245,8 @@ export default function TradingPage() {
 
     // Honest share card: live = real PnL, paper = clearly labeled simulated.
     const text = isLive
-      ? `My AI trading agent is live on Hyperliquid.\n\nTrading-only permissions — it can trade, never withdraw.\nReal PnL so far: ${sign}$${abs}\n\nTrack record: https://protocolbanks.com/live-track-record`
-      : `Watching the Protocol Bank AI trade real markets.\n\nPaper PnL: ${sign}$${abs} (simulated — zero risk)\nThe AI can trade but never withdraw.\n\nTry it: https://protocolbanks.com`
+      ? `My AI trading agent is live on Hyperliquid.\n\nTrading-only permissions — it can trade, never withdraw.\nReal PnL so far: ${sign}$${abs}\n\nTrack record: https://www.protocolbanks.com/live-track-record`
+      : `Watching the Protocol Bank AI trade real markets.\n\nPaper PnL: ${sign}$${abs} (simulated — zero risk)\nThe AI can trade but never withdraw.\n\nTry it: https://www.protocolbanks.com`
 
     try {
       await navigator.clipboard.writeText(text)

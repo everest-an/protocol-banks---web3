@@ -9,6 +9,10 @@
  */
 export const EVENT_NAMES = [
   "landing_view",
+  "pricing_view",
+  "commerce_view",
+  "use_case_view",
+  "payment_link_created",
   "cockpit_view",
   "agents_view",
   "wallet_bound",

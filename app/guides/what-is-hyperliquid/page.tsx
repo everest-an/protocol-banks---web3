@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "What is Hyperliquid? The Venue Behind Agent Trading",
   description:
     "Hyperliquid explained for agent builders: a Layer 1 for perpetual futures, on-chain order book, agent wallets with trading-only permissions and why it is the first execution adapter.",
-  alternates: { canonical: "https://protocolbanks.com/guides/what-is-hyperliquid" },
+  alternates: { canonical: "https://www.protocolbanks.com/guides/what-is-hyperliquid" },
   openGraph: {
     title: "What is Hyperliquid? The Venue Behind Agent Trading",
     description:

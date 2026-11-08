@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Is AI Trading Safe? Trading-Only Permissions for Agents",
   description:
     "The real threat model for AI trading: model errors, prompt injection, key leaks and venue risk — and the controls that bound them. No strategy is risk-free.",
-  alternates: { canonical: "https://protocolbanks.com/guides/is-ai-trading-safe" },
+  alternates: { canonical: "https://www.protocolbanks.com/guides/is-ai-trading-safe" },
   openGraph: {
     title: "Is AI Trading Safe? Trading-Only Permissions for Agents",
     description:

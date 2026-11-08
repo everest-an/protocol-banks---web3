@@ -2,12 +2,13 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { ArrowRight, Check } from "lucide-react"
 import { PlanCheckoutButton } from "@/components/plan-checkout-button"
+import { TrackView } from "@/components/track-view"
 
 export const metadata: Metadata = {
   title: "Pricing — agent commerce with a server-enforced mandate",
   description:
     "Start free in sandbox. Plans for teams putting agents into production: commerce, payments and trading under one mandate, with cards in onboarding. Per-call and daily caps, more keys, priority support. No plan? Pay 8 bps on executed notional.",
-  alternates: { canonical: "https://protocolbanks.com/pricing" },
+  alternates: { canonical: "https://www.protocolbanks.com/pricing" },
 }
 
 const PLANS = [
@@ -125,6 +126,7 @@ const FAQ = [
 export default function PricingPage() {
   return (
     <main className="min-h-screen bg-[#F7F6F3] text-[#111111]">
+      <TrackView name="pricing_view" />
       <div className="mx-auto w-full max-w-6xl md:border-x border-[#E4E2DD] px-6 md:px-10 py-16 sm:py-20">
         <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ pricing ]</p>
         <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05] uppercase max-w-3xl">

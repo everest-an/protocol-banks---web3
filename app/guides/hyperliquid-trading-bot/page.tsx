@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Hyperliquid Trading Bot: Non-Custodial Agent Execution",
   description:
     "How to build a Hyperliquid trading bot with the Agent API: approveAgent trading-only rights, server-enforced caps, and audit. Bring your own strategy.",
-  alternates: { canonical: "https://protocolbanks.com/guides/hyperliquid-trading-bot" },
+  alternates: { canonical: "https://www.protocolbanks.com/guides/hyperliquid-trading-bot" },
   openGraph: {
     title: "Hyperliquid Trading Bot: Non-Custodial Agent Execution",
     description:

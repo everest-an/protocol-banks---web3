@@ -20,10 +20,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: `${page.title} — Protocol Bank 文档`,
     description: page.description,
     alternates: {
-      canonical: `https://protocolbanks.com${path}`,
+      canonical: `https://www.protocolbanks.com${path}`,
       languages: {
-        en: `https://protocolbanks.com${docHref("en", page.id)}`,
-        zh: `https://protocolbanks.com${path}`,
+        en: `https://www.protocolbanks.com${docHref("en", page.id)}`,
+        zh: `https://www.protocolbanks.com${path}`,
       },
     },
   }

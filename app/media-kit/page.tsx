@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Media Kit - Protocol Bank",
   description:
     "Brand assets, boilerplate copy, and usage guidelines for Protocol Bank — the control plane for agent money.",
-  alternates: { canonical: "https://protocolbanks.com/media-kit" },
+  alternates: { canonical: "https://www.protocolbanks.com/media-kit" },
 }
 
 const BOILERPLATES = [
@@ -56,7 +56,7 @@ export default function MediaKitPage() {
             about: {
               "@type": "Organization",
               name: "Protocol Bank",
-              url: "https://protocolbanks.com",
+              url: "https://www.protocolbanks.com",
             },
           }),
         }}
@@ -148,7 +148,7 @@ export default function MediaKitPage() {
               <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-3">Please</p>
               <ul className="text-sm text-muted-foreground space-y-2">
                 <li>• Use &ldquo;Protocol Bank&rdquo; (two words, both capitalised)</li>
-                <li>• Link to https://protocolbanks.com</li>
+                <li>• Link to https://www.protocolbanks.com</li>
                 <li>• Keep clear space around the mark</li>
                 <li>• Use the provided files unmodified</li>
               </ul>

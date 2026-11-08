@@ -18,6 +18,7 @@ import { detectAddressType } from "@/lib/address-utils"
 import { authHeaders } from "@/lib/authenticated-fetch"
 import { SUPPORTED_CHAINS } from "@/lib/tokens"
 import { PaymentsNav } from "@/components/payments-nav"
+import { track } from "@/lib/analytics/events"
 
 function isValidAddress(address: string): boolean {
   const type = detectAddressType(address)
@@ -145,6 +146,7 @@ export default function ReceivePage() {
       })
 
       setCopied(true)
+      track("payment_link_created")
       toast({
         title: "Link Copied",
         description: "Signed payment link copied to clipboard",

@@ -8,10 +8,10 @@ export const metadata: Metadata = {
   title: "Agent API docs — the control plane for agent money",
   description: "Overview, quickstart, concepts, API reference and security for the Protocol Bank Agent API.",
   alternates: {
-    canonical: "https://protocolbanks.com/docs",
+    canonical: "https://www.protocolbanks.com/docs",
     languages: {
-      en: "https://protocolbanks.com/docs",
-      zh: "https://protocolbanks.com/zh/docs",
+      en: "https://www.protocolbanks.com/docs",
+      zh: "https://www.protocolbanks.com/zh/docs",
     },
   },
 }

@@ -4,7 +4,7 @@ import type { MetadataRoute } from "next"
  * Sitemap for the public product surface.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://protocolbanks.com"
+  const baseUrl = "https://www.protocolbanks.com"
   const now = new Date()
 
   const routes = [
@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/trading", priority: 0.6, changeFrequency: "daily" as const },
     { path: "/agent-api", priority: 1.0, changeFrequency: "weekly" as const },
     { path: "/agent-commerce", priority: 0.8, changeFrequency: "daily" as const },
+    { path: "/use-cases/agent-buys-data-and-apis", priority: 0.8, changeFrequency: "monthly" as const },
     { path: "/pricing", priority: 0.9, changeFrequency: "weekly" as const },
     { path: "/docs", priority: 0.9, changeFrequency: "weekly" as const },
     { path: "/docs/quickstart", priority: 0.9, changeFrequency: "weekly" as const },

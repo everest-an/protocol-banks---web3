@@ -3,7 +3,7 @@ Allow: /
 
 # AI Agent Discovery
 # llms.txt: https://llmstxt.org/
-Sitemap: https://protocolbanks.com/sitemap.xml
+Sitemap: https://www.protocolbanks.com/sitemap.xml
 
 # AI-readable documentation
 # /llms.txt        — Summary for AI crawlers

@@ -139,12 +139,12 @@ Trading tools:
 Base: https://www.protocolbanks.com/api/v1/agent — auth: Authorization: Bearer pb_...
 or a dashboard agent key (agent_...), which resolves to the owner and a policy
 derived from the agent type, or to an explicit policy on the agent.
-Docs: https://protocolbanks.com/docs (overview) · /docs/quickstart · /docs/api ·
+Docs: https://www.protocolbanks.com/docs (overview) · /docs/quickstart · /docs/api ·
 /docs/concepts · /docs/security · Chinese: /zh/docs
 Contract: https://www.protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1, CORS-open)
-Keys and policy: https://protocolbanks.com/settings/api-keys
-Walkthrough: https://protocolbanks.com/agent-api — PB_KEY=pb_... pnpm example:agent
-Commerce directory: https://protocolbanks.com/agent-commerce
+Keys and policy: https://www.protocolbanks.com/settings/api-keys
+Walkthrough: https://www.protocolbanks.com/agent-api — PB_KEY=pb_... pnpm example:agent
+Commerce directory: https://www.protocolbanks.com/agent-commerce
 Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools
 (tool manifest for the Vercel AI SDK, LangChain, OpenAI and Anthropic)
 

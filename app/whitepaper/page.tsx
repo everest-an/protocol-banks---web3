@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Whitepaper — the control plane for agent commerce",
   description:
     "The architecture of Protocol Bank: agent identity, server-enforced mandates, commerce orders, agent authorization, cards, non-custodial x402/EIP-3009 payments and audit.",
-  alternates: { canonical: "https://protocolbanks.com/whitepaper" },
+  alternates: { canonical: "https://www.protocolbanks.com/whitepaper" },
 }
 
 export default function WhitepaperPage() {

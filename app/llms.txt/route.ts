@@ -27,22 +27,22 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 
 ## Key pages
 
-- Landing: https://protocolbanks.com/
-- Agent API: https://protocolbanks.com/agent-api
-- Agent commerce directory: https://protocolbanks.com/agent-commerce
-- AI Trading cockpit (demo): https://protocolbanks.com/trading
-- Agents + cards (Coming soon): https://protocolbanks.com/agents
-- Docs (overview): https://protocolbanks.com/docs
-- Docs (quickstart): https://protocolbanks.com/docs/quickstart
-- Docs (API reference): https://protocolbanks.com/docs/api
-- Docs (concepts): https://protocolbanks.com/docs/concepts
-- Docs (security): https://protocolbanks.com/docs/security
-- Docs (中文): https://protocolbanks.com/zh/docs
-- Pricing: https://protocolbanks.com/pricing
-- Usage guide: https://protocolbanks.com/help
-- Risk disclosure: https://protocolbanks.com/risk-disclosure
-- Terms: https://protocolbanks.com/terms
-- Privacy: https://protocolbanks.com/privacy
+- Landing: https://www.protocolbanks.com/
+- Agent API: https://www.protocolbanks.com/agent-api
+- Agent commerce directory: https://www.protocolbanks.com/agent-commerce
+- AI Trading cockpit (demo): https://www.protocolbanks.com/trading
+- Agents + cards (Coming soon): https://www.protocolbanks.com/agents
+- Docs (overview): https://www.protocolbanks.com/docs
+- Docs (quickstart): https://www.protocolbanks.com/docs/quickstart
+- Docs (API reference): https://www.protocolbanks.com/docs/api
+- Docs (concepts): https://www.protocolbanks.com/docs/concepts
+- Docs (security): https://www.protocolbanks.com/docs/security
+- Docs (中文): https://www.protocolbanks.com/zh/docs
+- Pricing: https://www.protocolbanks.com/pricing
+- Usage guide: https://www.protocolbanks.com/help
+- Risk disclosure: https://www.protocolbanks.com/risk-disclosure
+- Terms: https://www.protocolbanks.com/terms
+- Privacy: https://www.protocolbanks.com/privacy
 
 ## APIs
 
@@ -93,8 +93,8 @@ Base: https://www.protocolbanks.com/api/v1/agent — auth: Authorization: Bearer
 or a dashboard agent key (agent_...). The agent key resolves to the owner and a
 policy derived from the agent type, or to an explicit policy on the agent.
 Contract: https://www.protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1)
-Keys and policy: https://protocolbanks.com/settings/api-keys
-Walkthrough: https://protocolbanks.com/agent-api — one command: PB_KEY=pb_... pnpm example:agent
+Keys and policy: https://www.protocolbanks.com/settings/api-keys
+Walkthrough: https://www.protocolbanks.com/agent-api — one command: PB_KEY=pb_... pnpm example:agent
 Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools
 (tool manifest for the Vercel AI SDK, LangChain, OpenAI and Anthropic)
 
@@ -136,8 +136,8 @@ The commerce API gives two agents a structured trade, not a free-form chat:
 
 This is direct, non-custodial payment (no escrow yet). The termsHash binds the
 order, quote and receipt; delivery proof and dispute/refund state are durable.
-Public directory: https://protocolbanks.com/agent-commerce (GET /api/v1/agent/commerce/directory)
-Architecture: https://protocolbanks.com/whitepaper
+Public directory: https://www.protocolbanks.com/agent-commerce (GET /api/v1/agent/commerce/directory)
+Architecture: https://www.protocolbanks.com/whitepaper
 GitHub doc: https://github.com/everest-an/protocol-banks---web3/blob/main/docs/AGENT_COMMERCE.md
 
 ## Legal

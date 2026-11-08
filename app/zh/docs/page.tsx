@@ -8,10 +8,10 @@ export const metadata: Metadata = {
   title: `${page.title} — Protocol Bank 文档`,
   description: page.description,
   alternates: {
-    canonical: "https://protocolbanks.com/zh/docs",
+    canonical: "https://www.protocolbanks.com/zh/docs",
     languages: {
-      en: "https://protocolbanks.com/docs",
-      zh: "https://protocolbanks.com/zh/docs",
+      en: "https://www.protocolbanks.com/docs",
+      zh: "https://www.protocolbanks.com/zh/docs",
     },
   },
 }

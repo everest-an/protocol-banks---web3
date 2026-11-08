@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Help — build on the Protocol Banks Agent API",
   description:
     "Create a key, set a policy the server enforces, call the sandbox, then go live. Endpoints, limits, billing and the security model in one page.",
-  alternates: { canonical: "https://protocolbanks.com/help" },
+  alternates: { canonical: "https://www.protocolbanks.com/help" },
 }
 
 const STEPS = [

@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Trading-Only Permissions: Safety Bedrock for Agent Wallets",
   description:
     "approveAgent separates trading rights from withdrawal rights. Why that wallet boundary matters for AI agents, and how builders use it with a server-enforced policy.",
-  alternates: { canonical: "https://protocolbanks.com/guides/trading-only-permissions" },
+  alternates: { canonical: "https://www.protocolbanks.com/guides/trading-only-permissions" },
   openGraph: {
     title: "Trading-Only Permissions: Safety Bedrock for Agent Wallets",
     description:

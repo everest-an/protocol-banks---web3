@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   title: "Protocol Bank — The control plane for agent commerce",
   description:
     "One credential, one server-enforced mandate across commerce, payments and trading, with cards coming soon. Agents can buy, sell, trade and spend within limits they cannot widen.",
-  alternates: { canonical: "https://protocolbanks.com" },
+  alternates: { canonical: "https://www.protocolbanks.com" },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -65,10 +65,10 @@ export const metadata: Metadata = {
     title: "Protocol Bank — The control plane for agent commerce",
     description: "One credential. One server-enforced mandate. Audit on every call.",
     siteName: "Protocol Bank",
-    url: "https://protocolbanks.com",
+    url: "https://www.protocolbanks.com",
     images: [
       {
-        url: "https://protocolbanks.com/og-image.png",
+        url: "https://www.protocolbanks.com/og-image.png",
         width: 1200,
         height: 630,
         alt: "Protocol Bank — the control plane for agent commerce.",
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
     title: "Protocol Bank — The control plane for agent commerce",
     description:
       "Give an agent a mandate it can use but cannot widen: server-enforced caps, allowlists, commerce orders, trading and audit; cards are coming soon.",
-    images: ["https://protocolbanks.com/og-image.png"],
+    images: ["https://www.protocolbanks.com/og-image.png"],
   },
 }
 
@@ -124,7 +124,7 @@ export default function RootLayout({
                 {
                   "@type": "WebSite",
                   name: "Protocol Bank",
-                  url: "https://protocolbanks.com",
+                  url: "https://www.protocolbanks.com",
                   inLanguage: "en",
                   description:
                     "The control plane for agent commerce: one credential per agent, server-enforced mandates, commerce orders, non-custodial execution and audit.",
@@ -134,7 +134,7 @@ export default function RootLayout({
                   name: "Protocol Bank Agent API",
                   applicationCategory: "DeveloperApplication",
                   operatingSystem: "Web",
-                  url: "https://protocolbanks.com/agent-api",
+                  url: "https://www.protocolbanks.com/agent-api",
                   inLanguage: "en",
                   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
                   description:
@@ -143,9 +143,9 @@ export default function RootLayout({
                 {
                   "@type": "Organization",
                   name: "Protocol Bank",
-                  url: "https://protocolbanks.com",
+                  url: "https://www.protocolbanks.com",
                   inLanguage: "en",
-                  logo: "https://protocolbanks.com/logo.png",
+                  logo: "https://www.protocolbanks.com/logo.png",
                   description:
                     "Protocol Bank builds the control plane for agent commerce: scoped credentials, server-enforced mandates, commerce orders, non-custodial execution and audit across payments and trading, with cards coming soon.",
                 },

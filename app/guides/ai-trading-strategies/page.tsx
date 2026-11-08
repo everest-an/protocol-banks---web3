@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "AI Trading Strategies: For Agent Builders",
   description:
     "Momentum, funding carry and mean reversion are strategies the builder supplies. The control plane enforces the limits and audit; we do not sell returns.",
-  alternates: { canonical: "https://protocolbanks.com/guides/ai-trading-strategies" },
+  alternates: { canonical: "https://www.protocolbanks.com/guides/ai-trading-strategies" },
   openGraph: {
     title: "AI Trading Strategies: For Agent Builders",
     description:

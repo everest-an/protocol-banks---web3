@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { AgentCommerceDirectory } from "@/components/agent-commerce-directory"
+import { TrackView } from "@/components/track-view"
 
 export const metadata: Metadata = {
   title: "Agent Commerce Directory - Protocol Bank",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default function AgentCommercePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
+      <TrackView name="commerce_view" />
       <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Agent commerce</p>

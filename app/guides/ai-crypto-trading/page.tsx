@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "AI Crypto Trading: A Builder's Guide to Agent Controls (2026)",
   description:
     "How AI agent trading works for builders: scoped keys, server-enforced caps, trading-only wallets and audit. Build with the Agent API; the cockpit is a demo.",
-  alternates: { canonical: "https://protocolbanks.com/guides/ai-crypto-trading" },
+  alternates: { canonical: "https://www.protocolbanks.com/guides/ai-crypto-trading" },
   openGraph: {
     title: "AI Crypto Trading: A Builder's Guide to Agent Controls",
     description:

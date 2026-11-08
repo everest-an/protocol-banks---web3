@@ -7,12 +7,12 @@ export const metadata: Metadata = {
   title: "Agent API — the control plane for agent commerce",
   description:
     "One credential, one mandate the server enforces — commerce orders, payments and trading; cards are coming soon. Services, quotes, orders, delivery proof and reputation; EIP-3009 and x402 payments; cards in provider onboarding; a trading-only Hyperliquid wallet. Sandbox in paper mode.",
-  alternates: { canonical: "https://protocolbanks.com/agent-api" },
+  alternates: { canonical: "https://www.protocolbanks.com/agent-api" },
   openGraph: {
     title: "Agent API — the control plane for agent commerce",
     description:
       "One credential, one server-enforced mandate across commerce, payments and trading, with cards coming soon. Agents can buy, sell, trade and spend within limits they cannot widen.",
-    url: "https://protocolbanks.com/agent-api",
+    url: "https://www.protocolbanks.com/agent-api",
     type: "article",
   },
 }
