@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
@@ -15,22 +15,8 @@ import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
 import { AddressVerificationDisplay } from "@/components/address-verification-display"
 import { detectAddressType } from "@/lib/address-utils"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { SUPPORTED_CHAINS } from "@/lib/tokens"
-
-function generateLinkSignature(params: { to: string; amount: string; token: string; expiry: string }): string {
-  // Client-side signature using a deterministic hash
-  // In production, this would be done server-side with HMAC
-  const data = `${params.to.toLowerCase()}|${params.amount}|${params.token.toUpperCase()}|${params.expiry}`
-  let hash = 0
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash
-  }
-  // Convert to hex and take first 16 chars
-  const hex = Math.abs(hash).toString(16).padStart(8, "0")
-  return hex + hex // 16 char signature
-}
 
 function isValidAddress(address: string): boolean {
   const type = detectAddressType(address)
@@ -61,6 +47,9 @@ export default function ReceivePage() {
   const [addressError, setAddressError] = useState("")
   const [amountError, setAmountError] = useState("")
   const [showQRCode, setShowQRCode] = useState(false)
+  const [link, setLink] = useState("")
+  const [signing, setSigning] = useState(false)
+  const [signError, setSignError] = useState("")
 
   // Auto-detect address network type
   const addressType = address ? detectAddressType(address) : null
@@ -88,36 +77,52 @@ export default function ReceivePage() {
     }
   }, [amount])
 
-  const generateLink = useCallback(() => {
-    if (typeof window === "undefined") return ""
-    if (!address || addressError || amountError) return ""
+  useEffect(() => {
+    let cancelled = false
 
-    const baseUrl = window.location.origin + "/pay"
-    const params = new URLSearchParams()
+    async function buildLink() {
+      if (!address || addressError || amountError) {
+        setLink("")
+        setSignError("")
+        return
+      }
+      if (!amount || Number(amount) <= 0) {
+        setLink("")
+        setSignError("Enter an amount to generate a payment link.")
+        return
+      }
 
-    // Add required params
-    params.set("to", address)
-    if (amount) params.set("amount", amount)
-    params.set("token", token)
-    if (detectAddressType(address) === "TRON") params.set("network", "tron")
+      const expiryMs = Date.now() + Number.parseInt(expiryHours) * 60 * 60 * 1000
+      setSigning(true)
+      setSignError("")
+      try {
+        const response = await fetch("/api/payment/sign", {
+          method: "POST",
+          headers: authHeaders(address, { "Content-Type": "application/json" }),
+          body: JSON.stringify({ to: address, amount, token, exp: expiryMs.toString() }),
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok || !data.sig) throw new Error(data.error || "Could not sign the link")
+        if (cancelled) return
 
-    // Add expiry timestamp
-    const expiryMs = Date.now() + Number.parseInt(expiryHours) * 60 * 60 * 1000
-    params.set("exp", expiryMs.toString())
+        const params = new URLSearchParams({ to: address, amount, token, exp: data.exp, sig: data.sig })
+        if (detectAddressType(address) === "TRON") params.set("network", "tron")
+        setLink(`${window.location.origin}/pay?${params.toString()}`)
+      } catch (error) {
+        if (!cancelled) {
+          setLink("")
+          setSignError(error instanceof Error ? error.message : "Could not sign the link")
+        }
+      } finally {
+        if (!cancelled) setSigning(false)
+      }
+    }
 
-    // Generate and add signature
-    const signature = generateLinkSignature({
-      to: address,
-      amount: amount || "0",
-      token,
-      expiry: expiryMs.toString(),
-    })
-    params.set("sig", signature)
-
-    return `${baseUrl}?${params.toString()}`
+    void buildLink()
+    return () => {
+      cancelled = true
+    }
   }, [address, amount, token, expiryHours, addressError, amountError])
-
-  const link = generateLink()
 
   const copyToClipboard = async () => {
     if (!link) {
@@ -378,7 +383,7 @@ export default function ReceivePage() {
 
               {address && isValidAddress(address) && showQRCode && (
                 <div className="flex justify-center p-4 bg-white rounded-lg">
-                  <QRCodeSVG value={address} size={200} level="H" includeMargin={true} />
+                  <QRCodeSVG value={link} size={200} level="H" includeMargin={true} />
                 </div>
               )}
 

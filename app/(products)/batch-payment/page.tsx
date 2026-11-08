@@ -387,91 +387,9 @@ export default function BatchPaymentPage() {
     },
   ]
 
-  const demoPaymentHistory = [
-    {
-      id: "p1",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
-      to_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f7DCFF",
-      amount: "5000",
-      amount_usd: 5000,
-      status: "completed",
-      token_symbol: "USDT",
-      tx_hash: "0xabc123def456...",
-      notes: "Monthly vendor payment",
-      vendor: { name: "Acme Corp" },
-    },
-    {
-      id: "p2",
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
-      to_address: "0x8B3392483BA26D65E331dB86D4F430E9B3814E5e",
-      amount: "3200",
-      amount_usd: 3200,
-      status: "completed",
-      token_symbol: "USDC",
-      tx_hash: "0xdef789ghi012...",
-      notes: "Supply purchase",
-      vendor: { name: "Global Supplies Inc" },
-    },
-    {
-      id: "p3",
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
-      to_address: "0xDEF0123456789ABCDEF0123456789ABCDEF01234",
-      amount: "2500",
-      amount_usd: 2500,
-      status: "completed",
-      token_symbol: "USDT",
-      tx_hash: "0xghi345jkl678...",
-      notes: "Cloud hosting fees",
-      vendor: { name: "Cloud Services Co" },
-    },
-    {
-      id: "p4",
-      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
-      to_address: "0x1111222233334444555566667777888899990000",
-      amount: "8500",
-      amount_usd: 8500,
-      status: "completed",
-      token_symbol: "USDC",
-      tx_hash: "0xjkl901mno234...",
-      notes: "Legal consultation",
-      vendor: { name: "Legal Partners LLP" },
-    },
-    {
-      id: "p5",
-      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      from_address: currentWallet || "0x1234567890123456789012345678901234567890",
-      to_address: "0x9876543210987654321098765432109876543210",
-      amount: "15000",
-      amount_usd: 15000,
-      status: "completed",
-      token_symbol: "USDT",
-      tx_hash: "0xmno567pqr890...",
-      notes: "Quarterly transfer to APAC",
-      vendor: { name: "APAC Division" },
-    },
-    {
-      id: "p6",
-      timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      from_address: currentWallet || "TMyTronWallet123456789012345678901234",
-      to_address: "TSupplier123456789012345678901234",
-      amount: "8000",
-      amount_usd: 8000,
-      status: "completed",
-      token_symbol: "USDT",
-      tx_hash: "0xtron123abc456...",
-      notes: "Tron network supplier payment",
-      vendor: { name: "Asia Pacific Supplier" },
-    },
-  ]
-
   // Use demo or real data
   const displayVendors = isDemoMode ? demoVendors : vendors
   const displayAutoPayments = isDemoMode ? demoAutoPayments : autoPayments
-  const displayPaymentHistory = isDemoMode ? demoPaymentHistory : paymentHistory
 
   // Filter vendors by search query
   const filteredVendors = displayVendors.filter(
@@ -2183,17 +2101,6 @@ export default function BatchPaymentPage() {
           </GlassCard>
         </TabsContent>
       </Tabs>
-
-      {/* Payment History Section */}
-      <div className="mt-6">
-        <PaymentActivity
-          payments={displayPaymentHistory}
-          walletAddress={currentWallet ?? undefined}
-          loading={historyLoading && !isDemoMode}
-          title="Payment History"
-          description="Recent outgoing transactions"
-        />
-      </div>
 
       <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
         <DialogContent>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { SplitPaymentForm } from "@/components/split-payment-form"
 import { useUnifiedWallet } from "@/hooks/use-unified-wallet"
+import { authHeaders } from "@/lib/authenticated-fetch"
 import { useDemo } from "@/contexts/demo-context"
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -462,7 +463,7 @@ export default function SplitPaymentsPage() {
     ;(async () => {
       try {
         const res = await fetch("/api/split-payment?limit=20", {
-          headers: { "x-wallet-address": address },
+          headers: authHeaders(address),
         })
         if (!res.ok) return
         const data = await res.json()
@@ -494,7 +495,7 @@ export default function SplitPaymentsPage() {
         })
         setRealPayments(executions)
       } catch {
-        // keep demo view on failure
+        if (!cancelled) setRealPayments([])
       }
     })()
     return () => {
@@ -502,7 +503,7 @@ export default function SplitPaymentsPage() {
     }
   }, [showDemo, address])
 
-  const displayPayments = showDemo || realPayments === null ? DEMO_SPLIT_PAYMENTS : realPayments
+  const displayPayments = showDemo ? DEMO_SPLIT_PAYMENTS : (realPayments ?? [])
 
   const stats = getDemoStats(displayPayments)
   const activePayments = displayPayments.filter(

@@ -99,18 +99,24 @@ export default function AgentCommerceOrdersPage() {
     if (!address) return
     setLoading(true)
     try {
-      const [s, q, o] = await Promise.all([
+      const settled = await Promise.allSettled([
         fetch("/api/commerce/services", { headers }),
         fetch("/api/commerce/quotes", { headers }),
         fetch("/api/commerce/orders", { headers }),
       ])
-      const [sj, qj, oj] = await Promise.all([s.json(), q.json(), o.json()])
-      if (!s.ok) throw new Error(sj.error || "Could not load services")
-      if (!q.ok) throw new Error(qj.error || "Could not load quotes")
-      if (!o.ok) throw new Error(oj.error || "Could not load orders")
-      setServices(Array.isArray(sj.services) ? sj.services : [])
-      setQuotes(Array.isArray(qj.quotes) ? qj.quotes : [])
-      setOrders(Array.isArray(oj.orders) ? oj.orders : [])
+      const payloads = await Promise.all(settled.map(async (result) => {
+        if (result.status === "rejected") return null
+        const response = result.value
+        const data = await response.json().catch(() => ({}))
+        return { ok: response.ok, data }
+      }))
+      const [servicesPayload, quotesPayload, ordersPayload] = payloads
+      if (servicesPayload?.ok) setServices(Array.isArray(servicesPayload.data.services) ? servicesPayload.data.services : [])
+      if (quotesPayload?.ok) setQuotes(Array.isArray(quotesPayload.data.quotes) ? quotesPayload.data.quotes : [])
+      if (ordersPayload?.ok) setOrders(Array.isArray(ordersPayload.data.orders) ? ordersPayload.data.orders : [])
+      if (payloads.some((payload) => !payload?.ok)) {
+        toast({ title: "Some commerce data is unavailable", description: "Refresh to retry.", variant: "destructive" })
+      }
     } catch (error) {
       toast({ title: "Commerce unavailable", description: error instanceof Error ? error.message : "Try again", variant: "destructive" })
     } finally {
