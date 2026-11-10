@@ -64,14 +64,24 @@ export async function POST(request: NextRequest) {
     }
     params.sign = easypaySign(params, config.pkey)
 
-    const response = await fetch(notifyUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams(params).toString(),
-      signal: AbortSignal.timeout(15000),
-    })
-    if (!response.ok) {
-      console.error("[Trust3 EasyPay] Trust3 notify failed", response.status)
+    const body = new URLSearchParams(params).toString()
+    let delivered = false
+    for (let attempt = 1; attempt <= 3 && !delivered; attempt++) {
+      try {
+        const response = await fetch(notifyUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body,
+          signal: AbortSignal.timeout(15000),
+        })
+        delivered = response.ok
+        if (!delivered) {
+          console.error("[Trust3 EasyPay] Trust3 notify failed", response.status, "attempt", attempt)
+        }
+      } catch (error) {
+        console.error("[Trust3 EasyPay] Trust3 notify error", "attempt", attempt, error)
+      }
+      if (!delivered) await new Promise((resolve) => setTimeout(resolve, attempt * 500))
     }
 
     return NextResponse.json({ success: true }, { headers: NO_STORE })
