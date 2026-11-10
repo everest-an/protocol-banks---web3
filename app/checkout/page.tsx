@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, AlertCircle, Clock, Copy, ArrowLeft, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useUnifiedWallet } from "@/hooks/use-unified-wallet";
-import { sendToken, getTokenAddress, ERC20_ABI, CHAIN_IDS, RPC_URLS } from "@/lib/web3";
+import { getTokenAddress, ERC20_ABI, CHAIN_IDS, RPC_URLS } from "@/lib/web3";
 import { ethers } from "ethers";
+import { Input } from "@/components/ui/input";
 import { QRCodeSVG } from "qrcode.react";
 import type { AcquiringOrder } from "@/types/acquiring";
 
@@ -62,7 +62,6 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { chainId } = useUnifiedWallet();
 
   const NETWORK_CHAIN_IDS: Record<string, number> = {
     eth: CHAIN_IDS.MAINNET,
@@ -83,6 +82,8 @@ function CheckoutContent() {
   const [showQRCode, setShowQRCode] = useState(false);
   const [showNetworkSelection, setShowNetworkSelection] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
+  const [manualTxHash, setManualTxHash] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   // Branding
   const [brandColor, setBrandColor] = useState<string | null>(null);
@@ -141,7 +142,8 @@ function CheckoutContent() {
           // Set branding from order metadata if available
           const meta = data.order.metadata;
           if (meta?.brandColor && !brandColorParam) setBrandColor(meta.brandColor);
-          if (meta?.logoUrl && !logoParam) setMerchantLogo(meta.logoUrl);
+          if (data.order.merchant_logo && !logoParam) setMerchantLogo(data.order.merchant_logo);
+          else if (meta?.logoUrl && !logoParam) setMerchantLogo(meta.logoUrl);
         } else {
           toast({
             title: "Order Not Found",
@@ -162,6 +164,47 @@ function CheckoutContent() {
         setLoading(false);
       });
   }, [orderNo, isDemo, toast, brandColorParam, logoParam]);
+
+  const verifyPayment = async (txHash: string, chain: string) => {
+    if (!order) return false;
+    setVerifying(true);
+    try {
+      const response = await fetch(
+        `/api/acquiring/orders/${encodeURIComponent(order.order_no)}/verify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tx_hash: txHash, chain }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Payment could not be verified");
+      }
+      setOrder(data.order || { ...order, status: "paid" });
+      setCompleted(true);
+      setShowQRCode(false);
+      toast({
+        title: "Payment successful",
+        description: "Transaction verified on-chain",
+      });
+      if (order.return_url) {
+        setTimeout(() => {
+          window.location.href = order.return_url!;
+        }, 3000);
+      }
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Verification failed",
+        description: error.message || "Please check the transaction hash",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   // Countdown timer
   useEffect(() => {
@@ -215,7 +258,7 @@ function CheckoutContent() {
         const filter = contract.filters.Transfer(null, recipientAddress);
 
         // Listen for events
-        contract.on(filter, async (from, to, value, event) => {
+        contract.on(filter, async (_from, _to, value, event) => {
           try {
             // Get token decimals to format amount correctly
             const decimals = await contract!.decimals();
@@ -224,30 +267,7 @@ function CheckoutContent() {
             // Check if amount matches (or is greater/equal)
             // Note: In production, we should also check the timestamp/block to ensure it's new
             if (parseFloat(formattedAmount) >= order.amount) {
-              // Update order status
-              await fetch(`/api/acquiring/orders/${order.order_no}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  status: "paid",
-                  payment_method: "crypto_transfer_qr",
-                  payer_address: from,
-                  tx_hash: event.log.transactionHash,
-                }),
-              });
-
-              setCompleted(true);
-              setShowQRCode(false);
-              toast({
-                title: "Payment Successful",
-                description: "Transaction detected and confirmed",
-              });
-              
-              if (order.return_url) {
-                setTimeout(() => {
-                  window.location.href = order.return_url!;
-                }, 3000);
-              }
+              await verifyPayment(event.log.transactionHash, selectedNetwork || "base");
             }
           } catch (err) {
             console.error("Error processing event:", err);
@@ -308,8 +328,6 @@ function CheckoutContent() {
     { id: "arb", name: "Arbitrum", logo: "/networks/arb.png" },
     { id: "op", name: "Optimism", logo: "/networks/optimism.png" },
     { id: "bnb", name: "BNB Chain", logo: "/networks/bnb.png" },
-    { id: "hsk", name: "HashKey Chain", logo: "/networks/hsk.png" },
-    { id: "tron", name: "Tron", logo: "/networks/tron.png" },
   ];
 
   const handleNetworkSelect = (networkId: string) => {
@@ -453,7 +471,7 @@ function CheckoutContent() {
   };
 
   return (
-    <div className="container max-w-lg mx-auto py-10 px-4">
+    <div className="container max-w-lg mx-auto py-10 pb-28 px-4">
       <GlassCard className="border-border shadow-lg">
         <GlassCardHeader className="text-center border-b border-border/50 pb-6">
           {isDemo && (
@@ -697,6 +715,31 @@ function CheckoutContent() {
                    <p className="mt-1">The page will automatically update once payment is detected.</p>
                </div>
 
+               {!isDemo && (
+                 <div className="space-y-2 rounded-lg border border-border p-4">
+                   <div className="text-sm font-medium">Already paid?</div>
+                   <p className="text-xs text-muted-foreground">
+                     Paste the transaction hash to verify the transfer immediately.
+                   </p>
+                   <div className="flex gap-2">
+                     <Input
+                       value={manualTxHash}
+                       onChange={(event) => setManualTxHash(event.target.value.trim())}
+                       placeholder="0x transaction hash"
+                       className="font-mono text-xs"
+                     />
+                     <Button
+                       type="button"
+                       variant="outline"
+                       disabled={!manualTxHash || verifying}
+                       onClick={() => verifyPayment(manualTxHash, selectedNetwork || "base")}
+                     >
+                       {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
+                     </Button>
+                   </div>
+                 </div>
+               )}
+
                {isDemo && (
                  <Button
                    className="w-full bg-green-600 hover:bg-green-700"
@@ -717,22 +760,17 @@ function CheckoutContent() {
             </div>
           )}
 
-          <div className="text-center text-sm text-muted-foreground mt-4">
-            Powered by{" "}
-            <span style={brandColor ? { color: brandColor } : undefined}>
-              Protocol Banks
-            </span>
-          </div>
         </GlassCardContent>
       </GlassCard>
 
-      <div className="mt-6 text-center">
-        <Link href="/acquiring/orders">
-          <Button variant="link" className="text-muted-foreground">
-            Back to Console
-          </Button>
-        </Link>
-      </div>
+      <a
+        href="https://www.protocolbanks.com"
+        target="_blank"
+        rel="noreferrer"
+        className="fixed bottom-4 right-4 z-50 rounded-full border border-border bg-background/95 px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
+      >
+        Powered by <span className="font-semibold text-foreground">Protocol Bank</span>
+      </a>
     </div>
   );
 }

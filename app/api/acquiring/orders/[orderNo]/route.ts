@@ -5,6 +5,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { withAuth } from "@/lib/middleware/api-auth"
+import { markAcquiringOrderPaid } from "@/lib/acquiring/settlement"
 
 export async function GET(
   request: NextRequest,
@@ -63,65 +64,35 @@ export async function PATCH(
       const body = await req.json()
       const { status, payment_method, payer_address, tx_hash } = body
 
+      if (status === "paid") {
+        if (!tx_hash || !/^0x[a-fA-F0-9]{64}$/.test(String(tx_hash))) {
+          return NextResponse.json({ error: "A valid transaction hash is required" }, { status: 400 })
+        }
+        const existing = await prisma.acquiringOrder.findUnique({ where: { order_no: orderNo } })
+        if (!existing) {
+          return NextResponse.json({ error: "Order not found" }, { status: 404 })
+        }
+        const settled = await markAcquiringOrderPaid({
+          orderId: existing.id,
+          txHash: String(tx_hash).toLowerCase(),
+          payerAddress: payer_address || null,
+          paymentMethod: payment_method || "manual",
+        })
+        return NextResponse.json({ success: true, order: settled.order })
+      }
+
       const updateData: any = {
         status,
         updated_at: new Date(),
       }
-
       if (payment_method) updateData.payment_method = payment_method
       if (payer_address) updateData.payer_address = payer_address
       if (tx_hash) updateData.tx_hash = tx_hash
-      if (status === "paid") updateData.paid_at = new Date()
 
       const order = await prisma.acquiringOrder.update({
         where: { order_no: orderNo },
         data: updateData,
       })
-
-      // If order is paid, update merchant balance
-      if (status === "paid" && order) {
-        const existingBalance = await prisma.merchantBalance.findFirst({
-          where: { merchant_id: order.merchant_id, token: order.token },
-        })
-
-        if (existingBalance) {
-          await prisma.merchantBalance.update({
-            where: { id: existingBalance.id },
-            data: {
-              balance: String(parseFloat(existingBalance.balance) + order.amount),
-              updated_at: new Date(),
-            },
-          })
-        } else {
-          await prisma.merchantBalance.create({
-            data: {
-              merchant_id: order.merchant_id,
-              token: order.token,
-              balance: String(order.amount),
-            },
-          })
-        }
-
-        // Send Webhook notification (if configured)
-        if (order.notify_url) {
-          try {
-            await fetch(order.notify_url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                event: "order.paid",
-                order_no: order.order_no,
-                amount: order.amount,
-                token: order.token,
-                tx_hash: order.tx_hash,
-                paid_at: order.paid_at,
-              }),
-            })
-          } catch (webhookError) {
-            console.error("[API] Webhook notification error:", webhookError)
-          }
-        }
-      }
 
       return NextResponse.json({ success: true, order })
     } catch (error: any) {

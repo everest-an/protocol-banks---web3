@@ -8,13 +8,7 @@ import { DemoProvider } from "@/contexts/demo-context"
 import { UserTypeProvider } from "@/contexts/user-type-context"
 import { AuthProvider } from "@/contexts/auth-provider"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { MobileNav } from "@/components/mobile-nav"
-import { Toaster } from "@/components/ui/toaster"
-import { WelcomeGuide } from "@/components/welcome-guide"
-import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
-import { NotificationPrompt } from "@/components/notification-prompt"
+import { AppShell } from "@/components/app-shell"
 
 export const dynamic = "force-dynamic"
 
@@ -163,17 +157,8 @@ export default function RootLayout({
               <Web3Provider>
                 <DemoProvider>
                   <div className="relative min-h-screen flex flex-col pb-safe">
-                    <Header />
-                    <main className="flex-1 pb-16 md:pb-0">{children}</main>
-                    <div className="hidden md:block">
-                      <Footer />
-                    </div>
-                    <MobileNav />
+                    <AppShell>{children}</AppShell>
                   </div>
-                  <Toaster />
-                  <WelcomeGuide />
-                  <PWAInstallPrompt />
-                  <NotificationPrompt />
                 </DemoProvider>
               </Web3Provider>
             </AuthProvider>
