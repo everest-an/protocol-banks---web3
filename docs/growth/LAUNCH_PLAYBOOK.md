@@ -1,5 +1,7 @@
 # Launch & Growth Playbook — 100 Users
 
+> **这是交易产品定位的旧 playbook。** 当前 agent commerce 定位、sandbox 转化入口和渠道文案见 [`agent-commerce-launch.md`](./agent-commerce-launch.md)。
+
 Target: ~100 first users. Technical GEO foundations are live (llms.txt,
 llms-full.txt, sitemap, JSON-LD, FAQPage schema). This playbook covers the
 distribution actions only you can do — copy is ready to paste.

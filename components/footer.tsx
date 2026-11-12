@@ -55,6 +55,15 @@ export function Footer() {
               </li>
               <li>
                 <Link
+                  href="/sandbox"
+                  className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
+                >
+                  <Terminal className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate">Sandbox</span>
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/guides/ai-crypto-trading"
                   className="flex items-center gap-2 hover:text-foreground transition-colors active:text-foreground"
                 >

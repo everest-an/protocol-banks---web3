@@ -1,5 +1,7 @@
 # X/Twitter — 复制即发
 
+> **已过时：这是交易产品定位的旧稿。** 当前 agent commerce 定位的 thread、sandbox CTA 和 UTM 链接见 [`../agent-commerce-launch.md`](../agent-commerce-launch.md)。
+
 > ✅ **已发布（2026-09-29，账号 @0xPrococolBank）**：完整 4 条 thread 通过浏览器手动发布（无自动工具）。
 > 主帖：https://x.com/0xPrococolBank/status/2104610563422830597 （含驾驶舱截图）
 > 回复 1：https://x.com/0xPrococolBank/status/2104611479106502710

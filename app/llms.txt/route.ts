@@ -39,6 +39,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - Docs (concepts): https://www.protocolbanks.com/docs/concepts
 - Docs (security): https://www.protocolbanks.com/docs/security
 - Docs (中文): https://www.protocolbanks.com/zh/docs
+- Sandbox (no wallet): https://www.protocolbanks.com/sandbox
 - Pricing: https://www.protocolbanks.com/pricing
 - Usage guide: https://www.protocolbanks.com/help
 - Risk disclosure: https://www.protocolbanks.com/risk-disclosure
@@ -47,6 +48,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 
 ## APIs
 
+- POST /api/sandbox/keys — two disposable 24h keys + a live $1 quote (no auth)
 - GET /api/v1/agent/state — account, policy, agent wallet status (trading-only)
 - POST /api/v1/agent/orders — execute a Hyperliquid order
 - POST /api/v1/agent/pay — prepare or execute an EIP-3009 payment

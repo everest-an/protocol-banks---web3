@@ -73,10 +73,16 @@ export default function AgentsPage() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/settings/api-keys"
+            href="/sandbox"
             className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-5 py-3 text-sm font-medium text-neutral-50 hover:bg-neutral-800 transition"
           >
-            Create an API key <ArrowRight className="h-4 w-4" />
+            Try the sandbox <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/settings/api-keys"
+            className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-transparent px-5 py-3 text-sm hover:bg-white transition"
+          >
+            Create an API key
           </Link>
           <Link
             href="/pricing"
@@ -94,6 +100,13 @@ export default function AgentsPage() {
 
         <section className="mt-16 border-t border-[#E4E2DD] pt-10">
           <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ 60-second start ]</p>
+          <p className="mb-5 text-sm text-[#6F6B64] leading-relaxed max-w-[72ch]">
+            No wallet yet?{" "}
+            <Link href="/sandbox" className="text-[#111111] underline decoration-[#C9C6BF] underline-offset-2">
+              Get two disposable sandbox keys and a live quote
+            </Link>{" "}
+            — no signup, no wallet, 24-hour keys.
+          </p>
           <ol className="space-y-4 text-sm text-[#6F6B64] leading-relaxed max-w-[72ch]">
             <li>
               <span className="font-mono text-xs text-[#111111]">1.</span> Create a key in{" "}

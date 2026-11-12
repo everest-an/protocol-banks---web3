@@ -1,5 +1,7 @@
 # Product Hunt — 当前状态与发布当天行动
 
+> **已过时：这是交易产品定位的旧稿。** 当前 agent commerce 定位的发布文案、UTM 链接和 7 天计划见 [`../agent-commerce-launch.md`](../agent-commerce-launch.md)。
+
 > ✅ **状态：已排期 2026-08-28 12:01 AM PDT（北京时间 8/28 15:01）**
 > 草稿链接：https://www.producthunt.com/products/protocol-bank?launch=protocol-bank
 > 编辑链接：https://www.producthunt.com/posts/protocol-bank/edit

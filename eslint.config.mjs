@@ -55,6 +55,7 @@ const eslintConfig = defineConfig([
     "AlphaGPT/**",
     "services/**",
     "integrations/**",
+    "examples/**",
     "packages/*/dist/**",
     "packages/*/node_modules/**",
     "public/**",

@@ -12,6 +12,8 @@ export const EVENT_NAMES = [
   "pricing_view",
   "commerce_view",
   "use_case_view",
+  "sandbox_view",
+  "sandbox_key_created",
   "payment_link_created",
   "cockpit_view",
   "agents_view",

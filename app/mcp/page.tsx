@@ -3,12 +3,19 @@ import type { Metadata } from "next"
 import { ArrowRight } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "MCP Server - Control your trading agent from any chat",
+  title: "MCP Server - Agent commerce from any chat",
   description:
-    "Protocol Bank ships a Model Context Protocol server: ask Claude or any MCP host how your agent is doing, why it traded, and pause it — no browser required. Trading-only, revocable, risk limits enforced server-side.",
+    "Protocol Bank ships a Model Context Protocol server: discover services, create and accept quotes, deliver orders, pay through EIP-3009/x402, and control a trading-only agent — from Claude or any MCP host.",
 }
 
 const TOOLS = [
+  { name: "list_agent_services", auth: "none", desc: "Browse public agent services with price, token, chain and category." },
+  { name: "create_commerce_quote", auth: "required", desc: "Seller: quote a buyer with scope, price, delivery date and terms." },
+  { name: "accept_commerce_quote", auth: "required", desc: "Buyer: accept a quote and create an order." },
+  { name: "deliver_commerce_order", auth: "required", desc: "Seller: record delivery proof for an order." },
+  { name: "complete_commerce_order", auth: "required", desc: "Buyer: confirm a paid, delivered order." },
+  { name: "list_commerce_orders", auth: "required", desc: "Orders where your wallet is buyer or seller." },
+  { name: "get_agent_reputation", auth: "none", desc: "Completed, disputed and refunded counts plus volume." },
   {
     name: "get_trading_overview",
     auth: "optional",
@@ -22,6 +29,10 @@ const TOOLS = [
     auth: "required",
     desc: "pause / resume / stop, and approve-or-reject a pending trade.",
   },
+  { name: "create_payment", auth: "required", desc: "Prepare or create a stablecoin payment." },
+  { name: "execute_payment", auth: "required", desc: "Submit a prepared payment." },
+  { name: "create_invoice", auth: "required", desc: "Create a payable invoice with a payment link." },
+  { name: "get_balance", auth: "required", desc: "Multi-chain balances for the account." },
 ]
 
 export default function McpPage() {
@@ -30,26 +41,33 @@ export default function McpPage() {
       <div className="mx-auto w-full max-w-6xl md:border-x border-[#E4E2DD] px-6 md:px-10 py-16 sm:py-20">
         <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64]">[ mcp ]</p>
         <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05] uppercase max-w-3xl">
-          Ask your agent how it&apos;s doing — from your own chat
+          Agent commerce from your own chat
         </h1>
         <p className="mt-6 text-lg text-[#6F6B64] leading-relaxed max-w-[62ch]">
           Protocol Bank ships a{" "}
           <span className="text-[#111111] font-medium">Model Context Protocol</span> server. Claude Desktop, Claude
-          Code, or any MCP host can read your agent and control it in plain language — no browser required.
+          Code, or any MCP host can discover services, create quotes, deliver orders, pay, and control a trading-only
+          agent — in plain language, no browser required.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/trading"
+            href="/agent-commerce"
             className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-5 py-3 text-sm font-medium text-neutral-50 hover:bg-neutral-800 transition"
           >
-            Open the cockpit <ArrowRight className="h-4 w-4" />
+            Browse agent services <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/help"
+            href="/agent-api"
             className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-transparent px-5 py-3 text-sm hover:bg-white transition"
           >
-            Usage guide
+            Read the API
+          </Link>
+          <Link
+            href="/sandbox"
+            className="inline-flex items-center gap-2 rounded-md border border-[#E4E2DD] bg-transparent px-5 py-3 text-sm hover:bg-white transition"
+          >
+            Try the sandbox
           </Link>
         </div>
 
@@ -57,10 +75,11 @@ export default function McpPage() {
         <section className="mt-16 border-t border-[#E4E2DD] pt-10">
           <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ what you can say ]</p>
           <div className="space-y-2 font-mono text-sm text-[#111111]">
-            <p>&gt; &quot;How is my trading agent doing?&quot;</p>
-            <p>&gt; &quot;What positions is the agent holding right now?&quot;</p>
-            <p>&gt; &quot;Why did it open the SOL short?&quot;</p>
-            <p>&gt; &quot;Pause the agent — I don&apos;t like this market.&quot;</p>
+            <p>&gt; &quot;Find agent services that can summarize SEC filings.&quot;</p>
+            <p>&gt; &quot;Create a quote for 25 USDC, deliver by Friday.&quot;</p>
+            <p>&gt; &quot;Accept that quote and deliver the report hash.&quot;</p>
+            <p>&gt; &quot;Pay the order and mark it complete.&quot;</p>
+            <p>&gt; &quot;How is my trading agent doing? Pause it.&quot;</p>
           </div>
         </section>
 
@@ -127,20 +146,20 @@ export default function McpPage() {
           <p className="font-mono text-[11px] tracking-[0.08em] text-[#6F6B64] mb-4">[ safety ]</p>
           <ul className="space-y-2 text-sm text-[#6F6B64] leading-relaxed max-w-[70ch]">
             <li>
-              <span className="text-[#111111] font-medium">Your chat model can never touch funds.</span> It talks to an
-              agent wallet that holds trading-only rights on Hyperliquid — withdrawal is not in its vocabulary.
+              <span className="text-[#111111] font-medium">Commerce orders bind the payment.</span> Seller, amount,
+              token and termsHash are checked before the order is marked paid.
+            </li>
+            <li>
+              <span className="text-[#111111] font-medium">Trading stays trading-only.</span> The Hyperliquid agent
+              wallet can place and cancel orders; it cannot withdraw.
             </li>
             <li>
               <span className="text-[#111111] font-medium">Every request is scoped to your wallet.</span> The server
               authenticates with your session; it cannot read another account.
             </li>
             <li>
-              <span className="text-[#111111] font-medium">Risk limits stay in the engine.</span> Sizing, stop-loss and
-              daily circuit breakers are enforced server-side no matter what the model asks for.
-            </li>
-            <li>
-              <span className="text-[#111111] font-medium">Revoke anytime.</span> One click on Hyperliquid removes the
-              agent&apos;s access; the MCP server then has nothing to control.
+              <span className="text-[#111111] font-medium">Revoke anytime.</span> Revoke on Hyperliquid or rotate the
+              key; the MCP server then has nothing to control.
             </li>
           </ul>
         </section>

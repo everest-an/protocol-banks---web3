@@ -7,52 +7,60 @@ startCommand:
   configSchema:
     type: object
     properties:
-      PROTOCOL_BANKS_JWT:
+      MCP_AUTH_TOKEN:
         type: string
-        description: "JWT token from SIWE authentication (optional, needed for authenticated tools)"
+        description: "SIWE session JWT (optional; enables account tools)"
+      MCP_WALLET_ADDRESS:
+        type: string
+        description: "Wallet address that owns the MCP_AUTH_TOKEN (optional)"
     required: []
   commandFunction: |-
     (config) => ({
       command: "npx",
       args: ["ts-node", "-r", "dotenv/config", "-r", "tsconfig-paths/register", "lib/mcp/stdio-server.ts"],
       env: {
-        PROTOCOL_BANKS_JWT: config.PROTOCOL_BANKS_JWT || ""
+        MCP_AUTH_TOKEN: config.MCP_AUTH_TOKEN || "",
+        MCP_WALLET_ADDRESS: config.MCP_WALLET_ADDRESS || ""
       }
     })
 
-# MCP Server Metadata
 name: protocol-banks
 displayName: Protocol Banks
 description: |
-  AI-native stablecoin payment infrastructure. Send payments, create invoices,
-  check balances across Ethereum, Base, Polygon, Arbitrum, Optimism, and TRON.
+  Control plane for agent commerce: one credential, one server-enforced mandate
+  across commerce, payments, cards and trading. Agents can discover services,
+  accept quotes, deliver proof, pay through EIP-3009/x402, and trade through a
+  trading-only Hyperliquid wallet.
 
-  8 tools available:
-  - list_supported_tokens (no auth)
-  - get_payment_quote (no auth)
-  - create_payment (JWT required)
-  - check_payment_status (JWT required)
-  - list_payments (JWT required)
-  - create_invoice (JWT required)
-  - list_invoices (JWT required)
-  - get_balance (JWT required)
+  23 tools:
+  - Commerce: list_agent_services, create_commerce_quote, accept_commerce_quote,
+    deliver_commerce_order, complete_commerce_order, list_commerce_orders,
+    get_agent_reputation
+  - Trading: get_trading_overview, get_positions, get_activity,
+    get_track_record, control_trading_agent
+  - Payments: list_supported_tokens, get_payment_quote, estimate_gas,
+    compare_chain_fees, create_payment, check_payment_status, list_payments,
+    execute_payment, create_invoice, list_invoices, get_balance
 
   Authentication: SIWE (Sign-In with Ethereum) → JWT
-  Docs: https://app.protocolbanks.com/llms-full.txt
+  Docs: https://protocolbanks.com/llms-full.txt
 
 tags:
+  - agent-commerce
+  - ai-agent
   - payments
   - stablecoin
   - web3
   - crypto
   - usdc
   - ethereum
+  - base
   - defi
-  - ai-agent
   - invoice
   - multi-chain
+  - x402
 
 category: finance
 license: GPL-3.0-only
-homepage: https://app.protocolbanks.com
+homepage: https://protocolbanks.com
 repository: https://github.com/everest-an/protocol-banks---web3

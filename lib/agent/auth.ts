@@ -54,6 +54,18 @@ export function withAgentAuth(
       return NextResponse.json({ error: `this key may not perform "${op}"` }, { status: 403 })
     }
 
+    if (req.apiKey?.name.startsWith("sandbox:") && op !== "read") {
+      const allowed = [
+        "/api/v1/agent/commerce/quotes/accept",
+        "/api/v1/agent/commerce/orders/deliver",
+        "/api/v1/agent/commerce/orders/cancel",
+        "/api/v1/agent/commerce/orders/dispute",
+      ]
+      if (!allowed.includes(request.nextUrl.pathname)) {
+        return NextResponse.json({ error: "sandbox keys may only accept a quote or deliver an order" }, { status: 403 })
+      }
+    }
+
     // The plan sets the ceiling; the key's policy can only be tighter.
     const planState = await getPlanForWallet(wallet)
     const effectivePolicy = clampPolicyToPlan(resolved.policy, planState.plan)

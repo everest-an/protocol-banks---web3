@@ -1,0 +1,21 @@
+{
+  "name": "protocol-banks-agent-commerce-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "vercel-ai-sdk": "tsx vercel-ai-sdk.ts",
+    "langchain": "tsx langchain.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.0",
+    "@langchain/core": "^0.3.0",
+    "@langchain/openai": "^0.6.0",
+    "ai": "^5.0.0",
+    "langchain": "^0.3.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.6.0"
+  }
+}

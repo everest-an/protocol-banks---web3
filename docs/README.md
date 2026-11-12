@@ -80,5 +80,6 @@ the control plane for agent commerce. Start here and follow the links.
 | [Open client (MIT)](https://github.com/everest-an/protocolbanks-sdk) | SDK, tool manifest, MCP proxy and framework starters — open source |
 | [PARTNERS.md](PARTNERS.md) | Partner integration: curl and SDK, the two-layer envelope, sandbox, per-order billing |
 | [growth/partner-targets.md](growth/partner-targets.md) | 20 concrete integration targets and the three qualification questions |
+| [growth/agent-commerce-launch.md](growth/agent-commerce-launch.md) | Agent commerce launch copy, tracked links and a seven-day plan |
 | [llms.txt](https://protocolbanks.com/llms.txt) / [llms-full.txt](https://protocolbanks.com/llms-full.txt) | Machine-readable summaries for AI crawlers |
 | [trading/backtest-findings.md](trading/backtest-findings.md) | What the strategy returns after costs — the honest record behind the positioning |

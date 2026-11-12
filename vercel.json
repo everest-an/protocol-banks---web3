@@ -48,6 +48,10 @@
     {
       "path": "/api/cron/webhooks",
       "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/sandbox-cleanup",
+      "schedule": "15 3 * * *"
     }
   ]
 }

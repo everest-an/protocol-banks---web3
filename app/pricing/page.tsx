@@ -138,7 +138,7 @@ export default function PricingPage() {
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/settings/api-keys"
+            href="/sandbox"
             className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-5 py-3 text-sm font-medium text-neutral-50 hover:bg-neutral-800 transition"
           >
             Start in sandbox <ArrowRight className="h-4 w-4" />

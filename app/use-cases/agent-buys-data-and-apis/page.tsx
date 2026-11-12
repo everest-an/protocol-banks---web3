@@ -124,8 +124,8 @@ POST /api/v1/agent/pay
             Ready to test the buyer flow? Start with a sandbox key, then publish or buy one service.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/settings/api-keys" className="inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background">
-              Create a sandbox key <ArrowRight className="h-4 w-4" />
+            <Link href="/sandbox" className="inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background">
+              Create sandbox keys <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/docs/quickstart" className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium">
               Open the quickstart

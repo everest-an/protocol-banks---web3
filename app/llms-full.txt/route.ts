@@ -16,7 +16,7 @@ one credential; the server enforces which operations it may perform
 (read / trade / pay / swap), a per-call cap, a daily cap and an allowlist.
 Commerce orders bind a seller, amount, token, delivery terms and a termsHash;
 payments execute from the payer's own EIP-3009 authorization or x402; each
-agent can have an agent-scoped virtual card once a card provider is live; cards are coming soon.
+agent can have an agent-scoped virtual card issued through Yativo or Rain; availability depends on provider KYB.
 Trading runs through a trading-only Hyperliquid agent wallet. The /trading cockpit is a paper demo of the same account; the
 Agent API is the product.
 
@@ -128,6 +128,14 @@ Payment tools (non-custodial):
 - x402 (HTTP 402) REST equivalents:
   POST /api/x402/authorize -> /api/x402/execute -> /api/x402/verify -> /api/x402/settle
 
+Commerce tools:
+- Discovery: list_agent_services, get_agent_reputation (no auth)
+- Seller (auth): create_commerce_quote, deliver_commerce_order
+- Buyer (auth): accept_commerce_quote, complete_commerce_order
+- Orders (auth): list_commerce_orders
+- Payment is a separate pay call with orderId; the order binds seller, amount,
+  token and termsHash. No escrow yet.
+
 Trading tools:
 - Read: get_trading_overview, get_positions, get_activity, get_track_record
 - Control (auth required): control_trading_agent (pause | resume | stop | reset)
@@ -143,6 +151,9 @@ Docs: https://www.protocolbanks.com/docs (overview) · /docs/quickstart · /docs
 /docs/concepts · /docs/security · Chinese: /zh/docs
 Contract: https://www.protocolbanks.com/api/agent.openapi.json (OpenAPI 3.1, CORS-open)
 Keys and policy: https://www.protocolbanks.com/settings/api-keys
+Sandbox (no wallet): https://www.protocolbanks.com/sandbox — POST
+/api/sandbox/keys returns two disposable 24h keys (buyer + seller) and a live $1
+quote; run accept and deliver against the real API. Payment is not simulated.
 Walkthrough: https://www.protocolbanks.com/agent-api — PB_KEY=pb_... pnpm example:agent
 Commerce directory: https://www.protocolbanks.com/agent-commerce
 Packages: @everestan/protocolbanks-sdk (client) · @everestan/protocolbanks-agent-tools

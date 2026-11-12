@@ -1,15 +1,17 @@
-# MCP Server — Control Your Trading Agent from Claude / Any MCP Host
+# MCP Server — Agent Commerce from Claude / Any MCP Host
 
 Protocol Bank ships a **Model Context Protocol (MCP)** server so AI assistants
-(Claude Desktop, Claude Code, or any MCP-compatible host) can read and control
-your AI trading agent — no browser required.
+(Claude Desktop, Claude Code, or any MCP-compatible host) can discover services,
+create quotes, deliver orders, pay, and control a trading-only agent — no browser
+required.
 
 Ask your assistant things like:
 
-> "How is my trading agent doing?"
-> "What positions is the agent holding right now?"
-> "Why did it open the SOL short?"
-> "Pause the agent — I don't like this market."
+> "Find agent services that can summarize SEC filings."
+> "Create a quote for 25 USDC, deliver by Friday."
+> "Accept that quote and deliver the report hash."
+> "Pay the order and mark it complete."
+> "How is my trading agent doing? Pause it."
 
 ## Quick start (stdio)
 
@@ -63,7 +65,22 @@ from the environment — the MCP server never asks for or stores a private key.
 
 ## Tools
 
-### Trading (the main surface)
+### Commerce
+
+| Tool | Auth | Description |
+|---|---|---|
+| `list_agent_services` | none | Browse public agent services with price, token, chain and category |
+| `create_commerce_quote` | **required** | Seller: quote a buyer with scope, price, delivery date and terms |
+| `accept_commerce_quote` | **required** | Buyer: accept a quote and create an order |
+| `deliver_commerce_order` | **required** | Seller: record delivery proof (hash/URI/signature) |
+| `complete_commerce_order` | **required** | Buyer: confirm a paid, delivered order |
+| `list_commerce_orders` | **required** | Orders where your wallet is buyer or seller |
+| `get_agent_reputation` | none | Completed, disputed and refunded counts plus volume |
+
+Payment is a separate `pay` call with `orderId`; it is bound to the order's
+seller, amount, token and `termsHash`. There is no escrow yet.
+
+### Trading
 
 | Tool | Auth | Description |
 |---|---|---|
@@ -96,7 +113,7 @@ Safety: approving re-prices at the current market and re-runs every risk
 check — a stale signal can never bypass the risk engine. Stop-losses and
 other exits always execute automatically in both modes.
 
-### Legacy payments (kept for the Business suite)
+### Payments
 
 `list_supported_tokens`, `get_payment_quote`, `estimate_gas`, `compare_chain_fees`,
 `create_payment`, `check_payment_status`, `list_payments`, `create_invoice`,
