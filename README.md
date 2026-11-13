@@ -41,7 +41,7 @@ The **Agent API** is the product: commerce orders (services, quotes, delivery pr
 | **Trading Agent Wallet** (`/trading`) | Hyperliquid wallet approved with EIP-712 `approveAgent`; trade-only, never withdraw |
 | **Agent Cards** (`/agents/[id]`) | Coming soon: virtual Visa cards scoped to one agent; provider onboarding is in progress. Balance will be held by the issuing partner. |
 | **AI Trading Cockpit** (`/trading`) | The reference demo: balances, equity curve, plain-language activity feed, positions, pause/stop/reset |
-| **Paper Engine** | Real Hyperliquid market data + simulated fills. Momentum (24h z-score) and funding-carry signals, 2.5% TP/SL, 15% position sizing, 5%/8% daily circuit breakers |
+| **Paper Engine** | Real Hyperliquid market data + simulated fills. Momentum (24h z-score) and funding-carry signals, +30% TP / -15% SL, 15% position sizing, 5%/8% daily circuit breakers |
 | **Live Mode** | Agent wallet approval flow (EIP-712 `approveAgent`), AES-256-GCM key custody, real IOC orders, uncertain-order halt, per-user isolation |
 | **Wallet** (`/balances`) | Multi-chain balances and activity |
 | **Business** (collapsed) | Batch payments, invoices, subscriptions, acquiring, vendors — available as rails, no longer the hero |
@@ -179,7 +179,7 @@ Protocol Bank 是面向 AI Agent 的 **Agent Commerce 控制面**。一个 agent
 | **Trading Agent Wallet** (`/trading`) | Hyperliquid 钱包，EIP-712 approveAgent 批准；可交易、不可提现 |
 | **Agent Cards** (`/agents/[id]`) | 按 agent 隔离的虚拟 Visa 卡：通过 Yativo / Rain 开卡；余额由发卡合作方持有 |
 | **AI 交易驾驶舱** (`/trading`) | 参考演示：余额、净值曲线、自然语言活动流、持仓、暂停/停止/重置 |
-| **Paper 引擎** | 真实 Hyperliquid 行情 + 模拟成交。动量（24h z-score）+ 资金费率信号，±2.5% 止盈止损，15% 仓位，5%/8% 日内熔断 |
+| **Paper 引擎** | 真实 Hyperliquid 行情 + 模拟成交。动量（24h z-score）+ 资金费率信号，+30% 止盈 / -15% 止损，15% 仓位，5%/8% 日内熔断 |
 | **Live 模式** | Agent 钱包批准流（EIP-712 approveAgent）、AES-256-GCM 密钥托管、真实 IOC 下单、不确定订单安全停机、每用户隔离 |
 | **钱包** (`/balances`) | 多链余额与流水 |
 | **Business**（折叠区） | 批量支付、发票、订阅、收单、联系人——作为 rail 保留 |

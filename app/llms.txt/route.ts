@@ -23,7 +23,7 @@ You can use this API. Fetch /.well-known/agent.json for capabilities, /api/agent
 - Agent cards (Coming soon): virtual Visa cards will be scoped to one agent; provider onboarding is in progress
 - Non-custodial trading: the Hyperliquid agent wallet can trade but NEVER withdraw; the trading budget is the maximum loss
 - Paper trading mode: real market data, simulated money, zero risk
-- Risk controls: per-trade stop-loss (+/-2.5%), 15% position sizing, max 3 positions, daily loss circuit breakers (5% stop new entries / 8% close all)
+- Risk controls: take-profit +30% / stop-loss -15%, 15% position sizing, max 3 positions, daily loss circuit breakers (5% stop new entries / 8% close all)
 - Live mode: EIP-712 agent approval, AES-256-GCM key custody, per-user isolation
 
 ## Key pages

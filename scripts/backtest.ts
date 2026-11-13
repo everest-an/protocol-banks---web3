@@ -6,8 +6,8 @@
  * Faithful to lib/trading:
  *  - signals: momentumZ(24) + funding, 60/40 mix (strategies.ts)
  *  - entries: |score| >= entryThreshold, ranked by |score|, max maxPositions
- *  - exits: TP/SL act on PnL vs ALLOCATED MARGIN (pnlPct), so 2.5% at 2x is a
- *    1.25% price move; plus signal fade and the daily breakers
+ *  - exits: TP/SL act on PnL vs ALLOCATED MARGIN (pnlPct), so 30% at 2x is a
+ *    15% price move; plus signal fade and the daily breakers
  *  - costs: taker fee on both sides, slippage on both sides, hourly funding
  *
  * Run: npx tsx scripts/backtest.ts

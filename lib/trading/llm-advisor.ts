@@ -36,6 +36,12 @@ export interface AdvisorRequest {
   signal: AdvisorSignalInput
   equityUsd: number
   openPositions: string[]
+  risk?: {
+    maxPositions: number
+    takeProfitPct: number
+    stopLossPct: number
+    dailyLossStopPct: number
+  }
 }
 
 export interface AdvisorProposal {
@@ -118,10 +124,10 @@ export function buildPrompt(req: AdvisorRequest): string {
       open_positions: req.openPositions,
     },
     constraints: {
-      max_positions: 3,
-      take_profit_pct: 2.5,
-      stop_loss_pct: 2.5,
-      daily_loss_circuit_breaker_pct: 5,
+      max_positions: req.risk?.maxPositions ?? 3,
+      take_profit_pct: Number(((req.risk?.takeProfitPct ?? 0.3) * 100).toFixed(2)),
+      stop_loss_pct: Number(((req.risk?.stopLossPct ?? 0.15) * 100).toFixed(2)),
+      daily_loss_circuit_breaker_pct: Number(((req.risk?.dailyLossStopPct ?? 0.05) * 100).toFixed(2)),
       note: "sizing and stops are enforced by the platform and cannot be changed by you",
     },
   })

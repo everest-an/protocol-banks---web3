@@ -23,7 +23,7 @@ describe("strategy profile", () => {
       if (!r.ok) continue
       expect(r.clamped).toEqual([])
       expect(Math.abs(r.config.exitFadeThreshold)).toBeLessThan(r.config.entryThreshold)
-      expect(r.config.stopLossPct).toBeLessThan(r.config.dailyLossStopPct)
+      expect(r.config.stopLossPct * r.config.positionPct).toBeLessThan(r.config.dailyLossStopPct)
       expect(r.config.dailyLossStopPct).toBeLessThan(r.config.dailyLossKillPct)
       expect(r.config.positionPct * r.config.maxPositions).toBeLessThanOrEqual(0.6)
     }
@@ -67,11 +67,13 @@ describe("strategy profile", () => {
     expect(r.clamped.some((c) => c.field === "exitFadeThreshold")).toBe(true)
   })
 
-  it("stops a single stop from tripping the daily breaker", () => {
-    const r = resolveStrategyProfile({ overrides: { stopLossPct: 0.05, dailyLossStopPct: 0.02 } })
+  it("stops a single position from tripping the daily breaker", () => {
+    const r = resolveStrategyProfile({ overrides: { stopLossPct: 0.3, dailyLossStopPct: 0.02 } })
     expect(r.ok).toBe(true)
     if (!r.ok) return
-    expect(r.config.stopLossPct).toBeLessThan(r.config.dailyLossStopPct)
+    expect(r.config.stopLossPct).toBeLessThan(0.3)
+    expect(r.config.stopLossPct * r.config.positionPct).toBeLessThanOrEqual(r.config.dailyLossStopPct)
+    expect(r.clamped.some((c) => c.field === "stopLossPct")).toBe(true)
   })
 
   it("caps total deployment at 60% of equity", () => {

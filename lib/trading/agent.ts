@@ -836,6 +836,12 @@ export class TradingAgent {
             },
             equityUsd: this.equityOf(st),
             openPositions: st.positions.map((p) => p.symbol),
+            risk: {
+              maxPositions: this.risk.maxPositions,
+              takeProfitPct: this.risk.takeProfitPct,
+              stopLossPct: this.risk.stopLossPct,
+              dailyLossStopPct: this.risk.dailyLossStopPct,
+            },
           }).catch(() => null)
         : null
       advisorConsulted = true

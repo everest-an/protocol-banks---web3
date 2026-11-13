@@ -530,7 +530,7 @@ export function LandingPage({ onConnectWallet, onTryDemo }: LandingPageProps) {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { v: "3", l: "positions max" },
-                  { v: "±2.5%", l: "tp / sl" },
+                  { v: "30 / 15%", l: "tp / sl" },
                   { v: "5%", l: "daily loss stop" },
                 ].map((s) => (
                   <div key={s.l} className="rounded-md border border-[#E4E2DD] bg-white p-4 text-center">

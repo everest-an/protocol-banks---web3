@@ -206,10 +206,16 @@ export async function POST(req: NextRequest) {
       await send(chatId, "这个绑定码无效或已过期 — 请在 Protocol Bank 的 Settings → Telegram 里重新生成。")
       return NextResponse.json({ ok: true })
     }
-    await prisma.tradingAccount.update({
-      where: { wallet_address: row.wallet_address },
-      data: { telegram_chat_id: chatId, telegram_link_code: null, telegram_link_expires_at: null },
-    })
+    await prisma.$transaction([
+      prisma.tradingAccount.updateMany({
+        where: { telegram_chat_id: chatId, wallet_address: { not: row.wallet_address } },
+        data: { telegram_chat_id: null },
+      }),
+      prisma.tradingAccount.update({
+        where: { wallet_address: row.wallet_address },
+        data: { telegram_chat_id: chatId, telegram_link_code: null, telegram_link_expires_at: null },
+      }),
+    ])
     void recordEvent({ name: 'wallet_bound', wallet: row.wallet_address })
     await send(
       chatId,
@@ -404,11 +410,17 @@ export async function POST(req: NextRequest) {
     invalidateAgentForWallet(walletForChat)
     void recordEvent({ name: 'strategy_applied', wallet: walletForChat, props: { preset: pending.preset } })
     const clamped = resolved.clamped.map((c) => `${c.field} ${String(c.requested)}→${String(c.applied)}`).join('，')
-    await send(chatId, formatStrategy(`${pending.preset}（已生效）`, resolved.config, clamped ? `已夹紧：${clamped}` : ''))
+    const summary = formatStrategy(`${pending.preset}（已生效）`, resolved.config, clamped ? `已夹紧：${clamped}` : '')
+    const { notificationService } = await import('@/lib/services/notification-service')
+    await notificationService.notifyStrategyChanged(walletForChat, summary)
     return NextResponse.json({ ok: true })
   }
 
   if (/^\/cancel\b/i.test(text)) {
+    if (isGroup) {
+      await send(chatId, '群里只能查看策略；修改请在私聊里操作。')
+      return NextResponse.json({ ok: true })
+    }
     const raw = await readRiskConfig()
     if (!raw.pending) {
       await send(chatId, '没有待确认的策略变更。')
@@ -445,7 +457,7 @@ export async function POST(req: NextRequest) {
 
     const system = [
       '你是 Protocol Bank 的交易助理，服务账户主人（就是正在和你聊天的人）。用中文、简洁、直接地回答。',
-      '产品背景：这是 Protocol Bank 的 AI 自动交易账户 —— AI 在 Hyperliquid 上做永续合约（动量+资金费率信号），agent 钱包只有交易权、永远不能提款；最坏情况=账户里的钱；每仓 ±2.5% 止盈止损，日内 -5% 停新单、-8% 全平；每分钟自动运行。',
+      '产品背景：这是 Protocol Bank 的 AI 自动交易账户 —— AI 在 Hyperliquid 上做永续合约（动量+资金费率信号），agent 钱包只有交易权、永远不能提款；最坏情况=账户里的钱；每仓 +30% 止盈 / -15% 止损，日内 -5% 停新单、-8% 全平；每分钟自动运行。',
       '回答规则：只依据下面提供的实时数据，不编造数字；问进展就概括持仓/盈亏/最近动作；数据缺失就直说。不要用 markdown 表格，用短句或短列表。',
       '',
       ...(isGroup

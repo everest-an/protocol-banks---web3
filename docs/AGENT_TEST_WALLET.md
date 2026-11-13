@@ -106,7 +106,7 @@ from the ledger:
 
 The decomposition is the interesting part: **fees were nearly double the trading
 loss.** At this size (a ~15 USDC notional position paying ~0.07 per side), the
-round trip costs ~0.7% — which is ~28% of the strategy's 2.5% take-profit. Any
+round trip costs ~0.7% — which is ~2.3% of the strategy's 30% take-profit. Any
 honest reading of that number says the edge has to clear the fee drag before it
 is worth anything, and that small notional sizes are structurally disadvantaged.
 

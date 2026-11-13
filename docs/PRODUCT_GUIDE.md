@@ -180,7 +180,7 @@ Executed over the 12 most liquid Hyperliquid perps. Long/short.
 |---|---|
 | Position size | 15% of trading equity per position |
 | Max concurrent positions | 3 |
-| Take-profit / stop-loss | ±2.5% per position |
+| Take-profit / stop-loss | +30% / -15% per position |
 | Daily circuit breakers | 5% → no new entries; 8% → close everything |
 | Leverage (paper model) | 2× |
 | Costs modelled | Taker fee 0.04% + slippage 0.05% per side |

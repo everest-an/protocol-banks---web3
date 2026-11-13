@@ -55,7 +55,7 @@ export default function RiskDisclosure() {
             <ul className="list-disc pl-6 space-y-1.5">
               <li>
                 <span className="font-medium">Volatility:</span> crypto markets can move violently in minutes, triggering
-                stop-losses far worse than the configured -2.5% under gaps or illiquidity.
+                stop-losses far worse than the configured -15% under gaps or illiquidity.
               </li>
               <li>
                 <span className="font-medium">Liquidation:</span> leveraged positions can be liquidated by the exchange

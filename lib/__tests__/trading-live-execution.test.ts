@@ -395,8 +395,8 @@ function liveStoreWith(position: Position): TradingStore {
 
 describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
   it("take-profit closes a long with a reduceOnly sell and books the fill", async () => {
-    const executor = fakeExecutor({ ok: true, avgPx: 61500, totalSz: 0.001, oid: 7 })
-    const store = liveStoreWith(positionWith(2.5))
+    const executor = fakeExecutor({ ok: true, avgPx: 78000, totalSz: 0.001, oid: 7 })
+    const store = liveStoreWith(positionWith(30))
     const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
 
     const traded = await (agent as unknown as ExitAccess).applyExits(new Map(), false)
@@ -412,20 +412,20 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
     expect(call.coin).toBe("BTC")
     expect(call.isBuy).toBe(false)
     expect(call.reduceOnly).toBe(true)
-    expect(call.sizeUsd).toBeCloseTo(61.5, 6) // 0.001 BTC at 61500
+    expect(call.sizeUsd).toBeCloseTo(78, 6) // 0.001 BTC at 78000
     expect(store.get().positions).toHaveLength(0)
-    // 30 margin returned + 1.50 gross - 0.0246 exit fee
-    expect(store.get().cash).toBeCloseTo(101.48, 2)
+    // 30 margin returned + 18.00 gross - 0.0312 exit fee
+    expect(store.get().cash).toBeCloseTo(117.97, 2)
     expect(store.get().activity.some((a) => a.text.includes("take-profit"))).toBe(true)
     expect(recordTradeClosed).toHaveBeenCalledWith(
       WALLET,
-      expect.objectContaining({ symbol: "BTC", side: "long", exitPrice: 61500, pnl: expect.any(Number) }),
+      expect.objectContaining({ symbol: "BTC", side: "long", exitPrice: 78000, pnl: expect.any(Number) }),
     )
   })
 
   it("stop-loss closes a short by buying it back", async () => {
-    const executor = fakeExecutor({ ok: true, avgPx: 61500, totalSz: 0.001, oid: 8 })
-    const store = liveStoreWith(positionWith(-2.5, "short"))
+    const executor = fakeExecutor({ ok: true, avgPx: 69000, totalSz: 0.001, oid: 8 })
+    const store = liveStoreWith(positionWith(-15, "short"))
     const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
 
     await (agent as unknown as ExitAccess).applyExits(new Map(), false)
@@ -439,16 +439,16 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
     expect(call.coin).toBe("BTC")
     expect(call.isBuy).toBe(true) // closing a short buys
     expect(call.reduceOnly).toBe(true)
-    expect(call.sizeUsd).toBeCloseTo(61.5, 6) // 0.001 BTC at 61500 (price rose, short lost)
+    expect(call.sizeUsd).toBeCloseTo(69, 6) // 0.001 BTC at 69000 (price rose, short lost)
     expect(store.get().positions).toHaveLength(0)
-    // 30 margin + (-1.50) gross - 0.0246 exit fee = 28.48 realized, on top of the 70 cash
-    expect(store.get().cash).toBeCloseTo(98.48, 2)
+    // 30 margin + (-9.00) gross - 0.0276 exit fee = 20.97 realized, on top of the 70 cash
+    expect(store.get().cash).toBeCloseTo(90.97, 2)
     expect(store.get().activity.some((a) => a.text.includes("stop-loss"))).toBe(true)
   })
 
   it("an UNCERTAIN close queues verification instead of halting and never fabricates a fill", async () => {
     const executor = fakeExecutor({ ok: false, rejected: false, uncertainty: true, reason: "timeout" })
-    const store = liveStoreWith(positionWith(2.5))
+    const store = liveStoreWith(positionWith(30))
     const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
 
     const traded = await (agent as unknown as ExitAccess).applyExits(new Map(), false)
@@ -490,7 +490,7 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
       assetPositions: [],
     })
     const executor = fakeExecutor({ ok: true, avgPx: 1, totalSz: 1, oid: null })
-    const store = liveStoreWith(positionWith(2.5))
+    const store = liveStoreWith(positionWith(30))
     const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
 
     await (agent as unknown as { reconcileWithVenue: () => Promise<void> }).reconcileWithVenue()
@@ -521,7 +521,7 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
 
   it("a rejected close keeps the agent running and the position open", async () => {
     const executor = fakeExecutor({ ok: false, rejected: true, reason: "reduce-only rejected" })
-    const store = liveStoreWith(positionWith(2.5))
+    const store = liveStoreWith(positionWith(30))
     const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
 
     await (agent as unknown as ExitAccess).applyExits(new Map(), false)

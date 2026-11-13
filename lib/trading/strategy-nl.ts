@@ -21,7 +21,7 @@ export function buildStrategySystemPrompt(): string {
     "Reply with a single JSON object and nothing else:",
     '{"preset":"<one of: ' + presetList + '>","overrides":{"<field>":<value>},"note":"<one short sentence>"}',
     "Tunable fields and hard ranges (the server will clamp anything outside them):",
-    "entryThreshold 0.3-0.8, exitFadeThreshold 0.1-0.6, takeProfitPct 0.01-0.05, stopLossPct 0.01-0.05,",
+    "entryThreshold 0.3-0.8, exitFadeThreshold 0.1-0.6, takeProfitPct 0.01-0.5, stopLossPct 0.01-0.3,",
     "dailyLossStopPct 0.02-0.1, dailyLossKillPct 0.04-0.15, positionPct 0.05-0.25, maxPositions 1-5 (integer),",
     "leverage 1-3 (integer), minVolumeUsd >= 1000000, minNotionalUsd 10-500, slippageRate 0.001-0.05.",
     'approvalMode must be "auto" or "manual".',

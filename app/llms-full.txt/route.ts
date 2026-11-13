@@ -30,7 +30,7 @@ call the Agent API (or the MCP server) under a policy their owner controls.
 2. Platform risk engine (enforced before every order):
    - position sizing: ~15% of trading wallet per position
    - max 3 concurrent positions
-   - take-profit +2.5% / stop-loss -2.5% on every position
+   - take-profit +30% / stop-loss -15% on every position
    - signal-fade exit when the combined score turns against the position
    - daily loss circuit breakers: 5% stops new entries, 8% closes everything
    - fees (4bps taker) and slippage (5bps) modeled in every fill

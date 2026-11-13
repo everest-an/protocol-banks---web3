@@ -645,6 +645,14 @@ export class NotificationService {
   }
 
   /**
+   * Notify the owner, on the chat bound to THIS wallet, that the strategy was
+   * applied. The summary is produced server-side; the chat cannot change it.
+   */
+  async notifyStrategyChanged(ownerAddress: string, summary: string): Promise<void> {
+    this.sendTelegram(ownerAddress, 'Strategy updated', summary);
+  }
+
+  /**
    * Optional Telegram sink for trade notifications. Routes by BINDING: the
    * notification goes to the chat that is linked to the owning wallet (see
    * /settings/telegram) — a customer never receives another account's trades.

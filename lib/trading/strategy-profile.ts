@@ -25,8 +25,8 @@ const BOUNDS: Partial<Record<keyof RiskConfig, Bound>> = {
   positionPct: { min: 0.05, max: 0.25 },
   entryThreshold: { min: 0.3, max: 0.8 },
   exitFadeThreshold: { min: 0.1, max: 0.6 },
-  takeProfitPct: { min: 0.01, max: 0.05 },
-  stopLossPct: { min: 0.01, max: 0.05 },
+  takeProfitPct: { min: 0.01, max: 0.5 },
+  stopLossPct: { min: 0.01, max: 0.3 },
   dailyLossStopPct: { min: 0.02, max: 0.1 },
   dailyLossKillPct: { min: 0.04, max: 0.15 },
   leverage: { min: 1, max: 3, integer: true },
@@ -152,13 +152,14 @@ export function resolveStrategyProfile(input: unknown): ResolvedProfile {
     config.exitFadeThreshold = applied
   }
 
-  if (config.stopLossPct >= config.dailyLossStopPct) {
-    const applied = Number(Math.min(config.stopLossPct, config.dailyLossStopPct - 0.005).toFixed(4))
+  if (config.stopLossPct * config.positionPct >= config.dailyLossStopPct) {
+    const maxStop = (config.dailyLossStopPct * 0.9) / config.positionPct
+    const applied = Number(Math.max(0.01, Math.min(config.stopLossPct, maxStop)).toFixed(4))
     clamped.push({
       field: "stopLossPct",
       requested: config.stopLossPct,
       applied,
-      reason: "a single stop must not trip the daily breaker",
+      reason: "a single position's stop must not trip the daily breaker",
     })
     config.stopLossPct = applied
   }

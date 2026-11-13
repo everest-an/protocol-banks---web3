@@ -184,7 +184,7 @@ Business（侧栏折叠区，非主推）
 | 导航 v2 | ✅ Trading 置顶 + Business 合并（sidebar/header/mobile-nav） |
 | Hyperliquid 行情客户端 | ✅ 真实行情（meta/ctxs/candles，内存缓存，无需 API key） |
 | 策略引擎 v1 | ✅ 动量 z-score(24h) + 资金费率(60/40 加权)，阈值用真实市场数据校准 |
-| 风控 | ✅ 仓位 15%/上限 3、TP+2.5%、SL-2.5%、信号衰减退出、日亏 5% 停新单/8% 清仓、滑点+手续费建模 |
+| 风控 | ✅ 仓位 15%/上限 3、TP+30%、SL-15%、信号衰减退出、日亏 5% 停新单/8% 清仓、滑点+手续费建模 |
 | Paper 交易引擎 | ✅ tick-on-demand（8s 响应上限）+ 独立 worker（`pnpm trading:agent`），文件状态存储 |
 | **Live: 签名与交易客户端** | ✅ `lib/trading/exchange.ts` — Hyperliquid EIP-712（phantom-agent L1 + ApproveAgent 用户签名），手工实现 + **7 项单元测试全过**（digest 往返、msgpack 字节级、防重放） |
 | **Live: agent 密钥托管** | ✅ `lib/trading/keys.ts` — 每用户独立密钥，AES-256-GCM 加密存储 |

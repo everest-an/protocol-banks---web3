@@ -132,6 +132,31 @@ export default function TelegramSettingsPage() {
           </div>
         </div>
       )}
+
+      <div className="mt-6 rounded-xl border border-border p-5 space-y-3">
+        <h2 className="text-sm font-semibold">在 Telegram 里查看和修改策略</h2>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          只对当前绑定的钱包生效。群聊只能查看，不能修改；修改在私聊里完成，并在 10 分钟内确认。
+        </p>
+        <ul className="space-y-1.5 text-xs text-muted-foreground">
+          <li>
+            <span className="font-mono text-foreground">/strategy</span> 查看当前策略
+          </li>
+          <li>
+            <span className="font-mono text-foreground">/strategy preset balanced</span> 切换预设
+          </li>
+          <li>
+            <span className="font-mono text-foreground">/strategy 止盈30% 止损15%</span> 自然语言修改
+          </li>
+          <li>
+            <span className="font-mono text-foreground">/confirm</span> 确认，<span className="font-mono text-foreground">/cancel</span> 取消
+          </li>
+        </ul>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          确认后会推送到本聊天；只写入这个钱包的 <span className="font-mono text-foreground">risk_config</span>，
+          不会触碰预算、余额、密钥或其他客户的账户。
+        </p>
+      </div>
     </div>
   )
 }
