@@ -197,6 +197,10 @@ export async function POST(req: NextRequest) {
   // bind someone else's wallet.
   const startMatch = /^\/start(?:@[\w]+)?\s+([A-Za-z0-9]{8,32})$/.exec(text)
   if (startMatch) {
+    if (isGroup) {
+      await send(chatId, '请在私聊中绑定账户；群里不会绑定，也不会推送任何客户数据。')
+      return NextResponse.json({ ok: true })
+    }
     const code = startMatch[1]
     const row = await prisma.tradingAccount.findFirst({
       where: { telegram_link_code: code, telegram_link_expires_at: { gt: new Date() } },
