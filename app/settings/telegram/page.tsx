@@ -10,12 +10,25 @@ import { authHeaders } from "@/lib/authenticated-fetch"
  * (opens/closes/guards) is pushed there and the assistant answers questions
  * about THIS account only.
  */
+interface StrategyRevision {
+  id: string
+  preset: string
+  appliedVia: string
+  appliedAt: string
+  config: {
+    takeProfitPct?: number
+    stopLossPct?: number
+    leverage?: number
+  } | null
+}
+
 export default function TelegramSettingsPage() {
   const { address: wallet, isConnected } = useUnifiedWallet()
   const [bound, setBound] = useState<boolean | null>(null)
   const [link, setLink] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<StrategyRevision[]>([])
 
   const load = useCallback(async () => {
     if (!wallet) return
@@ -30,9 +43,22 @@ export default function TelegramSettingsPage() {
     }
   }, [wallet])
 
+  const loadHistory = useCallback(async () => {
+    if (!wallet) return
+    try {
+      const r = await fetch("/api/trading/strategy/revisions", { headers: authHeaders(wallet) })
+      if (!r.ok) return
+      const d = await r.json()
+      setHistory(Array.isArray(d?.revisions) ? d.revisions : [])
+    } catch {
+      setHistory([])
+    }
+  }, [wallet])
+
   useEffect(() => {
     void load()
-  }, [load])
+    void loadHistory()
+  }, [load, loadHistory])
 
   const connect = async () => {
     if (!wallet) return
@@ -156,6 +182,26 @@ export default function TelegramSettingsPage() {
           确认后会推送到本聊天；只写入这个钱包的 <span className="font-mono text-foreground">risk_config</span>，
           不会触碰预算、余额、密钥或其他客户的账户。
         </p>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-border p-5 space-y-3">
+        <h2 className="text-sm font-semibold">策略变更记录</h2>
+        {history.length === 0 ? (
+          <p className="text-xs text-muted-foreground">暂无记录。通过 Telegram 修改并确认后会出现在这里。</p>
+        ) : (
+          <ul className="space-y-2 text-xs text-muted-foreground">
+            {history.map((revision) => (
+              <li key={revision.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-0 last:pb-0">
+                <span>{new Date(revision.appliedAt).toLocaleString("zh-CN")}</span>
+                <span className="font-mono text-foreground">
+                  {revision.preset} · TP {Math.round((revision.config?.takeProfitPct ?? 0) * 100)}% · SL{" "}
+                  {Math.round((revision.config?.stopLossPct ?? 0) * 100)}%
+                </span>
+                <span>{revision.appliedVia}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )

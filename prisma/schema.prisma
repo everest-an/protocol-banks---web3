@@ -2138,11 +2138,30 @@ model TradingAccount {
   updated_at          DateTime  @updatedAt
 
   trades TradeRecord[]
+  strategy_revisions StrategyRevision[]
 
   @@index([wallet_address])
   @@index([agent_address])
   @@index([status])
   @@map("trading_accounts")
+}
+
+/// Append-only strategy audit trail. One row per applied change; the current
+/// strategy still lives on TradingAccount.risk_config.
+model StrategyRevision {
+  id              String   @id @default(uuid())
+  wallet_address  String
+  preset          String
+  overrides       Json
+  config          Json
+  previous_config Json?
+  applied_via     String
+  applied_at      DateTime @default(now())
+
+  account TradingAccount @relation(fields: [wallet_address], references: [wallet_address], onDelete: Cascade)
+
+  @@index([wallet_address, applied_at])
+  @@map("strategy_revisions")
 }
 
 /// Every trade the agent executes for a user (paper fills and live fills).

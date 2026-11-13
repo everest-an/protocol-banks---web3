@@ -402,17 +402,30 @@ export async function POST(req: NextRequest) {
       await send(chatId, `无法应用：${resolved.errors.join('；')}`)
       return NextResponse.json({ ok: true })
     }
-    await prisma.tradingAccount.update({
-      where: { wallet_address: walletForChat },
-      data: {
-        risk_config: {
-          preset: pending.preset,
-          overrides: pending.overrides ?? {},
-          appliedAt: new Date().toISOString(),
-          appliedVia: 'telegram',
+    const previous = resolveStrategyProfile(raw)
+    await prisma.$transaction([
+      prisma.tradingAccount.update({
+        where: { wallet_address: walletForChat },
+        data: {
+          risk_config: {
+            preset: pending.preset,
+            overrides: pending.overrides ?? {},
+            appliedAt: new Date().toISOString(),
+            appliedVia: 'telegram',
+          },
         },
-      },
-    })
+      }),
+      prisma.strategyRevision.create({
+        data: {
+          wallet_address: walletForChat,
+          preset: pending.preset,
+          overrides: (pending.overrides ?? {}) as Prisma.InputJsonValue,
+          config: resolved.config as unknown as Prisma.InputJsonValue,
+          previous_config: previous.ok ? (previous.config as unknown as Prisma.InputJsonValue) : undefined,
+          applied_via: 'telegram',
+        },
+      }),
+    ])
     const { invalidateAgentForWallet } = await import('@/lib/trading/agent')
     invalidateAgentForWallet(walletForChat)
     void recordEvent({ name: 'strategy_applied', wallet: walletForChat, props: { preset: pending.preset } })
