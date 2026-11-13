@@ -164,6 +164,9 @@ async function send(chatId: string, text: string): Promise<void> {
 
 export async function POST(req: NextRequest) {
   const secret = process.env.TG_WEBHOOK_SECRET
+  if (!secret && process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ ok: false }, { status: 503 })
+  }
   if (secret && req.headers.get('x-telegram-bot-api-secret-token') !== secret) {
     return NextResponse.json({ ok: false }, { status: 401 })
   }
