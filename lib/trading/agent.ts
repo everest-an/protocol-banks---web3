@@ -1068,6 +1068,17 @@ export class TradingAgent {
    * Switch between automatic and manual (approval-gated) entries.
    * Leaving manual mode discards any waiting trade.
    */
+  applyRiskConfig(risk: RiskConfig): void {
+    const modeChanged = risk.approvalMode !== this.risk.approvalMode
+    this.risk = { ...risk }
+    if (modeChanged) {
+      this.store.mutate((s) => {
+        s.approvalMode = risk.approvalMode
+        if (risk.approvalMode === "auto") s.pendingTrade = null
+      })
+    }
+  }
+
   setApprovalMode(mode: "auto" | "manual"): { ok: boolean; note: string } {
     this.store.mutate((s) => {
       s.approvalMode = mode
@@ -1132,11 +1143,8 @@ export async function resolveAgentForWallet(
   if (!walletAddress) return getAgent()
   const key = walletAddress.toLowerCase()
 
-  // Already promoted?
-  const existing = walletAgents.get(key)
-  if (existing?.isLive()) return existing
-
   let risk: RiskConfig = DEFAULT_RISK
+  let riskResolved = false
   let persistedPaperState: TradingState | null = null
   try {
     const { prisma } = await import("@/lib/prisma")
@@ -1155,7 +1163,16 @@ export async function resolveAgentForWallet(
     if (row?.risk_config) {
       const { resolveStrategyProfile } = await import("./strategy-profile")
       const resolved = resolveStrategyProfile(row.risk_config)
-      if (resolved.ok) risk = resolved.config
+      if (resolved.ok) {
+        risk = resolved.config
+        riskResolved = true
+      }
+    }
+
+    const cached = walletAgents.get(key)
+    if (cached) {
+      if (riskResolved) cached.applyRiskConfig(risk)
+      if (cached.isLive() || !(row && row.status === "live" && row.agent_approved)) return cached
     }
 
     if (row && row.status === "live" && row.agent_approved) {

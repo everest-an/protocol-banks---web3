@@ -531,6 +531,14 @@ describe("TradingAgent — live exits (take-profit, stop-loss, halt)", () => {
     expect(store.get().activity.some((a) => a.text.includes("Close rejected"))).toBe(true)
   })
 
+  it("applies a strategy change to an already-cached agent", () => {
+    const executor = fakeExecutor({ ok: true, avgPx: 60000, totalSz: 0.001, oid: 10 })
+    const store = liveStoreWith(positionWith(0))
+    const agent = new TradingAgent(store, DEFAULT_RISK, WALLET, { mode: "live", executor })
+    agent.applyRiskConfig({ ...DEFAULT_RISK, approvalMode: "manual" })
+    expect(agent.toOverview().approvalMode).toBe("manual")
+  })
+
   it("the daily circuit breaker exits even a flat position", async () => {
     const executor = fakeExecutor({ ok: true, avgPx: 60000, totalSz: 0.001, oid: 9 })
     const store = liveStoreWith(positionWith(0))
