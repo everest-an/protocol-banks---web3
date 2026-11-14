@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Palette, Play } from "lucide-react"
+import { NotificationPreferences } from "@/components/notification-preferences"
 
 export default function PreferencesPage() {
   return (
@@ -65,6 +66,8 @@ export default function PreferencesPage() {
               </div>
            </div>
         </Card>
+
+        <NotificationPreferences />
       </div>
     </div>
   )

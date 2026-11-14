@@ -83,6 +83,7 @@ const HREFS: Record<string, string> = {
   acquiring: "/analytics",
   agent: "/agents/fleet",
   card: "/card",
+  yativo_card: "/card",
   trade: "/trading",
   csv: "/finance",
 }

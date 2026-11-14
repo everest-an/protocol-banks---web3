@@ -38,6 +38,10 @@ export const PUT = withAuth(async (request: NextRequest, userAddress: string) =>
       'subscription_payment',
       'multisig_proposal',
       'multisig_executed',
+      'trade_opened',
+      'trade_closed',
+      'trade_guard',
+      'finance_budget',
     ];
 
     const updates: Record<string, boolean> = {};

@@ -3,11 +3,12 @@ import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { categorizeTransaction } from "./categorize"
 import { convertToUsd } from "./fx"
+import { collectYativoFiatCardRows } from "./providers/yativo-fiat"
 
 const SYNC_MONTHS = 12
 const CONCURRENCY = 12
 
-interface LedgerRow {
+export interface FinanceLedgerRow {
   source: string
   source_id: string
   dedupe_key: string
@@ -45,8 +46,8 @@ function startOfMonthsAgo(months: number): Date {
   return date
 }
 
-async function upsertRows(wallet: string, rows: LedgerRow[]): Promise<void> {
-  const unique = new Map<string, LedgerRow>()
+async function upsertRows(wallet: string, rows: FinanceLedgerRow[]): Promise<void> {
+  const unique = new Map<string, FinanceLedgerRow>()
   for (const row of rows) {
     if (!row.amount_usd || !Number.isFinite(row.amount_usd)) continue
     unique.set(row.dedupe_key, row)
@@ -93,6 +94,10 @@ async function upsertRows(wallet: string, rows: LedgerRow[]): Promise<void> {
       ),
     )
   }
+}
+
+export async function upsertFinanceLedgerRows(walletAddress: string, rows: FinanceLedgerRow[]): Promise<void> {
+  await upsertRows(walletAddress.toLowerCase(), rows)
 }
 
 export async function syncFinanceLedger(walletAddress: string): Promise<void> {
@@ -158,7 +163,7 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
     }),
   ])
 
-  const rows: LedgerRow[] = []
+  const rows: FinanceLedgerRow[] = []
 
   for (const payment of payments) {
     const direction = payment.from_address.toLowerCase() === wallet ? "out" : "in"
@@ -319,6 +324,9 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
       metadata: { symbol: trade.symbol, side: trade.side, fees: trade.fees, mode: trade.mode },
     })
   }
+
+  const yativo = await collectYativoFiatCardRows(wallet).catch(() => null)
+  if (yativo?.rows.length) rows.push(...yativo.rows)
 
   await upsertRows(wallet, rows)
 }
