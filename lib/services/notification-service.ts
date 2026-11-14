@@ -46,6 +46,7 @@ export interface NotificationPreferences {
   trade_opened: boolean;
   trade_closed: boolean;
   trade_guard: boolean;
+  finance_budget: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -74,7 +75,8 @@ export type NotificationType =
   | 'vendor_address_changed'
   | 'trade_opened'
   | 'trade_closed'
-  | 'trade_guard';
+  | 'trade_guard'
+  | 'finance_budget';
 
 // ============================================
 // Constants
@@ -96,6 +98,7 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreferences, 'id' | 'user_address' |
   trade_opened: true,
   trade_closed: true,
   trade_guard: true,
+  finance_budget: true,
 };
 
 // ============================================
@@ -659,11 +662,39 @@ export class NotificationService {
     budgetUsd: number,
     percent: number,
   ): Promise<void> {
-    this.sendTelegram(
-      ownerAddress,
-      percent >= 100 ? 'Budget exceeded' : 'Budget warning',
-      `${category}: $${spentUsd.toFixed(2)} of $${budgetUsd.toFixed(2)} used (${percent.toFixed(0)}%).`,
-    );
+    const title = percent >= 100 ? 'Budget exceeded' : 'Budget warning';
+    const body = `${category}: $${spentUsd.toFixed(2)} of $${budgetUsd.toFixed(2)} used (${percent.toFixed(0)}%).`;
+    await this.send(ownerAddress, 'finance_budget', {
+      title,
+      body,
+      icon: '/icons/payment-received.png',
+      tag: `finance-budget-${category}-${new Date().toISOString().slice(0, 7)}`,
+      data: { type: 'finance_budget', category, spentUsd, budgetUsd, percent },
+    });
+    this.sendTelegram(ownerAddress, title, body);
+    void this.sendBudgetEmail(ownerAddress, title, body);
+  }
+
+  private async sendBudgetEmail(ownerAddress: string, title: string, body: string): Promise<void> {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return;
+    try {
+      const user = await prisma.authUser.findFirst({
+        where: { wallet_address: ownerAddress.toLowerCase() },
+        select: { email: true },
+      });
+      if (!user?.email) return;
+      const { Resend } = await import('resend');
+      const resend = new Resend(apiKey);
+      await resend.emails.send({
+        from: process.env.RESEND_FROM || 'Protocol Bank <notifications@protocolbanks.com>',
+        to: user.email,
+        subject: `[Protocol Bank] ${title}`,
+        html: `<p>${body}</p><p style="color:#666;font-size:12px">Read-only finance alert. No funds were moved.</p>`,
+      });
+    } catch (error) {
+      console.warn('[Notification] budget email failed:', error instanceof Error ? error.message : error);
+    }
   }
 
   /**
