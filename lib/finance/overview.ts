@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { syncFinanceLedger } from "./ledger"
 
 export type FinanceDirection = "in" | "out"
 export type FinanceTone = "positive" | "warning" | "neutral"
@@ -62,21 +63,19 @@ export interface FinanceOverview {
 }
 
 const STABLES = new Set(["USDC", "USDT", "DAI", "USD", "USDP", "PYUSD"])
-const SETTLED_PAYMENT = new Set(["completed", "confirmed", "success"])
-const SETTLED_ACQUIRING = new Set(["paid", "completed", "success"])
+const SETTLED = new Set(["completed", "confirmed", "paid", "success", "settled"])
+const HREFS: Record<string, string> = {
+  payment: "/history",
+  invoice: "/history",
+  subscription: "/subscriptions",
+  acquiring: "/analytics",
+  agent: "/agents/fleet",
+  trade: "/trading",
+  csv: "/finance",
+}
 
 function round(value: number): number {
   return Number(value.toFixed(2))
-}
-
-function amount(value: unknown): number {
-  const parsed = typeof value === "number" ? value : Number(value)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
-}
-
-function shortAddress(value: string | null | undefined): string {
-  if (!value) return "unknown"
-  return value.length > 12 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value
 }
 
 function monthKey(date: Date): string {
@@ -105,165 +104,31 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
   const range = Math.min(Math.max(months, 3), 12)
   const start = startOfMonthsAgo(range)
 
-  const merchants = await prisma.merchant.findMany({
-    where: {
-      OR: [
-        { wallet_address: walletFilter(wallet) },
-        { user: { wallet_address: walletFilter(wallet) } },
-      ],
-    },
-    select: { id: true, name: true },
-  })
-  const merchantIds = merchants.map((merchant) => merchant.id)
+  await syncFinanceLedger(wallet).catch(() => undefined)
 
-  const [payments, invoices, subscriptionPayments, agentPayments, acquiringOrders, balances, trading, trades] =
-    await Promise.all([
-      prisma.payment.findMany({
-        where: {
-          created_at: { gte: start },
-          OR: [{ from_address: walletFilter(wallet) }, { to_address: walletFilter(wallet) }],
-        },
-        orderBy: { created_at: "desc" },
-        take: 500,
-      }),
-      prisma.invoice.findMany({
-        where: { recipient_address: walletFilter(wallet), created_at: { gte: start } },
-        orderBy: { created_at: "desc" },
-        take: 300,
-      }),
-      prisma.subscriptionPayment.findMany({
-        where: {
-          created_at: { gte: start },
-          subscription: { owner_address: walletFilter(wallet) },
-        },
-        include: { subscription: { select: { service_name: true } } },
-        orderBy: { created_at: "desc" },
-        take: 300,
-      }),
-      prisma.agentPayment.findMany({
-        where: { owner_address: walletFilter(wallet), created_at: { gte: start } },
-        orderBy: { created_at: "desc" },
-        take: 300,
-      }),
-      merchantIds.length
-        ? prisma.acquiringOrder.findMany({
-            where: { merchant_id: { in: merchantIds }, created_at: { gte: start } },
-            include: { merchant: { select: { name: true } } },
-            orderBy: { created_at: "desc" },
-            take: 300,
-          })
-        : Promise.resolve([]),
-      prisma.userBalance.findMany({ where: { user_address: walletFilter(wallet) } }),
-      prisma.tradingAccount.findUnique({
-        where: { wallet_address: wallet },
-        select: { status: true, budget_usd: true, state_json: true },
-      }),
-      prisma.tradeRecord.findMany({
-        where: { wallet_address: wallet },
-        orderBy: { opened_at: "desc" },
-        take: 300,
-      }),
-    ])
+  const [balances, trading, trades, ledger] = await Promise.all([
+    prisma.userBalance.findMany({ where: { user_address: walletFilter(wallet) } }),
+    prisma.tradingAccount.findUnique({
+      where: { wallet_address: wallet },
+      select: { status: true, budget_usd: true, state_json: true },
+    }),
+    prisma.tradeRecord.findMany({
+      where: { wallet_address: wallet },
+      orderBy: { opened_at: "desc" },
+      take: 300,
+    }),
+    prisma.financeTransaction.findMany({
+      where: { owner_address: wallet, occurred_at: { gte: start } },
+      orderBy: { occurred_at: "desc" },
+      take: 1000,
+    }),
+  ])
 
-  const events: FinanceEvent[] = []
-
-  for (const payment of payments) {
-    const direction: FinanceDirection = payment.from_address.toLowerCase() === wallet ? "out" : "in"
-    const value = payment.amount_usd ?? amount(payment.amount)
-    if (!value) continue
-    events.push({
-      id: `payment:${payment.id}`,
-      source: "Payment",
-      title:
-        direction === "out"
-          ? `Paid ${payment.vendor_name || shortAddress(payment.to_address)}`
-          : `Received from ${shortAddress(payment.from_address)}`,
-      counterparty: direction === "out" ? payment.to_address : payment.from_address,
-      amountUsd: round(value),
-      direction,
-      occurredAt: (payment.completed_at ?? payment.created_at).toISOString(),
-      status: payment.status,
-      category: payment.category || (direction === "in" ? "Income" : "Payments"),
-      settled: SETTLED_PAYMENT.has(payment.status.toLowerCase()),
-      href: "/history",
-    })
-  }
-
-  let receivables = 0
-  for (const invoice of invoices) {
-    const value = amount(invoice.amount_fiat ?? invoice.amount)
-    if (!value) continue
-    const paid = invoice.status.toLowerCase() === "paid"
-    if (!paid) receivables += value
-    events.push({
-      id: `invoice:${invoice.id}`,
-      source: "Invoice",
-      title: paid ? `Invoice ${invoice.invoice_id} paid` : `Invoice ${invoice.invoice_id} awaiting payment`,
-      counterparty: invoice.customer_name || invoice.customer_email || invoice.customer_wallet || "Customer",
-      amountUsd: round(value),
-      direction: "in",
-      occurredAt: (invoice.paid_at ?? invoice.created_at).toISOString(),
-      status: invoice.status,
-      category: paid ? "Invoices" : "Receivables",
-      settled: paid,
-      href: "/history",
-    })
-  }
-
-  for (const payment of subscriptionPayments) {
-    const value = amount(payment.amount)
-    if (!value) continue
-    events.push({
-      id: `subscription:${payment.id}`,
-      source: "Subscription",
-      title: `Subscription · ${payment.subscription.service_name}`,
-      counterparty: payment.subscription.service_name,
-      amountUsd: round(value),
-      direction: "out",
-      occurredAt: payment.created_at.toISOString(),
-      status: payment.status,
-      category: "Subscriptions",
-      settled: payment.status.toLowerCase() === "completed",
-      href: "/subscriptions",
-    })
-  }
-
-  for (const payment of agentPayments) {
-    const value = amount(payment.amount_usd)
-    if (!value) continue
-    events.push({
-      id: `agent:${payment.id}`,
-      source: "Agent",
-      title: `Agent payment to ${shortAddress(payment.to_address)}`,
-      counterparty: payment.to_address,
-      amountUsd: round(value),
-      direction: "out",
-      occurredAt: (payment.confirmed_at ?? payment.created_at).toISOString(),
-      status: payment.status,
-      category: "Agent spend",
-      settled: payment.status.toLowerCase() === "confirmed",
-      href: "/agents/fleet",
-    })
-  }
-
-  for (const order of acquiringOrders) {
-    const value = amount(order.amount)
-    if (!value) continue
-    const settled = SETTLED_ACQUIRING.has(order.status.toLowerCase())
-    events.push({
-      id: `acquiring:${order.id}`,
-      source: "Acquiring",
-      title: `${order.merchant.name} order ${order.order_no}`,
-      counterparty: order.payer_address || order.merchant.name,
-      amountUsd: round(value),
-      direction: "in",
-      occurredAt: (order.paid_at ?? order.created_at).toISOString(),
-      status: order.status,
-      category: "Acquiring",
-      settled,
-      href: "/analytics",
-    })
-  }
+  const state = (trading?.state_json ?? null) as {
+    mode?: string
+    account?: { totalEquity?: number; budget?: number }
+    positions?: Array<{ pnl?: number }>
+  } | null
 
   let realizedPnl = 0
   let tradingFees = 0
@@ -277,31 +142,26 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     realizedPnl += pnl
     closedTrades += 1
     if (pnl > 0) wins += 1
-    events.push({
-      id: `trade:${trade.id}`,
-      source: "Trading",
-      title: `${trade.symbol} ${trade.side} closed`,
-      counterparty: trade.symbol,
-      amountUsd: round(Math.abs(pnl)),
-      direction: pnl >= 0 ? "in" : "out",
-      occurredAt: (trade.closed_at ?? trade.opened_at).toISOString(),
-      status: trade.status,
-      category: "Trading P&L",
-      settled: true,
-      href: "/trading",
-    })
   }
-
-  const state = (trading?.state_json ?? null) as {
-    mode?: string
-    account?: { totalEquity?: number; budget?: number }
-    positions?: Array<{ pnl?: number }>
-  } | null
 
   const unrealizedPnl = (state?.positions ?? []).reduce((sum, position) => sum + Number(position.pnl ?? 0), 0)
   const tradingEquity = Number(state?.account?.totalEquity ?? 0)
   const tradingBudget = Number(trading?.budget_usd ?? state?.account?.budget ?? 0)
   const openPositions = state?.positions?.length ?? 0
+
+  const events: FinanceEvent[] = ledger.map((row) => ({
+    id: row.id,
+    source: row.source,
+    title: row.description || `${row.source} ${row.counterparty || ""}`.trim(),
+    counterparty: row.counterparty,
+    amountUsd: round(row.amount_usd),
+    direction: row.direction === "in" ? "in" : "out",
+    occurredAt: row.occurred_at.toISOString(),
+    status: row.status,
+    category: row.category,
+    settled: SETTLED.has(row.status.toLowerCase()),
+    href: HREFS[row.source],
+  }))
 
   let cash = 0
   const accounts: FinanceAccount[] = []
@@ -334,6 +194,10 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     },
   })
 
+  const receivables = ledger
+    .filter((row) => row.category === "Receivables" && !SETTLED.has(row.status.toLowerCase()))
+    .reduce((sum, row) => sum + row.amount_usd, 0)
+
   if (receivables > 0) {
     accounts.push({
       id: "receivables",
@@ -360,8 +224,7 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
   const expenseCategories = new Map<string, number>()
   for (const event of events) {
     if (!event.settled) continue
-    const key = event.occurredAt.slice(0, 7)
-    const bucket = buckets.get(key)
+    const bucket = buckets.get(event.occurredAt.slice(0, 7))
     if (!bucket) continue
     if (event.direction === "in") {
       bucket.income += event.amountUsd
@@ -443,10 +306,6 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     }
   }
 
-  const transactions = events
-    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
-    .slice(0, 20)
-
   return {
     generatedAt: new Date().toISOString(),
     currency: "USD",
@@ -461,7 +320,7 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     accounts,
     monthly,
     categories,
-    transactions,
+    transactions: events.slice(0, 20),
     trading: {
       mode: trading?.status ?? state?.mode ?? "paper",
       equity: round(tradingEquity),

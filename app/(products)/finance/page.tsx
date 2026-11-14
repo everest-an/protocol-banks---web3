@@ -32,6 +32,7 @@ import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, Gla
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { CsvImport } from "@/components/finance/csv-import"
 
 const COLORS = ["#111111", "#6b7280", "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#8b5cf6"]
 
@@ -169,7 +170,8 @@ export default function FinancePage() {
             A read-only view of cash, business activity, invoices and trading. Nothing here can move funds.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-start gap-2">
+          {address ? <CsvImport wallet={address} onImported={() => void load()} /> : null}
           <Button asChild variant="outline" size="sm">
             <Link href="/analytics">Detailed reports</Link>
           </Button>

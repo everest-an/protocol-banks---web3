@@ -2146,6 +2146,59 @@ model TradingAccount {
   @@map("trading_accounts")
 }
 
+/// A customer-owned financial account used by the read-only finance ledger.
+/// Platform cash, trading and CSV-imported bank accounts all live here.
+model FinanceAccount {
+  id            String   @id @default(uuid())
+  owner_address String
+  name          String
+  kind          String   @default("bank") // wallet | cash | bank | card | trading | receivable | other
+  source        String   @default("manual") // manual | csv | platform
+  external_id   String?
+  currency      String   @default("USD")
+  balance       Float?
+  metadata      Json?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  transactions FinanceTransaction[]
+
+  @@unique([owner_address, source, external_id])
+  @@index([owner_address])
+  @@map("finance_accounts")
+}
+
+/// Normalized, idempotent financial event. Platform sources and CSV imports
+/// converge here so cashflow and categories never double-count a tx hash.
+model FinanceTransaction {
+  id            String   @id @default(uuid())
+  owner_address String
+  account_id    String?
+  source        String // payment | invoice | subscription | acquiring | agent | trade | csv
+  source_id     String
+  dedupe_key    String
+  kind          String   @default("expense") // income | expense | transfer | trade | fee | refund
+  direction     String // in | out
+  category      String   @default("Uncategorized")
+  counterparty  String?
+  description   String?
+  amount_usd    Float
+  currency      String   @default("USD")
+  occurred_at   DateTime
+  status        String   @default("completed")
+  metadata      Json?
+  created_at    DateTime @default(now())
+
+  account FinanceAccount? @relation(fields: [account_id], references: [id], onDelete: SetNull)
+
+  @@unique([owner_address, dedupe_key])
+  @@index([owner_address, occurred_at])
+  @@index([owner_address, category])
+  @@index([account_id])
+  @@map("finance_transactions")
+}
+
 /// Append-only strategy audit trail. One row per applied change; the current
 /// strategy still lives on TradingAccount.risk_config.
 model StrategyRevision {
