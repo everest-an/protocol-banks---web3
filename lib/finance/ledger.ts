@@ -2,6 +2,7 @@ import { createHash } from "crypto"
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { categorizeTransaction } from "./categorize"
+import { convertToUsd } from "./fx"
 
 const SYNC_MONTHS = 12
 const CONCURRENCY = 12
@@ -296,7 +297,7 @@ export async function importCsvTransactions(
   walletAddress: string,
   accountName: string,
   rows: CsvImportRow[],
-): Promise<{ accountId: string; imported: number; inserted: number }> {
+): Promise<{ accountId: string; imported: number; inserted: number; fxConverted: number; fxMissing: number }> {
   const wallet = walletAddress.toLowerCase()
   const externalId = hash(accountName.trim().toLowerCase())
   const account = await prisma.financeAccount.upsert({
@@ -319,41 +320,66 @@ export async function importCsvTransactions(
     update: { name: accountName.trim().slice(0, 80) || "Imported account" },
   })
 
-  const data: Prisma.FinanceTransactionCreateManyInput[] = rows.map((row, index) => {
-    const category = row.category || categorizeTransaction({
-      description: row.description,
-      counterparty: row.counterparty,
-      kind: row.direction === "in" ? "income" : "expense",
-    })
-    const dedupeKey = `csv:${account.id}:${hash(
-      [
-        row.occurredAt.toISOString(),
-        row.description,
-        row.amountUsd.toFixed(2),
-        row.direction,
-        row.reference ?? "",
-        index,
-      ].join("|"),
-    )}`
-    return {
-      owner_address: wallet,
-      account_id: account.id,
-      source: "csv",
-      source_id: dedupeKey,
-      dedupe_key: dedupeKey,
-      kind: row.direction === "in" ? "income" : "expense",
-      direction: row.direction,
-      category,
-      counterparty: row.counterparty ?? null,
-      description: row.description,
-      amount_usd: row.amountUsd,
-      currency: row.currency || "USD",
-      occurred_at: row.occurredAt,
-      status: "completed",
-      metadata: row.raw ? (row.raw as Prisma.InputJsonValue) : undefined,
-    }
-  })
+  let fxConverted = 0
+  let fxMissing = 0
+  const data: Prisma.FinanceTransactionCreateManyInput[] = await Promise.all(
+    rows.map(async (row, index) => {
+      const category = row.category || categorizeTransaction({
+        description: row.description,
+        counterparty: row.counterparty,
+        kind: row.direction === "in" ? "income" : "expense",
+      })
+      const dedupeKey = `csv:${account.id}:${hash(
+        [
+          row.occurredAt.toISOString(),
+          row.description,
+          row.amountUsd.toFixed(2),
+          row.direction,
+          row.reference ?? "",
+          index,
+        ].join("|"),
+      )}`
+      const currency = (row.currency || "USD").toUpperCase()
+      const conversion = await convertToUsd(row.amountUsd, currency)
+      if (currency !== "USD") {
+        if (conversion.converted) fxConverted += 1
+        else fxMissing += 1
+      }
+      const raw = (row.raw ?? {}) as Record<string, unknown>
+      return {
+        owner_address: wallet,
+        account_id: account.id,
+        source: "csv",
+        source_id: dedupeKey,
+        dedupe_key: dedupeKey,
+        kind: row.direction === "in" ? "income" : "expense",
+        direction: row.direction,
+        category,
+        counterparty: row.counterparty ?? null,
+        description: row.description,
+        amount_usd: conversion.amountUsd,
+        currency,
+        occurred_at: row.occurredAt,
+        status: "completed",
+        metadata: {
+          ...raw,
+          fx: {
+            originalAmount: row.amountUsd,
+            currency,
+            rate: conversion.rate,
+            converted: conversion.converted,
+          },
+        } as Prisma.InputJsonValue,
+      }
+    }),
+  )
 
   const result = await prisma.financeTransaction.createMany({ data, skipDuplicates: true })
-  return { accountId: account.id, imported: data.length, inserted: result.count }
+  return {
+    accountId: account.id,
+    imported: data.length,
+    inserted: result.count,
+    fxConverted,
+    fxMissing,
+  }
 }

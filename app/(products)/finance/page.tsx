@@ -33,6 +33,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { CsvImport } from "@/components/finance/csv-import"
+import { Budgets } from "@/components/finance/budgets"
+import { FinanceAssistant } from "@/components/finance/assistant"
 
 const COLORS = ["#111111", "#6b7280", "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#8b5cf6"]
 
@@ -312,6 +314,28 @@ export default function FinancePage() {
                 ))}
               </ul>
             )}
+          </GlassCardContent>
+        </GlassCard>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle>Budgets</GlassCardTitle>
+            <GlassCardDescription>Current month limits for this wallet.</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            {address ? <Budgets wallet={address} budgets={data.budgets} onChanged={() => void load()} /> : null}
+          </GlassCardContent>
+        </GlassCard>
+
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle>Finance assistant</GlassCardTitle>
+            <GlassCardDescription>Read-only answers from this wallet&apos;s numbers.</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            {address ? <FinanceAssistant wallet={address} /> : null}
           </GlassCardContent>
         </GlassCard>
       </div>

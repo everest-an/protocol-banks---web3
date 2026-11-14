@@ -36,6 +36,8 @@ export const POST = withAuth(async (request: NextRequest, address: string) => {
       imported: result.imported,
       inserted: result.inserted,
       skipped: parsed.skipped,
+      fxConverted: result.fxConverted,
+      fxMissing: result.fxMissing,
       headers: parsed.headers,
     })
   } catch (error) {

@@ -38,7 +38,12 @@ export function CsvImport({ wallet, onImported }: CsvImportProps) {
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body?.error || `HTTP ${response.status}`)
-      setMessage(`Imported ${body.imported} rows · ${body.inserted} new · ${body.skipped} skipped`)
+      const fx = body.fxConverted
+        ? ` · ${body.fxConverted} FX converted`
+        : body.fxMissing
+          ? ` · ${body.fxMissing} FX rates missing`
+          : ""
+      setMessage(`Imported ${body.imported} rows · ${body.inserted} new · ${body.skipped} skipped${fx}`)
       setFile(null)
       if (inputRef.current) inputRef.current.value = ""
       onImported()

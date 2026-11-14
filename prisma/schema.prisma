@@ -2199,6 +2199,21 @@ model FinanceTransaction {
   @@map("finance_transactions")
 }
 
+/// Monthly category budget for a customer. One row per category per month.
+model FinanceBudget {
+  id            String   @id @default(uuid())
+  owner_address String
+  category      String
+  month         String // YYYY-MM
+  amount_usd    Float
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@unique([owner_address, category, month])
+  @@index([owner_address, month])
+  @@map("finance_budgets")
+}
+
 /// Append-only strategy audit trail. One row per applied change; the current
 /// strategy still lives on TradingAccount.risk_config.
 model StrategyRevision {

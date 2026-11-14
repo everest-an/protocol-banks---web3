@@ -33,6 +33,16 @@ export interface FinanceInsight {
   detail: string
 }
 
+export interface FinanceBudgetView {
+  id: string
+  category: string
+  month: string
+  amountUsd: number
+  spentUsd: number
+  remainingUsd: number
+  percent: number
+}
+
 export interface FinanceOverview {
   generatedAt: string
   currency: "USD"
@@ -47,6 +57,7 @@ export interface FinanceOverview {
   accounts: FinanceAccount[]
   monthly: Array<{ month: string; label: string; income: number; expenses: number; net: number }>
   categories: Array<{ name: string; amount: number }>
+  budgets: FinanceBudgetView[]
   transactions: FinanceEvent[]
   trading: {
     mode: string
@@ -106,7 +117,8 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
 
   await syncFinanceLedger(wallet).catch(() => undefined)
 
-  const [balances, trading, trades, ledger] = await Promise.all([
+  const month = new Date().toISOString().slice(0, 7)
+  const [balances, trading, trades, ledger, budgetRows] = await Promise.all([
     prisma.userBalance.findMany({ where: { user_address: walletFilter(wallet) } }),
     prisma.tradingAccount.findUnique({
       where: { wallet_address: wallet },
@@ -121,6 +133,10 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
       where: { owner_address: wallet, occurred_at: { gte: start } },
       orderBy: { occurred_at: "desc" },
       take: 1000,
+    }),
+    prisma.financeBudget.findMany({
+      where: { owner_address: wallet, month },
+      orderBy: { category: "asc" },
     }),
   ])
 
@@ -249,6 +265,25 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 7)
 
+  const monthSpent = new Map<string, number>()
+  for (const event of events) {
+    if (!event.settled || event.direction !== "out" || !event.occurredAt.startsWith(month)) continue
+    monthSpent.set(event.category, (monthSpent.get(event.category) ?? 0) + event.amountUsd)
+  }
+  const budgets: FinanceBudgetView[] = budgetRows.map((budget) => {
+    const spent = monthSpent.get(budget.category) ?? 0
+    const amount = budget.amount_usd
+    return {
+      id: budget.id,
+      category: budget.category,
+      month: budget.month,
+      amountUsd: round(amount),
+      spentUsd: round(spent),
+      remainingUsd: round(amount - spent),
+      percent: amount > 0 ? Number(Math.min(999, (spent / amount) * 100).toFixed(0)) : 0,
+    }
+  })
+
   const netCashflow = round(income - expenses)
   const netWorth = round(cash + tradingEquity + receivables)
   const latest = monthly[monthly.length - 1]
@@ -320,6 +355,7 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     accounts,
     monthly,
     categories,
+    budgets,
     transactions: events.slice(0, 20),
     trading: {
       mode: trading?.status ?? state?.mode ?? "paper",
