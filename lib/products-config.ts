@@ -14,6 +14,7 @@ import {
   BarChart3,
   SplitSquareHorizontal,
   FileText,
+  Landmark,
 } from "lucide-react"
 
 export interface ProductItem {
@@ -76,6 +77,12 @@ export const overviewItems: ProductItem[] = [
 
 // Business (enterprise payments + analytics â€” consolidated, not hero)
 export const businessItems: ProductItem[] = [
+  {
+    href: "/finance",
+    title: "Finance",
+    description: "Cash, cashflow, invoices and trading P&L",
+    icon: Landmark,
+  },
   {
     href: "/analytics",
     title: "Analytics",
