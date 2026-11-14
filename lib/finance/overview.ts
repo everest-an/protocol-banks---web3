@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { syncFinanceLedger } from "./ledger"
+import { getTokenUsdPrices } from "./prices"
 
 export type FinanceDirection = "in" | "out"
 export type FinanceTone = "positive" | "warning" | "neutral"
@@ -81,6 +82,7 @@ const HREFS: Record<string, string> = {
   subscription: "/subscriptions",
   acquiring: "/analytics",
   agent: "/agents/fleet",
+  card: "/card",
   trade: "/trading",
   csv: "/finance",
 }
@@ -181,18 +183,24 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
 
   let cash = 0
   const accounts: FinanceAccount[] = []
+  const prices = await getTokenUsdPrices(
+    balances.map((balance) => balance.token).filter((token) => !STABLES.has(token.toUpperCase())),
+  )
   for (const balance of balances) {
     const token = balance.token.toUpperCase()
     const value = Number(balance.total.toString())
     if (!Number.isFinite(value) || value <= 0) continue
-    if (STABLES.has(token)) cash += value
+    const stable = STABLES.has(token)
+    const price = stable ? 1 : prices[token] ?? null
+    const usdValue = price ? value * price : null
+    if (usdValue) cash += usdValue
     accounts.push({
       id: `cash:${token}:${balance.chain}`,
       kind: "cash",
       name: `${token} · ${balance.chain}`,
-      balance: round(value),
-      currency: token,
-      meta: { chain: balance.chain, stable: STABLES.has(token) },
+      balance: round(usdValue ?? value),
+      currency: usdValue ? "USD" : token,
+      meta: { chain: balance.chain, stable, price, usdValue: usdValue ? round(usdValue) : null },
     })
   }
 

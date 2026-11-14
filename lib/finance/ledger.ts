@@ -77,7 +77,7 @@ async function upsertRows(wallet: string, rows: LedgerRow[]): Promise<void> {
             amount_usd: row.amount_usd,
             currency: row.currency,
             occurred_at: row.occurred_at,
-            status: row.status,
+            status: row.status.toLowerCase(),
             metadata: row.metadata,
           },
           update: {
@@ -86,7 +86,7 @@ async function upsertRows(wallet: string, rows: LedgerRow[]): Promise<void> {
             counterparty: row.counterparty ?? null,
             description: row.description ?? null,
             occurred_at: row.occurred_at,
-            status: row.status,
+            status: row.status.toLowerCase(),
             metadata: row.metadata,
           },
         }),
@@ -110,7 +110,7 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
   })
   const merchantIds = merchants.map((merchant) => merchant.id)
 
-  const [payments, invoices, subscriptionPayments, agentPayments, acquiringOrders, trades] = await Promise.all([
+  const [payments, invoices, subscriptionPayments, agentPayments, acquiringOrders, cards, trades] = await Promise.all([
     prisma.payment.findMany({
       where: {
         created_at: { gte: start },
@@ -141,6 +141,16 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
           take: 1000,
         })
       : Promise.resolve([]),
+    prisma.corporateCard.findMany({
+      where: { user: { wallet_address: { equals: wallet, mode: "insensitive" } } },
+      include: {
+        transactions: {
+          where: { created_at: { gte: start } },
+          orderBy: { created_at: "desc" },
+          take: 1000,
+        },
+      },
+    }),
     prisma.tradeRecord.findMany({
       where: { wallet_address: wallet },
       orderBy: { opened_at: "desc" },
@@ -255,6 +265,38 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
       status: order.status,
       metadata: { orderNo: order.order_no, txHash: order.tx_hash },
     })
+  }
+
+  for (const card of cards) {
+    for (const transaction of card.transactions) {
+      const type = transaction.type.toUpperCase()
+      if (type !== "SETTLEMENT" && type !== "REFUND") continue
+      if (transaction.status.toUpperCase() === "DECLINED") continue
+      const value = amount(transaction.amount)
+      if (!value) continue
+      const direction = type === "REFUND" ? "in" : "out"
+      rows.push({
+        source: "card",
+        source_id: transaction.id,
+        dedupe_key: `card:${transaction.external_id}`,
+        kind: direction === "in" ? "income" : "expense",
+        direction,
+        category:
+          transaction.merchant_category ||
+          categorizeTransaction({
+            description: transaction.merchant_name,
+            counterparty: transaction.merchant_name,
+            kind: direction === "in" ? "income" : "expense",
+          }),
+        counterparty: transaction.merchant_name,
+        description: `${transaction.merchant_name || "Card"} ${type.toLowerCase()}`,
+        amount_usd: value,
+        currency: transaction.currency || "USD",
+        occurred_at: transaction.created_at,
+        status: transaction.status,
+        metadata: { cardLast4: card.last4, type, currency: transaction.currency },
+      })
+    }
   }
 
   for (const trade of trades) {

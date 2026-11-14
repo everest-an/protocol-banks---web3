@@ -52,6 +52,10 @@
     {
       "path": "/api/cron/sandbox-cleanup",
       "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/cron/finance-budgets",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

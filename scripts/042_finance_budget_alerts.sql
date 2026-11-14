@@ -1,0 +1,2 @@
+ALTER TABLE "finance_budgets" ADD COLUMN IF NOT EXISTS "alert_level" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "finance_budgets" ADD COLUMN IF NOT EXISTS "alerted_at" TIMESTAMP(3);

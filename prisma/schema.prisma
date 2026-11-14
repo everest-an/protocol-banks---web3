@@ -2206,6 +2206,8 @@ model FinanceBudget {
   category      String
   month         String // YYYY-MM
   amount_usd    Float
+  alert_level   Int      @default(0)
+  alerted_at    DateTime?
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 

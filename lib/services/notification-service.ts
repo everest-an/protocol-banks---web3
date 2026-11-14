@@ -652,6 +652,20 @@ export class NotificationService {
     this.sendTelegram(ownerAddress, 'Strategy updated', summary);
   }
 
+  async notifyBudgetAlert(
+    ownerAddress: string,
+    category: string,
+    spentUsd: number,
+    budgetUsd: number,
+    percent: number,
+  ): Promise<void> {
+    this.sendTelegram(
+      ownerAddress,
+      percent >= 100 ? 'Budget exceeded' : 'Budget warning',
+      `${category}: $${spentUsd.toFixed(2)} of $${budgetUsd.toFixed(2)} used (${percent.toFixed(0)}%).`,
+    );
+  }
+
   /**
    * Optional Telegram sink for trade notifications. Routes by BINDING: the
    * notification goes to the chat that is linked to the owning wallet (see
