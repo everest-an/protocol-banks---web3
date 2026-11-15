@@ -38,6 +38,17 @@ function snapshot(overview: FinanceOverview) {
   }
 }
 
+function fallbackAnswer(overview: FinanceOverview): string {
+  const top = overview.categories.slice(0, 3).map((category) => `${category.name} $${category.amount.toFixed(2)}`)
+  return [
+    `Net worth: $${overview.netWorth.toFixed(2)} (cash $${overview.cash.toFixed(2)}, trading $${overview.tradingEquity.toFixed(2)}, receivables $${overview.receivables.toFixed(2)}).`,
+    `Last ${overview.months} months: income $${overview.income.toFixed(2)}, expenses $${overview.expenses.toFixed(2)}, net $${overview.netCashflow.toFixed(2)}.`,
+    top.length ? `Top expense categories: ${top.join(", ")}.` : "No expense categories recorded yet.",
+    `Trading: ${overview.trading.openPositions} open positions, realized P&L $${overview.trading.realizedPnl.toFixed(2)}, win rate ${overview.trading.winRate === null ? "not available" : `${overview.trading.winRate}%`}.`,
+    "The AI model is temporarily unavailable, so this is the deterministic summary.",
+  ].join("\n")
+}
+
 export async function askFinanceAssistant(
   walletAddress: string,
   question: string,
@@ -46,9 +57,13 @@ export async function askFinanceAssistant(
   const user = `Question: ${question}\n\nFinancial snapshot:\n${JSON.stringify(snapshot(overview))}`
 
   const { completeWithPlatform } = await import("@/lib/trading/llm-advisor")
-  const result = await completeWithPlatform(SYSTEM, user, 25_000)
+  const result = await completeWithPlatform(SYSTEM, user, 25_000).catch(() => null)
   if (!result?.raw?.trim()) {
-    throw new Error("The finance assistant is not configured or all model channels are unavailable.")
+    return {
+      answer: fallbackAnswer(overview),
+      provider: "deterministic",
+      generatedAt: new Date().toISOString(),
+    }
   }
 
   return {

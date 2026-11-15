@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { syncFinanceLedger } from "./ledger"
 import { getTokenUsdPrices } from "./prices"
+import { getFinanceProviderStatus, type FinanceProviderStatus } from "./providers/status"
 
 export type FinanceDirection = "in" | "out"
 export type FinanceTone = "positive" | "warning" | "neutral"
@@ -56,6 +57,8 @@ export interface FinanceOverview {
   expenses: number
   netCashflow: number
   accounts: FinanceAccount[]
+  unpricedTokens: Array<{ token: string; chain: string; balance: number }>
+  providers: FinanceProviderStatus
   monthly: Array<{ month: string; label: string; income: number; expenses: number; net: number }>
   categories: Array<{ name: string; amount: number }>
   budgets: FinanceBudgetView[]
@@ -143,6 +146,8 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     }),
   ])
 
+  const providers = await getFinanceProviderStatus(wallet)
+
   const state = (trading?.state_json ?? null) as {
     mode?: string
     account?: { totalEquity?: number; budget?: number }
@@ -184,6 +189,7 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
 
   let cash = 0
   const accounts: FinanceAccount[] = []
+  const unpricedTokens: Array<{ token: string; chain: string; balance: number }> = []
   const prices = await getTokenUsdPrices(
     balances.map((balance) => balance.token).filter((token) => !STABLES.has(token.toUpperCase())),
   )
@@ -195,6 +201,7 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     const price = stable ? 1 : prices[token] ?? null
     const usdValue = price ? value * price : null
     if (usdValue) cash += usdValue
+    else unpricedTokens.push({ token, chain: balance.chain, balance: round(value) })
     accounts.push({
       id: `cash:${token}:${balance.chain}`,
       kind: "cash",
@@ -350,6 +357,14 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     }
   }
 
+  if (unpricedTokens.length) {
+    insights.push({
+      tone: "warning",
+      title: `${unpricedTokens.length} token${unpricedTokens.length === 1 ? "" : "s"} not priced`,
+      detail: `Excluded from net worth: ${unpricedTokens.map((token) => `${token.balance} ${token.token} (${token.chain})`).join(", ")}.`,
+    })
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     currency: "USD",
@@ -362,6 +377,8 @@ export async function buildFinanceOverview(walletAddress: string, months = 6): P
     expenses: round(expenses),
     netCashflow,
     accounts,
+    unpricedTokens,
+    providers,
     monthly,
     categories,
     budgets,

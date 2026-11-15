@@ -171,6 +171,20 @@ export default function FinancePage() {
           <p className="mt-1 text-sm text-muted-foreground">
             A read-only view of cash, business activity, invoices and trading. Nothing here can move funds.
           </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <Badge variant={data.providers.yativoFiat.configured ? "secondary" : "outline"} className="text-[10px]">
+              Yativo Fiat {data.providers.yativoFiat.configured ? `${data.providers.yativoFiat.cards} cards` : "not configured"}
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              Rain {data.providers.rain.cards} cards · {data.providers.rain.transactions} txns
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              CSV {data.providers.csv.accounts} accounts
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              Bank direct: not connected
+            </Badge>
+          </div>
         </div>
         <div className="flex flex-wrap items-start gap-2">
           {address ? <CsvImport wallet={address} onImported={() => void load()} /> : null}
