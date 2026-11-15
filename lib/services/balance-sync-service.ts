@@ -49,11 +49,11 @@ const VIEM_CHAIN_MAP: Record<string, Chain> = {
 
 /** RPC overrides (use reliable public RPCs; env vars allow customization) */
 const RPC_OVERRIDES: Record<string, string> = {
-  ethereum: process.env.RPC_ETHEREUM || "https://eth.llamarpc.com",
-  polygon: process.env.RPC_POLYGON || "https://polygon.llamarpc.com",
-  arbitrum: process.env.RPC_ARBITRUM || "https://arbitrum.llamarpc.com",
-  base: process.env.RPC_BASE || "https://base.llamarpc.com",
-  optimism: process.env.RPC_OPTIMISM || "https://optimism.llamarpc.com",
+  ethereum: process.env.RPC_ETHEREUM || "https://ethereum-rpc.publicnode.com",
+  polygon: process.env.RPC_POLYGON || "https://polygon-bor-rpc.publicnode.com",
+  arbitrum: process.env.RPC_ARBITRUM || "https://arb1.arbitrum.io/rpc",
+  base: process.env.RPC_BASE || "https://mainnet.base.org",
+  optimism: process.env.RPC_OPTIMISM || "https://mainnet.optimism.io",
   bsc: process.env.RPC_BSC || "https://bsc-dataseed.binance.org",
   hashkey: process.env.RPC_HASHKEY || "https://mainnet.hsk.xyz",
 }
@@ -259,7 +259,7 @@ async function fetchEvmBalances(
   const chainPromises = targetChains.map(async ({ chain, name, rpc, network }) => {
     const client = createPublicClient({
       chain,
-      transport: http(rpc),
+      transport: http(rpc, { timeout: 8_000, retryCount: 1 }),
     })
 
     // Native token balance
@@ -279,16 +279,21 @@ async function fetchEvmBalances(
 
     // ERC20 token balances from NETWORK_TOKENS config
     const tokens = NETWORK_TOKENS[name] || []
-    for (const tokenConfig of tokens) {
-      try {
-        const tokenBalance = await client.readContract({
+    try {
+      const results = await client.multicall({
+        contracts: tokens.map((tokenConfig) => ({
           address: tokenConfig.address as Address,
           abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [addr],
-        })
-
-        if (tokenBalance && tokenBalance > 0n) {
+          functionName: "balanceOf" as const,
+          args: [addr] as const,
+        })),
+        allowFailure: true,
+      })
+      results.forEach((result, index) => {
+        if (result.status !== "success") return
+        const tokenConfig = tokens[index]
+        const tokenBalance = result.result as bigint
+        if (tokenBalance > 0n) {
           balances.push({
             token: tokenConfig.symbol,
             chain: name,
@@ -296,9 +301,9 @@ async function fetchEvmBalances(
             rawBalance: tokenBalance,
           })
         }
-      } catch {
-        // Skip tokens that fail (contract may not exist on this chain)
-      }
+      })
+    } catch {
+      // Skip chains where multicall is unavailable
     }
   })
 
@@ -321,11 +326,13 @@ export async function syncUserBalances(
   const errors: string[] = []
   let synced = 0
   const syncedChains = new Set<string>()
+  const seen = new Set<string>()
 
   for (const ob of onChainBalances) {
     try {
       const onChainAmount = parseFloat(ob.balance)
       syncedChains.add(ob.chain)
+      seen.add(`${ob.token}:${ob.chain}`)
 
       // Upsert the balance record
       const existing = await prisma.userBalance.findUnique({
@@ -375,6 +382,23 @@ export async function syncUserBalances(
       synced++
     } catch (e: any) {
       errors.push(`${ob.token}/${ob.chain}: ${e.message}`)
+    }
+  }
+
+  const existing = await prisma.userBalance.findMany({
+    where: { user_address: userAddress },
+    select: { id: true, token: true, chain: true },
+  })
+  for (const row of existing) {
+    if (seen.has(`${row.token}:${row.chain}`)) continue
+    if (!syncedChains.has(row.chain)) continue
+    try {
+      await prisma.userBalance.update({
+        where: { id: row.id },
+        data: { total: 0, available: 0, locked: 0, last_synced: new Date() },
+      })
+    } catch (error) {
+      errors.push(`${row.token}/${row.chain}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

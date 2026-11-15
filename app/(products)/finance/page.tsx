@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import {
   ArrowDownLeft,
@@ -84,9 +84,16 @@ export default function FinancePage() {
     await load()
   }, [address, load])
 
+  const bootstrappedFor = useRef<string | null>(null)
+
   useEffect(() => {
-    void load()
-  }, [load])
+    void load().then(() => {
+      if (address && bootstrappedFor.current !== address) {
+        bootstrappedFor.current = address
+        void syncLedger()
+      }
+    })
+  }, [address, load, syncLedger])
 
   if (!isConnected) {
     return (

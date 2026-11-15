@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { categorizeTransaction } from "./categorize"
 import { convertToUsd } from "./fx"
 import { collectYativoFiatCardRows } from "./providers/yativo-fiat"
+import { syncUserBalances } from "@/lib/services/balance-sync-service"
 
 const SYNC_MONTHS = 12
 const CHUNK_SIZE = 40
@@ -116,6 +117,9 @@ export async function upsertFinanceLedgerRows(walletAddress: string, rows: Finan
 
 async function syncFinanceLedgerInner(wallet: string): Promise<void> {
   const start = startOfMonthsAgo(SYNC_MONTHS)
+  const balanceSync = syncUserBalances(wallet).catch((error) => {
+    console.warn("[finance] balance sync failed:", error instanceof Error ? error.message : error)
+  })
 
   const merchants = await prisma.merchant.findMany({
     where: {
@@ -341,6 +345,7 @@ async function syncFinanceLedgerInner(wallet: string): Promise<void> {
   if (yativo?.rows.length) rows.push(...yativo.rows)
 
   await upsertRows(wallet, rows)
+  await balanceSync
 }
 
 export async function syncFinanceLedger(walletAddress: string, force = false): Promise<void> {
