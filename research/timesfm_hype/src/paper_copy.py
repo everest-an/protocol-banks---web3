@@ -130,6 +130,7 @@ def main() -> None:
     parser.add_argument("--positions", required=True)
     parser.add_argument("--behavior", default=None)
     parser.add_argument("--label", default="directional_candidate")
+    parser.add_argument("--wallet", default=None)
     parser.add_argument("--coin", default="HYPE")
     parser.add_argument("--mode", choices=["level", "change"], default="level")
     parser.add_argument("--lag", type=int, default=1)
@@ -147,6 +148,8 @@ def main() -> None:
     positions["position_value"] = pd.to_numeric(positions["position_value"], errors="coerce").fillna(0.0)
 
     wallets = select_wallets(positions, args.behavior, args.label)
+    if args.wallet:
+        wallets = [wallet for wallet in wallets if wallet == args.wallet]
     signals = [
         wallet_signal(
             positions[positions["wallet"] == wallet],

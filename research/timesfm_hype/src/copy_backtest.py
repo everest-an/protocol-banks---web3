@@ -73,6 +73,7 @@ def main() -> None:
     parser.add_argument("--positions", required=True)
     parser.add_argument("--behavior", default=None, help="Optional wallet_behavior.json filter.")
     parser.add_argument("--label", default="directional_candidate")
+    parser.add_argument("--wallet", default=None, help="Only evaluate one address.")
     parser.add_argument("--coin", default="HYPE")
     parser.add_argument("--mode", choices=["level", "change"], default="level")
     parser.add_argument("--lag", type=int, default=1)
@@ -101,6 +102,8 @@ def main() -> None:
         }
         if wanted:
             wallets = [wallet for wallet in wallets if wallet in wanted]
+    if args.wallet:
+        wallets = [wallet for wallet in wallets if wallet == args.wallet]
 
     cost_per_trade = ((args.fee_bps + args.slippage_bps) / 10_000) * 2
     interval = candles["timestamp"].diff().median()
