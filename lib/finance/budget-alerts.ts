@@ -76,7 +76,14 @@ export async function runBudgetAlerts(input?: {
       })
       const spent = Number(result._sum.amount_usd ?? 0)
       const level = budgetAlertLevel(spent, budget.amount_usd)
-      if (level <= budget.alert_level || level === 0) continue
+      if (level < budget.alert_level) {
+        await prisma.financeBudget.update({
+          where: { id: budget.id },
+          data: { alert_level: level, alerted_at: level ? new Date() : null },
+        })
+        continue
+      }
+      if (level === 0 || level === budget.alert_level) continue
       if (!(await hasChannel(budget.owner_address))) {
         skipped += 1
         continue

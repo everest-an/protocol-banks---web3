@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -16,6 +18,20 @@ except Exception:
     pass
 
 HL_INFO = "https://api.hyperliquid.xyz/info"
+HTTP = requests.Session()
+HTTP.mount(
+    "https://",
+    HTTPAdapter(
+        max_retries=Retry(
+            total=2,
+            connect=2,
+            read=2,
+            backoff_factor=0.4,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"],
+        )
+    ),
+)
 
 
 def post_info(payload: dict[str, Any]) -> Any:
@@ -65,7 +81,7 @@ def hyperliquid(coin: str) -> dict[str, Any]:
 
 
 def binance() -> dict[str, Any]:
-    response = requests.get(
+    response = HTTP.get(
         "https://api.binance.com/api/v3/ticker/bookTicker",
         params={"symbol": "HYPEUSDT"},
         timeout=10,
@@ -77,7 +93,7 @@ def binance() -> dict[str, Any]:
 
 
 def bybit() -> dict[str, Any]:
-    response = requests.get(
+    response = HTTP.get(
         "https://api.bybit.com/v5/market/tickers",
         params={"category": "linear", "symbol": "HYPEUSDT"},
         timeout=10,
@@ -95,7 +111,7 @@ def bybit() -> dict[str, Any]:
 
 
 def okx() -> dict[str, Any]:
-    response = requests.get(
+    response = HTTP.get(
         "https://www.okx.com/api/v5/market/ticker",
         params={"instId": "HYPE-USDT-SWAP"},
         timeout=10,
@@ -135,6 +151,8 @@ def main() -> None:
 
     print(f"collecting {args.coin} every {args.interval}s to {output}")
     iterations = 0
+    failures: dict[str, int] = {}
+    disabled_until: dict[str, float] = {}
     while args.iterations <= 0 or iterations < args.iterations:
         iterations += 1
         row: dict[str, Any] = {"timestamp": datetime.now(timezone.utc).isoformat()}
@@ -144,10 +162,18 @@ def main() -> None:
             print(f"hyperliquid error: {error}")
         if not args.no_cross_venue:
             for name, fetch in (("binance", binance), ("bybit", bybit), ("okx", okx)):
+                if time.monotonic() < disabled_until.get(name, 0):
+                    continue
                 try:
                     row.update(fetch())
+                    failures[name] = 0
                 except Exception as error:
-                    print(f"{name} error: {error}")
+                    failures[name] = failures.get(name, 0) + 1
+                    if failures[name] >= 3:
+                        disabled_until[name] = time.monotonic() + 300
+                        print(f"{name} disabled for 5 minutes after 3 failures: {error}")
+                    else:
+                        print(f"{name} error: {error}")
         writer.writerow([row.get(column) for column in columns])
         handle.flush()
         print(" ".join(f"{column}={row.get(column)}" for column in ["hl_mid", "hl_imbalance_5", "bybit_mid", "okx_mid"]))
