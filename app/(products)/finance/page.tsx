@@ -74,6 +74,16 @@ export default function FinancePage() {
     }
   }, [address])
 
+  const syncLedger = useCallback(async () => {
+    if (!address) return
+    try {
+      await fetch("/api/finance/sync", { method: "POST", headers: authHeaders(address) })
+    } catch {
+      return
+    }
+    await load()
+  }, [address, load])
+
   useEffect(() => {
     void load()
   }, [load])
@@ -191,7 +201,7 @@ export default function FinancePage() {
           <Button asChild variant="outline" size="sm">
             <Link href="/analytics">Detailed reports</Link>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => void syncLedger()} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
           </Button>
         </div>

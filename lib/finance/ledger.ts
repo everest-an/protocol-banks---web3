@@ -343,14 +343,14 @@ async function syncFinanceLedgerInner(wallet: string): Promise<void> {
   await upsertRows(wallet, rows)
 }
 
-export async function syncFinanceLedger(walletAddress: string): Promise<void> {
+export async function syncFinanceLedger(walletAddress: string, force = false): Promise<void> {
   const wallet = walletAddress.toLowerCase()
-  const state = await prisma.financeSyncState
-    .findUnique({ where: { wallet_address: wallet } })
-    .catch(() => null)
+  const state = force
+    ? null
+    : await prisma.financeSyncState.findUnique({ where: { wallet_address: wallet } }).catch(() => null)
   const now = Date.now()
-  if (state?.last_synced_at && now - state.last_synced_at.getTime() < SYNC_INTERVAL_MS) return
-  if (state?.last_error_at && now - state.last_error_at.getTime() < SYNC_FAILURE_MS) return
+  if (!force && state?.last_synced_at && now - state.last_synced_at.getTime() < SYNC_INTERVAL_MS) return
+  if (!force && state?.last_error_at && now - state.last_error_at.getTime() < SYNC_FAILURE_MS) return
 
   try {
     await syncFinanceLedgerInner(wallet)

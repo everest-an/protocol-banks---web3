@@ -116,12 +116,12 @@ function walletFilter(wallet: string) {
   return { equals: wallet, mode: "insensitive" as const }
 }
 
-export async function buildFinanceOverview(walletAddress: string, months = 6): Promise<FinanceOverview> {
+export async function buildFinanceOverview(walletAddress: string, months = 6, sync = true): Promise<FinanceOverview> {
   const wallet = walletAddress.toLowerCase()
   const range = Math.min(Math.max(months, 3), 12)
   const start = startOfMonthsAgo(range)
 
-  await syncFinanceLedger(wallet).catch(() => undefined)
+  if (sync) await syncFinanceLedger(wallet).catch(() => undefined)
 
   const month = new Date().toISOString().slice(0, 7)
   const [balances, trading, trades, ledger, budgetRows] = await Promise.all([
