@@ -22,6 +22,10 @@ def main() -> None:
     parser.add_argument("--min-notional", type=float, default=50_000)
     parser.add_argument("--interval", type=float, default=5.0)
     parser.add_argument("--out-dir", default="data")
+    parser.add_argument("--track-wallets", action="store_true", help="Also snapshot positions for discovered whales.")
+    parser.add_argument("--wallet-top", type=int, default=20)
+    parser.add_argument("--wallet-interval", type=float, default=30.0)
+    parser.add_argument("--wallet-refresh", type=float, default=300.0)
     parser.add_argument("--max-seconds", type=float, default=0, help="0 means run until interrupted.")
     args = parser.parse_args()
 
@@ -45,6 +49,16 @@ def main() -> None:
             "--out", str(out / "market.csv"),
         ],
     }
+    if args.track_wallets:
+        commands["wallets"] = [
+            sys.executable,
+            str(root / "src" / "collect_wallets.py"),
+            "--whales", str(out / "whales.csv"),
+            "--top", str(args.wallet_top),
+            "--interval", str(args.wallet_interval),
+            "--refresh-seconds", str(args.wallet_refresh),
+            "--out", str(out / "wallet_positions.csv"),
+        ]
 
     processes: dict[str, subprocess.Popen[str]] = {}
     threads: list[threading.Thread] = []
@@ -63,7 +77,7 @@ def main() -> None:
         thread.start()
         threads.append(thread)
 
-    print(f"collectors running; writing to {out}. Ctrl+C stops both.", flush=True)
+    print(f"collectors running; writing to {out}. Ctrl+C stops all.", flush=True)
     started = time.time()
     try:
         while True:

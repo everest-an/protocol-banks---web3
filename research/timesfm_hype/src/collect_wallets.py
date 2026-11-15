@@ -12,6 +12,22 @@ import pandas as pd
 import requests
 
 INFO_URL = "https://api.hyperliquid.xyz/info"
+FIELDS = [
+    "timestamp",
+    "wallet",
+    "account_value",
+    "withdrawable",
+    "coin",
+    "side",
+    "size",
+    "entry_px",
+    "position_value",
+    "unrealized_pnl",
+    "margin_used",
+    "liquidation_px",
+    "leverage",
+    "cum_funding",
+]
 
 
 def info(payload: dict[str, Any]) -> Any:
@@ -87,13 +103,10 @@ def main() -> None:
     parser.add_argument("--whales", default="data/whales.csv", help="Discover addresses from whale prints.")
     parser.add_argument("--top", type=int, default=20)
     parser.add_argument("--interval", type=float, default=30.0)
+    parser.add_argument("--refresh-seconds", type=float, default=300.0)
     parser.add_argument("--iterations", type=int, default=0)
     parser.add_argument("--out", default="data/wallet_positions.csv")
     args = parser.parse_args()
-
-    addresses = discover(args.wallets, args.whales, args.top)
-    if not addresses:
-        raise SystemExit("No wallet addresses. Pass --wallets or populate data/whales.csv first.")
 
     output = Path(args.out)
     if not output.is_absolute():
@@ -101,16 +114,25 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     new_file = not output.exists()
     handle = output.open("a", newline="", encoding="utf-8")
-    writer = csv.DictWriter(handle, fieldnames=list(snapshot(addresses[0])[0].keys()))
+    writer = csv.DictWriter(handle, fieldnames=FIELDS)
     if new_file:
         writer.writeheader()
         handle.flush()
 
-    print(f"tracking {len(addresses)} wallets every {args.interval}s -> {output}")
+    addresses: list[str] = []
+    last_refresh = 0.0
+    print(f"tracking wallets every {args.interval}s -> {output}")
     iterations = 0
     try:
         while args.iterations <= 0 or iterations < args.iterations:
             iterations += 1
+            if not addresses or time.monotonic() - last_refresh >= args.refresh_seconds:
+                addresses = discover(args.wallets, args.whales, args.top)
+                last_refresh = time.monotonic()
+                print(f"watchlist refreshed: {len(addresses)} wallets")
+
+            if not addresses:
+                print("waiting for whale prints or --wallets")
             for wallet in addresses:
                 try:
                     rows = snapshot(wallet)

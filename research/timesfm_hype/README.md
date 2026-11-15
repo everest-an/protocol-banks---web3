@@ -75,10 +75,16 @@ this must run forward before it can be used in a backtest.
 ## 4. Run both collectors together
 
 ```bash
-uv run python src/run_collectors.py --coin HYPE --min-notional 50000 --interval 5
+uv run python src/run_collectors.py \
+  --coin HYPE \
+  --min-notional 50000 \
+  --interval 5 \
+  --track-wallets
 ```
 
-Stops both collectors on Ctrl+C or when one exits. Use a process manager or `nohup`/`tmux` for a multi-day run.
+`--track-wallets` starts the wallet position collector too; it refreshes the watchlist from
+`whales.csv` every 5 minutes and waits if no whale prints exist yet. Stops all collectors on Ctrl+C or
+when one exits. Use a process manager or `nohup`/`tmux` for a multi-day run.
 
 Check dataset coverage before experiments:
 
