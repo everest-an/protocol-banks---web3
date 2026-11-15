@@ -8,8 +8,7 @@ import { collectYativoFiatCardRows } from "./providers/yativo-fiat"
 const SYNC_MONTHS = 12
 const CHUNK_SIZE = 40
 const SYNC_INTERVAL_MS = 5 * 60_000
-const lastSync = new Map<string, number>()
-const syncFailedUntil = new Map<string, number>()
+const SYNC_FAILURE_MS = 60_000
 
 export interface FinanceLedgerRow {
   source: string
@@ -346,14 +345,35 @@ async function syncFinanceLedgerInner(wallet: string): Promise<void> {
 
 export async function syncFinanceLedger(walletAddress: string): Promise<void> {
   const wallet = walletAddress.toLowerCase()
-  if (Date.now() - (lastSync.get(wallet) ?? 0) < SYNC_INTERVAL_MS) return
-  if (Date.now() < (syncFailedUntil.get(wallet) ?? 0)) return
+  const state = await prisma.financeSyncState
+    .findUnique({ where: { wallet_address: wallet } })
+    .catch(() => null)
+  const now = Date.now()
+  if (state?.last_synced_at && now - state.last_synced_at.getTime() < SYNC_INTERVAL_MS) return
+  if (state?.last_error_at && now - state.last_error_at.getTime() < SYNC_FAILURE_MS) return
+
   try {
     await syncFinanceLedgerInner(wallet)
-    lastSync.set(wallet, Date.now())
-    syncFailedUntil.delete(wallet)
+    await prisma.financeSyncState.upsert({
+      where: { wallet_address: wallet },
+      create: { wallet_address: wallet, last_synced_at: new Date() },
+      update: { last_synced_at: new Date(), last_error_at: null, last_error: null },
+    })
   } catch (error) {
-    syncFailedUntil.set(wallet, Date.now() + 60_000)
+    await prisma.financeSyncState
+      .upsert({
+        where: { wallet_address: wallet },
+        create: {
+          wallet_address: wallet,
+          last_error_at: new Date(),
+          last_error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+        },
+        update: {
+          last_error_at: new Date(),
+          last_error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+        },
+      })
+      .catch(() => undefined)
     throw error
   }
 }

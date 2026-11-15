@@ -54,7 +54,7 @@ export const POST = withAuth(async (request: NextRequest, address: string) => {
       month,
       amount_usd: Number(amountUsd.toFixed(2)),
     },
-    update: { amount_usd: Number(amountUsd.toFixed(2)) },
+    update: { amount_usd: Number(amountUsd.toFixed(2)), alert_level: 0, alerted_at: null },
   })
 
   return NextResponse.json({

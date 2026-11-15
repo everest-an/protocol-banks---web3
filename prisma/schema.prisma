@@ -2216,6 +2216,19 @@ model FinanceBudget {
   @@map("finance_budgets")
 }
 
+/// Durable throttle for the finance ledger sync. One row per wallet.
+model FinanceSyncState {
+  id             String    @id @default(uuid())
+  wallet_address String    @unique
+  last_synced_at DateTime?
+  last_error_at  DateTime?
+  last_error     String?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  @@map("finance_sync_state")
+}
+
 /// Append-only strategy audit trail. One row per applied change; the current
 /// strategy still lives on TradingAccount.risk_config.
 model StrategyRevision {

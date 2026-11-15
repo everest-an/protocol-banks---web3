@@ -104,13 +104,19 @@ async function ledgerSnapshot(wallet: string): Promise<string> {
       activity?: Array<{ type: string; text: string }>
     } | null
     const out: string[] = []
+    const activityCounts = new Map<string, number>()
+    for (const item of st?.activity ?? []) {
+      activityCounts.set(item.type, (activityCounts.get(item.type) ?? 0) + 1)
+    }
     out.push(
-      `账本（${row.wallet_address.slice(0, 10)}…，更新于 ${row.updated_at.toISOString()}）：`,
+      `账本（更新于 ${row.updated_at.toISOString()}）：`,
       `- 现金 $${st?.cash ?? '?'}｜权益 $${st?.account?.totalEquity ?? '?'}｜累计盈亏 $${st?.account?.allTimePnl ?? '?'}`,
       `- 持仓：${(st?.positions ?? []).length ? (st?.positions ?? []).map((p) => `${p.symbol} ${p.side} ${p.size}`).join('，') : '无'}`,
-      '- 最近动态：',
+      `- 最近活动类型：${activityCounts.size ? [...activityCounts.entries()].map(([type, count]) => `${type}×${count}`).join('，') : '无'}`,
     )
-    for (const a of (st?.activity ?? []).slice(0, 8)) out.push(`  [${a.type}] ${a.text.slice(0, 140)}`)
+    if (process.env.TG_LLM_INCLUDE_ACTIVITY === 'true') {
+      for (const a of (st?.activity ?? []).slice(0, 8)) out.push(`  [${a.type}] ${a.text.slice(0, 140)}`)
+    }
     return out.join('\n')
   } catch {
     return '(账本暂时读不到)'
