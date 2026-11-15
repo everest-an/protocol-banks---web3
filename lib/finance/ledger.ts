@@ -7,6 +7,8 @@ import { collectYativoFiatCardRows } from "./providers/yativo-fiat"
 
 const SYNC_MONTHS = 12
 const CONCURRENCY = 12
+const SYNC_INTERVAL_MS = 5 * 60_000
+const lastSync = new Map<string, number>()
 
 export interface FinanceLedgerRow {
   source: string
@@ -102,6 +104,7 @@ export async function upsertFinanceLedgerRows(walletAddress: string, rows: Finan
 
 export async function syncFinanceLedger(walletAddress: string): Promise<void> {
   const wallet = walletAddress.toLowerCase()
+  if (Date.now() - (lastSync.get(wallet) ?? 0) < SYNC_INTERVAL_MS) return
   const start = startOfMonthsAgo(SYNC_MONTHS)
 
   const merchants = await prisma.merchant.findMany({
@@ -190,7 +193,8 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
   }
 
   for (const invoice of invoices) {
-    const value = amount(invoice.amount_fiat ?? invoice.amount)
+    const fiatCurrency = invoice.fiat_currency?.toUpperCase()
+    const value = amount(fiatCurrency === "USD" ? invoice.amount_fiat ?? invoice.amount : invoice.amount)
     if (!value) continue
     const paid = invoice.status.toLowerCase() === "paid"
     rows.push({
@@ -329,6 +333,7 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
   if (yativo?.rows.length) rows.push(...yativo.rows)
 
   await upsertRows(wallet, rows)
+  lastSync.set(wallet, Date.now())
 }
 
 export interface CsvImportRow {

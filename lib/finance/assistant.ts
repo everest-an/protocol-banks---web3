@@ -28,7 +28,6 @@ function snapshot(overview: FinanceOverview) {
     insights: overview.insights,
     recentTransactions: overview.transactions.slice(0, 12).map((event) => ({
       source: event.source,
-      title: event.title,
       direction: event.direction,
       amountUsd: event.amountUsd,
       category: event.category,
