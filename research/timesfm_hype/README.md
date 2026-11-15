@@ -86,7 +86,28 @@ uv run python src/data_status.py \
   --market data/market.csv
 ```
 
-## 5. Backtest
+## 5. Wallet behavior research
+
+After `whales.csv` has prints, snapshot the addresses behind those prints:
+
+```bash
+uv run python src/collect_wallets.py --whales data/whales.csv --top 20
+```
+
+This writes `data/wallet_positions.csv`: account value, withdrawable, coin, side, size, entry,
+position value, unrealized PnL, margin, liquidation price and leverage over time.
+
+Profile the behavior:
+
+```bash
+uv run python src/wallet_behavior.py --positions data/wallet_positions.csv
+```
+
+The labels (`market_maker_candidate`, `directional_candidate`, `carry_or_hedge_candidate`) are
+heuristics from public position snapshots. They are **not** a recovered strategy, and they cannot see
+hidden orders, OTC hedges, other wallets, or execution intent.
+
+## 6. Backtest
 
 Without TimesFM or whales:
 
