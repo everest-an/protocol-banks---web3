@@ -4,11 +4,17 @@ import argparse
 import asyncio
 import csv
 import json
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import websockets
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 
 WS_URL = "wss://api.hyperliquid.xyz/ws"
 

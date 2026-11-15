@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,6 +11,11 @@ from typing import Any
 
 import pandas as pd
 import requests
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 
 INFO_URL = "https://api.hyperliquid.xyz/info"
 FIELDS = [

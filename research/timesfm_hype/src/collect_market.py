@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import requests
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 
 HL_INFO = "https://api.hyperliquid.xyz/info"
 

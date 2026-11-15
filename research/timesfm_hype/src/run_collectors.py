@@ -70,7 +70,7 @@ def main() -> None:
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            env={**os.environ, "PYTHONUNBUFFERED": "1"},
+            env={**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"},
         )
         processes[name] = process
         thread = threading.Thread(target=pump, args=(name, process), daemon=True)
