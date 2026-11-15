@@ -124,7 +124,24 @@ uv run python src/copy_backtest.py \
 `--lag 1` means the signal is only known after the snapshot and is executed on the next bar. The
 backtest still cannot see hidden orders, OTC hedges, maker rebates or the whale's true exit.
 
-## 7. Backtest
+## 7. Paper replay
+
+Turn the copy signal into a simulated portfolio with cash, position sizing and trade log:
+
+```bash
+uv run python src/paper_copy.py \
+  --candles data/hype_5m.csv \
+  --positions data/wallet_positions.csv \
+  --behavior data/wallet_behavior.json \
+  --label directional_candidate \
+  --lag 1
+```
+
+`--horizon 0` holds until the copied signal flips. Outputs `data/paper/paper_trades.csv`,
+`data/paper/paper_equity.csv` and `data/paper/paper_report.json`. This is a replay, not a live
+connection; it cannot place orders.
+
+## 8. Backtest
 
 Without TimesFM or whales:
 
