@@ -258,8 +258,12 @@ export async function POST(req: NextRequest) {
     if (!mentioned) return NextResponse.json({ ok: true })
     text = text.replace(new RegExp('@' + BOT_USERNAME, 'gi'), '').trim() || '简要介绍一下当前状态'
     console.log('[telegram] group message', chatId, text.slice(0, 40))
-    // Groups still answer about the operator's pinned account.
-    walletForChat = (process.env.TG_ACCOUNT_WALLET || '').toLowerCase()
+    // Groups must use a dedicated read-only wallet, never a customer account.
+    walletForChat = (process.env.TG_GROUP_WALLET || '').toLowerCase()
+    if (!walletForChat) {
+      await send(chatId, '群聊未配置独立只读账户（TG_GROUP_WALLET），请联系管理员。')
+      return NextResponse.json({ ok: true })
+    }
   } else if (owner && chatId !== owner) {
     // A non-owner DM: answer only if this chat is BOUND to a wallet.
     const bound = await prisma.tradingAccount.findFirst({

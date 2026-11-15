@@ -22,9 +22,30 @@ function monthBounds(month: string): { start: Date; end: Date } {
 export async function runBudgetAlerts(input?: {
   month?: string
   ownerAddress?: string
-}): Promise<{ month: string; checked: number; alerted: number; failed: number }> {
+}): Promise<{ month: string; checked: number; alerted: number; skipped: number; failed: number }> {
   const month = input?.month ?? new Date().toISOString().slice(0, 7)
   const { start, end } = monthBounds(month)
+  const channelCache = new Map<string, boolean>()
+
+  async function hasChannel(wallet: string): Promise<boolean> {
+    const cached = channelCache.get(wallet)
+    if (cached !== undefined) return cached
+    const [account, pushCount, user] = await Promise.all([
+      prisma.tradingAccount.findUnique({
+        where: { wallet_address: wallet },
+        select: { telegram_chat_id: true },
+      }),
+      prisma.pushSubscription.count({ where: { user_address: wallet } }),
+      prisma.authUser.findFirst({ where: { wallet_address: wallet }, select: { email: true } }),
+    ])
+    const available = Boolean(
+      (process.env.TG_TOKEN && account?.telegram_chat_id) ||
+        pushCount > 0 ||
+        (process.env.RESEND_API_KEY && user?.email),
+    )
+    channelCache.set(wallet, available)
+    return available
+  }
   const budgets = await prisma.financeBudget.findMany({
     where: {
       month,
@@ -37,6 +58,7 @@ export async function runBudgetAlerts(input?: {
 
   let checked = 0
   let alerted = 0
+  let skipped = 0
   let failed = 0
 
   for (const budget of budgets) {
@@ -55,6 +77,10 @@ export async function runBudgetAlerts(input?: {
       const spent = Number(result._sum.amount_usd ?? 0)
       const level = budgetAlertLevel(spent, budget.amount_usd)
       if (level <= budget.alert_level || level === 0) continue
+      if (!(await hasChannel(budget.owner_address))) {
+        skipped += 1
+        continue
+      }
 
       await prisma.financeBudget.update({
         where: { id: budget.id },
@@ -74,5 +100,5 @@ export async function runBudgetAlerts(input?: {
     }
   }
 
-  return { month, checked, alerted, failed }
+  return { month, checked, alerted, skipped, failed }
 }

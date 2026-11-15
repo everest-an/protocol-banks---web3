@@ -21,6 +21,7 @@ const IDS: Record<string, string> = {
 const STABLES = new Set(["USDC", "USDT", "DAI", "USD", "USDP", "PYUSD"])
 
 let cache: { prices: Record<string, number>; expiresAt: number } | null = null
+let failedUntil = 0
 
 export async function getTokenUsdPrices(symbols: string[]): Promise<Record<string, number>> {
   const requested = [...new Set(symbols.map((symbol) => symbol.toUpperCase()))]
@@ -34,6 +35,7 @@ export async function getTokenUsdPrices(symbols: string[]): Promise<Record<strin
   }
 
   if (!missing.length) return result
+  if (failedUntil > Date.now()) return result
   if (cache && cache.expiresAt > Date.now()) {
     for (const symbol of missing) if (cache.prices[symbol]) result[symbol] = cache.prices[symbol]
     return result
@@ -54,6 +56,7 @@ export async function getTokenUsdPrices(symbols: string[]): Promise<Record<strin
     cache = { prices: { ...(cache?.prices ?? {}), ...prices }, expiresAt: Date.now() + CACHE_MS }
     return { ...result, ...prices }
   } catch {
+    failedUntil = Date.now() + CACHE_MS
     return result
   }
 }

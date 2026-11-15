@@ -1,4 +1,4 @@
-import { createHash } from "crypto"
+import { createHash, randomUUID } from "crypto"
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { categorizeTransaction } from "./categorize"
@@ -6,9 +6,10 @@ import { convertToUsd } from "./fx"
 import { collectYativoFiatCardRows } from "./providers/yativo-fiat"
 
 const SYNC_MONTHS = 12
-const CONCURRENCY = 12
+const CHUNK_SIZE = 40
 const SYNC_INTERVAL_MS = 5 * 60_000
 const lastSync = new Map<string, number>()
+const syncFailedUntil = new Map<string, number>()
 
 export interface FinanceLedgerRow {
   source: string
@@ -40,6 +41,10 @@ function hash(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 32)
 }
 
+function txKey(txHash: string | null | undefined, fallback: string): string {
+  return txHash ? `tx:${txHash.toLowerCase()}` : fallback
+}
+
 function startOfMonthsAgo(months: number): Date {
   const date = new Date()
   date.setUTCDate(1)
@@ -56,44 +61,52 @@ async function upsertRows(wallet: string, rows: FinanceLedgerRow[]): Promise<voi
   }
   const values = [...unique.values()]
 
-  for (let index = 0; index < values.length; index += CONCURRENCY) {
-    const chunk = values.slice(index, index + CONCURRENCY)
-    await Promise.all(
-      chunk.map((row) =>
-        prisma.financeTransaction.upsert({
-          where: {
-            owner_address_dedupe_key: {
-              owner_address: wallet,
-              dedupe_key: row.dedupe_key,
-            },
-          },
-          create: {
-            owner_address: wallet,
-            source: row.source,
-            source_id: row.source_id,
-            dedupe_key: row.dedupe_key,
-            kind: row.kind,
-            direction: row.direction,
-            category: row.category,
-            counterparty: row.counterparty ?? null,
-            description: row.description ?? null,
-            amount_usd: row.amount_usd,
-            currency: row.currency,
-            occurred_at: row.occurred_at,
-            status: row.status.toLowerCase(),
-            metadata: row.metadata,
-          },
-          update: {
-            amount_usd: row.amount_usd,
-            category: row.category,
-            counterparty: row.counterparty ?? null,
-            description: row.description ?? null,
-            occurred_at: row.occurred_at,
-            status: row.status.toLowerCase(),
-            metadata: row.metadata,
-          },
-        }),
-      ),
+  for (let index = 0; index < values.length; index += CHUNK_SIZE) {
+    const chunk = values.slice(index, index + CHUNK_SIZE)
+    const params: unknown[] = []
+    const tuples = chunk.map((row, rowIndex) => {
+      const base = rowIndex * 15
+      params.push(
+        randomUUID(),
+        wallet,
+        row.source,
+        row.source_id,
+        row.dedupe_key,
+        row.kind,
+        row.direction,
+        row.category,
+        row.counterparty ?? null,
+        row.description ?? null,
+        row.amount_usd,
+        row.currency,
+        row.occurred_at,
+        row.status.toLowerCase(),
+        row.metadata ? JSON.stringify(row.metadata) : null,
+      )
+      const placeholders = Array.from({ length: 15 }, (_, column) => `$${base + column + 1}`)
+      placeholders[14] = `${placeholders[14]}::jsonb`
+      return `(${placeholders.join(", ")})`
+    })
+
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO finance_transactions
+        (id, owner_address, source, source_id, dedupe_key, kind, direction, category,
+         counterparty, description, amount_usd, currency, occurred_at, status, metadata)
+       VALUES ${tuples.join(", ")}
+       ON CONFLICT (owner_address, dedupe_key) DO UPDATE SET
+         source = EXCLUDED.source,
+         source_id = EXCLUDED.source_id,
+         kind = EXCLUDED.kind,
+         direction = EXCLUDED.direction,
+         category = EXCLUDED.category,
+         counterparty = EXCLUDED.counterparty,
+         description = EXCLUDED.description,
+         amount_usd = EXCLUDED.amount_usd,
+         currency = EXCLUDED.currency,
+         occurred_at = EXCLUDED.occurred_at,
+         status = EXCLUDED.status,
+         metadata = EXCLUDED.metadata`,
+      ...params,
     )
   }
 }
@@ -102,9 +115,7 @@ export async function upsertFinanceLedgerRows(walletAddress: string, rows: Finan
   await upsertRows(walletAddress.toLowerCase(), rows)
 }
 
-export async function syncFinanceLedger(walletAddress: string): Promise<void> {
-  const wallet = walletAddress.toLowerCase()
-  if (Date.now() - (lastSync.get(wallet) ?? 0) < SYNC_INTERVAL_MS) return
+async function syncFinanceLedgerInner(wallet: string): Promise<void> {
   const start = startOfMonthsAgo(SYNC_MONTHS)
 
   const merchants = await prisma.merchant.findMany({
@@ -175,7 +186,7 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
     rows.push({
       source: "payment",
       source_id: payment.id,
-      dedupe_key: payment.tx_hash ? `tx:${payment.chain}:${payment.tx_hash.toLowerCase()}` : `payment:${payment.id}`,
+      dedupe_key: txKey(payment.tx_hash, `payment:${payment.id}`),
       kind: direction === "in" ? "income" : "expense",
       direction,
       category: payment.category || (direction === "in" ? "Income" : "Payments"),
@@ -200,7 +211,7 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
     rows.push({
       source: "invoice",
       source_id: invoice.id,
-      dedupe_key: invoice.tx_hash ? `tx:${invoice.chain ?? "unknown"}:${invoice.tx_hash.toLowerCase()}` : `invoice:${invoice.id}`,
+      dedupe_key: txKey(invoice.tx_hash, `invoice:${invoice.id}`),
       kind: "income",
       direction: "in",
       category: paid ? "Invoices" : "Receivables",
@@ -220,9 +231,7 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
     rows.push({
       source: "subscription",
       source_id: payment.id,
-      dedupe_key: payment.tx_hash
-        ? `tx:${payment.subscription.chain_id}:${payment.tx_hash.toLowerCase()}`
-        : `subscription:${payment.id}`,
+      dedupe_key: txKey(payment.tx_hash, `subscription:${payment.id}`),
       kind: "expense",
       direction: "out",
       category: "Subscriptions",
@@ -242,7 +251,7 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
     rows.push({
       source: "agent",
       source_id: payment.id,
-      dedupe_key: `agent:${payment.id}`,
+      dedupe_key: txKey(payment.tx_hash, `agent:${payment.id}`),
       kind: "expense",
       direction: "out",
       category: "Agent spend",
@@ -262,7 +271,7 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
     rows.push({
       source: "acquiring",
       source_id: order.id,
-      dedupe_key: `acquiring:${order.id}`,
+      dedupe_key: txKey(order.tx_hash, `acquiring:${order.id}`),
       kind: "income",
       direction: "in",
       category: "Acquiring",
@@ -333,7 +342,20 @@ export async function syncFinanceLedger(walletAddress: string): Promise<void> {
   if (yativo?.rows.length) rows.push(...yativo.rows)
 
   await upsertRows(wallet, rows)
-  lastSync.set(wallet, Date.now())
+}
+
+export async function syncFinanceLedger(walletAddress: string): Promise<void> {
+  const wallet = walletAddress.toLowerCase()
+  if (Date.now() - (lastSync.get(wallet) ?? 0) < SYNC_INTERVAL_MS) return
+  if (Date.now() < (syncFailedUntil.get(wallet) ?? 0)) return
+  try {
+    await syncFinanceLedgerInner(wallet)
+    lastSync.set(wallet, Date.now())
+    syncFailedUntil.delete(wallet)
+  } catch (error) {
+    syncFailedUntil.set(wallet, Date.now() + 60_000)
+    throw error
+  }
 }
 
 export interface CsvImportRow {
@@ -377,23 +399,28 @@ export async function importCsvTransactions(
 
   let fxConverted = 0
   let fxMissing = 0
+  const seen = new Map<string, number>()
   const data: Prisma.FinanceTransactionCreateManyInput[] = await Promise.all(
-    rows.map(async (row, index) => {
+    rows.map(async (row) => {
       const category = row.category || categorizeTransaction({
         description: row.description,
         counterparty: row.counterparty,
         kind: row.direction === "in" ? "income" : "expense",
       })
-      const dedupeKey = `csv:${account.id}:${hash(
+      const base = hash(
         [
           row.occurredAt.toISOString(),
           row.description,
           row.amountUsd.toFixed(2),
           row.direction,
+          row.counterparty ?? "",
+          row.currency ?? "USD",
           row.reference ?? "",
-          index,
         ].join("|"),
-      )}`
+      )
+      const occurrence = (seen.get(base) ?? 0) + 1
+      seen.set(base, occurrence)
+      const dedupeKey = `csv:${account.id}:${base}:${occurrence}`
       const currency = (row.currency || "USD").toUpperCase()
       const conversion = await convertToUsd(row.amountUsd, currency)
       if (currency !== "USD") {

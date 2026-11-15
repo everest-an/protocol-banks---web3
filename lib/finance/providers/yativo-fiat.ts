@@ -65,7 +65,8 @@ export async function collectYativoFiatCardRows(
       for (const transaction of transactions) {
         const signed = Number(transaction.amount)
         if (!Number.isFinite(signed) || signed === 0) continue
-        const direction = signed < 0 ? "in" : "out"
+        const refund = /refund|reversal|reversed|chargeback/i.test(transaction.status)
+        const direction = signed < 0 || refund ? "in" : "out"
         const value = Math.abs(signed)
         rows.push({
           source: "yativo_card",
