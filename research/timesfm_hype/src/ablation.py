@@ -16,6 +16,7 @@ def main() -> None:
     parser.add_argument("--whales", default=None)
     parser.add_argument("--market", default=None)
     parser.add_argument("--timesfm", action="store_true")
+    parser.add_argument("--tfm-data", default=None, help="Precomputed CSV with tfm_* columns.")
     parser.add_argument("--tfm-context", type=int, default=512)
     parser.add_argument("--tfm-horizon", type=int, default=12)
     parser.add_argument("--tfm-stride", type=int, default=15)
@@ -29,7 +30,12 @@ def main() -> None:
 
     candles = load_candles(args.data)
     candles_tfm = candles
-    if args.timesfm:
+    if args.tfm_data:
+        candles_tfm = pd.read_csv(args.tfm_data)
+        candles_tfm["timestamp"] = pd.to_datetime(candles_tfm["timestamp"], utc=True)
+        candles_tfm = candles_tfm.sort_values("timestamp").reset_index(drop=True)
+        args.timesfm = True
+    elif args.timesfm:
         try:
             from timesfm_features import add_timesfm_features
 
@@ -56,6 +62,10 @@ def main() -> None:
                 candles_tfm, horizon=args.horizon, whale_csv=args.whales
             )
         if args.market:
+            variants["timesfm_market"] = build_features(
+                candles_tfm, horizon=args.horizon, market_csv=args.market
+            )
+        if args.whales and args.market:
             variants["all"] = build_features(
                 candles_tfm, horizon=args.horizon, whale_csv=args.whales, market_csv=args.market
             )

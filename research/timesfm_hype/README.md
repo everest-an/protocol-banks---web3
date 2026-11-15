@@ -69,7 +69,24 @@ Writes `data/market.csv` with Hyperliquid mark/mid/funding/OI, L2 depth and imba
 Bybit and OKX mids, Bybit OI/funding and cross-venue basis. These endpoints are current-state only, so
 this must run forward before it can be used in a backtest.
 
-## 4. Backtest
+## 4. Run both collectors together
+
+```bash
+uv run python src/run_collectors.py --coin HYPE --min-notional 50000 --interval 5
+```
+
+Stops both collectors on Ctrl+C or when one exits. Use a process manager or `nohup`/`tmux` for a multi-day run.
+
+Check dataset coverage before experiments:
+
+```bash
+uv run python src/data_status.py \
+  --candles data/hype_5m.csv \
+  --whales data/whales.csv \
+  --market data/market.csv
+```
+
+## 5. Backtest
 
 Without TimesFM or whales:
 
@@ -104,8 +121,14 @@ uv run python src/backtest.py --data data/hype_5m.csv --timesfm --tfm-stride 15 
 Ablation across price, TimesFM, whales and market features:
 
 ```bash
-uv run python src/ablation.py --data data/hype_5m.csv --whales data/whales.csv --market data/market.csv --timesfm
+uv run python src/ablation.py \
+  --data data/hype_5m.csv \
+  --whales data/whales.csv \
+  --market data/market.csv \
+  --tfm-data data/hype_5m_tfm.csv
 ```
+
+`--tfm-data` avoids recomputing TimesFM features for every ablation.
 
 Outputs `data/backtest/report.json` and `data/backtest/predictions.csv`.
 
