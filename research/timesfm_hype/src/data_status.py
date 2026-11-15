@@ -53,8 +53,9 @@ def main() -> None:
 
     whales = read(args.whales)
     if whales is not None:
-        minute = whales["timestamp"].dt.floor("min")
-        candle_minutes = candles["timestamp"].dt.floor("min")
+        frequency = f"{max(1, int(interval.total_seconds() // 60))}min"
+        minute = whales["timestamp"].dt.floor(frequency)
+        candle_minutes = candles["timestamp"].dt.floor(frequency)
         overlap = minute.isin(candle_minutes).mean()
         report["whales"] = {
             "rows": int(len(whales)),
@@ -76,11 +77,13 @@ def main() -> None:
         for column in ("hl_mid", "hl_open_interest", "hl_imbalance_5"):
             if column in market:
                 overlap = max(overlap, 1 - float(market[column].isna().mean()))
+        range_overlap = float(market["timestamp"].between(start, end).mean())
         report["market"] = {
             "rows": int(len(market)),
             "first": str(market["timestamp"].min()),
             "last": str(market["timestamp"].max()),
             "column_fill": round(float(overlap), 4),
+            "candle_range_overlap": round(range_overlap, 4),
         }
         if overlap < 0.8:
             warnings.append("market columns are less than 80% filled")

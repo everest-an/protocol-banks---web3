@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import csv
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,7 +13,8 @@ import websockets
 WS_URL = "wss://api.hyperliquid.xyz/ws"
 
 
-async def run(coin: str, min_notional: float, output: Path) -> None:
+async def run(coin: str, min_notional: float, output: Path, max_seconds: float = 0) -> None:
+    started = time.monotonic()
     output.parent.mkdir(parents=True, exist_ok=True)
     new_file = not output.exists()
     handle = output.open("a", newline="", encoding="utf-8")
@@ -21,7 +23,7 @@ async def run(coin: str, min_notional: float, output: Path) -> None:
         writer.writerow(["timestamp", "coin", "side", "px", "sz", "notional", "buyer", "seller", "hash"])
         handle.flush()
 
-    while True:
+    while max_seconds <= 0 or time.monotonic() - started < max_seconds:
         try:
             async with websockets.connect(WS_URL, ping_interval=20) as socket:
                 await socket.send(json.dumps({
@@ -29,7 +31,13 @@ async def run(coin: str, min_notional: float, output: Path) -> None:
                     "subscription": {"type": "trades", "coin": coin},
                 }))
                 print(f"subscribed to {coin} trades; writing prints >= ${min_notional:,.0f}")
-                async for raw in socket:
+                while True:
+                    if max_seconds > 0 and time.monotonic() - started >= max_seconds:
+                        return
+                    try:
+                        raw = await asyncio.wait_for(socket.recv(), timeout=1.0)
+                    except asyncio.TimeoutError:
+                        continue
                     message = json.loads(raw)
                     if message.get("channel") != "trades":
                         continue
@@ -69,12 +77,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Collect large Hyperliquid trades (whale prints) to CSV.")
     parser.add_argument("--coin", default="HYPE")
     parser.add_argument("--min-notional", type=float, default=50_000)
+    parser.add_argument("--max-seconds", type=float, default=0)
     parser.add_argument("--out", default="data/whales.csv")
     args = parser.parse_args()
     output = Path(args.out)
     if not output.is_absolute():
         output = Path(__file__).resolve().parents[1] / output
-    asyncio.run(run(args.coin, args.min_notional, output))
+    asyncio.run(run(args.coin, args.min_notional, output, args.max_seconds))
 
 
 if __name__ == "__main__":

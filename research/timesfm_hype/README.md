@@ -56,6 +56,9 @@ it going forward:
 uv run python src/collect_whales.py --coin HYPE --min-notional 50000
 ```
 
+For a smoke test add `--max-seconds 60`. A 60-second sample is useful for testing the pipeline, not for
+evaluating a copy strategy; the wallet snapshots need days of history.
+
 Writes `data/whales.csv` with timestamp, side, notional, buyer and seller. `notional >= 50,000` is only a
 starting definition; validate it. A large print can be a market maker hedge, not alpha.
 
