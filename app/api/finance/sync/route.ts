@@ -3,7 +3,7 @@ import { withAuth } from "@/lib/middleware/api-auth"
 import { syncFinanceLedger } from "@/lib/finance/ledger"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 60
+export const maxDuration = 120
 
 export const POST = withAuth(async (_request, address: string) => {
   try {

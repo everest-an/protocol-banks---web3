@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { categorizeTransaction } from "./categorize"
 import { convertToUsd } from "./fx"
 import { collectYativoFiatCardRows } from "./providers/yativo-fiat"
+import { collectOnchainHistoryRows } from "./providers/onchain-history"
 import { syncUserBalances } from "@/lib/services/balance-sync-service"
 
 const SYNC_MONTHS = 12
@@ -53,22 +54,93 @@ function startOfMonthsAgo(months: number): Date {
   return date
 }
 
+const ACCOUNT_META: Record<string, { name: string; kind: string }> = {
+  payment: { name: "Payments", kind: "cash" },
+  invoice: { name: "Invoices", kind: "receivable" },
+  subscription: { name: "Subscriptions", kind: "cash" },
+  agent: { name: "Agent payments", kind: "cash" },
+  acquiring: { name: "Acquiring", kind: "cash" },
+  trade: { name: "Trading", kind: "trading" },
+  csv: { name: "Imported CSV", kind: "other" },
+  onchain: { name: "On-chain wallet", kind: "wallet" },
+}
+
+async function ensureAccounts(wallet: string, sources: string[]): Promise<Map<string, string>> {
+  const ids = new Map<string, string>()
+  for (const source of sources) {
+    const meta = ACCOUNT_META[source] ?? { name: source, kind: "other" }
+    const account = await prisma.financeAccount.upsert({
+      where: {
+        owner_address_source_external_id: {
+          owner_address: wallet,
+          source,
+          external_id: "auto",
+        },
+      },
+      create: {
+        owner_address: wallet,
+        source,
+        external_id: "auto",
+        name: meta.name,
+        kind: meta.kind,
+      },
+      update: {},
+    })
+    ids.set(source, account.id)
+  }
+  return ids
+}
+
 async function upsertRows(wallet: string, rows: FinanceLedgerRow[]): Promise<void> {
   const unique = new Map<string, FinanceLedgerRow>()
   for (const row of rows) {
     if (!row.amount_usd || !Number.isFinite(row.amount_usd)) continue
     unique.set(row.dedupe_key, row)
   }
-  const values = [...unique.values()]
+  let values = [...unique.values()]
+  const onchainHashes = new Set<string>()
+  for (const row of values) {
+    if (row.source !== "onchain") continue
+    const metadata = row.metadata
+    if (metadata && typeof metadata === "object" && !Array.isArray(metadata) && "txHash" in metadata) {
+      const hash = (metadata as { txHash?: unknown }).txHash
+      if (typeof hash === "string" && hash) onchainHashes.add(hash)
+    }
+  }
+  const platformHashes = new Set(
+    values
+      .filter((row) => row.source !== "onchain" && row.dedupe_key.startsWith("tx:"))
+      .map((row) => row.dedupe_key.slice(3)),
+  )
+  if (onchainHashes.size) {
+    const existing = await prisma.financeTransaction.findMany({
+      where: {
+        owner_address: wallet,
+        dedupe_key: { in: [...onchainHashes].map((hash) => `tx:${hash}`) },
+      },
+      select: { dedupe_key: true },
+    })
+    for (const row of existing) platformHashes.add(row.dedupe_key.slice(3))
+  }
+  values = values.filter((row) => {
+    if (row.source !== "onchain" || !platformHashes.size) return true
+    const metadata = row.metadata
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata) || !("txHash" in metadata)) return true
+    const hash = (metadata as { txHash?: unknown }).txHash
+    return typeof hash !== "string" || !platformHashes.has(hash)
+  })
+
+  const accountIds = await ensureAccounts(wallet, [...new Set(values.map((row) => row.source))])
 
   for (let index = 0; index < values.length; index += CHUNK_SIZE) {
     const chunk = values.slice(index, index + CHUNK_SIZE)
     const params: unknown[] = []
     const tuples = chunk.map((row, rowIndex) => {
-      const base = rowIndex * 15
+      const base = rowIndex * 16
       params.push(
         randomUUID(),
         wallet,
+        accountIds.get(row.source) ?? null,
         row.source,
         row.source_id,
         row.dedupe_key,
@@ -83,17 +155,18 @@ async function upsertRows(wallet: string, rows: FinanceLedgerRow[]): Promise<voi
         row.status.toLowerCase(),
         row.metadata ? JSON.stringify(row.metadata) : null,
       )
-      const placeholders = Array.from({ length: 15 }, (_, column) => `$${base + column + 1}`)
-      placeholders[14] = `${placeholders[14]}::jsonb`
+      const placeholders = Array.from({ length: 16 }, (_, column) => `$${base + column + 1}`)
+      placeholders[15] = `${placeholders[15]}::jsonb`
       return `(${placeholders.join(", ")})`
     })
 
     await prisma.$executeRawUnsafe(
       `INSERT INTO finance_transactions
-        (id, owner_address, source, source_id, dedupe_key, kind, direction, category,
+        (id, owner_address, account_id, source, source_id, dedupe_key, kind, direction, category,
          counterparty, description, amount_usd, currency, occurred_at, status, metadata)
        VALUES ${tuples.join(", ")}
        ON CONFLICT (owner_address, dedupe_key) DO UPDATE SET
+         account_id = EXCLUDED.account_id,
          source = EXCLUDED.source,
          source_id = EXCLUDED.source_id,
          kind = EXCLUDED.kind,
@@ -119,6 +192,10 @@ async function syncFinanceLedgerInner(wallet: string): Promise<void> {
   const start = startOfMonthsAgo(SYNC_MONTHS)
   const balanceSync = syncUserBalances(wallet).catch((error) => {
     console.warn("[finance] balance sync failed:", error instanceof Error ? error.message : error)
+  })
+  const onchainHistory = collectOnchainHistoryRows(wallet).catch((error) => {
+    console.warn("[finance] onchain history failed:", error instanceof Error ? error.message : error)
+    return []
   })
 
   const merchants = await prisma.merchant.findMany({
@@ -343,6 +420,9 @@ async function syncFinanceLedgerInner(wallet: string): Promise<void> {
 
   const yativo = await collectYativoFiatCardRows(wallet).catch(() => null)
   if (yativo?.rows.length) rows.push(...yativo.rows)
+
+  const onchainRows = await onchainHistory
+  if (onchainRows.length) rows.push(...onchainRows)
 
   await upsertRows(wallet, rows)
   await balanceSync

@@ -16,6 +16,8 @@ const IDS: Record<string, string> = {
   ARB: "arbitrum",
   OP: "optimism",
   HYPE: "hyperliquid",
+  PAXG: "pax-gold",
+  KAG: "kinesis-silver",
 }
 
 const STABLES = new Set(["USDC", "USDT", "DAI", "USD", "USDP", "PYUSD"])
@@ -35,28 +37,45 @@ export async function getTokenUsdPrices(symbols: string[]): Promise<Record<strin
   }
 
   if (!missing.length) return result
-  if (failedUntil > Date.now()) return result
-  if (cache && cache.expiresAt > Date.now()) {
-    for (const symbol of missing) if (cache.prices[symbol]) result[symbol] = cache.prices[symbol]
-    return result
+
+  const prices: Record<string, number> = {}
+  if (failedUntil <= Date.now()) {
+    try {
+      const ids = [...new Set(missing.map((symbol) => IDS[symbol]).filter(Boolean))]
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`
+      const response = await fetch(url, { signal: AbortSignal.timeout(6000), cache: "no-store" })
+      if (!response.ok) throw new Error(`price HTTP ${response.status}`)
+      const body = (await response.json()) as Record<string, { usd?: number }>
+      for (const symbol of missing) {
+        const id = IDS[symbol]
+        const price = id ? body[id]?.usd : undefined
+        if (typeof price === "number" && Number.isFinite(price) && price > 0) prices[symbol] = price
+      }
+    } catch {
+      failedUntil = Date.now() + CACHE_MS
+    }
   }
 
-  try {
-    const ids = [...new Set(missing.map((symbol) => IDS[symbol]).filter(Boolean))]
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`
-    const response = await fetch(url, { signal: AbortSignal.timeout(6000), cache: "no-store" })
-    if (!response.ok) throw new Error(`price HTTP ${response.status}`)
-    const body = (await response.json()) as Record<string, { usd?: number }>
-    const prices: Record<string, number> = {}
-    for (const symbol of missing) {
-      const id = IDS[symbol]
-      const price = id ? body[id]?.usd : undefined
-      if (typeof price === "number" && Number.isFinite(price) && price > 0) prices[symbol] = price
+  const stillMissing = missing.filter((symbol) => !prices[symbol] && IDS[symbol])
+  if (stillMissing.length) {
+    try {
+      const keys = [...new Set(stillMissing.map((symbol) => `coingecko:${IDS[symbol]}`))]
+      const response = await fetch(`https://coins.llama.fi/prices/current/${keys.join(",")}`, {
+        signal: AbortSignal.timeout(6000),
+        cache: "no-store",
+      })
+      if (response.ok) {
+        const body = (await response.json()) as { coins?: Record<string, { price?: number }> }
+        for (const symbol of stillMissing) {
+          const price = body.coins?.[`coingecko:${IDS[symbol]}`]?.price
+          if (typeof price === "number" && Number.isFinite(price) && price > 0) prices[symbol] = price
+        }
+      }
+    } catch {
+      // Keep whatever CoinGecko returned.
     }
-    cache = { prices: { ...(cache?.prices ?? {}), ...prices }, expiresAt: Date.now() + CACHE_MS }
-    return { ...result, ...prices }
-  } catch {
-    failedUntil = Date.now() + CACHE_MS
-    return result
   }
+
+  cache = { prices: { ...(cache?.prices ?? {}), ...prices }, expiresAt: Date.now() + CACHE_MS }
+  return { ...result, ...prices }
 }
