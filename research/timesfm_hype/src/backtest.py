@@ -130,6 +130,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Offline walk-forward PoC for HYPE. No live trading.")
     parser.add_argument("--data", required=True)
     parser.add_argument("--whales", default=None)
+    parser.add_argument("--market", default=None, help="Forward-collected OI/order-book/cross-venue CSV.")
     parser.add_argument("--timesfm", action="store_true", help="Add TimesFM 2.5 zero-shot features.")
     parser.add_argument("--tfm-context", type=int, default=512)
     parser.add_argument("--tfm-horizon", type=int, default=12)
@@ -157,7 +158,12 @@ def main() -> None:
         except Exception as error:
             print(f"TimesFM unavailable, continuing without it: {error}")
 
-    frame, feature_columns = build_features(candles, horizon=args.horizon, whale_csv=args.whales)
+    frame, feature_columns = build_features(
+        candles,
+        horizon=args.horizon,
+        whale_csv=args.whales,
+        market_csv=args.market,
+    )
     report, predictions, _ = walk_forward(
         frame,
         feature_columns,

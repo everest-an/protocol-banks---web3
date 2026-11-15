@@ -63,10 +63,53 @@ def build_whale_features(candles: pd.DataFrame, path: str | Path) -> pd.DataFram
     return out
 
 
+def build_market_features(candles: pd.DataFrame, path: str | Path) -> pd.DataFrame:
+    market = pd.read_csv(path)
+    market["timestamp"] = pd.to_datetime(market["timestamp"], utc=True)
+    numeric = [column for column in market.columns if column != "timestamp"]
+    for column in numeric:
+        market[column] = pd.to_numeric(market[column], errors="coerce")
+    market = market.sort_values("timestamp").drop_duplicates("timestamp")
+    merged = pd.merge_asof(
+        candles[["timestamp"]].sort_values("timestamp"),
+        market.sort_values("timestamp"),
+        on="timestamp",
+        direction="backward",
+    ).reset_index(drop=True)
+
+    out = pd.DataFrame(index=candles.index)
+    basis_pairs = [
+        ("hl_mid", "binance_mid", "basis_binance_bps"),
+        ("hl_mid", "bybit_mid", "basis_bybit_bps"),
+        ("hl_mid", "okx_mid", "basis_okx_bps"),
+    ]
+    for left, right, name in basis_pairs:
+        if left in merged and right in merged:
+            out[name] = (merged[left] - merged[right]) / merged[right] * 10_000
+    for column in ("hl_spread_bps", "hl_imbalance_5", "hl_imbalance_20", "hl_premium"):
+        if column in merged:
+            out[column] = merged[column]
+    if "hl_bid_depth_5" in merged and "hl_ask_depth_5" in merged:
+        out["hl_depth_5"] = merged["hl_bid_depth_5"] + merged["hl_ask_depth_5"]
+    if "hl_open_interest" in merged:
+        for window in (5, 15, 60):
+            out[f"oi_change_{window}"] = merged["hl_open_interest"].pct_change(window)
+    if "bybit_open_interest" in merged:
+        for window in (5, 15):
+            out[f"bybit_oi_change_{window}"] = merged["bybit_open_interest"].pct_change(window)
+    if "bybit_funding" in merged:
+        out["bybit_funding"] = merged["bybit_funding"]
+    mids = [merged[column] for column in ("hl_mid", "binance_mid", "bybit_mid", "okx_mid") if column in merged]
+    if len(mids) >= 2:
+        out["cross_venue_dispersion"] = pd.concat(mids, axis=1).std(axis=1)
+    return out
+
+
 def build_features(
     candles: pd.DataFrame,
     horizon: int = 5,
     whale_csv: str | Path | None = None,
+    market_csv: str | Path | None = None,
 ) -> tuple[pd.DataFrame, list[str]]:
     frame = candles.copy()
     close = frame["close"].astype(float)
@@ -103,6 +146,11 @@ def build_features(
         whale = build_whale_features(frame, whale_csv)
         frame = pd.concat([frame, whale], axis=1)
         feature_columns.extend([column for column in whale.columns if column not in feature_columns])
+
+    if market_csv:
+        market = build_market_features(frame, market_csv)
+        frame = pd.concat([frame, market], axis=1)
+        feature_columns.extend([column for column in market.columns if column not in feature_columns])
 
     tfm_columns = [column for column in frame.columns if column.startswith("tfm_")]
     feature_columns.extend([column for column in tfm_columns if column not in feature_columns])

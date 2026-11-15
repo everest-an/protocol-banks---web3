@@ -59,7 +59,17 @@ uv run python src/collect_whales.py --coin HYPE --min-notional 50000
 Writes `data/whales.csv` with timestamp, side, notional, buyer and seller. `notional >= 50,000` is only a
 starting definition; validate it. A large print can be a market maker hedge, not alpha.
 
-## 3. Backtest
+## 3. Collect OI and cross-venue data (forward only)
+
+```bash
+uv run python src/collect_market.py --coin HYPE --interval 5
+```
+
+Writes `data/market.csv` with Hyperliquid mark/mid/funding/OI, L2 depth and imbalance, plus Binance,
+Bybit and OKX mids, Bybit OI/funding and cross-venue basis. These endpoints are current-state only, so
+this must run forward before it can be used in a backtest.
+
+## 4. Backtest
 
 Without TimesFM or whales:
 
@@ -79,10 +89,22 @@ With whale features:
 uv run python src/backtest.py --data data/hype_5m.csv --whales data/whales.csv --horizon 3 --train-size 3000 --test-size 1000
 ```
 
+With OI / order-book / cross-venue features:
+
+```bash
+uv run python src/backtest.py --data data/hype_5m.csv --market data/market.csv --horizon 3 --train-size 3000 --test-size 1000
+```
+
 With TimesFM 2.5 zero-shot features:
 
 ```bash
 uv run python src/backtest.py --data data/hype_5m.csv --timesfm --tfm-stride 15 --horizon 3 --train-size 3000 --test-size 1000
+```
+
+Ablation across price, TimesFM, whales and market features:
+
+```bash
+uv run python src/ablation.py --data data/hype_5m.csv --whales data/whales.csv --market data/market.csv --timesfm
 ```
 
 Outputs `data/backtest/report.json` and `data/backtest/predictions.csv`.
