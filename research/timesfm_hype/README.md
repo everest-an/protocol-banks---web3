@@ -107,7 +107,24 @@ The labels (`market_maker_candidate`, `directional_candidate`, `carry_or_hedge_c
 heuristics from public position snapshots. They are **not** a recovered strategy, and they cannot see
 hidden orders, OTC hedges, other wallets, or execution intent.
 
-## 6. Backtest
+## 6. Copy-signal backtest
+
+Test whether following the selected wallets would have worked:
+
+```bash
+uv run python src/copy_backtest.py \
+  --candles data/hype_5m.csv \
+  --positions data/wallet_positions.csv \
+  --behavior data/wallet_behavior.json \
+  --label directional_candidate \
+  --lag 1 \
+  --horizon 3
+```
+
+`--lag 1` means the signal is only known after the snapshot and is executed on the next bar. The
+backtest still cannot see hidden orders, OTC hedges, maker rebates or the whale's true exit.
+
+## 7. Backtest
 
 Without TimesFM or whales:
 
