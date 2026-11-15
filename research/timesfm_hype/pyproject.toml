@@ -1,0 +1,21 @@
+[project]
+name = "timesfm-hype-poc"
+version = "0.1.0"
+description = "Offline research PoC: TimesFM + whale flow + LightGBM for HYPE"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "scikit-learn>=1.5",
+  "lightgbm>=4.5",
+  "requests>=2.32",
+  "websockets>=13.0",
+]
+
+[project.optional-dependencies]
+timesfm = [
+  "timesfm[torch]>=2.5",
+]
+
+[tool.uv]
+package = false
