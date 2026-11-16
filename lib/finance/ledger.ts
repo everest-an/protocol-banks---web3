@@ -10,6 +10,7 @@ import { syncUserBalances } from "@/lib/services/balance-sync-service"
 const SYNC_MONTHS = 12
 const CHUNK_SIZE = 40
 const SYNC_INTERVAL_MS = 5 * 60_000
+const FORCE_COOLDOWN_MS = 15_000
 const SYNC_FAILURE_MS = 60_000
 
 export interface FinanceLedgerRow {
@@ -430,10 +431,9 @@ async function syncFinanceLedgerInner(wallet: string): Promise<void> {
 
 export async function syncFinanceLedger(walletAddress: string, force = false): Promise<void> {
   const wallet = walletAddress.toLowerCase()
-  const state = force
-    ? null
-    : await prisma.financeSyncState.findUnique({ where: { wallet_address: wallet } }).catch(() => null)
+  const state = await prisma.financeSyncState.findUnique({ where: { wallet_address: wallet } }).catch(() => null)
   const now = Date.now()
+  if (force && state?.last_synced_at && now - state.last_synced_at.getTime() < FORCE_COOLDOWN_MS) return
   if (!force && state?.last_synced_at && now - state.last_synced_at.getTime() < SYNC_INTERVAL_MS) return
   if (!force && state?.last_error_at && now - state.last_error_at.getTime() < SYNC_FAILURE_MS) return
 

@@ -223,6 +223,9 @@ export default function FinancePage() {
                 ? "Sync error"
                 : `Synced ${relativeSync(data.sync.lastSyncedAt)}`}
             </Badge>
+            <Badge variant={data.sync.balanceStale ? "outline" : "secondary"} className="text-[10px]">
+              Balances {relativeSync(data.sync.balanceSyncedAt)}
+            </Badge>
           </div>
           {data.sync.lastError ? (
             <p className="mt-1 max-w-xl text-xs text-amber-600">{data.sync.lastError}</p>

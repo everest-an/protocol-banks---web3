@@ -64,6 +64,8 @@ export interface FinanceOverview {
     lastErrorAt: string | null
     lastError: string | null
     stale: boolean
+    balanceSyncedAt: string | null
+    balanceStale: boolean
   }
   monthly: Array<{ month: string; label: string; income: number; expenses: number; net: number }>
   categories: Array<{ name: string; amount: number }>
@@ -130,7 +132,7 @@ export async function buildFinanceOverview(walletAddress: string, months = 6, sy
   if (sync) await syncFinanceLedger(wallet).catch(() => undefined)
 
   const month = new Date().toISOString().slice(0, 7)
-  const [balances, trading, trades, ledger, budgetRows, syncState] = await Promise.all([
+  const [balances, trading, trades, ledger, budgetRows, syncState, balanceSync] = await Promise.all([
     prisma.userBalance.findMany({ where: { user_address: walletFilter(wallet) } }),
     prisma.tradingAccount.findUnique({
       where: { wallet_address: wallet },
@@ -151,6 +153,10 @@ export async function buildFinanceOverview(walletAddress: string, months = 6, sy
       orderBy: { category: "asc" },
     }),
     prisma.financeSyncState.findUnique({ where: { wallet_address: wallet } }),
+    prisma.userBalance.aggregate({
+      where: { user_address: walletFilter(wallet) },
+      _max: { last_synced: true },
+    }),
   ])
 
   const providers = await getFinanceProviderStatus(wallet)
@@ -391,6 +397,9 @@ export async function buildFinanceOverview(walletAddress: string, months = 6, sy
       lastErrorAt: syncState?.last_error_at?.toISOString() ?? null,
       lastError: syncState?.last_error ?? null,
       stale: !syncState?.last_synced_at || Date.now() - syncState.last_synced_at.getTime() > 10 * 60_000,
+      balanceSyncedAt: balanceSync._max.last_synced?.toISOString() ?? null,
+      balanceStale:
+        !balanceSync._max.last_synced || Date.now() - balanceSync._max.last_synced.getTime() > 10 * 60_000,
     },
     monthly,
     categories,
