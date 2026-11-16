@@ -13,6 +13,11 @@ const BLOCKSCOUT_CHAINS: Array<{ name: string; base: string; native: string }> =
   { name: "optimism", base: "https://optimism.blockscout.com", native: "ETH" },
 ]
 
+const SCAN_CHAINS: Array<{ name: string; api: string; keyEnv: string; native: string }> = [
+  { name: "base", api: "https://api.basescan.org/api", keyEnv: "BASESCAN_API_KEY", native: "ETH" },
+  { name: "bsc", api: "https://api.bscscan.com/api", keyEnv: "BSCSCAN_API_KEY", native: "BNB" },
+]
+
 interface EtherscanTx {
   hash: string
   from: string
@@ -45,6 +50,13 @@ function enabledBlockscoutChains(): Array<{ name: string; base: string; native: 
   return wanted ? BLOCKSCOUT_CHAINS.filter((chain) => wanted.has(chain.name)) : BLOCKSCOUT_CHAINS
 }
 
+function enabledScanChains(): Array<{ name: string; api: string; keyEnv: string; native: string }> {
+  const wanted = enabledNames()
+  return SCAN_CHAINS.filter(
+    (chain) => (!wanted || wanted.has(chain.name)) && Boolean(process.env[chain.keyEnv]),
+  )
+}
+
 async function etherscan(
   chainId: number,
   action: "txlist" | "tokentx",
@@ -53,6 +65,30 @@ async function etherscan(
 ): Promise<Array<EtherscanTx | EtherscanTokenTx>> {
   const url = new URL(ETHERSCAN_V2)
   url.searchParams.set("chainid", String(chainId))
+  url.searchParams.set("module", "account")
+  url.searchParams.set("action", action)
+  url.searchParams.set("address", address)
+  url.searchParams.set("page", "1")
+  url.searchParams.set("offset", "200")
+  url.searchParams.set("sort", "desc")
+  url.searchParams.set("apikey", apiKey)
+
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(10_000),
+    cache: "no-store",
+  })
+  if (!response.ok) return []
+  const body = (await response.json()) as { status?: string; result?: unknown }
+  return Array.isArray(body.result) ? (body.result as Array<EtherscanTx | EtherscanTokenTx>) : []
+}
+
+async function scan(
+  api: string,
+  action: "txlist" | "tokentx",
+  address: string,
+  apiKey: string,
+): Promise<Array<EtherscanTx | EtherscanTokenTx>> {
+  const url = new URL(api)
   url.searchParams.set("module", "account")
   url.searchParams.set("action", action)
   url.searchParams.set("address", address)
@@ -242,7 +278,63 @@ export async function collectOnchainHistoryRows(walletAddress: string): Promise<
       return collected
     }),
   )
-  const collected = [...perChain.flat(), ...perBlockscout.flat()]
+  const perScan = await Promise.all(
+    enabledScanChains().map(async (chain) => {
+      const apiKey = process.env[chain.keyEnv]
+      if (!apiKey) return []
+      const collected: RawTransfer[] = []
+      try {
+        const [transactions, tokenTransfers] = await Promise.all([
+          scan(chain.api, "txlist", wallet, apiKey),
+          scan(chain.api, "tokentx", wallet, apiKey),
+        ])
+
+        for (const tx of transactions as EtherscanTx[]) {
+          if (tx.isError === "1") continue
+          const amount = tokenAmount(tx.value, "18")
+          if (amount <= 0) continue
+          const timestamp = new Date(Number(tx.timeStamp) * 1000)
+          if (Number.isNaN(timestamp.getTime())) continue
+          collected.push({
+            chain: chain.name,
+            native: chain.native,
+            hash: tx.hash,
+            from: tx.from,
+            to: tx.to,
+            symbol: chain.native,
+            amount,
+            timestamp,
+            index: tx.transactionIndex ?? "0",
+            nativeTransfer: true,
+          })
+        }
+
+        for (const tx of tokenTransfers as EtherscanTokenTx[]) {
+          if (!tx.tokenSymbol) continue
+          const amount = tokenAmount(tx.value, tx.tokenDecimal)
+          if (amount <= 0) continue
+          const timestamp = new Date(Number(tx.timeStamp) * 1000)
+          if (Number.isNaN(timestamp.getTime())) continue
+          collected.push({
+            chain: chain.name,
+            native: chain.native,
+            hash: tx.hash,
+            from: tx.from,
+            to: tx.to,
+            symbol: tx.tokenSymbol,
+            amount,
+            timestamp,
+            index: tx.transactionIndex ?? "0",
+            nativeTransfer: false,
+          })
+        }
+      } catch (error) {
+        console.warn(`[onchain-history] ${chain.name} failed:`, error instanceof Error ? error.message : error)
+      }
+      return collected
+    }),
+  )
+  const collected = [...perChain.flat(), ...perBlockscout.flat(), ...perScan.flat()]
 
   const prices = await getTokenUsdPrices(collected.map((item) => item.symbol))
   const rows: FinanceLedgerRow[] = []

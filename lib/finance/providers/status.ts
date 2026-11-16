@@ -25,15 +25,19 @@ export async function getFinanceProviderStatus(walletAddress: string): Promise<F
 
   const history = process.env.ONCHAIN_HISTORY_ENABLED !== "false"
   const configuredChains = process.env.ONCHAIN_HISTORY_CHAINS
-  const chains = configuredChains
-    ? configuredChains.split(",").map((chain) => chain.trim()).filter(Boolean)
-    : ["ethereum", "arbitrum", "polygon", "optimism"]
+  const chains = new Set(
+    configuredChains
+      ? configuredChains.split(",").map((chain) => chain.trim()).filter(Boolean)
+      : ["ethereum", "arbitrum", "polygon", "optimism"],
+  )
+  if (process.env.BASESCAN_API_KEY) chains.add("base")
+  if (process.env.BSCSCAN_API_KEY) chains.add("bsc")
 
   return {
     yativoFiat: { configured: isYativoFiatConfigured(), cards: yativoUserCards + yativoAgentCards },
     rain: { cards: rainCards, transactions: rainTransactions },
     csv: { accounts: csvAccounts },
     bank: { mode: "csv", connected: false },
-    onchain: { history, chains },
+    onchain: { history, chains: [...chains] },
   }
 }
