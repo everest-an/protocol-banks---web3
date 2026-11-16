@@ -127,11 +127,14 @@ interface RawTransfer {
 export async function collectOnchainHistoryRows(walletAddress: string): Promise<FinanceLedgerRow[]> {
   if (process.env.ONCHAIN_HISTORY_ENABLED === "false") return []
   const apiKey = process.env.ETHERSCAN_API_KEY || process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY
-  if (!apiKey) return []
+  const etherscanChains = apiKey ? enabledChains() : []
+  const blockscoutChains = enabledBlockscoutChains()
+  if (!etherscanChains.length && !blockscoutChains.length) return []
 
   const wallet = walletAddress.toLowerCase()
   const perChain = await Promise.all(
-    enabledChains().map(async (chain, index) => {
+    etherscanChains.map(async (chain, index) => {
+      if (!apiKey) return []
       await new Promise((resolve) => setTimeout(resolve, index * 250))
       const collected: RawTransfer[] = []
       try {
@@ -186,7 +189,7 @@ export async function collectOnchainHistoryRows(walletAddress: string): Promise<
     }),
   )
   const perBlockscout = await Promise.all(
-    enabledBlockscoutChains().map(async (chain) => {
+    blockscoutChains.map(async (chain) => {
       const collected: RawTransfer[] = []
       try {
         const [transactions, tokenTransfers] = await Promise.all([

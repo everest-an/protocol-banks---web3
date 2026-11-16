@@ -23,9 +23,7 @@ export async function getFinanceProviderStatus(walletAddress: string): Promise<F
     prisma.financeAccount.count({ where: { owner_address: wallet, source: "csv" } }),
   ])
 
-  const history =
-    process.env.ONCHAIN_HISTORY_ENABLED !== "false" &&
-    Boolean(process.env.ETHERSCAN_API_KEY || process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY)
+  const history = process.env.ONCHAIN_HISTORY_ENABLED !== "false"
   const configuredChains = process.env.ONCHAIN_HISTORY_CHAINS
   const chains = configuredChains
     ? configuredChains.split(",").map((chain) => chain.trim()).filter(Boolean)
