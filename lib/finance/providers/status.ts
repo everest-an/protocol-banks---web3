@@ -6,6 +6,7 @@ export interface FinanceProviderStatus {
   rain: { cards: number; transactions: number }
   csv: { accounts: number }
   bank: { mode: "csv"; connected: false }
+  onchain: { history: boolean; chains: string[] }
 }
 
 export async function getFinanceProviderStatus(walletAddress: string): Promise<FinanceProviderStatus> {
@@ -22,10 +23,19 @@ export async function getFinanceProviderStatus(walletAddress: string): Promise<F
     prisma.financeAccount.count({ where: { owner_address: wallet, source: "csv" } }),
   ])
 
+  const history =
+    process.env.ONCHAIN_HISTORY_ENABLED !== "false" &&
+    Boolean(process.env.ETHERSCAN_API_KEY || process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY)
+  const configuredChains = process.env.ONCHAIN_HISTORY_CHAINS
+  const chains = configuredChains
+    ? configuredChains.split(",").map((chain) => chain.trim()).filter(Boolean)
+    : ["ethereum", "arbitrum", "polygon", "optimism"]
+
   return {
     yativoFiat: { configured: isYativoFiatConfigured(), cards: yativoUserCards + yativoAgentCards },
     rain: { cards: rainCards, transactions: rainTransactions },
     csv: { accounts: csvAccounts },
     bank: { mode: "csv", connected: false },
+    onchain: { history, chains },
   }
 }

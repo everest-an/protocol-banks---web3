@@ -52,6 +52,16 @@ function toneClass(tone: "positive" | "warning" | "neutral"): string {
   return "bg-neutral-400"
 }
 
+function relativeSync(value: string | null): string {
+  if (!value) return "never"
+  const minutes = Math.floor((Date.now() - new Date(value).getTime()) / 60_000)
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
+}
+
 export default function FinancePage() {
   const { address, isConnected, connectWallet, isConnecting } = useUnifiedWallet()
   const [data, setData] = useState<FinanceOverview | null>(null)
@@ -198,10 +208,25 @@ export default function FinancePage() {
             <Badge variant="outline" className="text-[10px]">
               CSV {data.providers.csv.accounts} accounts
             </Badge>
+            <Badge variant={data.providers.onchain.history ? "secondary" : "outline"} className="text-[10px]">
+              On-chain {data.providers.onchain.history ? data.providers.onchain.chains.join(" / ") : "not configured"}
+            </Badge>
             <Badge variant="outline" className="text-[10px]">
               Bank direct: not connected
             </Badge>
+            <Badge
+              variant={data.sync.lastError ? "outline" : "secondary"}
+              className={`text-[10px] ${data.sync.lastError ? "text-amber-600" : ""}`}
+              title={data.sync.lastError ?? undefined}
+            >
+              {data.sync.lastError
+                ? "Sync error"
+                : `Synced ${relativeSync(data.sync.lastSyncedAt)}`}
+            </Badge>
           </div>
+          {data.sync.lastError ? (
+            <p className="mt-1 max-w-xl text-xs text-amber-600">{data.sync.lastError}</p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-start gap-2">
           {address ? <CsvImport wallet={address} onImported={() => void load()} /> : null}
