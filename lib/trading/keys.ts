@@ -103,7 +103,7 @@ function filePath(walletAddress: string): string {
 }
 
 /** Generate a new agent keypair for a user wallet. */
-export function generateAgentKey(walletAddress: string, name?: string): AgentKeyRecord {
+export async function generateAgentKey(walletAddress: string, name?: string): Promise<AgentKeyRecord> {
   const wallet = Wallet.createRandom()
   const record: AgentKeyRecord = {
     walletAddress: walletAddress.toLowerCase(),
@@ -114,9 +114,12 @@ export function generateAgentKey(walletAddress: string, name?: string): AgentKey
     approvedAt: null,
     createdAt: new Date().toISOString(),
   }
+  const persisted = await persistToDb(record)
+  if (!persisted) {
+    throw new Error("Could not persist the agent key; nothing was approved.")
+  }
   fs.mkdirSync(LIVE_DIR, { recursive: true, mode: 0o700 })
   fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), { encoding: "utf-8", mode: 0o600 })
-  void persistToDb(record)
   return record
 }
 
@@ -185,11 +188,17 @@ export function getAgentWallet(walletAddress: string): Wallet | null {
 export async function markApproved(walletAddress: string): Promise<AgentKeyRecord | null> {
   const record = loadAgentKeyRecord(walletAddress)
   if (!record) return null
-  record.approved = true
-  record.approvedAt = new Date().toISOString()
-  fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), { encoding: "utf-8", mode: 0o600 })
-  await persistToDb(record)
-  return record
+  const approved: AgentKeyRecord = {
+    ...record,
+    approved: true,
+    approvedAt: new Date().toISOString(),
+  }
+  const persisted = await persistToDb(approved)
+  if (!persisted) {
+    throw new Error("Agent approval could not be persisted; retry before trading live.")
+  }
+  fs.writeFileSync(filePath(walletAddress), JSON.stringify(approved, null, 2), { encoding: "utf-8", mode: 0o600 })
+  return approved
 }
 
 /**
@@ -197,7 +206,7 @@ export async function markApproved(walletAddress: string): Promise<AgentKeyRecor
  * Fire-and-forget: DB outages must never break the local flow — the file
  * store remains the source of truth for key material.
  */
-async function persistToDb(record: AgentKeyRecord): Promise<void> {
+async function persistToDb(record: AgentKeyRecord): Promise<boolean> {
   try {
     const { prisma } = await import("@/lib/prisma")
     await prisma.tradingAccount.upsert({
@@ -225,8 +234,10 @@ async function persistToDb(record: AgentKeyRecord): Promise<void> {
         agent_approved_at: record.approvedAt ? new Date(record.approvedAt) : null,
       },
     })
+    return true
   } catch (e) {
     console.warn("[trading] key DB write-through skipped (DB unavailable):", e)
+    return false
   }
 }
 

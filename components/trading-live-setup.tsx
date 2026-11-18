@@ -162,12 +162,26 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
     if (!window.confirm("Revoke the AI agent? It will stop trading and lose its signing key.")) return
     setBusy("revoke")
     try {
-      const res = await fetch("/api/trading/live/agent-wallet", {
+      const force = Boolean(liveState && liveState.positions.length > 0)
+      let res = await fetch("/api/trading/live/agent-wallet", {
         method: "POST",
         headers,
-        body: JSON.stringify({ action: "revoke" }),
+        body: JSON.stringify({ action: "revoke", force }),
       })
-      const data = await res.json()
+      let data = await res.json()
+      if (res.status === 409 && Array.isArray(data.openPositions)) {
+        const proceed = window.confirm(
+          `The exchange still has ${data.openPositions.length} open position(s). ` +
+            "Revoking now leaves them unmanaged. Close them on Hyperliquid first. Continue anyway?",
+        )
+        if (!proceed) return
+        res = await fetch("/api/trading/live/agent-wallet", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ action: "revoke", force: true }),
+        })
+        data = await res.json()
+      }
       if (!res.ok) throw new Error(data.error ?? "Could not revoke the agent")
       setApprovePayload(null)
       setLiveState(null)

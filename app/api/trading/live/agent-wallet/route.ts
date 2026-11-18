@@ -5,6 +5,7 @@ import {
   approveAgentDigest,
   recoverSigner,
   submitApproveAgent,
+  getUserState,
 } from "@/lib/trading/exchange"
 import {
   generateAgentKey,
@@ -83,7 +84,7 @@ export const POST = withAuth(async (req, address) => {
           { status: 409 },
         )
       }
-      const record = generateAgentKey(address, "Protocol Bank AI")
+      const record = await generateAgentKey(address, "Protocol Bank AI")
       const nonce = Date.now()
       const typedData = approveAgentTypedData({
         agentAddress: record.agentAddress,
@@ -191,8 +192,29 @@ export const POST = withAuth(async (req, address) => {
     }
 
     case "revoke": {
+      const state = await getUserState(address).catch(() => null)
+      const openPositions = (state?.assetPositions ?? [])
+        .filter((item) => Number(item.position.szi) !== 0)
+        .map((item) => ({
+          coin: item.position.coin,
+          size: Math.abs(Number(item.position.szi)),
+          side: Number(item.position.szi) > 0 ? "long" : "short",
+        }))
+      if (openPositions.length > 0 && body.force !== true) {
+        return NextResponse.json(
+          {
+            error: "Open positions must be closed before revoking, or retry with force.",
+            openPositions,
+          },
+          { status: 409 },
+        )
+      }
       await revokeAgentKey(address)
-      return NextResponse.json({ ok: true, note: "Local key material removed. Revoke the agent on Hyperliquid to fully cut off access." })
+      return NextResponse.json({
+        ok: true,
+        note: "Platform key removed. Revoke the agent on Hyperliquid as well for a full cut-off.",
+        leftOpenPositions: openPositions,
+      })
     }
 
     default:

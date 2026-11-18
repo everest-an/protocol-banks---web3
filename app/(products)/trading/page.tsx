@@ -351,7 +351,9 @@ export default function TradingPage() {
           <GlassCard>
             <GlassCardContent className="py-12 text-center">
               <p className="text-sm text-muted-foreground">
-                Could not load trading data. Please refresh the page.
+                {error instanceof Error && error.message.includes("401")
+                  ? "Wallet connected, but the sign-in signature is missing or expired. Reconnect and approve the MetaMask sign-in request, then refresh."
+                  : "Could not load trading data. Please refresh the page."}
               </p>
             </GlassCardContent>
           </GlassCard>

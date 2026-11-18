@@ -75,10 +75,9 @@ export class TradingAgent {
    */
   async maybeTick(): Promise<TradingState> {
     const s = this.store.get()
-    // Paused accounts still tick: exits, stops and risk guards must keep
-    // managing open positions. scanAndEnter() refuses new entries unless the
-    // status is "running", so pausing only blocks new risk.
-    if (s.agent.status === "stopped") return s
+    // Every status ticks: exits, stops and risk guards must keep managing open
+    // positions. scanAndEnter() refuses new entries unless the status is
+    // "running", so pause/stop only block new risk.
     if (Date.now() - s.lastTickAt < TICK_INTERVAL_MS) return s
     if (!this.ticking) {
       this.ticking = this.tick()
@@ -309,7 +308,7 @@ export class TradingAgent {
 
   stop(): void {
     this.setStatus("stopped")
-    this.log("info", "Emergency stop engaged — trading halted.")
+    this.log("info", "Emergency stop: new entries halted. Open positions are still managed; revoke to cut off access.")
   }
 
   reset(): void {
