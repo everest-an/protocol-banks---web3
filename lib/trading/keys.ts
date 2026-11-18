@@ -244,12 +244,8 @@ async function persistToDb(record: AgentKeyRecord): Promise<boolean> {
 export async function revokeAgentKey(walletAddress: string): Promise<void> {
   const wallet = walletAddress.toLowerCase()
   // The on-chain revocation is a user-side action (Hyperliquid UI / API).
-  // Locally we delete the key material and make the durable row unusable too,
-  // otherwise a cold serverless instance would hydrate the deleted key back
-  // from the database and the agent would keep trading after "revoke".
-  fs.rmSync(filePath(walletAddress), { force: true })
-  const { resetStoreForWallet } = await import("./store")
-  resetStoreForWallet(wallet)
+  // Clear the durable row FIRST: if this fails, keep the local key so the
+  // user can retry instead of leaving a DB key that rehydrates later.
   const { prisma } = await import("@/lib/prisma")
   await prisma.tradingAccount.updateMany({
     where: { wallet_address: wallet },
@@ -263,4 +259,7 @@ export async function revokeAgentKey(walletAddress: string): Promise<void> {
       state_json: Prisma.DbNull,
     },
   })
+  fs.rmSync(filePath(walletAddress), { force: true })
+  const { resetStoreForWallet } = await import("./store")
+  resetStoreForWallet(wallet)
 }
