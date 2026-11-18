@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "NODE_OPTIONS=--max-old-space-size=8192 pnpm build -- --no-lint",
   "crons": [
     {
       "path": "/api/cron/process-batch",
