@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "NODE_OPTIONS=--max-old-space-size=8192 pnpm build -- --no-lint",
+  "buildCommand": "NODE_OPTIONS=--max-old-space-size=8192 pnpm prebuild && NODE_OPTIONS=--max-old-space-size=8192 pnpm exec prisma generate && NODE_OPTIONS=--max-old-space-size=8192 pnpm exec next build --no-lint",
   "crons": [
     {
       "path": "/api/cron/process-batch",
