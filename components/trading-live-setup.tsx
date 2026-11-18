@@ -98,6 +98,15 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [telegramLink, telegramBound])
 
+  useEffect(() => {
+    if (!walletAddress || liveState) return
+    // The user funds on Hyperliquid in another tab; pick up the account as
+    // soon as the deposit lands so step 1 completes without a manual refresh.
+    const timer = window.setInterval(() => void loadLiveState(), 15_000)
+    return () => window.clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress, liveState])
+
   const handleGenerate = async () => {
     setBusy("generate")
     try {
