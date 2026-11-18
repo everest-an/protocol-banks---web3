@@ -37,6 +37,7 @@ export default function AevumPayPage() {
   const [reference, setReference] = useState("")
   const [memo, setMemo] = useState("")
   const [txHash, setTxHash] = useState<string | null>(null)
+  const [verifyHash, setVerifyHash] = useState("")
   const [status, setStatus] = useState<"idle" | "sending" | "pending" | "confirmed" | "error">("idle")
   const [message, setMessage] = useState("")
   const [receipt, setReceipt] = useState<Record<string, unknown> | null>(null)
@@ -180,6 +181,24 @@ export default function AevumPayPage() {
     ? `ethereum:${AEVUM.token.address}@${AEVUM.chainId}/transfer?address=${recipient}&uint256=${units.toString()}`
     : ""
 
+  const verifyExisting = async () => {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(verifyHash.trim())) {
+      setStatus("error")
+      setMessage("Enter a valid Aevum transaction hash.")
+      return
+    }
+    setStatus("pending")
+    setMessage("Checking the Aevum receipt...")
+    setReceipt(null)
+    setTxHash(verifyHash.trim())
+    try {
+      await verify(verifyHash.trim())
+    } catch (error) {
+      setStatus("error")
+      setMessage(error instanceof Error ? error.message : "Could not verify the transaction")
+    }
+  }
+
   const copy = async (label: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value)
@@ -298,6 +317,30 @@ export default function AevumPayPage() {
               {message}
             </div>
           ) : null}
+
+          <div className="mt-5 rounded-lg border border-dashed border-border p-3">
+            <p className="text-xs font-medium">Already paid? Verify a receipt</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Paste an Aevum transaction hash; the server checks the tUSD8 contract log against the
+              recipient and amount above.
+            </p>
+            <div className="mt-2 flex gap-2">
+              <input
+                value={verifyHash}
+                onChange={(event) => setVerifyHash(event.target.value.trim())}
+                placeholder="0x transaction hash"
+                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={() => void verifyExisting()}
+                disabled={status === "pending"}
+                className="rounded-lg border border-border px-3 text-xs hover:bg-muted disabled:opacity-50"
+              >
+                Verify
+              </button>
+            </div>
+          </div>
 
           {txHash ? (
             <div className="mt-4 rounded-lg border border-border p-3 text-xs">
