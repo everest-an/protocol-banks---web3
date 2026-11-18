@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Wallet, KeyRound, PenLine, ShieldCheck, Loader2, ExternalLink } from "lucide-react"
+import { Wallet, KeyRound, PenLine, ShieldCheck, Loader2, ExternalLink, Send } from "lucide-react"
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -40,8 +40,10 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
   const [status, setStatus] = useState<LiveStatus | null>(null)
   const [approvePayload, setApprovePayload] = useState<ApprovePayload | null>(null)
   const [liveState, setLiveState] = useState<LiveState | null>(null)
-  const [busy, setBusy] = useState<"generate" | "approve" | "public" | null>(null)
+  const [busy, setBusy] = useState<"generate" | "prepare" | "approve" | "revoke" | "public" | "telegram" | null>(null)
   const [riskAccepted, setRiskAccepted] = useState(false)
+  const [telegramBound, setTelegramBound] = useState<boolean | null>(null)
+  const [telegramLink, setTelegramLink] = useState<string | null>(null)
 
   const headers = authHeaders(walletAddress, { "Content-Type": "application/json" })
 
@@ -69,15 +71,32 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
     }
   }
 
+  const loadTelegram = async () => {
+    if (!walletAddress) return
+    try {
+      const res = await fetch("/api/trading/telegram-link", { headers })
+      if (res.ok) {
+        const data = await res.json()
+        setTelegramBound(Boolean(data.bound))
+      }
+    } catch {
+      /* optional channel */
+    }
+  }
+
   useEffect(() => {
     loadStatus()
+    loadLiveState()
+    loadTelegram()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress])
 
   useEffect(() => {
-    if (status?.approved) loadLiveState()
+    if (!telegramLink || telegramBound) return
+    const timer = window.setInterval(() => void loadTelegram(), 5_000)
+    return () => window.clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status?.approved])
+  }, [telegramLink, telegramBound])
 
   const handleGenerate = async () => {
     setBusy("generate")
@@ -93,6 +112,59 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
       toast({ title: "Agent wallet created", description: "Now sign the approval in your wallet." })
     } catch (e) {
       toast({ title: "Could not create agent wallet", description: e instanceof Error ? e.message : "Try again", variant: "destructive" })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handlePrepare = async () => {
+    setBusy("prepare")
+    try {
+      const res = await fetch("/api/trading/live/agent-wallet", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action: "prepare" }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Could not prepare the approval")
+      setApprovePayload(data)
+      toast({ title: "Approval ready", description: "Sign it in your wallet to arm the agent." })
+    } catch (e) {
+      toast({
+        title: "Could not prepare approval",
+        description: e instanceof Error ? e.message : "Try again",
+        variant: "destructive",
+      })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleRevoke = async () => {
+    if (!walletAddress) return
+    if (!window.confirm("Revoke the AI agent? It will stop trading and lose its signing key.")) return
+    setBusy("revoke")
+    try {
+      const res = await fetch("/api/trading/live/agent-wallet", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action: "revoke" }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Could not revoke the agent")
+      setApprovePayload(null)
+      setLiveState(null)
+      await loadStatus()
+      toast({
+        title: "Agent revoked",
+        description: "The platform deleted its key. Revoke the agent on Hyperliquid as well for a full cut-off.",
+      })
+    } catch (e) {
+      toast({
+        title: "Revoke failed",
+        description: e instanceof Error ? e.message : "Try again",
+        variant: "destructive",
+      })
     } finally {
       setBusy(null)
     }
@@ -137,6 +209,30 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
       await loadStatus()
     } catch (e) {
       toast({ title: "Approval failed", description: e instanceof Error ? e.message : "Try again", variant: "destructive" })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleTelegram = async () => {
+    if (!walletAddress) return
+    if (telegramBound) {
+      window.location.href = "/settings/telegram"
+      return
+    }
+    setBusy("telegram")
+    try {
+      const res = await fetch("/api/trading/telegram-link", { method: "POST", headers })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Could not create the Telegram link")
+      setTelegramLink(data.url as string)
+      toast({ title: "Telegram link ready", description: "Open it and press Start to bind this wallet." })
+    } catch (e) {
+      toast({
+        title: "Could not start Telegram binding",
+        description: e instanceof Error ? e.message : "Try again",
+        variant: "destructive",
+      })
     } finally {
       setBusy(null)
     }
@@ -237,17 +333,29 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
           hint={
             status?.approved
               ? "Approved — the agent can trade, not withdraw."
-              : approvePayload
-                ? "Your wallet will ask you to sign a Hyperliquid approval."
-                : "One signature in MetaMask."
+              : !status?.agentAddress
+                ? "Create the agent wallet first."
+                : approvePayload
+                  ? "Your wallet will ask you to sign a Hyperliquid approval."
+                  : "Agent exists — prepare the signature to continue."
           }
           action={
-            status?.approved ? undefined : (
+            status?.approved ? undefined : !status?.agentAddress ? undefined : !approvePayload ? (
+              <Button
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                onClick={handlePrepare}
+                disabled={busy !== null}
+              >
+                {busy === "prepare" ? <Loader2 className="h-3 w-3 animate-spin" /> : <PenLine className="h-3 w-3" />}
+                Prepare
+              </Button>
+            ) : (
               <Button
                 size="sm"
                 className="h-7 text-xs gap-1.5"
                 onClick={handleApprove}
-                disabled={!approvePayload || busy !== null || !riskAccepted}
+                disabled={busy !== null || !riskAccepted}
               >
                 {busy === "approve" ? <Loader2 className="h-3 w-3 animate-spin" /> : <PenLine className="h-3 w-3" />}
                 Sign & Approve
@@ -255,6 +363,55 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
             )
           }
         />
+
+        {/* Step 4 */}
+        <StepRow
+          index={4}
+          title="Bind Telegram (optional)"
+          done={telegramBound === true}
+          hint={
+            telegramBound
+              ? "Bound — live trade alerts and account Q&A go to your private chat."
+              : "Get live trade alerts and ask the bot about this account. One-time code, 15 minutes."
+          }
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1"
+              onClick={handleTelegram}
+              disabled={busy !== null}
+            >
+              {busy === "telegram" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+              {telegramBound ? "Manage" : "Bind"}
+            </Button>
+          }
+        />
+        {telegramLink && !telegramBound ? (
+          <a
+            href={telegramLink}
+            target="_blank"
+            rel="noreferrer"
+            className="block break-all rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary underline underline-offset-2"
+          >
+            {telegramLink}
+          </a>
+        ) : null}
+
+        {status?.agentAddress ? (
+          <div className="flex justify-end border-t border-white/10 pt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={handleRevoke}
+              disabled={busy !== null}
+            >
+              {busy === "revoke" ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Revoke agent access
+            </Button>
+          </div>
+        ) : null}
 
         {!status?.approved && (
           <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-white/10 p-3 bg-white/30 dark:bg-black/20">

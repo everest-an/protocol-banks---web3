@@ -293,6 +293,17 @@ export function getStoreForWallet(walletAddress: string | null | undefined): Tra
   return store
 }
 
+/** Drop a wallet's cached/file ledger after a revoke or account reset. */
+export function resetStoreForWallet(walletAddress: string): void {
+  const key = safeFileKey(walletAddress)
+  walletStores.delete(key)
+  try {
+    fs.rmSync(path.join(STATE_DIR, `state-${key}.json`), { force: true })
+  } catch {
+    // best effort
+  }
+}
+
 /** A TradingStore whose state file is keyed by wallet address. */
 class WalletTradingStore extends TradingStore {
   private fileKey: string

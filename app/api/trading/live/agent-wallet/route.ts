@@ -12,6 +12,7 @@ import {
   markApproved,
   revokeAgentKey,
   hasKeySecret,
+  hydrateAgentKeyFromDb,
 } from "@/lib/trading/keys"
 
 /**
@@ -36,6 +37,7 @@ export const POST = withAuth(async (req, address) => {
 
   switch (body.action) {
     case "status": {
+      await hydrateAgentKeyFromDb(address)
       const record = loadAgentKeyRecord(address)
       const { prisma } = await import("@/lib/prisma")
       const row = await prisma.tradingAccount.findUnique({
@@ -73,6 +75,7 @@ export const POST = withAuth(async (req, address) => {
           { status: 503 },
         )
       }
+      await hydrateAgentKeyFromDb(address)
       const existing = loadAgentKeyRecord(address)
       if (existing) {
         return NextResponse.json(
@@ -81,6 +84,29 @@ export const POST = withAuth(async (req, address) => {
         )
       }
       const record = generateAgentKey(address, "Protocol Bank AI")
+      const nonce = Date.now()
+      const typedData = approveAgentTypedData({
+        agentAddress: record.agentAddress,
+        agentName: record.name,
+        nonce,
+      })
+      return NextResponse.json({
+        agentAddress: record.agentAddress,
+        agentName: record.name,
+        nonce,
+        typedData,
+      })
+    }
+
+    case "prepare": {
+      await hydrateAgentKeyFromDb(address)
+      const record = loadAgentKeyRecord(address)
+      if (!record) {
+        return NextResponse.json({ error: "No agent wallet for this account — generate first" }, { status: 404 })
+      }
+      if (record.approved) {
+        return NextResponse.json({ error: "Agent wallet is already approved" }, { status: 409 })
+      }
       const nonce = Date.now()
       const typedData = approveAgentTypedData({
         agentAddress: record.agentAddress,
@@ -112,6 +138,7 @@ export const POST = withAuth(async (req, address) => {
         )
       }
 
+      await hydrateAgentKeyFromDb(address)
       const record = loadAgentKeyRecord(address)
       if (!record) {
         return NextResponse.json({ error: "No agent wallet for this account — generate first" }, { status: 404 })
@@ -150,7 +177,7 @@ export const POST = withAuth(async (req, address) => {
             { status: 502 },
           )
         }
-        markApproved(address)
+        await markApproved(address)
         void import("@/lib/analytics/events").then(({ recordEvent }) =>
           recordEvent({ name: "live_approved", wallet: address }),
         )
@@ -164,13 +191,13 @@ export const POST = withAuth(async (req, address) => {
     }
 
     case "revoke": {
-      revokeAgentKey(address)
+      await revokeAgentKey(address)
       return NextResponse.json({ ok: true, note: "Local key material removed. Revoke the agent on Hyperliquid to fully cut off access." })
     }
 
     default:
       return NextResponse.json(
-        { error: "Unknown action. Use one of: status, generate, approve, revoke, set-public-track-record" },
+        { error: "Unknown action. Use one of: status, generate, prepare, approve, revoke, set-public-track-record" },
         { status: 400 },
       )
   }

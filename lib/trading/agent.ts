@@ -1172,7 +1172,11 @@ export async function resolveAgentForWallet(
     const cached = walletAgents.get(key)
     if (cached) {
       if (riskResolved) cached.applyRiskConfig(risk)
-      if (cached.isLive() || !(row && row.status === "live" && row.agent_approved)) return cached
+      if (row && row.status === "live" && row.agent_approved) return cached
+      if (!cached.isLive()) return cached
+      // The durable row was revoked or demoted while a warm instance still
+      // held the live executor. Drop it and rebuild the paper agent.
+      walletAgents.delete(key)
     }
 
     if (row && row.status === "live" && row.agent_approved) {

@@ -17,6 +17,7 @@ import fs from "fs"
 import path from "path"
 import os from "os"
 import { Wallet } from "ethers"
+import { Prisma } from "@prisma/client"
 
 function resolveLiveDir(): string {
   if (process.env.TRADING_STATE_DIR) return path.join(process.env.TRADING_STATE_DIR, "live")
@@ -181,13 +182,13 @@ export function getAgentWallet(walletAddress: string): Wallet | null {
   }
 }
 
-export function markApproved(walletAddress: string): AgentKeyRecord | null {
+export async function markApproved(walletAddress: string): Promise<AgentKeyRecord | null> {
   const record = loadAgentKeyRecord(walletAddress)
   if (!record) return null
   record.approved = true
   record.approvedAt = new Date().toISOString()
   fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), "utf-8")
-  void persistToDb(record)
+  await persistToDb(record)
   return record
 }
 
@@ -203,7 +204,7 @@ async function persistToDb(record: AgentKeyRecord): Promise<void> {
       where: { wallet_address: record.walletAddress },
       create: {
         wallet_address: record.walletAddress,
-        status: "live",
+        status: record.approved ? "live" : "paper",
         budget_usd: 500,
         agent_address: record.agentAddress,
         agent_key_encrypted: record.encryptedKey.data,
@@ -214,6 +215,7 @@ async function persistToDb(record: AgentKeyRecord): Promise<void> {
         agent_approved_at: record.approvedAt ? new Date(record.approvedAt) : null,
       },
       update: {
+        status: record.approved ? "live" : "paper",
         agent_address: record.agentAddress,
         agent_key_encrypted: record.encryptedKey.data,
         agent_key_iv: record.encryptedKey.iv,
@@ -228,10 +230,26 @@ async function persistToDb(record: AgentKeyRecord): Promise<void> {
   }
 }
 
-export function revokeAgentKey(walletAddress: string): void {
-  const record = loadAgentKeyRecord(walletAddress)
-  if (!record) return
+export async function revokeAgentKey(walletAddress: string): Promise<void> {
+  const wallet = walletAddress.toLowerCase()
   // The on-chain revocation is a user-side action (Hyperliquid UI / API).
-  // Locally we mark the record as unusable and delete the key material.
+  // Locally we delete the key material and make the durable row unusable too,
+  // otherwise a cold serverless instance would hydrate the deleted key back
+  // from the database and the agent would keep trading after "revoke".
   fs.rmSync(filePath(walletAddress), { force: true })
+  const { resetStoreForWallet } = await import("./store")
+  resetStoreForWallet(wallet)
+  const { prisma } = await import("@/lib/prisma")
+  await prisma.tradingAccount.updateMany({
+    where: { wallet_address: wallet },
+    data: {
+      status: "paper",
+      agent_approved: false,
+      agent_approved_at: null,
+      agent_key_encrypted: null,
+      agent_key_iv: null,
+      agent_key_tag: null,
+      state_json: Prisma.DbNull,
+    },
+  })
 }
