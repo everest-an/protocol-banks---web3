@@ -23,7 +23,7 @@ function resolveLiveDir(): string {
   if (process.env.TRADING_STATE_DIR) return path.join(process.env.TRADING_STATE_DIR, "live")
   const projectDir = path.join(process.cwd(), ".data", "trading", "live")
   try {
-    fs.mkdirSync(projectDir, { recursive: true })
+    fs.mkdirSync(projectDir, { recursive: true, mode: 0o700 })
     fs.accessSync(projectDir, fs.constants.W_OK)
     return projectDir
   } catch {
@@ -114,8 +114,8 @@ export function generateAgentKey(walletAddress: string, name?: string): AgentKey
     approvedAt: null,
     createdAt: new Date().toISOString(),
   }
-  fs.mkdirSync(LIVE_DIR, { recursive: true })
-  fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), "utf-8")
+  fs.mkdirSync(LIVE_DIR, { recursive: true, mode: 0o700 })
+  fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), { encoding: "utf-8", mode: 0o600 })
   void persistToDb(record)
   return record
 }
@@ -164,8 +164,8 @@ export async function hydrateAgentKeyFromDb(walletAddress: string): Promise<bool
       approvedAt: row.agent_approved_at ? row.agent_approved_at.toISOString() : null,
       createdAt: new Date().toISOString(),
     }
-    fs.mkdirSync(LIVE_DIR, { recursive: true })
-    fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), "utf-8")
+    fs.mkdirSync(LIVE_DIR, { recursive: true, mode: 0o700 })
+    fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), { encoding: "utf-8", mode: 0o600 })
     return true
   } catch {
     return false
@@ -187,7 +187,7 @@ export async function markApproved(walletAddress: string): Promise<AgentKeyRecor
   if (!record) return null
   record.approved = true
   record.approvedAt = new Date().toISOString()
-  fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), "utf-8")
+  fs.writeFileSync(filePath(walletAddress), JSON.stringify(record, null, 2), { encoding: "utf-8", mode: 0o600 })
   await persistToDb(record)
   return record
 }
