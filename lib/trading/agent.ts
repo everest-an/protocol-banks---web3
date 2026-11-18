@@ -316,6 +316,11 @@ export class TradingAgent {
     // exchange still holds them. Live accounts must be closed/revoked first.
     if (this.mode === "live") return
     this.store.reset()
+    if (this.ownerAddress) {
+      // Without this the next cold serverless instance hydrates the old
+      // paper ledger and the "reset" appears to undo itself.
+      void persistStateToDb(this.ownerAddress, this.state()).catch(() => {})
+    }
   }
 
   /**
