@@ -1179,17 +1179,18 @@ export async function resolveAgentForWallet(
       }
     }
 
+    const liveAllowed = process.env.TRADING_LIVE_ENABLED !== "false"
     const cached = walletAgents.get(key)
     if (cached) {
       if (riskResolved) cached.applyRiskConfig(risk)
-      if (row && row.status === "live" && row.agent_approved) return cached
+      if (liveAllowed && row && row.status === "live" && row.agent_approved) return cached
       if (!cached.isLive()) return cached
-      // The durable row was revoked or demoted while a warm instance still
-      // held the live executor. Drop it and rebuild the paper agent.
+      // The durable row was revoked/demoted, or the operator disabled live
+      // trading while a warm instance still held the live executor.
       walletAgents.delete(key)
     }
 
-    if (row && row.status === "live" && row.agent_approved) {
+    if (liveAllowed && row && row.status === "live" && row.agent_approved) {
       // Serverless runtimes have no persistent disk: hydrate the agent-key
       // record from the TradingAccount row (written by markApproved) so the
       // live executor can actually load and sign with the key in production.

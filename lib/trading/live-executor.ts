@@ -77,8 +77,9 @@ export class LiveOrderExecutor {
     }
   }
 
-  /** True when the user has an approved agent key on file. */
+  /** True when live trading is enabled and the agent key is approved. */
   isReady(): boolean {
+    if (process.env.TRADING_LIVE_ENABLED === "false") return false
     const record = loadAgentKeyRecord(this.ctx.walletAddress)
     return !!record?.approved
   }
@@ -93,6 +94,9 @@ export class LiveOrderExecutor {
     sizeUsd: number
     reduceOnly?: boolean
   }): Promise<OrderResult> {
+    if (process.env.TRADING_LIVE_ENABLED === "false") {
+      return { ok: false, rejected: true, reason: "Live trading is disabled by the operator." }
+    }
     const agentWallet = getAgentWallet(this.ctx.walletAddress)
     if (!agentWallet) {
       return { ok: false, rejected: true, reason: "No approved agent key on file for this account." }
