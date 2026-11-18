@@ -75,7 +75,10 @@ export class TradingAgent {
    */
   async maybeTick(): Promise<TradingState> {
     const s = this.store.get()
-    if (s.agent.status !== "running") return s
+    // Paused accounts still tick: exits, stops and risk guards must keep
+    // managing open positions. scanAndEnter() refuses new entries unless the
+    // status is "running", so pausing only blocks new risk.
+    if (s.agent.status === "stopped") return s
     if (Date.now() - s.lastTickAt < TICK_INTERVAL_MS) return s
     if (!this.ticking) {
       this.ticking = this.tick()
@@ -310,6 +313,9 @@ export class TradingAgent {
   }
 
   reset(): void {
+    // A live reset would erase the only record of real positions while the
+    // exchange still holds them. Live accounts must be closed/revoked first.
+    if (this.mode === "live") return
     this.store.reset()
   }
 

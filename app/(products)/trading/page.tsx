@@ -193,9 +193,13 @@ export default function TradingPage() {
 
   const handleEmergencyStop = async () => {
     await sendAction("stop")
+    const open = data?.positions.length ?? 0
     toast({
       title: "Emergency stop engaged",
-      description: "Trading halted. Revoke the agent wallet in Settings to fully cut off access.",
+      description:
+        open > 0
+          ? `Trading halted, but ${open} open position${open === 1 ? "" : "s"} remain on Hyperliquid. Close them there; the agent will not manage them while stopped.`
+          : "Trading halted. Revoke the agent wallet in Settings to fully cut off access.",
       variant: "destructive",
     })
   }

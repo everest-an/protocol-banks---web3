@@ -47,6 +47,12 @@ export async function POST(request: NextRequest) {
   }
 
   const agent = await resolveAgentForWallet(wallet)
+  if (body.action === "reset" && agent.isLive()) {
+    return NextResponse.json(
+      { error: "Cannot reset a live account. Close positions and revoke the agent first." },
+      { status: 409 },
+    )
+  }
   switch (body.action) {
     case "pause":
       agent.pause()

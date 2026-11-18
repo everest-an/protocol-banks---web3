@@ -44,6 +44,7 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
   const [riskAccepted, setRiskAccepted] = useState(false)
   const [telegramBound, setTelegramBound] = useState<boolean | null>(null)
   const [telegramLink, setTelegramLink] = useState<string | null>(null)
+  const funded = (liveState?.accountValue ?? 0) > 0
 
   const headers = authHeaders(walletAddress, { "Content-Type": "application/json" })
 
@@ -99,13 +100,13 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
   }, [telegramLink, telegramBound])
 
   useEffect(() => {
-    if (!walletAddress || liveState) return
+    if (!walletAddress || funded) return
     // The user funds on Hyperliquid in another tab; pick up the account as
     // soon as the deposit lands so step 1 completes without a manual refresh.
     const timer = window.setInterval(() => void loadLiveState(), 15_000)
     return () => window.clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletAddress, liveState])
+  }, [walletAddress, funded])
 
   const handleGenerate = async () => {
     setBusy("generate")
@@ -151,6 +152,13 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
 
   const handleRevoke = async () => {
     if (!walletAddress) return
+    if (liveState && liveState.positions.length > 0) {
+      const proceed = window.confirm(
+        `You still have ${liveState.positions.length} open position(s) on Hyperliquid. ` +
+          "Revoking stops the agent and leaves them unmanaged. Close them on Hyperliquid first. Continue anyway?",
+      )
+      if (!proceed) return
+    }
     if (!window.confirm("Revoke the AI agent? It will stop trading and lose its signing key.")) return
     setBusy("revoke")
     try {
@@ -307,7 +315,7 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
         <StepRow
           index={1}
           title="Fund your Hyperliquid account"
-          done={!!liveState}
+          done={funded}
           hint="Native USDC on Arbitrum (min $5) — use the app's Deposit button, it walks you through it. Start with $50-100: whatever you deposit is your maximum possible loss."
           action={
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1" asChild>
@@ -317,6 +325,9 @@ export function TradingLiveSetup({ walletAddress }: { walletAddress: string | un
             </Button>
           }
         />
+        {liveState && !funded ? (
+          <p className="text-[11px] text-amber-600">No USDC detected yet — deposit on Arbitrum and this step updates automatically.</p>
+        ) : null}
 
         {/* Step 2 */}
         <StepRow
