@@ -14,7 +14,7 @@ const nextConfig = {
   // Native modules cannot be bundled by webpack (the .node file is not JS).
   // @napi-rs/canvas ships a prebuilt skia binary; keep it external and let the
   // runtime require it (see lib/media/trading-gif.ts).
-  serverExternalPackages: ['pg', '@prisma/adapter-pg', '@napi-rs/canvas'],
+  serverExternalPackages: ['pg', '@prisma/adapter-pg', '@napi-rs/canvas', '@terminal3/t3n-sdk'],
 
   // Retired surfaces: old links must not dead-end customers.
   // /send (Coming Soon), /yield (not deployed), /acquiring (mock data),

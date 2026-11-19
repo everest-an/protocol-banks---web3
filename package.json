@@ -71,6 +71,7 @@
     "@scure/bip39": "^1.6.0",
     "@solana/web3.js": "^1.95.0",
     "@tanstack/query-core": "latest",
+    "@terminal3/t3n-sdk": "^5.41.0",
     "@wagmi/core": "^2.16.2",
     "autoprefixer": "^10.4.20",
     "bullmq": "^5.67.3",
@@ -114,12 +115,6 @@
     "wagmi": "^2.12.34",
     "xlsx": "0.18.5",
     "zod": "3.25.76"
-  },
-  "pnpm": {
-    "overrides": {
-      "@noble/hashes": "1.8.0",
-      "@noble/curves": "1.9.7"
-    }
   },
   "overrides": {
     "@noble/hashes": "1.8.0",

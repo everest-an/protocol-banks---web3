@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "", priority: 1.0, changeFrequency: "weekly" as const },
     { path: "/trading", priority: 0.6, changeFrequency: "daily" as const },
     { path: "/aevum-pay", priority: 0.8, changeFrequency: "daily" as const },
+    { path: "/t3n-vault", priority: 0.8, changeFrequency: "daily" as const },
     { path: "/agent-api", priority: 1.0, changeFrequency: "weekly" as const },
     { path: "/sandbox", priority: 0.9, changeFrequency: "daily" as const },
     { path: "/agent-commerce", priority: 0.8, changeFrequency: "daily" as const },
