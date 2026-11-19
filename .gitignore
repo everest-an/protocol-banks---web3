@@ -68,6 +68,9 @@ logs/
 # AI trading engine local state (paper mode)
 .data/
 
+# T3N reference contract clone and local WASM build artifacts
+vendor/agent-vault-starter/
+
 # Third-party research repos & local tooling (not part of the product)
 AlphaGPT/
 .omo/
