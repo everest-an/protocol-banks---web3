@@ -29,6 +29,7 @@ import {
   type BoundGrant,
 } from "@terminal3/t3n-sdk"
 
+async function main() {
 setEnvironment("testnet")
 
 const apiKey = process.env.T3N_API_KEY
@@ -136,3 +137,9 @@ console.log("\nSet these in .env.local and Vercel:")
 console.log(`T3N_AGENT_API_KEY=${agent.apiKey}`)
 console.log(`T3N_CONTRACT_ID=${contract.name}`)
 console.log(`T3N_CUSTOMER_DID=${tenantDid}`)
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error)
+  process.exit(1)
+})

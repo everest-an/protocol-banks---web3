@@ -109,6 +109,7 @@ The response never contains the vendor's name, bank account, ID number, balance 
 ## Demo
 
 - UI: https://www.protocolbanks.com/t3n-vault
+- Video: https://www.protocolbanks.com/t3n-vault-demo.mp4
 - Contract source: `vendor/agent-vault-starter` (reference T3N starter)
 - API: `app/api/t3n/vendor-check/route.ts`
 - Helper: `lib/t3n/vault.ts`
