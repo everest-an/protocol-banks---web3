@@ -28,13 +28,13 @@ export default function T3nVaultPage() {
 
   const loadStatus = useCallback(async () => {
     try {
-      const response = await fetch("/api/t3n/vendor-check", { headers: authHeaders(address) })
+      const response = await fetch("/api/t3n/status")
       const body = await response.json()
       if (response.ok) setStatus(body)
     } catch {
       /* optional integration */
     }
-  }, [address])
+  }, [])
 
   useEffect(() => {
     void loadStatus()
@@ -45,21 +45,27 @@ export default function T3nVaultPage() {
     setError(null)
     setResult(null)
     try {
-      const response = await fetch("/api/t3n/vendor-check", {
-        method: "POST",
-        headers: authHeaders(address, { "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          rules: {
-            kyc_verified: rules.kyc_verified,
-            id_not_expired: rules.id_not_expired,
-            residency_in: rules.residency_in
-              .split(",")
-              .map((value) => value.trim().toUpperCase())
-              .filter(Boolean),
-            account_open_min_months: Number(rules.account_open_min_months),
-          },
-        }),
-      })
+      const endpoint = address ? "/api/t3n/vendor-check" : "/api/t3n/demo"
+      const response = await fetch(
+        endpoint,
+        address
+          ? {
+              method: "POST",
+              headers: authHeaders(address, { "Content-Type": "application/json" }),
+              body: JSON.stringify({
+                rules: {
+                  kyc_verified: rules.kyc_verified,
+                  id_not_expired: rules.id_not_expired,
+                  residency_in: rules.residency_in
+                    .split(",")
+                    .map((value) => value.trim().toUpperCase())
+                    .filter(Boolean),
+                  account_open_min_months: Number(rules.account_open_min_months),
+                },
+              }),
+            }
+          : { cache: "no-store" },
+      )
       const body = await response.json()
       if (!response.ok) throw new Error(body?.error || `HTTP ${response.status}`)
       setResult(body)
@@ -143,7 +149,7 @@ export default function T3nVaultPage() {
             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-            Check vendor
+            {address ? "Check vendor" : "Run demo check"}
           </button>
           {error ? <p className="mt-3 text-xs text-red-600">{error}</p> : null}
         </div>
