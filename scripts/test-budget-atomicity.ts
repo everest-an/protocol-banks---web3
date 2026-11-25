@@ -17,6 +17,7 @@ async function main() {
     process.exit(2)
   }
   process.env.DATABASE_URL = url
+  process.env.DIRECT_DATABASE_URL = url
 
   const { prisma } = await import("@/lib/prisma")
   const { budgetService, setUseDatabaseStorage } = await import("@/lib/services/budget-service")
