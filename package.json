@@ -14,6 +14,7 @@
     "test:ui": "playwright test",
     "test:ui:headed": "playwright test --headed",
     "test:ui:install": "playwright install",
+    "test:db:budget": "tsx -r tsconfig-paths/register scripts/test-budget-atomicity.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --runInBand",

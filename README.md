@@ -156,6 +156,7 @@ Legacy payment-era docs remain in `docs/` for the Business feature set.
 - Other rails (`/swap`, `/orders`, `/invoice`, `/commerce/*`) still enforce the API-key policy. Unify them onto the same mandate before a broad launch.
 - Trading (`/orders`) uses the trading account budget and risk engine, not `AgentBudget`; keep the two separate until a unified mandate ledger exists.
 - `AgentBudget` still stores decimal strings; move to integer minor units and a ledger before production. The raw SQL debit is PostgreSQL-specific and needs an integration test against a real database.
+- Integration test harness: `TEST_DATABASE_URL=postgres://... npx prisma db push && npm run test:db:budget`. Use a disposable database, never production.
 
 ## License
 
