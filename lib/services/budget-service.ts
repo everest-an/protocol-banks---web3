@@ -229,8 +229,8 @@ export class BudgetService {
       period: input.period,
       used_amount: '0',
       remaining_amount: input.amount,
-      period_start: now.toISOString(),
-      period_end: calculatePeriodEnd(input.period, now)?.toISOString(),
+      period_start: now,
+      period_end: calculatePeriodEnd(input.period, now),
     };
 
     if (useDatabaseStorage) {

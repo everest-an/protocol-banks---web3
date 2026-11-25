@@ -171,6 +171,7 @@ export async function getAuditChain(actor: string, limit = 100): Promise<StoredA
   return rows
     .map((row) => {
       const details = (row.details ?? {}) as Record<string, unknown>
+      const { hash, ...eventDetails } = details
       return {
         action: row.action,
         actor: row.actor,
@@ -179,8 +180,8 @@ export async function getAuditChain(actor: string, limit = 100): Promise<StoredA
         seq: Number(details.seq ?? 0),
         at: String(details.at ?? row.created_at.toISOString()),
         prevHash: String(details.prevHash ?? "genesis"),
-        details,
-        hash: String(details.hash ?? ""),
+        details: eventDetails,
+        hash: String(hash ?? ""),
       }
     })
     .filter((event) => event.seq > 0 && event.hash && event.hash !== "genesis")

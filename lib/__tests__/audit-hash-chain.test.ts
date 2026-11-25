@@ -65,4 +65,31 @@ describe("audit hash chain", () => {
     expect(result.valid).toBe(false)
     expect(result.firstInvalid).toBe(3)
   })
+
+  it("verifies a stored event whose details include the hash field", () => {
+    const at = "2026-11-25T16:00:00.000Z"
+    const details = { seq: 1, at, prevHash: "genesis", n: 1 }
+    const hash = hashAuditEvent({
+      actor: "0xabc",
+      action: "agent.payment.confirmed",
+      seq: 1,
+      at,
+      prevHash: "genesis",
+      details,
+    })
+    // The DB stores the hash inside `details`; getAuditChain strips it before
+    // verification. This is the round-trip the integration harness exercises.
+    const storedDetails = { ...details, hash }
+    const { hash: storedHash, ...eventDetails } = storedDetails
+    const event: StoredAuditEvent = {
+      action: "agent.payment.confirmed",
+      actor: "0xabc",
+      seq: 1,
+      at,
+      prevHash: "genesis",
+      details: eventDetails,
+      hash: String(storedHash),
+    }
+    expect(verifyAuditChain([event])).toEqual({ valid: true })
+  })
 })
