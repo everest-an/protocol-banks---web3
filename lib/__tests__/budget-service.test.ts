@@ -313,6 +313,22 @@ describe('Budget Service', () => {
       await expect(budgetService.deductBudget(budget.id, '150'))
         .rejects.toThrow('Insufficient budget');
     });
+
+    it('should refund a deduction back to remaining', async () => {
+      const budget = await budgetService.create({
+        agent_id: testAgentId,
+        owner_address: testOwnerAddress,
+        amount: '100',
+        token: 'USDC',
+        period: 'monthly',
+      });
+
+      await budgetService.deductBudget(budget.id, '40');
+      const refunded = await budgetService.refundBudget(budget.id, '15');
+
+      expect(parseFloat(refunded.used_amount)).toBeCloseTo(25, 2);
+      expect(parseFloat(refunded.remaining_amount)).toBeCloseTo(75, 2);
+    });
   });
 
   describe('Property 6: Budget Period Reset', () => {
@@ -449,6 +465,53 @@ describe('Budget Service', () => {
 
       expect(result.available).toBe(false);
       expect(result.reason).toContain('No budget found');
+    });
+
+    it('prefers the soonest-expiring budget that covers the request', async () => {
+      const daily = await budgetService.create({
+        agent_id: testAgentId,
+        owner_address: testOwnerAddress,
+        amount: '50',
+        token: 'USDC',
+        period: 'daily',
+      });
+      const monthly = await budgetService.create({
+        agent_id: testAgentId,
+        owner_address: testOwnerAddress,
+        amount: '100',
+        token: 'USDC',
+        period: 'monthly',
+      });
+
+      const small = await budgetService.checkAvailability(testAgentId, '40', 'USDC');
+      expect(small.available).toBe(true);
+      expect(small.budget?.id).toBe(daily.id);
+
+      const larger = await budgetService.checkAvailability(testAgentId, '80', 'USDC');
+      expect(larger.available).toBe(true);
+      expect(larger.budget?.id).toBe(monthly.id);
+    });
+
+    it('returns the largest remaining budget when nothing covers the request', async () => {
+      await budgetService.create({
+        agent_id: testAgentId,
+        owner_address: testOwnerAddress,
+        amount: '50',
+        token: 'USDC',
+        period: 'daily',
+      });
+      const monthly = await budgetService.create({
+        agent_id: testAgentId,
+        owner_address: testOwnerAddress,
+        amount: '100',
+        token: 'USDC',
+        period: 'monthly',
+      });
+
+      const result = await budgetService.checkAvailability(testAgentId, '120', 'USDC');
+      expect(result.available).toBe(false);
+      expect(result.budget?.id).toBe(monthly.id);
+      expect(result.reason).toContain('Remaining: 100');
     });
   });
 

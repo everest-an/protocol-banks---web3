@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { withAgentAuth, type AgentRequest } from "@/lib/agent/auth"
 import { evaluatePolicy } from "@/lib/agent/policy"
-import { buildPaymentIntent, verifyPaymentAuthorization } from "@/lib/agent/pay"
+import { buildPaymentIntent, resolveChain, verifyPaymentAuthorization } from "@/lib/agent/pay"
+import { budgetService } from "@/lib/services/budget-service"
+import { appendAuditEvent } from "@/lib/audit/hash-chain"
 import {
   createAgentPayment,
   getAgentPaymentByNonce,
@@ -39,6 +41,16 @@ export const maxDuration = 60
 
 const EVM_ADDRESS = /^0x[a-fA-F0-9]{40}$/
 const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+
+/**
+ * Best-effort audit write. A payment must not fail because the audit table is
+ * temporarily unavailable; the failure is logged and the reconciler can replay.
+ */
+async function auditAgentPayment(input: Parameters<typeof appendAuditEvent>[0]) {
+  await appendAuditEvent(input).catch((error) => {
+    console.error("[agent/pay] audit write failed:", error)
+  })
+}
 
 interface AuthorizationBody {
   from?: unknown
@@ -106,7 +118,49 @@ async function handler(request: AgentRequest) {
   }
 
   const allowed = evaluatePolicy(policy, { op: "pay", notionalUsd: amountUsd, coin: token }, spent)
-  if (!allowed.ok) return NextResponse.json({ ok: false, error: allowed.reason }, { status: 403 })
+  if (!allowed.ok) {
+    await auditAgentPayment({
+      actor: wallet,
+      action: "agent.payment.blocked",
+      targetType: "agent_key",
+      targetId: request.apiKey?.id,
+      details: { reason: allowed.reason, amountUsd, token, chain },
+    })
+    return NextResponse.json({ ok: false, error: allowed.reason }, { status: 403 })
+  }
+
+  const chainRef = resolveChain(chain)
+  if (!chainRef) return NextResponse.json({ error: `unsupported chain "${chain}"` }, { status: 400 })
+
+  // Agent-scoped keys must also satisfy the agent's budget, not just the key
+  // policy. The budget is reserved before submission and refunded on failure.
+  const budgetCheck = request.agentId
+    ? await budgetService.checkAvailability(request.agentId, amountUsd.toFixed(2), token, chainRef.chainId)
+    : null
+  const requireBudget = process.env.AGENT_BUDGET_REQUIRED === "true"
+  const noBudget = Boolean(
+    request.agentId &&
+      budgetCheck &&
+      !budgetCheck.available &&
+      /No budget found/i.test(budgetCheck.reason || ""),
+  )
+  if (request.agentId && budgetCheck && !budgetCheck.available && (!noBudget || requireBudget)) {
+    await auditAgentPayment({
+      actor: wallet,
+      action: "agent.payment.budget_blocked",
+      targetType: "agent_budget",
+      targetId: budgetCheck.budget?.id,
+      details: { reason: budgetCheck.reason, amountUsd, token, chain, agentId: request.agentId },
+    })
+    return NextResponse.json(
+      { ok: false, error: budgetCheck.reason || "agent budget is not available" },
+      { status: 403 },
+    )
+  }
+  if (noBudget && !requireBudget) {
+    console.warn("[agent/pay] agent has no budget; falling back to key policy", request.agentId)
+  }
+  const budgetId = budgetCheck?.budget?.id ?? null
 
   const remaining = (amount: number) => Number(Math.max(0, policy.dailyCapUsd - spent - amount).toFixed(2))
 
@@ -221,6 +275,20 @@ async function handler(request: AgentRequest) {
       }
     }
 
+    let budgetReserved = false
+    if (budgetId) {
+      try {
+        await budgetService.deductBudget(budgetId, amountUsd.toFixed(2))
+        budgetReserved = true
+      } catch (error) {
+        console.error("[agent/pay] budget reservation failed:", error)
+        return NextResponse.json(
+          { ok: false, error: "agent budget is no longer available" },
+          { status: 409 },
+        )
+      }
+    }
+
     try {
       const txHash = await submitTransferWithAuthorization({
         chainId: checked.chainId,
@@ -242,6 +310,13 @@ async function handler(request: AgentRequest) {
       let final = submitted
       if (chainStatus === "confirmed") {
         final = await markAgentPaymentConfirmed(record.id)
+        await auditAgentPayment({
+          actor: wallet,
+          action: "agent.payment.confirmed",
+          targetType: "agent_payment",
+          targetId: final.id,
+          details: { txHash, amountUsd, token, chain, agentId: request.agentId },
+        })
         if (order) {
           await markOrderPaid(order.id, final.id).catch((error) => {
             console.warn("[agent/pay] order mark-paid failed:", error instanceof Error ? error.message : String(error))
@@ -250,7 +325,20 @@ async function handler(request: AgentRequest) {
         void webhookTriggerService.triggerPaymentCompleted(wallet, paymentEventData(final))
       } else if (chainStatus === "failed") {
         final = await markAgentPaymentFailed(record.id, "transaction reverted")
+        await auditAgentPayment({
+          actor: wallet,
+          action: "agent.payment.failed",
+          targetType: "agent_payment",
+          targetId: final.id,
+          details: { txHash, amountUsd, token, chain, reason: "transaction reverted" },
+        })
         if (order) await releaseOrderPayment(order.id, final.id).catch(() => {})
+        if (budgetReserved && budgetId) {
+          await budgetService.refundBudget(budgetId, amountUsd.toFixed(2)).catch((error) => {
+            console.error("[agent/pay] budget refund failed:", error)
+          })
+          budgetReserved = false
+        }
         void webhookTriggerService.triggerPaymentFailed(wallet, paymentEventData(final))
       }
 
@@ -282,9 +370,22 @@ async function handler(request: AgentRequest) {
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      if (budgetReserved && budgetId) {
+        await budgetService.refundBudget(budgetId, amountUsd.toFixed(2)).catch((refundError) => {
+          console.error("[agent/pay] budget refund failed:", refundError)
+        })
+        budgetReserved = false
+      }
       const failed = await markAgentPaymentFailed(record.id, message).catch(() => null)
       if (order) await releaseOrderPayment(order.id, record.id).catch(() => {})
       if (failed) {
+        await auditAgentPayment({
+          actor: wallet,
+          action: "agent.payment.failed",
+          targetType: "agent_payment",
+          targetId: failed.id,
+          details: { amountUsd, token, chain, reason: message.slice(0, 200) },
+        })
         void webhookTriggerService.triggerPaymentFailed(wallet, paymentEventData(failed))
       }
       const failedView = failed ? paymentView(failed) : null

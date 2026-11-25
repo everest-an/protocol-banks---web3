@@ -148,6 +148,16 @@ Legacy payment-era docs remain in `docs/` for the Business feature set.
 - **Per-user isolation**: `TradingAccount` / `TradeRecord` models with wallet-address scoping
 - Rate limiting, CSRF, replay protection, security headers (middleware.ts)
 
+### Agent budget enforcement
+
+- Agent-scoped keys (`agent:<id>`) now check `AgentBudget` in `POST /api/v1/agent/pay` before submission, reserve the amount, and refund it if the relayer or chain fails.
+- `AGENT_BUDGET_REQUIRED=true` blocks an agent key with no budget. It defaults to `false` for backward compatibility; set it to `true` for new deployments and the commercial pilot.
+- The production debit and refund use a single conditional PostgreSQL `UPDATE ... WHERE remaining_amount >= amount`, so concurrent payments cannot both pass the remaining-balance check.
+- Other rails (`/swap`, `/orders`, `/invoice`, `/commerce/*`) still enforce the API-key policy. Unify them onto the same mandate before a broad launch.
+- Trading (`/orders`) uses the trading account budget and risk engine, not `AgentBudget`; keep the two separate until a unified mandate ledger exists.
+- `AgentBudget` still stores decimal strings; move to integer minor units and a ledger before production. The raw SQL debit is PostgreSQL-specific and needs an integration test against a real database.
+- Integration test harness: `TEST_DATABASE_URL=postgres://... npx prisma db push && npm run test:db:budget`. Use a disposable database, never production.
+
 ## License
 
 Copyright (C) 2026 Protocol Banks Contributors.

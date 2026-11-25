@@ -1,3 +1,4 @@
+// rls:system — cron cleanup runs across tenants; authenticated by verifyCronAuth.
 import { NextRequest, NextResponse } from "next/server"
 import { verifyCronAuth } from "@/lib/cron-auth"
 import { prisma } from "@/lib/prisma"

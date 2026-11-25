@@ -479,35 +479,55 @@ export class BudgetService {
     chainId?: number
   ): Promise<BudgetAvailability> {
     const budgets = await this.list(agentId);
-    
-    // Find matching budget
-    const matchingBudget = budgets.find(b => {
+    const requestedAmount = parseFloat(amount);
+
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+      return {
+        available: false,
+        reason: 'amount must be a positive number',
+      };
+    }
+
+    const matching = budgets.filter(b => {
       const tokenMatch = b.token.toUpperCase() === token.toUpperCase();
       const chainMatch = chainId === undefined || b.chain_id === undefined || b.chain_id === chainId;
       return tokenMatch && chainMatch;
     });
 
-    if (!matchingBudget) {
+    if (!matching.length) {
       return {
         available: false,
         reason: `No budget found for token ${token}`,
       };
     }
 
-    const requestedAmount = parseFloat(amount);
-    const remainingAmount = parseFloat(matchingBudget.remaining_amount);
+    const withRemaining = matching
+      .map(b => ({ budget: b, remaining: parseFloat(b.remaining_amount) }))
+      .filter(x => Number.isFinite(x.remaining));
 
-    if (requestedAmount > remainingAmount) {
+    const covering = withRemaining.filter(x => x.remaining >= requestedAmount);
+    if (!covering.length) {
+      const best = withRemaining.sort((a, b) => b.remaining - a.remaining)[0];
       return {
         available: false,
-        budget: matchingBudget,
-        reason: `Insufficient budget. Requested: ${amount}, Remaining: ${matchingBudget.remaining_amount}`,
+        budget: best?.budget,
+        reason: `Insufficient budget. Requested: ${amount}, Remaining: ${best?.budget.remaining_amount ?? '0'}`,
       };
     }
 
+    // Deterministic, conservative selection: consume the budget that expires
+    // soonest first; among equal expiry, consume the lowest remaining balance
+    // that still covers the request. Total budgets (no period_end) go last.
+    covering.sort((a, b) => {
+      const aEnd = a.budget.period_end ? new Date(a.budget.period_end).getTime() : Number.POSITIVE_INFINITY;
+      const bEnd = b.budget.period_end ? new Date(b.budget.period_end).getTime() : Number.POSITIVE_INFINITY;
+      if (aEnd !== bEnd) return aEnd - bEnd;
+      return a.remaining - b.remaining;
+    });
+
     return {
       available: true,
-      budget: matchingBudget,
+      budget: covering[0].budget,
     };
   }
 
@@ -522,34 +542,31 @@ export class BudgetService {
 
     if (useDatabaseStorage) {
       try {
-        // Get current budget
-        const budget = await prisma.agentBudget.findUnique({
+        // Atomic conditional debit: PostgreSQL evaluates the WHERE and SET in
+        // one statement, so two concurrent payments cannot both pass the
+        // remaining-balance check. This is the production path; the in-memory
+        // branch below is for tests only.
+        const updated = await prisma.$executeRaw`
+          UPDATE "agent_budgets"
+          SET "used_amount" = (("used_amount")::numeric + ${deductAmount})::text,
+              "remaining_amount" = (("remaining_amount")::numeric - ${deductAmount})::text,
+              "updated_at" = NOW()
+          WHERE "id" = ${budgetId}
+            AND ("remaining_amount")::numeric >= ${deductAmount}
+        `;
+
+        if (updated === 0) {
+          const exists = await prisma.agentBudget.findUnique({
+            where: { id: budgetId },
+            select: { id: true },
+          });
+          throw new Error(exists ? 'Insufficient budget' : 'Budget not found');
+        }
+
+        const data = await prisma.agentBudget.findUnique({
           where: { id: budgetId }
         });
-
-        if (!budget) {
-          throw new Error('Budget not found');
-        }
-
-        const currentUsed = parseFloat(budget.used_amount);
-        const currentRemaining = parseFloat(budget.remaining_amount);
-
-        if (deductAmount > currentRemaining) {
-          throw new Error('Insufficient budget');
-        }
-
-        const newUsed = currentUsed + deductAmount;
-        const newRemaining = currentRemaining - deductAmount;
-
-        // Update budget
-        const data = await prisma.agentBudget.update({
-          where: { id: budgetId },
-          data: {
-            used_amount: newUsed.toString(),
-            remaining_amount: newRemaining.toString(),
-            updated_at: new Date(),
-          }
-        });
+        if (!data) throw new Error('Budget not found');
 
         return {
           ...data,
@@ -603,19 +620,17 @@ export class BudgetService {
     }
 
     if (useDatabaseStorage) {
-      const budget = await prisma.agentBudget.findUnique({ where: { id: budgetId } })
-      if (!budget) throw new Error('Budget not found')
+      const updated = await prisma.$executeRaw`
+        UPDATE "agent_budgets"
+        SET "used_amount" = GREATEST(0, ("used_amount")::numeric - ${refundAmount})::text,
+            "remaining_amount" = (("remaining_amount")::numeric + ${refundAmount})::text,
+            "updated_at" = NOW()
+        WHERE "id" = ${budgetId}
+      `
+      if (updated === 0) throw new Error('Budget not found')
 
-      const used = Math.max(0, parseFloat(budget.used_amount) - refundAmount)
-      const remaining = parseFloat(budget.remaining_amount) + refundAmount
-      const data = await prisma.agentBudget.update({
-        where: { id: budgetId },
-        data: {
-          used_amount: used.toString(),
-          remaining_amount: remaining.toString(),
-          updated_at: new Date(),
-        },
-      })
+      const data = await prisma.agentBudget.findUnique({ where: { id: budgetId } })
+      if (!data) throw new Error('Budget not found')
       return {
         ...data,
         period: data.period as BudgetPeriod,

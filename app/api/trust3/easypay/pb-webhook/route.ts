@@ -1,3 +1,4 @@
+// rls:system — provider callback; authenticated by HMAC signature.
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
