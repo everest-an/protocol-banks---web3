@@ -9,6 +9,7 @@ import { resolveAgentPolicy, type AgentOp, type AgentPolicy } from "@/lib/agent/
 import { clampPolicyToPlan, type PlanId } from "@/lib/billing/plans"
 import { getPlanForWallet } from "@/lib/billing/stripe"
 import { runWithWallet } from "@/lib/rls/context"
+import { appendAuditEvent } from "@/lib/audit/hash-chain"
 
 export interface AgentRequest extends AuthenticatedRequest {
   agentPolicy?: AgentPolicy
@@ -78,6 +79,23 @@ export function withAgentAuth(
       req.spentTodayUsd = await spentTodayUsd(wallet)
       if (req.apiKey?.id.startsWith("agent:")) {
         req.agentId = req.apiKey.id.slice("agent:".length)
+      }
+      if (op !== "read") {
+        await appendAuditEvent({
+          actor: wallet,
+          action: `agent.${op}.requested`,
+          targetType: "agent_key",
+          targetId: req.apiKey?.id,
+          details: {
+            op,
+            method: request.method,
+            path: request.nextUrl?.pathname ?? "",
+            agentId: req.agentId,
+            plan: req.agentPlan,
+          },
+        }).catch((error) => {
+          console.error("[agent/auth] audit write failed:", error)
+        })
       }
       return handler(req)
     })
