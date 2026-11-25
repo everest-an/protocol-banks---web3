@@ -97,7 +97,7 @@ jobs:
         run: pnpm prisma generate
 
       - name: Push schema to disposable Postgres
-        run: pnpm prisma db push --skip-generate
+        run: pnpm prisma db push
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/protocol_test
           DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/protocol_test
