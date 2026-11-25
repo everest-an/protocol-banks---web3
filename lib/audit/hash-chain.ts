@@ -107,49 +107,58 @@ export function verifyAuditChain(events: StoredAuditEvent[]): {
 }
 
 export async function appendAuditEvent(input: AuditEventInput): Promise<StoredAuditEvent> {
-  const last = await prisma.auditLog.findFirst({
-    where: { actor: input.actor },
-    orderBy: { created_at: "desc" },
-    select: { details: true },
-  })
+  return prisma.$transaction(async (tx) => {
+    // Upsert-and-lock the per-actor chain head. The no-op UPDATE takes a row
+    // lock, so concurrent appends for the same actor serialize in PostgreSQL.
+    const heads = await tx.$queryRaw`
+      INSERT INTO "audit_chain_heads" ("actor", "seq", "hash", "updated_at")
+      VALUES (${input.actor}, 0, 'genesis', NOW())
+      ON CONFLICT ("actor") DO UPDATE SET "actor" = EXCLUDED."actor"
+      RETURNING "seq", "hash"
+    ` as Array<{ seq: number; hash: string }>
 
-  const lastDetails = (last?.details ?? {}) as Record<string, unknown>
-  const prevHash = typeof lastDetails.hash === "string" ? lastDetails.hash : "genesis"
-  const seq = (typeof lastDetails.seq === "number" ? lastDetails.seq : 0) + 1
-  const at = new Date().toISOString()
-  const details = { ...(input.details ?? {}), seq, at, prevHash }
-  const hash = hashAuditEvent({
-    actor: input.actor,
-    action: input.action,
-    targetType: input.targetType,
-    targetId: input.targetId,
-    seq,
-    at,
-    prevHash,
-    details,
-  })
+    if (!heads.length) throw new Error('failed to lock audit chain head')
+    const seq = Number(heads[0].seq) + 1
+    const prevHash = heads[0].hash || 'genesis'
+    const at = new Date().toISOString()
+    const details = { ...(input.details ?? {}), seq, at, prevHash }
+    const hash = hashAuditEvent({
+      actor: input.actor,
+      action: input.action,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      seq,
+      at,
+      prevHash,
+      details,
+    })
 
-  await prisma.auditLog.create({
-    data: {
+    await tx.auditLog.create({
+      data: {
+        action: input.action,
+        actor: input.actor,
+        target_type: input.targetType ?? null,
+        target_id: input.targetId ?? null,
+        details: { ...details, hash },
+      },
+    })
+    await tx.auditChainHead.update({
+      where: { actor: input.actor },
+      data: { seq, hash },
+    })
+
+    return {
       action: input.action,
       actor: input.actor,
-      target_type: input.targetType ?? null,
-      target_id: input.targetId ?? null,
-      details: { ...details, hash },
-    },
+      targetType: input.targetType,
+      targetId: input.targetId,
+      seq,
+      at,
+      prevHash,
+      details,
+      hash,
+    }
   })
-
-  return {
-    action: input.action,
-    actor: input.actor,
-    targetType: input.targetType,
-    targetId: input.targetId,
-    seq,
-    at,
-    prevHash,
-    details,
-    hash,
-  }
 }
 
 export async function getAuditChain(actor: string, limit = 100): Promise<StoredAuditEvent[]> {
@@ -159,20 +168,24 @@ export async function getAuditChain(actor: string, limit = 100): Promise<StoredA
     take: Math.min(Math.max(limit, 1), 500),
   })
 
-  return rows.map((row) => {
-    const details = (row.details ?? {}) as Record<string, unknown>
-    return {
-      action: row.action,
-      actor: row.actor,
-      targetType: row.target_type ?? undefined,
-      targetId: row.target_id ?? undefined,
-      seq: Number(details.seq ?? 0),
-      at: String(details.at ?? row.created_at.toISOString()),
-      prevHash: String(details.prevHash ?? "genesis"),
-      details,
-      hash: String(details.hash ?? ""),
-    }
-  })
+  return rows
+    .map((row) => {
+      const details = (row.details ?? {}) as Record<string, unknown>
+      const { hash, ...eventDetails } = details
+      return {
+        action: row.action,
+        actor: row.actor,
+        targetType: row.target_type ?? undefined,
+        targetId: row.target_id ?? undefined,
+        seq: Number(details.seq ?? 0),
+        at: String(details.at ?? row.created_at.toISOString()),
+        prevHash: String(details.prevHash ?? "genesis"),
+        details: eventDetails,
+        hash: String(hash ?? ""),
+      }
+    })
+    .filter((event) => event.seq > 0 && event.hash && event.hash !== "genesis")
+    .sort((a, b) => a.seq - b.seq)
 }
 
 export async function verifyActorAuditChain(actor: string, limit = 100) {
