@@ -1,3 +1,4 @@
+// rls:system — merchant webhook; authenticated by the merchant key in the request.
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getTrust3EasypayConfig, parseParams } from "@/lib/trust3-easypay/config"

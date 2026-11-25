@@ -441,6 +441,7 @@ export async function POST(req: NextRequest) {
     void recordEvent({ name: 'strategy_applied', wallet: walletForChat, props: { preset: pending.preset } })
     const clamped = resolved.clamped.map((c) => `${c.field} ${String(c.requested)}→${String(c.applied)}`).join('，')
     const summary = formatStrategy(`${pending.preset}（已生效）`, resolved.config, clamped ? `已夹紧：${clamped}` : '')
+    await send(chatId, summary)
     const { notificationService } = await import('@/lib/services/notification-service')
     await notificationService.notifyStrategyChanged(walletForChat, summary)
     return NextResponse.json({ ok: true })

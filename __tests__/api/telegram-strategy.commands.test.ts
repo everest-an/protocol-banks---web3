@@ -10,9 +10,16 @@ jest.mock("@/lib/prisma", () => ({
       findFirst: jest.fn(),
       update: jest.fn(),
     },
+    strategyRevision: {
+      create: jest.fn().mockResolvedValue({}),
+    },
+    $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
   },
 }))
 jest.mock("@/lib/trading/agent", () => ({ invalidateAgentForWallet: jest.fn() }))
+jest.mock("@/lib/services/notification-service", () => ({
+  notificationService: { notifyStrategyChanged: jest.fn().mockResolvedValue(undefined) },
+}))
 
 import { POST } from "@/app/api/telegram/webhook/route"
 import { prisma } from "@/lib/prisma"
@@ -60,6 +67,7 @@ describe("telegram /strategy", () => {
     token: process.env.TG_TOKEN,
     chat: process.env.TG_CHAT_ID,
     wallet: process.env.TG_ACCOUNT_WALLET,
+    group: process.env.TG_GROUP_WALLET,
     secret: process.env.TG_WEBHOOK_SECRET,
   }
 
@@ -68,6 +76,7 @@ describe("telegram /strategy", () => {
     process.env.TG_TOKEN = "test-token"
     process.env.TG_CHAT_ID = OWNER_CHAT
     process.env.TG_ACCOUNT_WALLET = WALLET
+    process.env.TG_GROUP_WALLET = "0xabc0000000000000000000000000000000000002"
     delete process.env.TG_WEBHOOK_SECRET
     account.findUnique.mockResolvedValue({ risk_config: null })
     account.update.mockResolvedValue({})
@@ -81,6 +90,7 @@ describe("telegram /strategy", () => {
     restore("TG_TOKEN", saved.token)
     restore("TG_CHAT_ID", saved.chat)
     restore("TG_ACCOUNT_WALLET", saved.wallet)
+    restore("TG_GROUP_WALLET", saved.group)
     restore("TG_WEBHOOK_SECRET", saved.secret)
   })
 
