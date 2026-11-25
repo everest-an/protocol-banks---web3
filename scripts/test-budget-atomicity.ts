@@ -33,17 +33,12 @@ async function main() {
     },
   })
 
-  const budget = await prisma.agentBudget.create({
-    data: {
-      agent_id: agent.id,
-      owner_address: owner,
-      amount: "100",
-      token: "USDC",
-      period: "monthly",
-      used_amount: "0",
-      remaining_amount: "100",
-      period_start: new Date(),
-    },
+  const budget = await budgetService.create({
+    agent_id: agent.id,
+    owner_address: owner,
+    amount: "100",
+    token: "USDC",
+    period: "monthly",
   })
 
   const auditActor = `audit-${randomUUID()}`
