@@ -313,6 +313,22 @@ describe('Budget Service', () => {
       await expect(budgetService.deductBudget(budget.id, '150'))
         .rejects.toThrow('Insufficient budget');
     });
+
+    it('should refund a deduction back to remaining', async () => {
+      const budget = await budgetService.create({
+        agent_id: testAgentId,
+        owner_address: testOwnerAddress,
+        amount: '100',
+        token: 'USDC',
+        period: 'monthly',
+      });
+
+      await budgetService.deductBudget(budget.id, '40');
+      const refunded = await budgetService.refundBudget(budget.id, '15');
+
+      expect(parseFloat(refunded.used_amount)).toBeCloseTo(25, 2);
+      expect(parseFloat(refunded.remaining_amount)).toBeCloseTo(75, 2);
+    });
   });
 
   describe('Property 6: Budget Period Reset', () => {

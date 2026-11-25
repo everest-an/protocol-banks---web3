@@ -148,6 +148,13 @@ Legacy payment-era docs remain in `docs/` for the Business feature set.
 - **Per-user isolation**: `TradingAccount` / `TradeRecord` models with wallet-address scoping
 - Rate limiting, CSRF, replay protection, security headers (middleware.ts)
 
+### Agent budget enforcement
+
+- Agent-scoped keys (`agent:<id>`) now check `AgentBudget` in `POST /api/v1/agent/pay` before submission, reserve the amount, and refund it if the relayer or chain fails.
+- `AGENT_BUDGET_REQUIRED=true` blocks an agent key with no budget. It defaults to `false` for backward compatibility; set it to `true` for new deployments and the commercial pilot.
+- Other rails (`/swap`, `/orders`, `/invoice`, `/commerce/*`) still enforce the API-key policy. Unify them onto the same mandate before a broad launch.
+- `AgentBudget` currently stores decimal strings and uses a read-modify-write; move to integer minor units and an atomic ledger debit before production.
+
 ## License
 
 Copyright (C) 2026 Protocol Banks Contributors.

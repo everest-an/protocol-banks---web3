@@ -23,10 +23,10 @@ import {
   deriveKeyFromPIN,
   encryptAES,
   generateRandomBytes,
-  generateRandomHex,
   toBase64,
   fromHex,
 } from "@/lib/auth/crypto"
+import { generateRecoveryCode } from "@/lib/auth/recovery-code"
 import { splitSecret, encodeShare } from "@/lib/auth/shamir"
 
 interface SetupPINRequest {
@@ -150,19 +150,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-/**
- * Generate a human-readable recovery code (Share C)
- * Format: XXXX-XXXX-XXXX-XXXX
- */
-function generateRecoveryCode(): string {
-  const segments = []
-  for (let i = 0; i < 4; i++) {
-    const segment = Math.random().toString(36).substring(2, 6).toUpperCase()
-    segments.push(segment)
-  }
-  return segments.join("-")
 }
 
 /**

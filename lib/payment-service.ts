@@ -52,7 +52,7 @@ export class PaymentService {
    */
   static async executeBatchPayment(
     request: BatchPaymentRequest,
-    signFunction: (data: any) => Promise<string>,
+    _signFunction: (data: any) => Promise<string>,
     sendTransaction?: (tx: any) => Promise<string>,
   ): Promise<PaymentResult[]> {
     console.log("[PaymentService] Executing batch payment", {
@@ -64,50 +64,32 @@ export class PaymentService {
     const chainConfig = CHAIN_CONFIGS[request.chainId]
     const results: PaymentResult[] = []
 
-    // Check if we have real contract deployment
-    const useRealContract = chainConfig?.batchTransferAddress && sendTransaction
+    // This legacy path must never report a successful payment without a real
+    // on-chain transfer. If the contract or sender is missing, fail closed.
+    if (!chainConfig?.batchTransferAddress || !sendTransaction) {
+      throw new Error(
+        "[PaymentService] Refusing to execute: batch transfer contract or sendTransaction is not configured",
+      )
+    }
 
     for (const recipient of request.recipients) {
       try {
-        if (useRealContract) {
-          // Real blockchain execution
-          const txHash = await this.executeRealTransfer(
-            request,
-            recipient,
-            chainConfig,
-            sendTransaction,
-          )
-          results.push({
-            success: true,
-            txHash,
-            recipient: recipient.address,
-          })
-        } else {
-          // Fallback: Sign EIP-3009 authorization (for demo/testing)
-          const authorization = {
-            from: request.from,
-            to: recipient.address,
-            value: recipient.amount,
-            validAfter: Math.floor(Date.now() / 1000),
-            validBefore: Math.floor(Date.now() / 1000) + 3600,
-            nonce: crypto.randomUUID(),
-          }
-
-          await signFunction(authorization)
-
-          // Demo mode: simulate success with mock tx hash
-          console.warn("[PaymentService] Using mock execution - configure contract for real transfers")
-          results.push({
-            success: true,
-            txHash: `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-            recipient: recipient.address,
-          })
-        }
+        const txHash = await this.executeRealTransfer(
+          request,
+          recipient,
+          chainConfig,
+          sendTransaction,
+        )
+        results.push({
+          success: true,
+          txHash,
+          recipient: recipient.address,
+        })
 
         console.log("[PaymentService] Payment successful", {
           to: recipient.address,
           amount: recipient.amount,
-          real: useRealContract,
+          real: true,
         })
       } catch (error) {
         console.error("[PaymentService] Payment failed", error)
