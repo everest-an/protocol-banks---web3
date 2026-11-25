@@ -905,14 +905,35 @@ model AgentBudget {
   period           String
   used_amount      String    @default("0")
   remaining_amount String
+  // Integer minor units (6 decimals for USDC/USDT). Source of truth for
+  // balances; the string columns above are display/compatibility caches.
+  amount_units     BigInt    @default(0)
+  used_units       BigInt    @default(0)
+  balance_units    BigInt    @default(0)
   period_start     DateTime
   period_end       DateTime?
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
 
-  agent Agent @relation(fields: [agent_id], references: [id])
+  agent  Agent               @relation(fields: [agent_id], references: [id])
+  ledger AgentBudgetLedger[]
 
   @@map("agent_budgets")
+}
+
+model AgentBudgetLedger {
+  id                  String      @id @default(uuid())
+  budget_id           String
+  type                String      // genesis | debit | refund | reset
+  amount_units        BigInt
+  balance_after_units BigInt
+  reference           String?
+  created_at          DateTime    @default(now())
+
+  budget AgentBudget @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+
+  @@index([budget_id, created_at])
+  @@map("agent_budget_ledger")
 }
 
 model AgentActivity {
@@ -1264,6 +1285,15 @@ model AuditLog {
   @@index([action])
   @@index([created_at])
   @@map("audit_logs")
+}
+
+model AuditChainHead {
+  actor      String   @id
+  seq        Int      @default(0)
+  hash       String   @default("genesis")
+  updated_at DateTime @updatedAt
+
+  @@map("audit_chain_heads")
 }
 
 model SecurityAlert {

@@ -46,6 +46,8 @@ async function main() {
     },
   })
 
+  const auditActor = `audit-${randomUUID()}`
+
   try {
     const results = await Promise.allSettled([
       budgetService.deductBudget(budget.id, "80"),
@@ -71,7 +73,27 @@ async function main() {
     assert.equal(Number(afterRefund?.remaining_amount), 50)
 
     console.log("OK: one debit won, one was rejected, refund restored the balance")
+
+    const { appendAuditEvent, verifyActorAuditChain } = await import("@/lib/audit/hash-chain")
+    const first = await appendAuditEvent({
+      actor: auditActor,
+      action: "integration.one",
+      details: { n: 1 },
+    })
+    const second = await appendAuditEvent({
+      actor: auditActor,
+      action: "integration.two",
+      details: { n: 2 },
+    })
+    assert.equal(first.seq, 1)
+    assert.equal(second.seq, 2)
+    assert.equal(second.prevHash, first.hash)
+    const verified = await verifyActorAuditChain(auditActor)
+    assert.equal(verified.valid, true)
+    console.log("OK: audit chain serialized and verified")
   } finally {
+    await prisma.auditLog.deleteMany({ where: { actor: auditActor } }).catch(() => {})
+    await prisma.auditChainHead.delete({ where: { actor: auditActor } }).catch(() => {})
     await prisma.agentBudget.delete({ where: { id: budget.id } }).catch(() => {})
     await prisma.agent.delete({ where: { id: agent.id } }).catch(() => {})
     await prisma.$disconnect()

@@ -150,13 +150,13 @@ Legacy payment-era docs remain in `docs/` for the Business feature set.
 
 ### Agent budget enforcement
 
-- Agent-scoped keys (`agent:<id>`) now check `AgentBudget` in `POST /api/v1/agent/pay` before submission, reserve the amount, and refund it if the relayer or chain fails.
+- Agent-scoped keys (`agent:<id>`) check `AgentBudget` in `POST /api/v1/agent/pay` before submission, reserve the amount, and refund it if the relayer or chain fails.
 - `AGENT_BUDGET_REQUIRED=true` blocks an agent key with no budget. It defaults to `false` for backward compatibility; set it to `true` for new deployments and the commercial pilot.
-- The production debit and refund use a single conditional PostgreSQL `UPDATE ... WHERE remaining_amount >= amount`, so concurrent payments cannot both pass the remaining-balance check.
-- Other rails (`/swap`, `/orders`, `/invoice`, `/commerce/*`) still enforce the API-key policy. Unify them onto the same mandate before a broad launch.
-- Trading (`/orders`) uses the trading account budget and risk engine, not `AgentBudget`; keep the two separate until a unified mandate ledger exists.
-- `AgentBudget` still stores decimal strings; move to integer minor units and a ledger before production. The raw SQL debit is PostgreSQL-specific and needs an integration test against a real database.
-- Integration test harness: `TEST_DATABASE_URL=postgres://... npx prisma db push && npm run test:db:budget`. Use a disposable database, never production.
+- `AgentBudget` now stores **6-decimal integer minor units** (`amount_units`, `used_units`, `balance_units`) and writes an `agent_budget_ledger` row for every genesis/debit/refund. The string columns are display caches.
+- The production debit and refund use a single conditional PostgreSQL `UPDATE ... WHERE balance_units >= amount` inside a transaction, so concurrent payments cannot both pass the balance check.
+- The audit chain uses an `audit_chain_heads` row per actor; append upserts and locks that row, then writes the `AuditLog` event, so sequence numbers cannot fork under concurrency.
+- Rail semantics are documented in `docs/MANDATE_SEMANTICS.md`: payments/LLM use `AgentBudget`; trading uses the trading budget/risk engine; swap is quote-only; invoice is a payment request.
+- Integration harness: `TEST_DATABASE_URL=postgres://... npx prisma db push && pnpm test:db:budget`. It tests two concurrent debits, refund, and a serialized audit chain. Use a disposable database, never production.
 
 ## License
 
